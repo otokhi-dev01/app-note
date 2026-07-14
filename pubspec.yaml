@@ -1,0 +1,43 @@
+name: notes
+description: "A new Flutter project."
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_launcher_icons: "^0.14.4"
+  cupertino_icons: ^1.0.8
+  get: ^4.6.5
+  shared_preferences: ^2.1.1
+  flutter_slidable: ^3.1.2
+  sqflite: ^2.4.1
+  path: ^1.9.1
+  intl: ^0.20.3
+  image_picker: ^1.1.2
+  path_provider: ^2.1.4
+  screenshot: ^3.0.0
+  flutter_colorpicker: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/notes.jpg"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/notes.jpg
