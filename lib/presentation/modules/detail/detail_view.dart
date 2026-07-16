@@ -21,36 +21,46 @@ class DetailView extends GetView<DetailController> {
         backgroundColor: style.background,
         elevation: 0,
         leading: IconButton(
-          icon:  Icon(CupertinoIcons.back, color: HomeStyle.orange),
+          icon: Icon(CupertinoIcons.back, color: HomeStyle.orange),
           onPressed: () => Get.back(),
         ),
         title: Text(
           AppStrings.noteDetails,
-          style: TextStyle(color: style.primaryText, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: style.primaryText,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
           IconButton(
             onPressed: () => _showAttachmentOptions(context),
-            icon:  Icon(CupertinoIcons.camera, color: HomeStyle.orange),
+            icon: Icon(CupertinoIcons.camera, color: HomeStyle.orange),
           ),
-          Obx(() => IconButton(
-                onPressed: controller.togglePin,
-                icon: Icon(
-                  controller.note.value?.isPinned == true ? CupertinoIcons.pin_fill : CupertinoIcons.pin,
-                  color: HomeStyle.orange,
-                ),
-              )),
+          Obx(
+            () => IconButton(
+              onPressed: controller.togglePin,
+              icon: Icon(
+                controller.note.value?.isPinned == true
+                    ? CupertinoIcons.pin_fill
+                    : CupertinoIcons.pin,
+                color: HomeStyle.orange,
+              ),
+            ),
+          ),
           IconButton(
             onPressed: controller.moveNote,
             icon: const Icon(CupertinoIcons.folder, color: HomeStyle.orange),
           ),
           IconButton(
             onPressed: controller.edit,
-            icon: const Icon(CupertinoIcons.pencil_circle, color: HomeStyle.orange),
+            icon: const Icon(
+              CupertinoIcons.pencil_circle,
+              color: HomeStyle.orange,
+            ),
           ),
           IconButton(
             onPressed: controller.delete,
-            icon:  Icon(CupertinoIcons.trash, color: HomeStyle.red),
+            icon: Icon(CupertinoIcons.trash, color: HomeStyle.red),
           ),
         ],
       ),
@@ -61,9 +71,29 @@ class DetailView extends GetView<DetailController> {
         final error = controller.errorMessage.value;
         if (error != null) {
           return Center(
-            child: Text(
-              error,
-              style: TextStyle(color: style.secondaryText),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.exclamationmark_triangle,
+                    color: style.secondaryText,
+                    size: 36,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: style.secondaryText),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    onPressed: controller.loadNote,
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -107,11 +137,18 @@ class DetailView extends GetView<DetailController> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(CupertinoIcons.clock, size: 14, color: style.secondaryText),
+                      Icon(
+                        CupertinoIcons.clock,
+                        size: 14,
+                        color: style.secondaryText,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'Updated ${DateFormatter.format(note.updatedAt)}',
-                        style: TextStyle(color: style.secondaryText, fontSize: 13),
+                        style: TextStyle(
+                          color: style.secondaryText,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
@@ -127,7 +164,11 @@ class DetailView extends GetView<DetailController> {
                     const SizedBox(height: 32),
                     Row(
                       children: [
-                        const Icon(CupertinoIcons.paperclip, size: 18, color: HomeStyle.blue),
+                        const Icon(
+                          CupertinoIcons.paperclip,
+                          size: 18,
+                          color: HomeStyle.blue,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Attachments',
@@ -151,7 +192,8 @@ class DetailView extends GetView<DetailController> {
                             child: Stack(
                               children: [
                                 GestureDetector(
-                                  onTap: () => controller.editImage(path, index),
+                                  onTap: () =>
+                                      controller.editImage(path, index),
                                   child: Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(20),
@@ -164,7 +206,12 @@ class DetailView extends GetView<DetailController> {
                                         ),
                                       ],
                                     ),
-                                    child: ImageHelper.buildSafeImage(path, width: 200, height: 220, radius: 20),
+                                    child: ImageHelper.buildSafeImage(
+                                      path,
+                                      width: 200,
+                                      height: 220,
+                                      radius: 20,
+                                    ),
                                   ),
                                 ),
                                 Positioned(
@@ -175,7 +222,9 @@ class DetailView extends GetView<DetailController> {
                                     child: Container(
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
-                                        color: style.surface.withValues(alpha: 0.8),
+                                        color: style.surface.withValues(
+                                          alpha: 0.8,
+                                        ),
                                         shape: BoxShape.circle,
                                         border: Border.all(color: style.border),
                                       ),
@@ -192,20 +241,34 @@ class DetailView extends GetView<DetailController> {
                                   left: 12,
                                   right: 12,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.5),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.5,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Row(
                                       mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Icon(CupertinoIcons.pencil, color: Colors.white, size: 14),
+                                        Icon(
+                                          CupertinoIcons.pencil,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
                                         SizedBox(width: 6),
                                         Text(
                                           'Tap to edit',
-                                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -232,7 +295,9 @@ class DetailView extends GetView<DetailController> {
       context: context,
       builder: (BuildContext context) => CupertinoActionSheet(
         title: const Text('Add Attachment'),
-        message: const Text('Take a photo or choose from your library to add it to your note.'),
+        message: const Text(
+          'Take a photo or choose from your library to add it to your note.',
+        ),
         actions: [
           CupertinoActionSheetAction(
             child: const Text('Camera'),

@@ -206,6 +206,59 @@ class EditorController extends GetxController {
     HapticFeedback.lightImpact();
   }
 
+  void applyInlineFormat(String prefix, String suffix) {
+    final text = contentController.text;
+    final selection = _safeSelection();
+    final selected = text.substring(selection.start, selection.end);
+    final replacement = '$prefix$selected$suffix';
+    contentController.text = text.replaceRange(
+      selection.start,
+      selection.end,
+      replacement,
+    );
+    contentController.selection = TextSelection(
+      baseOffset: selection.start + prefix.length,
+      extentOffset: selection.start + prefix.length + selected.length,
+    );
+    HapticFeedback.selectionClick();
+  }
+
+  void applyLineFormat(String prefix) {
+    final text = contentController.text;
+    final selection = _safeSelection();
+    final lineStart = selection.start == 0
+        ? 0
+        : text.lastIndexOf('\n', selection.start - 1) + 1;
+    contentController.text = text.replaceRange(lineStart, lineStart, prefix);
+    contentController.selection = TextSelection.collapsed(
+      offset: selection.end + prefix.length,
+    );
+    HapticFeedback.selectionClick();
+  }
+
+  void insertTable() {
+    const table =
+        '| Category | Task | Status |\n'
+        '| --- | --- | --- |\n'
+        '| Personal | Morning run | Completed |\n'
+        '| Work | Project review | Pending |\n';
+    final text = contentController.text;
+    final selection = _safeSelection();
+    final prefix = selection.start > 0 && text[selection.start - 1] != '\n'
+        ? '\n\n'
+        : '';
+    final value = '$prefix$table';
+    contentController.text = text.replaceRange(
+      selection.start,
+      selection.end,
+      value,
+    );
+    contentController.selection = TextSelection.collapsed(
+      offset: selection.start + value.length,
+    );
+    HapticFeedback.mediumImpact();
+  }
+
   TextSelection _safeSelection() {
     final selection = contentController.selection;
     if (!selection.isValid ||

@@ -4,7 +4,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DatabaseService {
   static const _databaseName = 'clean_notes.db';
-  static const _databaseVersion = 6;
+  static const _databaseVersion = 7;
   static const notesTable = 'notes';
   static const foldersTable = 'folders';
   static const _metadataTable = 'app_metadata';
@@ -96,6 +96,15 @@ class DatabaseService {
       await db.execute('ALTER TABLE $notesTable ADD COLUMN owner_id TEXT');
       await db.execute('ALTER TABLE $foldersTable ADD COLUMN owner_id TEXT');
       await _createOwnershipInfrastructure(db);
+    }
+    if (oldVersion < 7) {
+      // Versions through 6 only created notes locally, using SQLite's
+      // positive autoincrement IDs. API notes also use positive IDs, so move
+      // legacy local rows into a separate negative namespace before the
+      // first remote cache refresh can overwrite a same-numbered local note.
+      // No table has a foreign key to notes.id, so the primary keys can be
+      // remapped in place without rebuilding related data.
+      await db.execute('UPDATE $notesTable SET id = -id WHERE id > 0');
     }
   }
 
@@ -212,6 +221,42 @@ class DatabaseService {
     return db.insert(foldersTable, values);
   }
 
+  Future<void> cacheRemoteFolders(
+    List<Map<String, Object?>> folders, {
+    required String ownerId,
+  }) async {
+    if (folders.isEmpty) return;
+    final owner = _normalizeOwnerId(ownerId);
+    final db = await _databaseForOwner(owner);
+    await db.transaction((transaction) async {
+      for (final folder in folders) {
+        final id = folder['id'];
+        if (id is! int) continue;
+        final values = Map<String, Object?>.from(folder)
+          ..['id'] = id
+          ..['owner_id'] = owner;
+        final existing = await transaction.query(
+          foldersTable,
+          columns: const ['id'],
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [id, owner],
+          limit: 1,
+        );
+        if (existing.isEmpty) {
+          await transaction.insert(foldersTable, values);
+        } else {
+          values.remove('id');
+          await transaction.update(
+            foldersTable,
+            values,
+            where: 'id = ? AND owner_id = ?',
+            whereArgs: [id, owner],
+          );
+        }
+      }
+    });
+  }
+
   Future<int> updateFolder(
     int id,
     String name, {
@@ -286,12 +331,15 @@ class DatabaseService {
   Future<Map<String, Object?>?> getNoteById(
     int id, {
     required String ownerId,
+    bool includeDeleted = false,
   }) async {
     final owner = _normalizeOwnerId(ownerId);
     final db = await _databaseForOwner(owner);
     final rows = await db.query(
       notesTable,
-      where: 'id = ? AND owner_id = ? AND is_deleted = 0',
+      where: includeDeleted
+          ? 'id = ? AND owner_id = ?'
+          : 'id = ? AND owner_id = ? AND is_deleted = 0',
       whereArgs: [id, owner],
       limit: 1,
     );
@@ -299,13 +347,106 @@ class DatabaseService {
     return rows.isEmpty ? null : rows.first;
   }
 
+  Future<void> cacheRemoteNotes(
+    List<NoteModel> notes, {
+    required String ownerId,
+    bool replaceRemote = false,
+    bool includeDeleted = false,
+  }) async {
+    final owner = _normalizeOwnerId(ownerId);
+    final db = await _databaseForOwner(owner);
+    await db.transaction((transaction) async {
+      final remoteIds = <int>{};
+      for (final note in notes) {
+        // Server resources use positive identifiers. Never allow a malformed
+        // remote response to enter the negative local-only namespace.
+        if (note.id == null || note.id! <= 0) continue;
+        remoteIds.add(note.id!);
+        var values = note.toMap()..['owner_id'] = owner;
+        final folderId = note.folderId;
+        if (folderId != null) {
+          final folder = await transaction.query(
+            foldersTable,
+            columns: const ['id'],
+            where: 'id = ? AND owner_id = ?',
+            whereArgs: [folderId, owner],
+            limit: 1,
+          );
+          if (folder.isEmpty) {
+            values = Map<String, Object?>.from(values)..['folder_id'] = null;
+          }
+        }
+        final existing = await transaction.query(
+          notesTable,
+          columns: const ['id', 'image_paths'],
+          where: 'id = ? AND owner_id = ?',
+          whereArgs: [note.id, owner],
+          limit: 1,
+        );
+        if (existing.isNotEmpty) {
+          final cachedPaths = _decodeImagePaths(
+            existing.first['image_paths'] as String?,
+          );
+          final localPaths = cachedPaths.where((path) => !_isNetworkPath(path));
+          final mergedPaths = <String>{...note.imagePaths, ...localPaths};
+          values['image_paths'] = mergedPaths.join('|');
+        }
+        if (existing.isEmpty) {
+          await transaction.insert(notesTable, values);
+        } else {
+          values.remove('id');
+          await transaction.update(
+            notesTable,
+            values,
+            where: 'id = ? AND owner_id = ?',
+            whereArgs: [note.id, owner],
+          );
+        }
+      }
+
+      if (replaceRemote) {
+        final where = StringBuffer('owner_id = ? AND id > 0');
+        final whereArgs = <Object?>[owner];
+        if (!includeDeleted) where.write(' AND is_deleted = 0');
+        if (remoteIds.isNotEmpty) {
+          where.write(
+            ' AND id NOT IN (${List.filled(remoteIds.length, '?').join(',')})',
+          );
+          whereArgs.addAll(remoteIds);
+        }
+        await transaction.delete(
+          notesTable,
+          where: where.toString(),
+          whereArgs: whereArgs,
+        );
+      }
+    });
+  }
+
+  List<String> _decodeImagePaths(String? value) {
+    if (value == null || value.isEmpty) return const [];
+    return value.split('|').where((path) => path.isNotEmpty).toList();
+  }
+
+  bool _isNetworkPath(String path) {
+    final uri = Uri.tryParse(path.trim());
+    return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
   Future<int> insertNote(NoteModel note, {required String ownerId}) async {
     final owner = _normalizeOwnerId(ownerId);
     final db = await _databaseForOwner(owner);
     return db.transaction((transaction) async {
       await _ensureFolderOwned(transaction, note.folderId, owner);
+      final minimumRows = await transaction.rawQuery(
+        'SELECT MIN(id) AS minimum_id FROM $notesTable WHERE id < 0',
+      );
+      final minimumId = minimumRows.first['minimum_id'] as int?;
+      final localId = (minimumId ?? 0) - 1;
       final values = note.toMap()
-        ..remove('id')
+        // Local-only notes use negative IDs. Positive IDs are reserved for
+        // the server and are inserted only by cacheRemoteNotes.
+        ..['id'] = localId
         ..['owner_id'] = owner;
       return transaction.insert(notesTable, values);
     });

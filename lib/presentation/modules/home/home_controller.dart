@@ -33,6 +33,7 @@ class HomeController extends GetxController {
   // Observable states
   final notes = <Note>[].obs;
   final folders = <Folder>[].obs;
+  final recentlyDeletedFolders = <Folder>[].obs;
   final trashNotes = <Note>[].obs;
   final pinnedNotes = <Note>[].obs;
   final filteredNotes = <Note>[].obs;
@@ -50,6 +51,10 @@ class HomeController extends GetxController {
   final isTagsSectionExpanded = true.obs;
   final isLoading = false.obs;
   final errorMessage = RxnString();
+  final isFolderSyncing = false.obs;
+  final selectedTab = 1.obs;
+  final selectedCalendarDay = DateTime.now().day.obs;
+  final searchFieldController = TextEditingController();
 
   late final String _recentSearchesKey;
 
@@ -98,12 +103,14 @@ class HomeController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = null;
+      // Cache folders first so notes returned by the API retain valid folder
+      // relationships when they are written to the local cache.
+      final allFolders = await _repository.getFolders();
+      folders.assignAll(allFolders);
       final activeNotes = await _getNotesUseCase();
       final deletedNotes = await _repository.getRecentlyDeleted();
-      final allFolders = await _repository.getFolders();
       notes.assignAll(activeNotes);
       trashNotes.assignAll(deletedNotes);
-      folders.assignAll(allFolders);
       if (isSearching.value) {
         final token = activeSearchToken.value;
         if (token != null) {
@@ -115,9 +122,22 @@ class HomeController extends GetxController {
         _applyFilter();
       }
     } catch (error) {
-      errorMessage.value = 'Failed to load notes. Please try again.';
+      errorMessage.value = 'Failed to sync notes. ${_readableError(error)}';
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> syncFolders() async {
+    if (isFolderSyncing.value) return;
+    try {
+      isFolderSyncing.value = true;
+      final remoteAndCachedFolders = await _repository.getFolders();
+      folders.assignAll(remoteAndCachedFolders);
+    } catch (error) {
+      _showStatusSnackbar('Folder Sync', error.toString(), isDestructive: true);
+    } finally {
+      isFolderSyncing.value = false;
     }
   }
 
@@ -135,10 +155,6 @@ class HomeController extends GetxController {
   }
 
   Future<void> togglePin(Note note) async {
-    // In Clean Architecture, we should ideally use a usecase that handles the mapping
-    // But for brevity, I'll update the note entity (or a copy of it)
-    // Entities should ideally be immutable and updated via repository
-    // Note: Since I'm refactoring, I'll keep the logic simple
     final updatedNote = Note(
       id: note.id,
       title: note.title,
@@ -152,9 +168,13 @@ class HomeController extends GetxController {
       isPinned: !note.isPinned,
       isLocked: note.isLocked,
     );
-    await _updateNoteUseCase(updatedNote);
-    await loadNotes();
-    HapticFeedback.mediumImpact();
+    try {
+      await _updateNoteUseCase(updatedNote);
+      await loadNotes();
+      HapticFeedback.mediumImpact();
+    } catch (error) {
+      _showNoteError('Pin Update Failed', error);
+    }
   }
 
   void selectFolder(Folder? folder) {
@@ -163,7 +183,35 @@ class HomeController extends GetxController {
     isFolderView.value = false;
     isSearching.value = false;
     isTrashView.value = false;
+    selectedTab.value = 0;
     _applyFilter();
+  }
+
+  void selectTab(int index) {
+    if (index < 0 || index > 3) return;
+    HapticFeedback.selectionClick();
+    selectedTab.value = index;
+    isTrashView.value = false;
+    isEditing.value = false;
+
+    if (index == 0) {
+      isFolderView.value = false;
+      isSearching.value = false;
+      selectedFolder.value = null;
+      _applyFilter();
+    } else if (index == 1) {
+      isFolderView.value = true;
+      isSearching.value = false;
+    } else if (index == 2) {
+      isFolderView.value = false;
+      isSearching.value = true;
+      if (searchQuery.value.isEmpty && activeSearchToken.value == null) {
+        filteredNotes.assignAll(notes);
+      }
+    } else {
+      isFolderView.value = false;
+      isSearching.value = false;
+    }
   }
 
   void toggleEdit() {
@@ -187,6 +235,7 @@ class HomeController extends GetxController {
     isSearching.value = false;
     isEditing.value = false;
     isTrashView.value = false;
+    selectedTab.value = 1;
   }
 
   void showTrash() {
@@ -194,10 +243,12 @@ class HomeController extends GetxController {
     isFolderView.value = false;
     isSearching.value = false;
     isEditing.value = false;
+    selectedTab.value = 1;
   }
 
   void startSearch() {
     isSearching.value = true;
+    selectedTab.value = 2;
     // When starting search from a folder, we search globally
     filteredNotes.assignAll(notes);
   }
@@ -206,11 +257,18 @@ class HomeController extends GetxController {
     isSearching.value = false;
     searchQuery.value = '';
     activeSearchToken.value = null;
+    searchFieldController.clear();
     _applyFilter();
   }
 
   void search(String query) {
     searchQuery.value = query;
+    if (searchFieldController.text != query) {
+      searchFieldController.value = TextEditingValue(
+        text: query,
+        selection: TextSelection.collapsed(offset: query.length),
+      );
+    }
     final keyword = query.trim().toLowerCase();
     if (keyword.isEmpty) {
       // Show all active notes when query is empty but searching (Suggested view)
@@ -236,6 +294,7 @@ class HomeController extends GetxController {
 
   void searchByFilter(String type) {
     isSearching.value = true;
+    selectedTab.value = 2;
     switch (type) {
       case 'attachments':
         filteredNotes.assignAll(notes.where((n) => n.imagePaths.isNotEmpty));
@@ -286,6 +345,26 @@ class HomeController extends GetxController {
     }
   }
 
+  void searchCategory(String category) {
+    activeSearchToken.value = category;
+    selectedTab.value = 2;
+    isSearching.value = true;
+    final keyword = category.toLowerCase();
+    final patterns = switch (keyword) {
+      'receipts' => ['receipt', 'invoice', 'total', 'purchase'],
+      'travel' => ['travel', 'trip', 'flight', 'hotel'],
+      'work' => ['work', 'project', 'meeting', 'client'],
+      'personal' => ['personal', 'home', 'family', 'journal'],
+      _ => [keyword],
+    };
+    filteredNotes.assignAll(
+      notes.where((note) {
+        final haystack = '${note.title} ${note.content}'.toLowerCase();
+        return patterns.any(haystack.contains);
+      }),
+    );
+  }
+
   void removeSearchToken() {
     activeSearchToken.value = null;
     search(searchQuery.value);
@@ -307,8 +386,20 @@ class HomeController extends GetxController {
       fullscreenDialog: true,
     );
     if (res != null) {
-      await _repository.createFolder(res);
-      await loadNotes();
+      try {
+        isFolderSyncing.value = true;
+        await _repository.createFolder(res);
+        await loadNotes();
+        _showStatusSnackbar('Folder Saved', '“$res” is ready.');
+      } catch (error) {
+        _showStatusSnackbar(
+          'Folder Save Failed',
+          error.toString(),
+          isDestructive: true,
+        );
+      } finally {
+        isFolderSyncing.value = false;
+      }
     }
   }
 
@@ -321,6 +412,12 @@ class HomeController extends GetxController {
   void goToSettings() {
     HapticFeedback.lightImpact();
     Get.toNamed(AppRoutes.settings);
+  }
+
+  @override
+  void onClose() {
+    searchFieldController.dispose();
+    super.onClose();
   }
 
   Future<void> deleteNote(Note note) async {
@@ -339,9 +436,13 @@ class HomeController extends GetxController {
       isPinned: note.isPinned,
       isLocked: note.isLocked,
     );
-    await _updateNoteUseCase(deletedNote);
-    await loadNotes();
-    _showStatusSnackbar('Moved to Trash', 'Note moved to Recently Deleted.');
+    try {
+      await _updateNoteUseCase(deletedNote);
+      await loadNotes();
+      _showStatusSnackbar('Moved to Trash', 'Note moved to Recently Deleted.');
+    } catch (error) {
+      _showNoteError('Delete Failed', error);
+    }
   }
 
   Future<void> restoreNote(Note note) async {
@@ -360,22 +461,60 @@ class HomeController extends GetxController {
       isPinned: note.isPinned,
       isLocked: note.isLocked,
     );
-    await _updateNoteUseCase(restoredNote);
-    await loadNotes();
-    _showStatusSnackbar('Restored', 'Note restored successfully.');
+    try {
+      await _updateNoteUseCase(restoredNote);
+      await loadNotes();
+      _showStatusSnackbar('Restored', 'Note restored successfully.');
+    } catch (error) {
+      _showNoteError('Restore Failed', error);
+    }
+  }
+
+  Future<void> restoreAllNotes() async {
+    if (trashNotes.isEmpty) return;
+    HapticFeedback.mediumImpact();
+    final now = DateTime.now();
+    try {
+      for (final note in trashNotes.toList(growable: false)) {
+        if (note.id == null) continue;
+        await _updateNoteUseCase(
+          Note(
+            id: note.id,
+            title: note.title,
+            content: note.content,
+            createdAt: note.createdAt,
+            updatedAt: now,
+            isDeleted: false,
+            deletedAt: null,
+            imagePaths: note.imagePaths,
+            folderId: note.folderId,
+            isPinned: note.isPinned,
+            isLocked: note.isLocked,
+          ),
+        );
+      }
+      await loadNotes();
+      _showStatusSnackbar('Recovered', 'All deleted notes were restored.');
+    } catch (error) {
+      _showNoteError('Restore Failed', error);
+    }
   }
 
   Future<void> permanentlyDeleteNote(Note note) async {
     if (note.id == null) return;
     HapticFeedback.heavyImpact();
-    await _deleteNoteUseCase(note.id!);
-    await _deleteAttachmentFiles(note.imagePaths);
-    await loadNotes();
-    _showStatusSnackbar(
-      'Deleted',
-      'Note permanently deleted.',
-      isDestructive: true,
-    );
+    try {
+      await _deleteNoteUseCase(note.id!);
+      await _deleteAttachmentFiles(note.imagePaths);
+      await loadNotes();
+      _showStatusSnackbar(
+        'Deleted',
+        'Note permanently deleted.',
+        isDestructive: true,
+      );
+    } catch (error) {
+      _showNoteError('Delete Failed', error);
+    }
   }
 
   Future<void> clearTrash() async {
@@ -395,18 +534,22 @@ class HomeController extends GetxController {
             isDestructiveAction: true,
             onPressed: () async {
               Get.back();
-              for (var note in trashNotes) {
-                if (note.id != null) {
-                  await _deleteNoteUseCase(note.id!);
-                  await _deleteAttachmentFiles(note.imagePaths);
+              try {
+                for (var note in trashNotes) {
+                  if (note.id != null) {
+                    await _deleteNoteUseCase(note.id!);
+                    await _deleteAttachmentFiles(note.imagePaths);
+                  }
                 }
+                await loadNotes();
+                _showStatusSnackbar(
+                  'Trash Emptied',
+                  'All deleted notes removed.',
+                  isDestructive: true,
+                );
+              } catch (error) {
+                _showNoteError('Empty Trash Failed', error);
               }
-              await loadNotes();
-              _showStatusSnackbar(
-                'Trash Emptied',
-                'All deleted notes removed.',
-                isDestructive: true,
-              );
             },
             child: Text('Empty Trash'),
           ),
@@ -442,14 +585,18 @@ class HomeController extends GetxController {
       MoveNoteSheet(
         note: NoteModel.fromEntity(note),
         onMove: (folderId) async {
-          final noteModel = NoteModel.fromEntity(note);
-          final updatedNote = noteModel.copyWith(
-            folderId: folderId,
-            updatedAt: DateTime.now(),
-          );
-          await _updateNoteUseCase(updatedNote);
-          await loadNotes();
-          _showStatusSnackbar('Moved', 'Note moved successfully.');
+          try {
+            final noteModel = NoteModel.fromEntity(note);
+            final updatedNote = noteModel.copyWith(
+              folderId: folderId,
+              updatedAt: DateTime.now(),
+            );
+            await _updateNoteUseCase(updatedNote);
+            await loadNotes();
+            _showStatusSnackbar('Moved', 'Note moved successfully.');
+          } catch (error) {
+            _showNoteError('Move Failed', error);
+          }
         },
       ),
       isScrollControlled: true,
@@ -480,8 +627,24 @@ class HomeController extends GetxController {
             isDestructiveAction: true,
             onPressed: () async {
               Get.back();
-              await _repository.deleteFolder(folder.id!);
-              await loadNotes();
+              try {
+                isFolderSyncing.value = true;
+                await _repository.deleteFolder(folder.id!);
+                recentlyDeletedFolders.removeWhere(
+                  (item) => item.id == folder.id,
+                );
+                recentlyDeletedFolders.insert(0, folder);
+                await loadNotes();
+                _showFolderDeletedSnackbar(folder);
+              } catch (error) {
+                _showStatusSnackbar(
+                  'Delete Failed',
+                  error.toString(),
+                  isDestructive: true,
+                );
+              } finally {
+                isFolderSyncing.value = false;
+              }
             },
             child: Text('Delete'),
           ),
@@ -514,14 +677,67 @@ class HomeController extends GetxController {
             onPressed: () async {
               final newName = textController.text.trim();
               if (newName.isNotEmpty && newName != folder.name) {
-                await _repository.renameFolder(folder.id!, newName);
-                await loadNotes();
+                try {
+                  isFolderSyncing.value = true;
+                  await _repository.renameFolder(folder.id!, newName);
+                  await loadNotes();
+                  _showStatusSnackbar(
+                    'Folder Updated',
+                    'Folder renamed to “$newName”.',
+                  );
+                } catch (error) {
+                  _showStatusSnackbar(
+                    'Rename Failed',
+                    error.toString(),
+                    isDestructive: true,
+                  );
+                } finally {
+                  isFolderSyncing.value = false;
+                }
               }
               Get.back();
             },
             child: Text('Save'),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> restoreFolder(Folder folder) async {
+    if (folder.id == null || isFolderSyncing.value) return;
+    try {
+      isFolderSyncing.value = true;
+      await _repository.restoreFolder(folder.id!);
+      recentlyDeletedFolders.removeWhere((item) => item.id == folder.id);
+      await loadNotes();
+      _showStatusSnackbar('Folder Restored', '“${folder.name}” was restored.');
+    } catch (error) {
+      _showStatusSnackbar(
+        'Restore Failed',
+        error.toString(),
+        isDestructive: true,
+      );
+    } finally {
+      isFolderSyncing.value = false;
+    }
+  }
+
+  void _showFolderDeletedSnackbar(Folder folder) {
+    Get.snackbar(
+      'Folder Deleted',
+      '“${folder.name}” can be restored.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Get.theme.colorScheme.surface,
+      colorText: Get.theme.colorScheme.onSurface,
+      margin: const EdgeInsets.all(15),
+      borderRadius: 15,
+      mainButton: TextButton(
+        onPressed: () {
+          Get.closeCurrentSnackbar();
+          restoreFolder(folder);
+        },
+        child: const Text('Restore'),
       ),
     );
   }
@@ -547,5 +763,17 @@ class HomeController extends GetxController {
         color: Colors.white,
       ),
     );
+  }
+
+  void _showNoteError(String title, Object error) {
+    _showStatusSnackbar(title, _readableError(error), isDestructive: true);
+  }
+
+  String _readableError(Object error) {
+    final message = error.toString().trim();
+    if (message.isEmpty) return 'Please try again.';
+    return message
+        .replaceFirst(RegExp(r'^(Exception|StateError):\s*'), '')
+        .trim();
   }
 }

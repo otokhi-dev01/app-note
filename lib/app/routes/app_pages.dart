@@ -12,6 +12,7 @@ import 'package:notes/presentation/modules/splash/splash_view.dart';
 import 'package:notes/presentation/modules/splash/splash_binding.dart';
 import '../../presentation/modules/settings/settings_binding.dart';
 import '../../presentation/modules/settings/settings_view.dart';
+import '../../presentation/modules/library/library_views.dart';
 import 'app_routes.dart';
 
 abstract final class AppPages {
@@ -50,6 +51,36 @@ abstract final class AppPages {
       name: AppRoutes.settings,
       page: () => const SettingsView(),
       binding: SettingsBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.media,
+      page: () => const MediaGalleryView(),
+      binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.tags,
+      page: () => const TagsManagerView(),
+      binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.calendar,
+      page: () => const NoteCalendarView(),
+      binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.categories,
+      page: () => const SmartCategoriesView(),
+      binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.storage,
+      page: () => const StorageManagementView(),
+      binding: HomeBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.history,
+      page: () => const NoteHistoryView(),
+      binding: HomeBinding(),
     ),
   ];
 }

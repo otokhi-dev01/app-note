@@ -474,18 +474,14 @@ class FoldersList extends StatelessWidget {
                   iconColor: isEditing ? AppColors.outline : AppColors.yellow,
                   count: controller.notes.length,
                   onTap: () => controller.selectFolder(null),
-                  isLast:
-                      controller.folders.isEmpty &&
-                      controller.trashNotes.isEmpty,
+                  isLast: controller.folders.isEmpty,
                   isEditing: isEditing,
                   isSystem: true,
                 ),
                 ...controller.folders.asMap().entries.map((entry) {
                   final index = entry.key;
                   final f = entry.value;
-                  final isLast =
-                      index == controller.folders.length - 1 &&
-                      controller.trashNotes.isEmpty;
+                  final isLast = index == controller.folders.length - 1;
                   return FolderRow(
                     style: style,
                     title: f.name,
@@ -501,18 +497,17 @@ class FoldersList extends StatelessWidget {
                     isEditing: isEditing,
                   );
                 }),
-                if (controller.trashNotes.isNotEmpty)
-                  FolderRow(
-                    style: style,
-                    title: 'Recently Deleted',
-                    icon: CupertinoIcons.trash,
-                    iconColor: isEditing ? AppColors.outline : AppColors.yellow,
-                    count: controller.trashNotes.length,
-                    onTap: controller.openRecentlyDeleted,
-                    isLast: true,
-                    isEditing: isEditing,
-                    isSystem: true,
-                  ),
+                FolderRow(
+                  style: style,
+                  title: 'Recently Deleted',
+                  icon: CupertinoIcons.trash,
+                  iconColor: isEditing ? AppColors.outline : AppColors.primary,
+                  count: controller.trashNotes.length,
+                  onTap: controller.openRecentlyDeleted,
+                  isLast: true,
+                  isEditing: isEditing,
+                  isSystem: true,
+                ),
               ],
             ),
         ]),
@@ -1277,6 +1272,9 @@ class HomeBottomBar extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onCreateNote;
   final VoidCallback onCreateFolder;
+  final VoidCallback onOpenGoals;
+  final VoidCallback onShowNotes;
+  final VoidCallback onShowFolders;
 
   const HomeBottomBar({
     super.key,
@@ -1286,6 +1284,9 @@ class HomeBottomBar extends StatelessWidget {
     required this.onSearch,
     required this.onCreateNote,
     required this.onCreateFolder,
+    required this.onOpenGoals,
+    required this.onShowNotes,
+    required this.onShowFolders,
   });
 
   @override
@@ -1293,19 +1294,75 @@ class HomeBottomBar extends StatelessWidget {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 0, 20, bottomPadding + 16),
+      decoration: BoxDecoration(
+        color: style.surface,
+        border: Border(
+          top: BorderSide(color: style.border.withValues(alpha: .55)),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(10, 8, 10, bottomPadding + 8),
       child: Row(
         children: [
-          Expanded(
-            child: BottomSearchAnchor(onTap: onSearch, style: style),
+          _HomeNavItem(
+            icon: CupertinoIcons.doc_text,
+            label: 'Notes',
+            selected: !isFolderView,
+            onTap: onShowNotes,
           ),
-          const SizedBox(width: 16),
-          BottomActionCircle(
-            icon: CupertinoIcons.square_pencil,
-            onTap: onCreateNote,
-            style: style,
+          _HomeNavItem(
+            icon: CupertinoIcons.folder,
+            label: 'Folders',
+            selected: isFolderView,
+            onTap: onShowFolders,
+          ),
+          _HomeNavItem(
+            icon: CupertinoIcons.search,
+            label: 'Search',
+            selected: false,
+            onTap: onSearch,
+          ),
+          _HomeNavItem(
+            icon: CupertinoIcons.scope,
+            label: 'Goals',
+            selected: false,
+            onTap: onOpenGoals,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeNavItem extends StatelessWidget {
+  const _HomeNavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.primary : AppColors.subtitle;
+    return Expanded(
+      child: InkResponse(
+        onTap: onTap,
+        radius: 30,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 23),
+              const SizedBox(height: 3),
+              Text(label, style: TextStyle(color: color, fontSize: 11)),
+            ],
+          ),
+        ),
       ),
     );
   }

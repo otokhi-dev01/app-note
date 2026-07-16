@@ -8,10 +8,8 @@ class EditorBinding extends Bindings {
   @override
   void dependencies() {
     final repository = Get.find<NoteRepository>();
-
     Get.lazyPut(() => CreateNoteUseCase(repository));
     Get.lazyPut(() => UpdateNoteUseCase(repository));
-
     Get.lazyPut<EditorController>(
       () => EditorController(
         Get.find<CreateNoteUseCase>(),

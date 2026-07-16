@@ -223,10 +223,7 @@ class EditorView extends GetView<EditorController> {
           CupertinoActionSheetAction(
             onPressed: () {
               Get.back();
-              Get.snackbar(
-                "Formatting",
-                "Bold formatting is not available yet.",
-              );
+              controller.applyInlineFormat('**', '**');
             },
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -240,10 +237,7 @@ class EditorView extends GetView<EditorController> {
           CupertinoActionSheetAction(
             onPressed: () {
               Get.back();
-              Get.snackbar(
-                "Formatting",
-                "Italic formatting is not available yet.",
-              );
+              controller.applyInlineFormat('_', '_');
             },
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -257,10 +251,7 @@ class EditorView extends GetView<EditorController> {
           CupertinoActionSheetAction(
             onPressed: () {
               Get.back();
-              Get.snackbar(
-                "Formatting",
-                "Quote formatting is not available yet.",
-              );
+              controller.applyLineFormat('> ');
             },
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -268,6 +259,34 @@ class EditorView extends GetView<EditorController> {
                 Icon(CupertinoIcons.text_quote),
                 SizedBox(width: 12),
                 Text('Quote'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back();
+              controller.applyLineFormat('## ');
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.textformat_size),
+                SizedBox(width: 12),
+                Text('Heading'),
+              ],
+            ),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Get.back();
+              controller.insertTable();
+            },
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.table),
+                SizedBox(width: 12),
+                Text('Insert Table'),
               ],
             ),
           ),
