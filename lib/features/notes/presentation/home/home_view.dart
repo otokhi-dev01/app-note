@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,7 +8,6 @@ import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/core/presentation/images/image_helper.dart';
 import 'package:notes/features/notes/domain/entities/folder.dart';
 import 'package:notes/features/notes/domain/entities/note.dart';
-
 import 'home_controller.dart';
 
 part 'actions/home_actions.dart';
@@ -34,6 +34,7 @@ class HomeView extends GetView<HomeController> {
       }
 
       return Scaffold(
+        extendBody: true,
         body: IndexedStack(
           index: controller.selectedTab.value,
           children: [
@@ -47,11 +48,11 @@ class HomeView extends GetView<HomeController> {
             ? FloatingActionButton(
                 key: const ValueKey('compose_note_button'),
                 onPressed: controller.openCreateNote,
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                tooltip: 'New note',
                 child: const Icon(CupertinoIcons.square_pencil),
               )
             : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: _LinenNavigationBar(
           selectedIndex: controller.selectedTab.value,
           onSelect: controller.selectTab,

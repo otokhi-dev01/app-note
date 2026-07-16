@@ -7,6 +7,7 @@ class _DeletedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -23,11 +24,11 @@ class _DeletedPage extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 120),
                   children: [
-                    const Text(
+                    Text(
                       'Notes are available here for 30 days. After that time, notes can be permanently deleted.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.subtitle,
+                        color: scheme.onSurfaceVariant,
                         fontSize: 17,
                         height: 1.45,
                       ),
@@ -81,9 +82,9 @@ class _DeletedPage extends StatelessWidget {
                       onPressed: controller.trashNotes.isEmpty
                           ? null
                           : controller.clearTrash,
-                      child: const Text(
+                      child: Text(
                         'Delete All',
-                        style: TextStyle(color: AppColors.red),
+                        style: TextStyle(color: scheme.error),
                       ),
                     ),
                     const Spacer(),

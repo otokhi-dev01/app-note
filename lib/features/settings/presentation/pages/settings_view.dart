@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_components.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_palette.dart';
@@ -14,151 +13,177 @@ class SettingsView extends GetView<SettingsController> {
   Widget build(BuildContext context) {
     final style = SettingsPalette.of(context);
     final colors = Theme.of(context).colorScheme;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       backgroundColor: style.background,
-      appBar: AppBar(
-        backgroundColor: style.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(CupertinoIcons.back, color: AppColors.orange),
-          onPressed: () => Get.back(),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
         ),
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            color: style.primaryText,
-            fontWeight: FontWeight.w700,
-            fontSize: 17,
+        slivers: [
+          CupertinoSliverNavigationBar(
+            automaticallyImplyLeading: false,
+            automaticallyImplyTitle: false,
+            transitionBetweenRoutes: false,
+            stretch: true,
+            backgroundColor: style.background.withValues(alpha: .92),
+            brightness: Theme.of(context).brightness,
+            border: Border(
+              bottom: BorderSide(color: style.separator, width: .5),
+            ),
+            leading: CupertinoNavigationBarBackButton(
+              color: style.accent,
+              previousPageTitle: 'Notes',
+              onPressed: Get.back,
+            ),
+            largeTitle: const Text('Settings'),
           ),
-        ),
-      ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        children: [
-          SettingsSection(
-            style: style,
-            title: 'ACCOUNT',
-            children: [
-              SettingsRow(
-                style: style,
-                icon: CupertinoIcons.person_circle_fill,
-                iconColor: AppColors.primary,
-                title: controller.accountIdentifier,
-                isFirst: true,
-                isLast: true,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Get.snackbar(
-                    'Account',
-                    'Signed in as ${controller.accountIdentifier}.',
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: colors.surface,
-                    colorText: colors.onSurface,
-                    margin: EdgeInsets.all(16),
-                    borderRadius: 16,
-                  );
-                },
-              ),
-            ],
-          ),
-          SizedBox(height: 24),
-          SettingsSection(
-            style: style,
-            title: 'VIEW',
-            children: [
-              Obx(
-                () => SettingsRow(
-                  style: style,
-                  icon: CupertinoIcons.circle_lefthalf_fill,
-                  iconColor: const Color(0xFF5856D6),
-                  title: 'Appearance',
-                  subtitle: controller.themeModeLabel,
-                  onTap: () => _showAppearancePicker(context),
-                  isFirst: true,
-                  isLast: true,
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(16, 10, 16, 32 + bottomInset),
+            sliver: SliverToBoxAdapter(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SettingsSection(
+                        style: style,
+                        title: 'Account',
+                        children: [
+                          SettingsAccountCard(
+                            style: style,
+                            identifier: controller.accountIdentifier,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showInfoMessage(
+                                context,
+                                title: 'Notes Account',
+                                message:
+                                    'Signed in as ${controller.accountIdentifier}.',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 26),
+                      SettingsSection(
+                        style: style,
+                        title: 'App Preferences',
+                        footer:
+                            'System Default follows the appearance selected on your device.',
+                        children: [
+                          Obx(
+                            () => SettingsRow(
+                              style: style,
+                              icon: CupertinoIcons.circle_lefthalf_fill,
+                              iconColor: colors.tertiary,
+                              title: 'Appearance',
+                              subtitle: controller.themeModeLabel,
+                              onTap: () => _showAppearancePicker(context),
+                              isFirst: true,
+                              isLast: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 26),
+                      SettingsSection(
+                        style: style,
+                        title: 'Support',
+                        children: [
+                          SettingsRow(
+                            style: style,
+                            icon: CupertinoIcons.info_circle_fill,
+                            iconColor: colors.secondary,
+                            title: 'About Notes',
+                            isFirst: true,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showInfoMessage(
+                                context,
+                                title: 'About Notes',
+                                message: 'Version 1.0.0 (Build 2026)',
+                              );
+                            },
+                          ),
+                          SettingsRow(
+                            style: style,
+                            icon: CupertinoIcons.question_circle_fill,
+                            iconColor: style.accent,
+                            title: 'Help & Feedback',
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showInfoMessage(
+                                context,
+                                title: 'Help & Feedback',
+                                message:
+                                    'Help and feedback are not available yet.',
+                              );
+                            },
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      SettingsSection(
+                        style: style,
+                        title: '',
+                        children: [
+                          SettingsRow(
+                            style: style,
+                            icon: CupertinoIcons.square_arrow_right,
+                            iconColor: style.destructive,
+                            title: 'Sign Out',
+                            titleColor: style.destructive,
+                            onTap: () => _showSignOutDialog(context),
+                            isFirst: true,
+                            isLast: true,
+                            hideChevron: true,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
-          SizedBox(height: 24),
-          SettingsSection(
-            style: style,
-            title: 'SUPPORT',
-            children: [
-              SettingsRow(
-                style: style,
-                icon: CupertinoIcons.info_circle_fill,
-                iconColor: Colors.grey,
-                title: 'About Notes',
-                isFirst: true,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Get.snackbar(
-                    "About Notes",
-                    "Version 1.0.0 (Build 2026)",
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: colors.surface,
-                    colorText: colors.onSurface,
-                    margin: EdgeInsets.all(16),
-                    borderRadius: 16,
-                  );
-                },
-              ),
-              SettingsRow(
-                style: style,
-                icon: CupertinoIcons.question_circle_fill,
-                iconColor: AppColors.primary,
-                title: 'Help & Feedback',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Get.snackbar(
-                    "Help & Feedback",
-                    'Help and feedback are not available yet.',
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: colors.surface,
-                    colorText: colors.onSurface,
-                    margin: EdgeInsets.all(16),
-                    borderRadius: 16,
-                  );
-                },
-                isLast: true,
-              ),
-            ],
-          ),
-          SizedBox(height: 40),
-          SettingsSection(
-            style: style,
-            title: '',
-            children: [
-              SettingsRow(
-                style: style,
-                icon: CupertinoIcons.square_arrow_right,
-                iconColor: AppColors.red,
-                title: 'Sign Out',
-                titleColor: AppColors.red,
-                onTap: () => _showSignOutDialog(context),
-                isFirst: true,
-                isLast: true,
-                hideChevron: true,
-              ),
-            ],
-          ),
-          SizedBox(height: 40),
         ],
       ),
     );
   }
 
+  void _showInfoMessage(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: colors.surfaceContainerHighest,
+      colorText: colors.onSurface,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 18,
+      borderColor: colors.outlineVariant,
+      borderWidth: .5,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
   void _showAppearancePicker(BuildContext context) {
-    HapticFeedback.lightImpact();
+    HapticFeedback.selectionClick();
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (context) => CupertinoActionSheet(
+      builder: (sheetContext) => CupertinoActionSheet(
         title: const Text('Appearance'),
         message: const Text(
-          'System Default follows your device appearance automatically.',
+          'Choose how Notes looks. System Default updates automatically.',
         ),
         actions: ThemeMode.values.map((mode) {
           final label = switch (mode) {
@@ -166,43 +191,39 @@ class SettingsView extends GetView<SettingsController> {
             ThemeMode.light => 'Light',
             ThemeMode.dark => 'Dark',
           };
-          return CupertinoActionSheetAction(
-            onPressed: () async {
-              Get.back<void>();
-              try {
-                await controller.setThemeMode(mode);
-              } catch (_) {
-                final appContext = Get.context;
-                final errorColors = appContext == null
-                    ? const ColorScheme.light()
-                    : Theme.of(appContext).colorScheme;
-                Get.snackbar(
-                  'Appearance Not Saved',
-                  'The appearance setting could not be saved. Please try again.',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: errorColors.error,
-                  colorText: errorColors.onError,
-                  margin: const EdgeInsets.all(16),
-                  borderRadius: 16,
-                );
-              }
-            },
-            child: Obx(
-              () => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          return Obx(() {
+            final isSelected = controller.themeMode.value == mode;
+            return CupertinoActionSheetAction(
+              isDefaultAction: isSelected,
+              onPressed: () async {
+                Navigator.of(sheetContext).pop();
+                HapticFeedback.selectionClick();
+                try {
+                  await controller.setThemeMode(mode);
+                } catch (_) {
+                  _showErrorMessage(
+                    title: 'Appearance Not Saved',
+                    message:
+                        'The appearance setting could not be saved. Please try again.',
+                  );
+                }
+              },
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  if (controller.themeMode.value == mode) ...[
-                    const Icon(CupertinoIcons.check_mark, size: 18),
-                    const SizedBox(width: 8),
-                  ],
                   Text(label),
+                  if (isSelected)
+                    const Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: Icon(CupertinoIcons.check_mark, size: 18),
+                    ),
                 ],
               ),
-            ),
-          );
+            );
+          });
         }).toList(),
         cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Get.back<void>(),
+          onPressed: () => Navigator.of(sheetContext).pop(),
           child: const Text('Cancel'),
         ),
       ),
@@ -210,42 +231,52 @@ class SettingsView extends GetView<SettingsController> {
   }
 
   void _showSignOutDialog(BuildContext context) {
-    showCupertinoDialog(
+    HapticFeedback.mediumImpact();
+    showCupertinoDialog<void>(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
-        title: Text('Sign Out'),
-        content: Text('Are you sure you want to sign out from your account?'),
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: const Text('Sign Out?'),
+        content: const Text(
+          'You will need to sign in again to access your notes on this account.',
+        ),
         actions: [
           CupertinoDialogAction(
-            child: Text('Cancel'),
-            onPressed: () => Get.back(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () async {
-              Get.back();
+              Navigator.of(dialogContext).pop();
               try {
                 await controller.logout();
               } catch (_) {
-                final appContext = Get.context;
-                final errorColors = appContext == null
-                    ? const ColorScheme.light()
-                    : Theme.of(appContext).colorScheme;
-                Get.snackbar(
-                  'Sign Out Failed',
-                  'Could not sign out. Please try again.',
-                  snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: errorColors.error,
-                  colorText: errorColors.onError,
-                  margin: const EdgeInsets.all(16),
-                  borderRadius: 16,
+                _showErrorMessage(
+                  title: 'Sign Out Failed',
+                  message: 'Could not sign out. Please try again.',
                 );
               }
             },
-            child: Text('Sign Out'),
+            child: const Text('Sign Out'),
           ),
         ],
       ),
+    );
+  }
+
+  void _showErrorMessage({required String title, required String message}) {
+    final appContext = Get.context;
+    final colors = appContext == null
+        ? const ColorScheme.light()
+        : Theme.of(appContext).colorScheme;
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: colors.error,
+      colorText: colors.onError,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 18,
     );
   }
 }

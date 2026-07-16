@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:notes/app/theme/app_colors.dart';
+
 import '../home_style.dart';
 
 class CreateFolderController extends GetxController {
@@ -61,6 +61,7 @@ class _CreateFolderViewState extends State<CreateFolderView> {
   @override
   Widget build(BuildContext context) {
     final style = HomeStyle.of(context);
+    final scheme = style.theme.colorScheme;
 
     return Scaffold(
       backgroundColor: style.background,
@@ -68,137 +69,179 @@ class _CreateFolderViewState extends State<CreateFolderView> {
         backgroundColor: style.background,
         elevation: 0,
         automaticallyImplyLeading: false,
-        leadingWidth: 70,
-        leading: Center(
-          child: _TopCircleButton(
-            onTap: () => Get.back(),
-            child: Icon(
-              CupertinoIcons.xmark,
-              color: style.primaryText,
-              size: 20,
-            ),
-          ),
+        leadingWidth: 88,
+        leading: _FolderToolbarButton(
+          label: 'Cancel',
+          onPressed: () => Get.back(),
         ),
         title: Text(
           'New Folder',
           style: TextStyle(
             color: style.primaryText,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             fontSize: 17,
+            letterSpacing: -0.3,
           ),
         ),
         centerTitle: true,
         actions: [
           Obx(
             () => Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: Center(
-                child: _TopCircleButton(
-                  onTap: controller.canDone.value
-                      ? () => Get.back(
-                          result: controller.nameController.text.trim(),
-                        )
-                      : null,
-                  backgroundColor: controller.canDone.value
-                      ? style.theme.colorScheme.primary
-                      : style.theme.colorScheme.primary.withValues(alpha: 0.5),
-                  child: Icon(
-                    CupertinoIcons.check_mark,
-                    color: style.theme.colorScheme.onPrimary,
-                    size: 18,
-                  ),
-                ),
+              padding: const EdgeInsets.only(right: 8),
+              child: _FolderToolbarButton(
+                label: 'Done',
+                isEmphasized: true,
+                onPressed: controller.canDone.value
+                    ? () => Get.back(
+                        result: controller.nameController.text.trim(),
+                      )
+                    : null,
               ),
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        child: Column(
-          children: [
-            // Name Input Section
-            Container(
-              decoration: BoxDecoration(
-                color: style.surface,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller.nameController,
-                      autofocus: true,
-                      style: TextStyle(
-                        color: style.primaryText,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      cursorColor: AppColors.yellow,
-                      decoration: InputDecoration(
-                        hintText: 'Name',
-                        hintStyle: TextStyle(
-                          color: style.secondaryText.withValues(alpha: 0.4),
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _CreateFolderSectionLabel('Folder Name'),
+              Container(
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 66),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 14),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: scheme.primary,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        border: InputBorder.none,
-                        isDense: true,
+                        child: Icon(
+                          CupertinoIcons.folder_fill,
+                          color: scheme.onPrimary,
+                          size: 21,
+                        ),
                       ),
-                    ),
-                  ),
-                  Obx(
-                    () => controller.folderName.value.isNotEmpty
-                        ? GestureDetector(
-                            onTap: controller.clearName,
-                            child: Icon(
-                              CupertinoIcons.clear_fill,
-                              size: 20,
-                              color: style.secondaryText.withValues(alpha: 0.3),
+                      const SizedBox(width: 13),
+                      Expanded(
+                        child: TextField(
+                          controller: controller.nameController,
+                          autofocus: true,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) {
+                            if (!controller.canDone.value) return;
+                            Get.back(
+                              result: controller.nameController.text.trim(),
+                            );
+                          },
+                          style: TextStyle(
+                            color: scheme.onSurface,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: -0.2,
+                          ),
+                          cursorColor: scheme.primary,
+                          decoration: InputDecoration(
+                            hintText: 'Name',
+                            hintStyle: TextStyle(
+                              color: scheme.onSurfaceVariant.withValues(
+                                alpha: 0.65,
+                              ),
                             ),
-                          )
-                        : SizedBox.shrink(),
+                            filled: false,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 18,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      Obx(
+                        () => AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 160),
+                          child: controller.folderName.value.isNotEmpty
+                              ? IconButton(
+                                  key: const ValueKey('clear-folder-name'),
+                                  tooltip: 'Clear folder name',
+                                  onPressed: controller.clearName,
+                                  constraints: const BoxConstraints.tightFor(
+                                    width: 44,
+                                    height: 44,
+                                  ),
+                                  icon: Icon(
+                                    CupertinoIcons.clear_thick_circled,
+                                    size: 19,
+                                    color: scheme.onSurfaceVariant.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox(
+                                  key: ValueKey('empty-clear-folder-name'),
+                                  width: 44,
+                                  height: 44,
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-            SizedBox(height: 24),
-            // Smart Folder Section
-            Container(
-              decoration: BoxDecoration(
-                color: style.surface,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Material(
-                color: Colors.transparent,
+              const SizedBox(height: 24),
+              const _CreateFolderSectionLabel('Options'),
+              Material(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(18),
+                clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.lightImpact();
                     Get.snackbar(
-                      "Smart Folder",
-                      "Smart Folder features coming soon!",
+                      'Smart Folder',
+                      'Smart Folder features coming soon!',
                     );
                   },
-                  borderRadius: BorderRadius.circular(14),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 76),
+                    padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: scheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(18),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(6),
+                          width: 42,
+                          height: 42,
+                          alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: style.theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(8),
+                            color: scheme.primary.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             CupertinoIcons.gear_alt_fill,
-                            color: style.theme.colorScheme.onPrimary,
-                            size: 20,
+                            color: scheme.primary,
+                            size: 21,
                           ),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: 13),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,75 +249,113 @@ class _CreateFolderViewState extends State<CreateFolderView> {
                               Text(
                                 'Make Into Smart Folder',
                                 style: TextStyle(
-                                  fontSize: 17,
-                                  color: style.primaryText,
-                                  fontWeight: FontWeight.w400,
+                                  fontSize: 16,
+                                  color: scheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.2,
                                 ),
                               ),
-                              const SizedBox(height: 1),
+                              const SizedBox(height: 3),
                               Text(
                                 'Organize using tags and other filters',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: style.secondaryText.withValues(
-                                    alpha: 0.6,
-                                  ),
+                                  height: 1.2,
+                                  color: scheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 14,
-                          color: style.secondaryText.withValues(alpha: 0.3),
+                          CupertinoIcons.chevron_forward,
+                          size: 15,
+                          color: scheme.onSurfaceVariant.withValues(
+                            alpha: 0.55,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(5, 10, 5, 0),
+                child: Text(
+                  'Smart folders automatically collect notes that match the filters you choose.',
+                  style: style.theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _TopCircleButton extends StatelessWidget {
-  final VoidCallback? onTap;
-  final Widget child;
-  final Color? backgroundColor;
+class _CreateFolderSectionLabel extends StatelessWidget {
+  const _CreateFolderSectionLabel(this.label);
 
-  const _TopCircleButton({
-    required this.onTap,
-    required this.child,
-    this.backgroundColor,
-  });
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final style = HomeStyle.of(context);
+    final theme = Theme.of(context);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 36,
-        width: 36,
-        decoration: BoxDecoration(
-          color: backgroundColor ?? style.surface,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: style.shadow,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Text(
+        label.toUpperCase(),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
         ),
-        alignment: Alignment.center,
-        child: child,
+      ),
+    );
+  }
+}
+
+class _FolderToolbarButton extends StatelessWidget {
+  const _FolderToolbarButton({
+    required this.label,
+    required this.onPressed,
+    this.isEmphasized = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isEmphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Center(
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: scheme.primary,
+          disabledForegroundColor: scheme.onSurfaceVariant.withValues(
+            alpha: 0.45,
+          ),
+          minimumSize: const Size(44, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          tapTargetSize: MaterialTapTargetSize.padded,
+          textStyle: TextStyle(
+            fontSize: 17,
+            fontWeight: isEmphasized ? FontWeight.w700 : FontWeight.w500,
+            letterSpacing: -0.2,
+          ),
+        ),
+        child: Text(label),
       ),
     );
   }

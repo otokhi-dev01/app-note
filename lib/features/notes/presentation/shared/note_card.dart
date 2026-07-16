@@ -100,7 +100,7 @@ class _NoteCardState extends State<NoteCard>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final note = widget.note;
     final actions = [
       if (widget.onPin != null)
@@ -146,9 +146,7 @@ class _NoteCardState extends State<NoteCard>
             children: [
               Positioned.fill(
                 child: Container(
-                  color: isDark
-                      ? const Color(0xFF1C1C1E)
-                      : const Color(0xFFF2F2F7),
+                  color: scheme.surfaceContainer,
                   alignment: Alignment.centerRight,
                   child: Row(mainAxisSize: MainAxisSize.min, children: actions),
                 ),
@@ -160,13 +158,13 @@ class _NoteCardState extends State<NoteCard>
                   child: child,
                 ),
                 child: Material(
-                  color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                  color: scheme.surface,
                   child: InkWell(
                     onTap: () => _isOpened ? _closeActions() : widget.onTap(),
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                          padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
                           child: Row(
                             children: [
                               Expanded(
@@ -193,9 +191,9 @@ class _NoteCardState extends State<NoteCard>
                                               DateFormatter.format(
                                                 note.updatedAt,
                                               ),
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 15,
-                                                color: Colors.grey,
+                                                color: scheme.onSurfaceVariant,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
@@ -206,9 +204,10 @@ class _NoteCardState extends State<NoteCard>
                                                     : note.content,
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: 15,
-                                                  color: Colors.grey,
+                                                  color:
+                                                      scheme.onSurfaceVariant,
                                                 ),
                                               ),
                                             ),
@@ -223,14 +222,14 @@ class _NoteCardState extends State<NoteCard>
                                   note.imagePaths.first,
                                   width: 44,
                                   height: 44,
-                                  radius: 6,
+                                  radius: 8,
                                 ),
                               ],
                               const SizedBox(width: 4),
-                              const Icon(
+                              Icon(
                                 CupertinoIcons.chevron_right,
                                 size: 14,
-                                color: Colors.grey,
+                                color: scheme.onSurfaceVariant,
                               ),
                             ],
                           ),
@@ -240,7 +239,9 @@ class _NoteCardState extends State<NoteCard>
                             padding: const EdgeInsets.only(left: 16),
                             child: Divider(
                               height: 0.5,
-                              color: Colors.black.withValues(alpha: 0.05),
+                              color: scheme.outlineVariant.withValues(
+                                alpha: .72,
+                              ),
                             ),
                           ),
                       ],
@@ -273,6 +274,10 @@ class _SwipeAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final foreground =
+        ThemeData.estimateBrightnessForColor(color) == Brightness.light
+        ? const Color(0xFF1C1C1E)
+        : Colors.white;
     return Container(
       width: width,
       height: double.infinity,
@@ -283,12 +288,12 @@ class _SwipeAction extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 24),
+            Icon(icon, color: foreground, size: 24),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: foreground,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),

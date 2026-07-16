@@ -7,6 +7,7 @@ class _SearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       bottom: false,
       child: Obx(() {
@@ -27,9 +28,9 @@ class _SearchPage extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: controller.goToSettings,
-                  icon: const Icon(
+                  icon: Icon(
                     CupertinoIcons.ellipsis_vertical,
-                    color: AppColors.primary,
+                    color: scheme.primary,
                   ),
                 ),
               ],

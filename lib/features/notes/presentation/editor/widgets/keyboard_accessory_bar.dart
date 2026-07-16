@@ -28,6 +28,7 @@ class _FloatingKeyboardAccessoryBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: style.surface,
             borderRadius: BorderRadius.circular(27),
+            border: Border.all(color: style.border.withValues(alpha: .7)),
             boxShadow: [
               BoxShadow(
                 color: style.shadow,
@@ -45,7 +46,7 @@ class _FloatingKeyboardAccessoryBar extends StatelessWidget {
                 child: Text(
                   'Aa',
                   style: TextStyle(
-                    color: style.primaryText,
+                    color: style.theme.colorScheme.primary,
                     fontSize: 19,
                     fontWeight: FontWeight.w400,
                   ),
@@ -70,10 +71,10 @@ class _FloatingKeyboardAccessoryBar extends StatelessWidget {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 onPressed: onDone,
-                child: const Text(
+                child: Text(
                   'Done',
                   style: TextStyle(
-                    color: AppColors.magenta,
+                    color: style.theme.colorScheme.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -99,7 +100,7 @@ class _AccessoryIcon extends StatelessWidget {
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: onTap ?? () => HapticFeedback.lightImpact(),
-      child: Icon(icon, color: style.primaryText, size: 22),
+      child: Icon(icon, color: style.theme.colorScheme.primary, size: 22),
     );
   }
 }

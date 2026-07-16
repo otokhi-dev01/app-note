@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 
 import '../library_helpers.dart';
@@ -13,6 +12,8 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month);
     final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
@@ -38,15 +39,17 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
             .toSet();
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 40),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
           children: [
-            Text(
-              DateFormat.yMMMM().format(now),
-              style: Theme.of(context).textTheme.headlineLarge,
+            LibraryFeatureIntro(
+              title: DateFormat.yMMMM().format(now),
+              subtitle: 'Browse notes by the day they were last updated',
+              icon: CupertinoIcons.calendar,
+              compact: true,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(14, 18, 14, 15),
               decoration: libraryCardDecoration(context),
               child: Column(
                 children: [
@@ -61,15 +64,16 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
                       LibraryWeekLabel('S'),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 7,
-                          mainAxisSpacing: 5,
-                          crossAxisSpacing: 3,
+                          mainAxisSpacing: 4,
+                          crossAxisSpacing: 2,
+                          childAspectRatio: .84,
                         ),
                     itemCount: leadingDays + daysInMonth,
                     itemBuilder: (context, index) {
@@ -77,38 +81,51 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
                       final day = index - leadingDays + 1;
                       final selected = day == selectedDay;
                       final active = activeDays.contains(day);
+                      final isToday = day == now.day;
                       return InkWell(
                         onTap: () => controller.setSelectedCalendarDay(day),
                         borderRadius: BorderRadius.circular(30),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              width: 34,
-                              height: 34,
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 33,
+                              height: 33,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? AppColors.primary
+                                    ? colors.primary
                                     : Colors.transparent,
                                 shape: BoxShape.circle,
+                                border: isToday && !selected
+                                    ? Border.all(
+                                        color: colors.primary.withValues(
+                                          alpha: .55,
+                                        ),
+                                      )
+                                    : null,
                               ),
                               child: Text(
                                 '$day',
                                 style: TextStyle(
-                                  color: selected ? Colors.white : null,
+                                  color: selected
+                                      ? colors.onPrimary
+                                      : colors.onSurface,
+                                  fontSize: 14,
                                   fontWeight: selected
-                                      ? FontWeight.w800
+                                      ? FontWeight.w700
                                       : FontWeight.w500,
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Container(
                               width: 4,
                               height: 4,
                               decoration: BoxDecoration(
                                 color: active
-                                    ? AppColors.primary
+                                    ? colors.primary
                                     : Colors.transparent,
                                 shape: BoxShape.circle,
                               ),
@@ -121,29 +138,29 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
                 ],
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 26),
             Row(
               children: [
-                Text(
-                  DateUtils.isSameDay(selectedDate, now)
-                      ? "Today's Notes"
-                      : DateFormat.MMMEd().format(selectedDate),
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w800,
+                Expanded(
+                  child: Text(
+                    DateUtils.isSameDay(selectedDate, now)
+                        ? "Today's Notes"
+                        : DateFormat.MMMEd().format(selectedDate),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.3,
+                    ),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  '${selectedNotes.length}',
-                  style: const TextStyle(color: AppColors.primary),
-                ),
+                LibraryCountBadge('${selectedNotes.length}'),
               ],
             ),
             const SizedBox(height: 12),
             if (selectedNotes.isEmpty)
               const LibraryFeatureEmpty(
                 message: 'No notes were edited on this date.',
+                icon: CupertinoIcons.calendar_badge_minus,
               )
             else
               LibrarySurface(
@@ -154,9 +171,14 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
                       children: [
                         ListTile(
                           onTap: () => controller.openNote(note),
-                          leading: const Icon(
+                          minTileHeight: 70,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          leading: const LibraryFeatureIcon(
                             CupertinoIcons.doc_text,
-                            color: AppColors.primary,
+                            size: 40,
+                            iconSize: 19,
                           ),
                           title: Text(
                             note.title.isEmpty ? 'Untitled' : note.title,
@@ -169,10 +191,18 @@ class NoteCalendarView extends GetView<LibraryCoordinator> {
                                 : note.content,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                         if (entry.key != selectedNotes.length - 1)
-                          const Divider(height: 1, indent: 56),
+                          Divider(
+                            height: 1,
+                            indent: 72,
+                            color: colors.outlineVariant.withValues(alpha: .55),
+                          ),
                       ],
                     );
                   }).toList(),

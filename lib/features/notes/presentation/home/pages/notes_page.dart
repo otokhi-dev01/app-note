@@ -7,6 +7,7 @@ class _NotesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       bottom: false,
       child: Obx(() {
@@ -14,16 +15,13 @@ class _NotesPage extends StatelessWidget {
         final notes = controller.filteredNotes;
         return RefreshIndicator(
           onRefresh: controller.loadNotes,
-          color: AppColors.primary,
+          color: scheme.primary,
           child: CustomScrollView(
             key: const PageStorageKey('notes_page'),
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
                 child: _LinenHeader(
-                  eyebrow: controller.selectedFolder.value == null
-                      ? 'YOUR LIBRARY'
-                      : 'FOLDER',
                   title: controller.selectedFolder.value?.name ?? 'Notes',
                   onMenu: () => _showAppMenu(context, controller),
                   actions: [
@@ -36,14 +34,14 @@ class _NotesPage extends StatelessWidget {
                         controller.isGalleryView.value
                             ? CupertinoIcons.list_bullet
                             : CupertinoIcons.square_grid_2x2,
-                        color: AppColors.primary,
+                        color: scheme.primary,
                       ),
                     ),
                     IconButton(
                       onPressed: controller.goToSettings,
-                      icon: const Icon(
+                      icon: Icon(
                         CupertinoIcons.ellipsis_vertical,
-                        color: AppColors.primary,
+                        color: scheme.primary,
                       ),
                     ),
                   ],
@@ -107,8 +105,8 @@ class _NotesPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverGrid(
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 240,
                             mainAxisSpacing: 12,
                             crossAxisSpacing: 12,
                             childAspectRatio: .88,

@@ -8,17 +8,18 @@ class _SliverSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 28, 20, 11),
         child: Row(
           children: [
-            Text(title, style: _eyebrowStyle),
+            Text(title, style: _eyebrowStyle(context)),
             const Spacer(),
             if (trailing != null)
               Text(
                 trailing!,
-                style: const TextStyle(color: AppColors.subtitle, fontSize: 13),
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
               ),
           ],
         ),
@@ -35,6 +36,7 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
       child: Row(
@@ -45,7 +47,7 @@ class _SectionHeading extends StatelessWidget {
           ),
           const Spacer(),
           if (trailing != null)
-            Text(trailing!, style: const TextStyle(color: AppColors.primary)),
+            Text(trailing!, style: TextStyle(color: scheme.primary)),
         ],
       ),
     );
@@ -61,7 +63,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Text(value, style: _eyebrowStyle),
+      child: Text(value, style: _eyebrowStyle(context)),
     );
   }
 }
@@ -73,13 +75,14 @@ class _InlineEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return _SurfaceCard(
       padding: const EdgeInsets.all(28),
       child: Center(
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.subtitle),
+          style: TextStyle(color: scheme.onSurfaceVariant),
         ),
       ),
     );
@@ -103,6 +106,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -112,11 +116,13 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 84,
               height: 84,
-              decoration: const BoxDecoration(
-                color: Color(0xFFF3EACB),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: .14),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.primary, size: 38),
+              child: Icon(icon, color: scheme.primary, size: 38),
             ),
             const SizedBox(height: 22),
             Text(
@@ -127,7 +133,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.subtitle, height: 1.4),
+              style: TextStyle(color: scheme.onSurfaceVariant, height: 1.4),
             ),
             const SizedBox(height: 22),
             FilledButton(onPressed: onAction, child: Text(actionLabel)),
@@ -152,9 +158,9 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               CupertinoIcons.exclamationmark_triangle,
-              color: AppColors.red,
+              color: Theme.of(context).colorScheme.error,
               size: 42,
             ),
             const SizedBox(height: 14),

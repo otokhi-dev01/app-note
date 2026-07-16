@@ -7,12 +7,13 @@ class _FoldersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       bottom: false,
       child: Obx(() {
         return RefreshIndicator(
           onRefresh: controller.loadNotes,
-          color: AppColors.primary,
+          color: scheme.primary,
           child: ListView(
             key: const PageStorageKey('folders_page'),
             physics: const AlwaysScrollableScrollPhysics(),
@@ -33,9 +34,9 @@ class _FoldersPage extends StatelessWidget {
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
+                        : Icon(
                             CupertinoIcons.cloud_download,
-                            color: AppColors.primary,
+                            color: scheme.primary,
                           ),
                   ),
                   TextButton(
@@ -44,17 +45,17 @@ class _FoldersPage extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: controller.goToSettings,
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.ellipsis_vertical,
-                      color: AppColors.primary,
+                      color: scheme.primary,
                     ),
                   ),
                 ],
               ),
               if (controller.isFolderSyncing.value)
-                const LinearProgressIndicator(
+                LinearProgressIndicator(
                   minHeight: 2,
-                  color: AppColors.primary,
+                  color: scheme.primary,
                 ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 26),

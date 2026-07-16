@@ -17,40 +17,44 @@ class _ModernBottomBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: style.background,
+        color: style.surface,
         border: Border(top: BorderSide(color: style.border, width: 0.5)),
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(
+                tooltip: 'Checklist',
+                icon: Icon(
                   CupertinoIcons.list_bullet_indent,
-                  color: AppColors.magenta,
+                  color: style.theme.colorScheme.primary,
                 ),
                 onPressed: onChecklist,
               ),
               IconButton(
-                icon: const Icon(
+                tooltip: 'Add attachment',
+                icon: Icon(
                   CupertinoIcons.camera,
-                  color: AppColors.magenta,
+                  color: style.theme.colorScheme.primary,
                 ),
                 onPressed: onAttachment,
               ),
               IconButton(
-                icon: const Icon(
+                tooltip: 'Drawing',
+                icon: Icon(
                   CupertinoIcons.pencil_outline,
-                  color: AppColors.magenta,
+                  color: style.theme.colorScheme.primary,
                 ),
                 onPressed: onSketch,
               ),
               IconButton(
-                icon: const Icon(
+                tooltip: 'Write',
+                icon: Icon(
                   CupertinoIcons.square_pencil,
-                  color: AppColors.magenta,
+                  color: style.theme.colorScheme.primary,
                 ),
                 onPressed: onCompose,
               ),

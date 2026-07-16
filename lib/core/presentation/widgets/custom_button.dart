@@ -20,8 +20,8 @@ class CustomButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        minimumSize: Size.fromHeight(54),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       onPressed: isLoading ? null : onPressed,
       child: isLoading
@@ -29,14 +29,14 @@ class CustomButton extends StatelessWidget {
               dimension: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             )
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) Icon(icon, size: 18),
-                if (icon != null) SizedBox(width: 10),
+                if (icon != null) const SizedBox(width: 10),
                 Text(label),
               ],
             ),

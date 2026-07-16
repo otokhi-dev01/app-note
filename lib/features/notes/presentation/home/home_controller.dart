@@ -23,8 +23,6 @@ import 'package:notes/features/notes/presentation/home/widgets/home_sheets.dart'
 import 'package:notes/features/search/application/note_search_service.dart';
 import 'package:notes/features/search/domain/repositories/recent_search_repository.dart';
 
-import 'home_style.dart';
-
 part 'controllers/home_feedback.dart';
 part 'controllers/home_folder_actions.dart';
 part 'controllers/home_note_actions.dart';

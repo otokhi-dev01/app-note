@@ -26,7 +26,7 @@ class NoteSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -50,20 +50,17 @@ class NoteSearchBar extends StatelessWidget {
                 onTap: onTap,
                 placeholder: 'Search',
                 borderRadius: BorderRadius.circular(10),
-                backgroundColor:
-                    backgroundColor ??
-                    (isDark
-                        ? Colors.white10
-                        : Colors.black.withValues(alpha: 0.05)),
+                backgroundColor: backgroundColor ?? scheme.surfaceContainer,
                 placeholderStyle: TextStyle(
-                  color: isDark ? Colors.white60 : Colors.black45,
-                  fontSize: 17,
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 16,
                 ),
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontSize: 17,
+                style: TextStyle(color: scheme.onSurface, fontSize: 16),
+                itemColor: scheme.onSurfaceVariant,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               ),
             ),
             if (showCancelButton)
@@ -84,17 +81,11 @@ class NoteSearchBar extends StatelessWidget {
           const SizedBox(height: 8),
           Container(
             margin: const EdgeInsets.only(left: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white10 : Colors.white,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              border: Border.all(color: scheme.outlineVariant),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -102,7 +93,7 @@ class NoteSearchBar extends StatelessWidget {
                 Text(
                   token!,
                   style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
+                    color: scheme.onSurface,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -113,7 +104,7 @@ class NoteSearchBar extends StatelessWidget {
                   child: Icon(
                     CupertinoIcons.xmark,
                     size: 12,
-                    color: isDark ? Colors.white60 : Colors.black45,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],

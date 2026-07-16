@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/core/presentation/images/image_helper.dart';
 
 import '../home/home_style.dart';
@@ -42,9 +41,9 @@ class EditorView extends GetView<EditorController> {
             ),
           ),
           child: Scaffold(
-            backgroundColor: style.background,
+            backgroundColor: style.surface,
             appBar: AppBar(
-              backgroundColor: style.background,
+              backgroundColor: style.surface,
               elevation: 0,
               scrolledUnderElevation: 0,
               leading: Center(
@@ -105,32 +104,42 @@ class EditorView extends GetView<EditorController> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         children: [
                           Center(
-                            child: Text(
-                              DateFormat('MMMM d, yyyy \'at\' h:mm a').format(
-                                controller.existingNote?.updatedAt ??
-                                    DateTime.now(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
                               ),
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                              decoration: BoxDecoration(
+                                color: style.secondarySurface,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                DateFormat('MMMM d, yyyy \'at\' h:mm a').format(
+                                  controller.existingNote?.updatedAt ??
+                                      DateTime.now(),
+                                ),
+                                style: TextStyle(
+                                  color: style.secondaryText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           TextFormField(
                             controller: controller.titleController,
                             validator: controller.validateTitle,
                             autofocus: controller.existingNote == null,
                             style: TextStyle(
                               color: style.primaryText,
-                              fontSize: 32,
+                              fontSize: 31,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.5,
                             ),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               hintText: 'Title',
-                              hintStyle: TextStyle(color: Colors.grey),
+                              hintStyle: TextStyle(color: style.secondaryText),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -142,12 +151,12 @@ class EditorView extends GetView<EditorController> {
                             keyboardType: TextInputType.multiline,
                             style: TextStyle(
                               color: style.primaryText.withValues(alpha: 0.9),
-                              fontSize: 19,
-                              height: 1.5,
+                              fontSize: 18,
+                              height: 1.55,
                             ),
-                            decoration: const InputDecoration(
-                              hintText: 'Notes',
-                              hintStyle: TextStyle(color: Colors.grey),
+                            decoration: InputDecoration(
+                              hintText: 'Start writing…',
+                              hintStyle: TextStyle(color: style.secondaryText),
                             ),
                           ),
 
