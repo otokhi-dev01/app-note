@@ -7,6 +7,7 @@ class _GoalsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       bottom: false,
       child: Obx(() {
@@ -26,29 +27,28 @@ class _GoalsPage extends StatelessWidget {
         );
         return RefreshIndicator(
           onRefresh: controller.loadNotes,
-          color: AppColors.primary,
+          color: scheme.primary,
           child: ListView(
             key: const PageStorageKey('goals_page'),
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 100),
             children: [
               _LinenHeader(
-                eyebrow: 'WRITING DASHBOARD',
-                title: 'Compete',
+                title: 'Writing Goals',
                 onMenu: () => _showAppMenu(context, controller),
                 actions: [
                   IconButton(
                     onPressed: () => Get.toNamed(AppRoutes.calendar),
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.calendar,
-                      color: AppColors.primary,
+                      color: scheme.primary,
                     ),
                   ),
                   IconButton(
                     onPressed: controller.goToSettings,
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.ellipsis_vertical,
-                      color: AppColors.primary,
+                      color: scheme.primary,
                     ),
                   ),
                 ],
@@ -68,7 +68,7 @@ class _GoalsPage extends StatelessWidget {
                             CircularProgressIndicator(
                               value: progress,
                               strokeWidth: 14,
-                              color: AppColors.primary,
+                              color: scheme.primary,
                               backgroundColor: Theme.of(
                                 context,
                               ).colorScheme.surfaceContainerHighest,
@@ -85,9 +85,11 @@ class _GoalsPage extends StatelessWidget {
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
-                                  const Text(
+                                  Text(
                                     'of Daily Goal',
-                                    style: TextStyle(color: AppColors.subtitle),
+                                    style: TextStyle(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -103,9 +105,9 @@ class _GoalsPage extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const Text(
+                      Text(
                         'Words written today',
-                        style: TextStyle(color: AppColors.subtitle),
+                        style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -120,7 +122,7 @@ class _GoalsPage extends StatelessWidget {
                         icon: CupertinoIcons.flame_fill,
                         value: '${activeDates.length}',
                         label: 'Active days',
-                        accent: AppColors.yellow,
+                        accent: scheme.error,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -129,7 +131,7 @@ class _GoalsPage extends StatelessWidget {
                         icon: CupertinoIcons.text_cursor,
                         value: NumberFormat.compact().format(totalWords),
                         label: 'Total words',
-                        accent: AppColors.primary,
+                        accent: scheme.primary,
                       ),
                     ),
                   ],

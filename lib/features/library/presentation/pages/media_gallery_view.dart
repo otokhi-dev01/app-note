@@ -2,12 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/core/presentation/images/image_helper.dart';
 import 'package:notes/features/notes/domain/entities/note.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 
-import '../library_helpers.dart';
 import '../widgets/library_components.dart';
 
 class MediaGalleryView extends GetView<LibraryCoordinator> {
@@ -15,6 +13,7 @@ class MediaGalleryView extends GetView<LibraryCoordinator> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return LibraryScaffold(
       title: 'Attachments',
       child: Obx(() {
@@ -24,7 +23,7 @@ class MediaGalleryView extends GetView<LibraryCoordinator> {
         ];
         return RefreshIndicator(
           onRefresh: controller.loadNotes,
-          color: AppColors.primary,
+          color: colors.primary,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -40,6 +39,7 @@ class MediaGalleryView extends GetView<LibraryCoordinator> {
                   hasScrollBody: false,
                   child: LibraryFeatureEmpty(
                     message: 'Photos, scans, and drawings will appear here.',
+                    icon: CupertinoIcons.photo_on_rectangle,
                   ),
                 )
               else
@@ -47,64 +47,65 @@ class MediaGalleryView extends GetView<LibraryCoordinator> {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                   sliver: SliverGrid(
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 240,
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
-                          childAspectRatio: .78,
+                          childAspectRatio: .8,
                         ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final item = media[index];
-                      return Material(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(18),
+                      return LibrarySurface(
                         child: InkWell(
                           onTap: () => controller.openNote(item.note),
-                          borderRadius: BorderRadius.circular(18),
-                          child: Container(
-                            decoration: libraryCardDecoration(context),
-                            clipBehavior: Clip.antiAlias,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: ColoredBox(
+                                  color: colors.surfaceContainerHighest,
                                   child: ImageHelper.buildSafeImage(
                                     item.path,
                                     width: double.infinity,
                                     height: double.infinity,
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.note.title.isEmpty
-                                            ? 'Untitled'
-                                            : item.note.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        DateFormat.MMMd().format(
-                                          item.note.updatedAt,
-                                        ),
-                                        style: const TextStyle(
-                                          color: AppColors.subtitle,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  12,
+                                  14,
+                                  13,
                                 ),
-                              ],
-                            ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.note.title.isEmpty
+                                          ? 'Untitled'
+                                          : item.note.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      DateFormat.MMMd().format(
+                                        item.note.updatedAt,
+                                      ),
+                                      style: TextStyle(
+                                        color: colors.onSurfaceVariant,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

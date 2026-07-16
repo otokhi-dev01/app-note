@@ -1,10 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 
-import '../library_helpers.dart';
 import '../widgets/library_components.dart';
 
 class SmartCategoriesView extends GetView<LibraryCoordinator> {
@@ -12,6 +10,8 @@ class SmartCategoriesView extends GetView<LibraryCoordinator> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     const categories = [
       LibraryCategoryDefinition('Receipts', CupertinoIcons.doc_text_search, [
         'receipt',
@@ -42,7 +42,7 @@ class SmartCategoriesView extends GetView<LibraryCoordinator> {
       title: 'Smart Categories',
       child: Obx(() {
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 40),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
           children: [
             const LibraryFeatureIntro(
               title: 'Smart Categories',
@@ -50,16 +50,16 @@ class SmartCategoriesView extends GetView<LibraryCoordinator> {
               icon: CupertinoIcons.sparkles,
               compact: true,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 22),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: categories.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 240,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.05,
+                childAspectRatio: .95,
               ),
               itemBuilder: (context, index) {
                 final category = categories[index];
@@ -67,33 +67,51 @@ class SmartCategoriesView extends GetView<LibraryCoordinator> {
                   final value = '${note.title} ${note.content}'.toLowerCase();
                   return category.patterns.any(value.contains);
                 }).length;
-                return Material(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(18),
+                return LibrarySurface(
                   child: InkWell(
                     onTap: () {
                       Get.back<void>();
                       controller.searchCategory(category.title);
                     },
-                    borderRadius: BorderRadius.circular(18),
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: libraryCardDecoration(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(17),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          LibraryFeatureIcon(category.icon),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              LibraryFeatureIcon(
+                                category.icon,
+                                size: 46,
+                                iconSize: 21,
+                              ),
+                              const Spacer(),
+                              Icon(
+                                CupertinoIcons.chevron_right,
+                                color: colors.onSurfaceVariant.withValues(
+                                  alpha: .62,
+                                ),
+                                size: 14,
+                              ),
+                            ],
+                          ),
                           const Spacer(),
                           Text(
                             category.title,
-                            style: const TextStyle(
+                            style: theme.textTheme.titleMedium?.copyWith(
                               fontSize: 18,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -.2,
                             ),
                           ),
+                          const SizedBox(height: 5),
                           Text(
-                            '$count notes',
-                            style: const TextStyle(color: AppColors.subtitle),
+                            count == 1 ? '1 note' : '$count notes',
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),

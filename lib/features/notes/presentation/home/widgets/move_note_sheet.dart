@@ -62,85 +62,92 @@ class _MoveNoteSheetState extends State<MoveNoteSheet> {
     final style = HomeStyle.of(context);
     final note = widget.note;
     final onMove = widget.onMove;
+    final noteName = note.title.trim().isEmpty
+        ? 'this note'
+        : '“${note.title}”';
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
-      ),
-      decoration: BoxDecoration(
-        color: style.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return _NotesSheet(
+      maxHeightFactor: 0.82,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 36,
-            height: 5,
-            decoration: BoxDecoration(
-              color: style.placeholder,
-              borderRadius: BorderRadius.circular(2.5),
+          _SheetHeader(
+            title: 'Move Note',
+            subtitle: 'Choose a destination for $noteName.',
+            trailing: _SheetIconButton(
+              icon: CupertinoIcons.folder_badge_plus,
+              tooltip: 'Create a new folder',
+              onPressed: () => _showCreateFolderDialog(context, controller),
             ),
           ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Move Note',
-                  style: style.theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    CupertinoIcons.folder_badge_plus,
-                    color: HomeStyle.blue,
-                  ),
-                  onPressed: () => _showCreateFolderDialog(context, controller),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 32),
           Flexible(
             child: Obx(() {
               if (controller.isLoading.value) {
-                return const Center(child: CupertinoActivityIndicator());
+                return SizedBox(
+                  height: 250,
+                  child: Center(
+                    child: CupertinoActivityIndicator(
+                      color: style.theme.colorScheme.primary,
+                    ),
+                  ),
+                );
               }
 
-              return ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                children: [
-                  _FolderTile(
+              final destinations = <Widget>[
+                _FolderTile(
+                  style: style,
+                  icon: CupertinoIcons.tray_fill,
+                  label: 'All Notes',
+                  isSelected: note.folderId == null,
+                  onTap: () {
+                    onMove(null);
+                    Get.back();
+                  },
+                ),
+                ...controller.folders.map(
+                  (folder) => _FolderTile(
                     style: style,
-                    icon: CupertinoIcons.tray,
-                    label: 'All Notes',
-                    isSelected: note.folderId == null,
+                    icon: CupertinoIcons.folder_fill,
+                    label: folder.name,
+                    isSelected: note.folderId == folder.id,
                     onTap: () {
-                      onMove(null);
+                      onMove(folder.id);
                       Get.back();
                     },
                   ),
-                  const SizedBox(height: 12),
-                  ...controller.folders.map(
-                    (folder) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _FolderTile(
-                        style: style,
-                        icon: CupertinoIcons.folder,
-                        label: folder.name,
-                        isSelected: note.folderId == folder.id,
-                        onTap: () {
-                          onMove(folder.id);
-                          Get.back();
-                        },
+                ),
+              ];
+
+              return ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
+                children: [
+                  const _SheetSectionLabel('Locations'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: style.theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: style.theme.colorScheme.outlineVariant,
                       ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        for (
+                          var index = 0;
+                          index < destinations.length;
+                          index++
+                        ) ...[
+                          destinations[index],
+                          if (index != destinations.length - 1)
+                            Divider(
+                              height: 1,
+                              indent: 68,
+                              color: style.theme.colorScheme.outlineVariant,
+                            ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
@@ -157,7 +164,7 @@ class _MoveNoteSheetState extends State<MoveNoteSheet> {
     MoveNoteController controller,
   ) {
     final textController = TextEditingController();
-    Get.dialog(
+    Get.dialog<void>(
       CupertinoAlertDialog(
         title: const Text('New Folder'),
         content: Padding(
@@ -183,7 +190,7 @@ class _MoveNoteSheetState extends State<MoveNoteSheet> {
           ),
         ],
       ),
-    );
+    ).whenComplete(textController.dispose);
   }
 }
 
@@ -204,45 +211,75 @@ class _FolderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: isSelected
-          ? HomeStyle.blue.withValues(alpha: 0.1)
-          : style.secondarySurface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected
-              ? HomeStyle.blue.withValues(alpha: 0.3)
-              : style.border,
-        ),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        onTap: onTap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        leading: Icon(
-          icon,
-          color: isSelected ? HomeStyle.blue : style.secondaryText,
-          size: 22,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? HomeStyle.blue : style.primaryText,
+    final scheme = style.theme.colorScheme;
+    final accent = scheme.primary;
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: isSelected ? accent.withValues(alpha: 0.12) : Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 62),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              child: Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: isSelected ? 0.2 : 0.12),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: Icon(icon, color: accent, size: 21),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: style.theme.textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  if (isSelected)
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        CupertinoIcons.check_mark,
+                        color: scheme.onPrimary,
+                        size: 14,
+                      ),
+                    )
+                  else
+                    Icon(
+                      CupertinoIcons.chevron_forward,
+                      size: 15,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
-        trailing: isSelected
-            ? const Icon(
-                CupertinoIcons.check_mark,
-                color: HomeStyle.blue,
-                size: 18,
-              )
-            : Icon(
-                CupertinoIcons.chevron_right,
-                size: 16,
-                color: style.placeholder,
-              ),
       ),
     );
   }

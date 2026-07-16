@@ -35,10 +35,10 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/notes.jpg"
+  image_path: "assets/icons/notes_v26.png"
   min_sdk_android: 21
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/icons/notes.jpg
+    - assets/icons/notes_v26.png

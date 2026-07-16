@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:notes/app/navigation/app_routes.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 import 'package:notes/features/library/application/attachment_size_query.dart';
 
@@ -14,6 +13,8 @@ class StorageManagementView extends GetView<LibraryCoordinator> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return LibraryScaffold(
       title: 'Storage',
       child: Obx(() {
@@ -28,43 +29,57 @@ class StorageManagementView extends GetView<LibraryCoordinator> {
             final bytes = snapshot.data ?? 0;
             final megabytes = bytes / 1048576;
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 40),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
               children: [
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(22),
                   decoration: libraryCardDecoration(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('STORAGE USAGE', style: libraryFeatureEyebrow),
-                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'STORAGE USAGE',
+                              style: libraryFeatureEyebrow(context),
+                            ),
+                          ),
+                          const LibraryFeatureIcon(
+                            CupertinoIcons.archivebox,
+                            size: 44,
+                            iconSize: 21,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         '${megabytes.toStringAsFixed(1)} MB',
-                        style: const TextStyle(
-                          fontSize: 38,
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontSize: 40,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: -1.2,
                         ),
                       ),
-                      const Text(
+                      Text(
                         'Local note attachments',
-                        style: TextStyle(color: AppColors.subtitle),
+                        style: TextStyle(color: colors.onSurfaceVariant),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 22),
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(20),
                         child: LinearProgressIndicator(
                           value: (megabytes / 1024).clamp(0, 1),
-                          minHeight: 12,
-                          color: AppColors.primary,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
+                          minHeight: 10,
+                          color: colors.primary,
+                          backgroundColor: colors.surfaceContainerHighest,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 22),
+                const LibrarySectionHeader(title: 'By category'),
                 LibrarySurface(
                   child: Column(
                     children: [
@@ -96,33 +111,43 @@ class StorageManagementView extends GetView<LibraryCoordinator> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 28),
-                const Text('RECOMMENDATION', style: libraryFeatureEyebrow),
-                const SizedBox(height: 10),
+                const SizedBox(height: 24),
+                const LibrarySectionHeader(title: 'Recommendation'),
                 Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: libraryCardDecoration(context),
-                  child: const Row(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: colors.primary.withValues(alpha: .14),
+                    ),
+                  ),
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      LibraryFeatureIcon(CupertinoIcons.cloud_download),
-                      SizedBox(width: 16),
+                      const LibraryFeatureIcon(
+                        CupertinoIcons.cloud_download,
+                        size: 44,
+                        iconSize: 21,
+                      ),
+                      const SizedBox(width: 15),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'Keep important files backed up',
                               style: TextStyle(
                                 fontSize: 17,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             Text(
                               'Notes currently stay on this device and are scoped to your authenticated account.',
                               style: TextStyle(
-                                color: AppColors.subtitle,
+                                color: colors.onSurfaceVariant,
+                                fontSize: 14,
                                 height: 1.4,
                               ),
                             ),

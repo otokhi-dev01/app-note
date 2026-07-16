@@ -39,6 +39,7 @@ class _NoteRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Material(
@@ -65,10 +66,10 @@ class _NoteRow extends StatelessWidget {
                         Row(
                           children: [
                             if (note.isPinned) ...[
-                              const Icon(
+                              Icon(
                                 CupertinoIcons.pin_fill,
                                 size: 13,
-                                color: AppColors.primary,
+                                color: scheme.primary,
                               ),
                               const SizedBox(width: 5),
                             ],
@@ -90,9 +91,9 @@ class _NoteRow extends StatelessWidget {
                           '${_shortDate(note.updatedAt)}  ${note.content.isEmpty ? 'No additional text' : note.content}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.subtitle,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -101,10 +102,10 @@ class _NoteRow extends StatelessWidget {
                   PopupMenuButton<String>(
                     tooltip: 'Note actions',
                     onSelected: onAction,
-                    icon: const Icon(
+                    icon: Icon(
                       CupertinoIcons.ellipsis,
                       size: 20,
-                      color: AppColors.primary,
+                      color: scheme.primary,
                     ),
                     itemBuilder: (context) => [
                       PopupMenuItem(
@@ -113,11 +114,11 @@ class _NoteRow extends StatelessWidget {
                       ),
                       const PopupMenuItem(value: 'share', child: Text('Share')),
                       const PopupMenuItem(value: 'move', child: Text('Move')),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Text(
                           'Delete',
-                          style: TextStyle(color: AppColors.red),
+                          style: TextStyle(color: scheme.error),
                         ),
                       ),
                     ],
@@ -145,8 +146,9 @@ class _NoteGalleryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: scheme.surface,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -178,14 +180,12 @@ class _NoteGalleryCard extends StatelessWidget {
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
+                      color: scheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       CupertinoIcons.doc_text,
-                      color: AppColors.primary,
+                      color: scheme.primary,
                       size: 36,
                     ),
                   ),
@@ -204,7 +204,10 @@ class _NoteGalleryCard extends StatelessWidget {
                     : note.content,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12, color: AppColors.subtitle),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

@@ -1,16 +1,15 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:notes/app/navigation/route_contracts.dart';
 import 'package:notes/app/navigation/app_routes.dart';
+import 'package:notes/app/navigation/route_contracts.dart';
 import 'package:notes/features/notes/domain/entities/note.dart';
 import 'package:notes/features/notes/domain/repositories/attachment_file_repository.dart';
 import 'package:notes/features/notes/domain/usecases/get_note_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/update_note_usecase.dart';
+
 import '../home/widgets/home_sheets.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'image_editor_view.dart';
 
 class DetailController extends GetxController {
@@ -111,9 +110,12 @@ class DetailController extends GetxController {
                   'Moved to Trash',
                   'Note moved to Recently Deleted.',
                   snackPosition: SnackPosition.BOTTOM,
-                  backgroundColor: AppColors.primary,
-                  colorText: Colors.white,
-                  icon: const Icon(CupertinoIcons.trash, color: Colors.white),
+                  backgroundColor: Get.theme.colorScheme.primary,
+                  colorText: Get.theme.colorScheme.onPrimary,
+                  icon: Icon(
+                    CupertinoIcons.trash,
+                    color: Get.theme.colorScheme.onPrimary,
+                  ),
                   borderRadius: 15,
                   margin: const EdgeInsets.all(15),
                   duration: const Duration(seconds: 2),
@@ -253,8 +255,8 @@ class DetailController extends GetxController {
               'Moved',
               'Note moved successfully.',
               snackPosition: SnackPosition.BOTTOM,
-              backgroundColor: AppColors.primary,
-              colorText: Colors.white,
+              backgroundColor: Get.theme.colorScheme.primary,
+              colorText: Get.theme.colorScheme.onPrimary,
               borderRadius: 15,
               margin: const EdgeInsets.all(15),
               duration: const Duration(seconds: 2),

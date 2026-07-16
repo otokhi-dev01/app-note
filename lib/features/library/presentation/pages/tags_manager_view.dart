@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:notes/app/theme/app_colors.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 import 'package:notes/features/library/application/library_note_queries.dart';
 
@@ -12,6 +11,8 @@ class TagsManagerView extends GetView<LibraryCoordinator> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return LibraryScaffold(
       title: 'Tags',
       action: TextButton(
@@ -21,7 +22,7 @@ class TagsManagerView extends GetView<LibraryCoordinator> {
       child: Obx(() {
         final tags = libraryTagCounts(controller.notes);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 40),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
           children: [
             const LibraryFeatureIntro(
               title: 'Tags Manager',
@@ -29,10 +30,11 @@ class TagsManagerView extends GetView<LibraryCoordinator> {
               icon: CupertinoIcons.tag,
               compact: true,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 22),
             if (tags.isEmpty)
               const LibraryFeatureEmpty(
                 message: 'Type #work or another tag in a note to add it here.',
+                icon: CupertinoIcons.tag,
               )
             else
               LibrarySurface(
@@ -47,33 +49,49 @@ class TagsManagerView extends GetView<LibraryCoordinator> {
                             controller.selectTab(2);
                             controller.search(tag.key);
                           },
-                          leading: const Icon(
+                          minTileHeight: 68,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          leading: const LibraryFeatureIcon(
                             CupertinoIcons.tag,
-                            color: AppColors.primary,
+                            size: 40,
+                            iconSize: 19,
                           ),
                           title: Text(
                             tag.key,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 '${tag.value}',
-                                style: const TextStyle(
-                                  color: AppColors.subtitle,
+                                style: TextStyle(
+                                  color: colors.onSurfaceVariant,
+                                  fontSize: 13,
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              const Icon(
+                              Icon(
                                 CupertinoIcons.chevron_right,
-                                size: 15,
+                                color: colors.onSurfaceVariant.withValues(
+                                  alpha: .72,
+                                ),
+                                size: 14,
                               ),
                             ],
                           ),
                         ),
                         if (entry.key != tags.length - 1)
-                          const Divider(height: 1, indent: 56),
+                          Divider(
+                            height: 1,
+                            indent: 72,
+                            color: colors.outlineVariant.withValues(alpha: .55),
+                          ),
                       ],
                     );
                   }).toList(),
@@ -83,7 +101,9 @@ class TagsManagerView extends GetView<LibraryCoordinator> {
             Text(
               '${tags.length} tags · ${controller.notes.length} notes total',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.subtitle),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
             ),
           ],
         );

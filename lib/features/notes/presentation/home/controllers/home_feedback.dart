@@ -6,12 +6,15 @@ extension _HomeFeedback on HomeController {
     String message, {
     bool isDestructive = false,
   }) {
+    final scheme = Get.theme.colorScheme;
+    final background = isDestructive ? scheme.error : scheme.secondary;
+    final foreground = isDestructive ? scheme.onError : scheme.onSecondary;
     Get.snackbar(
       title,
       message,
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: isDestructive ? HomeStyle.red : HomeStyle.blue,
-      colorText: Colors.white,
+      backgroundColor: background,
+      colorText: foreground,
       borderRadius: 15,
       margin: const EdgeInsets.all(15),
       duration: const Duration(seconds: 2),
@@ -19,7 +22,7 @@ extension _HomeFeedback on HomeController {
         isDestructive
             ? CupertinoIcons.trash_fill
             : CupertinoIcons.info_circle_fill,
-        color: Colors.white,
+        color: foreground,
       ),
     );
   }

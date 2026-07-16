@@ -36,10 +36,13 @@ void _showFolderActions(
               },
             ),
             ListTile(
-              leading: const Icon(CupertinoIcons.trash, color: AppColors.red),
-              title: const Text(
+              leading: Icon(
+                CupertinoIcons.trash,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
                 'Delete Folder',
-                style: TextStyle(color: AppColors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -68,9 +71,9 @@ void _showDeletedActions(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 CupertinoIcons.arrow_counterclockwise,
-                color: AppColors.primary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               title: const Text('Recover Note'),
               onTap: () {
@@ -79,10 +82,13 @@ void _showDeletedActions(
               },
             ),
             ListTile(
-              leading: const Icon(CupertinoIcons.trash, color: AppColors.red),
-              title: const Text(
+              leading: Icon(
+                CupertinoIcons.trash,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
                 'Delete Permanently',
-                style: TextStyle(color: AppColors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -173,14 +179,22 @@ class _MenuTile extends StatelessWidget {
       leading: Container(
         width: 42,
         height: 42,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF3EACB),
-          shape: BoxShape.circle,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: .14),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Icon(icon, color: AppColors.primary, size: 21),
+        child: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.primary,
+          size: 21,
+        ),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      trailing: const Icon(CupertinoIcons.chevron_right, size: 15),
+      trailing: Icon(
+        CupertinoIcons.chevron_right,
+        size: 15,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       onTap: onTap,
     );
   }

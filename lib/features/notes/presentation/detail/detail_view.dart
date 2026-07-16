@@ -21,7 +21,8 @@ class DetailView extends GetView<DetailController> {
         backgroundColor: style.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(CupertinoIcons.back, color: HomeStyle.orange),
+          tooltip: 'Back',
+          icon: const Icon(CupertinoIcons.back),
           onPressed: () => Get.back(),
         ),
         title: Text(
@@ -32,37 +33,61 @@ class DetailView extends GetView<DetailController> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () => _showAttachmentOptions(context),
-            icon: Icon(CupertinoIcons.camera, color: HomeStyle.orange),
-          ),
           Obx(
             () => IconButton(
+              tooltip: controller.note.value?.isPinned == true
+                  ? 'Unpin note'
+                  : 'Pin note',
               onPressed: controller.togglePin,
               icon: Icon(
                 controller.note.value?.isPinned == true
                     ? CupertinoIcons.pin_fill
                     : CupertinoIcons.pin,
-                color: HomeStyle.orange,
               ),
             ),
           ),
-          IconButton(
-            onPressed: controller.moveNote,
-            icon: const Icon(CupertinoIcons.folder, color: HomeStyle.orange),
-          ),
-          IconButton(
-            onPressed: controller.edit,
-            icon: const Icon(
-              CupertinoIcons.pencil_circle,
-              color: HomeStyle.orange,
+          const SizedBox(width: 8),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: style.surface,
+          border: Border(top: BorderSide(color: style.border, width: .5)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  tooltip: 'Add attachment',
+                  onPressed: () => _showAttachmentOptions(context),
+                  icon: const Icon(CupertinoIcons.camera),
+                ),
+                IconButton(
+                  tooltip: 'Move note',
+                  onPressed: controller.moveNote,
+                  icon: const Icon(CupertinoIcons.folder),
+                ),
+                IconButton(
+                  tooltip: 'Edit note',
+                  onPressed: controller.edit,
+                  icon: const Icon(CupertinoIcons.square_pencil),
+                ),
+                IconButton(
+                  tooltip: 'Delete note',
+                  onPressed: controller.delete,
+                  icon: Icon(
+                    CupertinoIcons.trash,
+                    color: style.theme.colorScheme.error,
+                  ),
+                ),
+              ],
             ),
           ),
-          IconButton(
-            onPressed: controller.delete,
-            icon: Icon(CupertinoIcons.trash, color: HomeStyle.red),
-          ),
-        ],
+        ),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -107,31 +132,30 @@ class DetailView extends GetView<DetailController> {
           );
         }
         return ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             Container(
               decoration: BoxDecoration(
                 color: style.surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: style.border),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
                     color: style.shadow,
-                    blurRadius: 22,
-                    offset: const Offset(0, 8),
+                    blurRadius: 20,
+                    offset: const Offset(0, 7),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.all(22),
+              padding: const EdgeInsets.fromLTRB(22, 24, 22, 28),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     note.title.isEmpty ? 'Untitled' : note.title,
-                    style: style.theme.textTheme.headlineSmall?.copyWith(
+                    style: style.theme.textTheme.headlineMedium?.copyWith(
                       color: style.primaryText,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+                      letterSpacing: -0.8,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -152,7 +176,7 @@ class DetailView extends GetView<DetailController> {
                       ),
                     ],
                   ),
-                  const Divider(height: 32),
+                  const Divider(height: 34),
                   Text(
                     note.content.isEmpty ? 'No content yet.' : note.content,
                     style: style.theme.textTheme.bodyLarge?.copyWith(
@@ -164,16 +188,16 @@ class DetailView extends GetView<DetailController> {
                     const SizedBox(height: 32),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           CupertinoIcons.paperclip,
                           size: 18,
-                          color: HomeStyle.blue,
+                          color: style.theme.colorScheme.secondary,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Attachments',
                           style: style.theme.textTheme.titleMedium?.copyWith(
-                            color: style.primaryText,
+                            color: style.theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -228,9 +252,9 @@ class DetailView extends GetView<DetailController> {
                                         shape: BoxShape.circle,
                                         border: Border.all(color: style.border),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         CupertinoIcons.xmark,
-                                        color: HomeStyle.red,
+                                        color: style.theme.colorScheme.error,
                                         size: 14,
                                       ),
                                     ),

@@ -19,6 +19,7 @@ class _FolderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         ListTile(
@@ -27,28 +28,28 @@ class _FolderRow extends StatelessWidget {
             horizontal: 18,
             vertical: 2,
           ),
-          leading: Icon(icon, color: AppColors.primary, size: 27),
+          leading: Icon(icon, color: scheme.primary, size: 27),
           title: Text(title, style: const TextStyle(fontSize: 17)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (showEdit)
-                const Icon(
+                Icon(
                   CupertinoIcons.pencil_circle,
-                  color: AppColors.primary,
+                  color: scheme.primary,
                 )
               else ...[
                 Text(
                   '$count',
-                  style: const TextStyle(
-                    color: AppColors.subtitle,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
                     fontSize: 16,
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(
+                Icon(
                   CupertinoIcons.chevron_right,
-                  color: AppColors.outline,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 16,
                 ),
               ],
@@ -78,12 +79,13 @@ class _RestoreFolderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         ListTile(
-          leading: const Icon(
+          leading: Icon(
             CupertinoIcons.folder_badge_minus,
-            color: AppColors.primary,
+            color: scheme.primary,
           ),
           title: Text(
             folder.name,
@@ -116,8 +118,9 @@ class _QuickCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: scheme.surface,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -128,7 +131,7 @@ class _QuickCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
+              color: scheme.outlineVariant,
             ),
           ),
           child: Column(
@@ -136,8 +139,8 @@ class _QuickCard extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppColors.subtitle,
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant,
                   fontSize: 12,
                   letterSpacing: .7,
                 ),
@@ -155,7 +158,7 @@ class _QuickCard extends StatelessWidget {
               const Spacer(),
               Align(
                 alignment: Alignment.bottomRight,
-                child: Icon(icon, color: AppColors.primary),
+                child: Icon(icon, color: scheme.primary),
               ),
             ],
           ),
@@ -178,8 +181,9 @@ class _MediaTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: Theme.of(context).colorScheme.surface,
+      color: scheme.surface,
       borderRadius: BorderRadius.circular(17),
       child: InkWell(
         onTap: onTap,
@@ -187,18 +191,18 @@ class _MediaTypeCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
+              color: scheme.outlineVariant,
             ),
             borderRadius: BorderRadius.circular(17),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: AppColors.primary, size: 26),
+              Icon(icon, color: scheme.primary, size: 26),
               const SizedBox(height: 10),
               Text(
                 label,
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -248,10 +252,11 @@ class _CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 10),
       child: Material(
-        color: Theme.of(context).colorScheme.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(17),
         child: InkWell(
           onTap: onTap,
@@ -261,14 +266,14 @@ class _CategoryChip extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant,
+                color: scheme.outlineVariant,
               ),
               borderRadius: BorderRadius.circular(17),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: AppColors.primary, size: 22),
+                Icon(icon, color: scheme.primary, size: 22),
                 const Spacer(),
                 Text(
                   title,

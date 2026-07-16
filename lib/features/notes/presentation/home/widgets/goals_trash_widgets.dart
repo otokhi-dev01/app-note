@@ -15,6 +15,7 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return _SurfaceCard(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -27,14 +28,14 @@ class _MetricCard extends StatelessWidget {
               color: accent.withValues(alpha: .18),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppColors.primary),
+            child: Icon(icon, color: accent),
           ),
           const SizedBox(height: 14),
           Text(
             value,
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
-          Text(label, style: const TextStyle(color: AppColors.subtitle)),
+          Text(label, style: TextStyle(color: scheme.onSurfaceVariant)),
         ],
       ),
     );
@@ -48,46 +49,57 @@ class _WeeklyProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final today = DateUtils.dateOnly(DateTime.now());
     final monday = today.subtract(Duration(days: today.weekday - 1));
     return _SurfaceCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(7, (index) {
-          final date = monday.add(Duration(days: index));
-          final complete = activeDates.contains(date);
-          return Column(
-            children: [
-              Text(DateFormat.E().format(date).substring(0, 1)),
-              const SizedBox(height: 9),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: complete
-                      ? AppColors.primary
-                      : Theme.of(context).colorScheme.surfaceContainerHighest,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: date == today
-                        ? AppColors.primary
-                        : Colors.transparent,
-                    width: 2,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final daySize = (constraints.maxWidth / 7 - 4)
+              .clamp(30.0, 38.0)
+              .toDouble();
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (index) {
+              final date = monday.add(Duration(days: index));
+              final complete = activeDates.contains(date);
+              return Column(
+                children: [
+                  Text(DateFormat.E().format(date).substring(0, 1)),
+                  const SizedBox(height: 9),
+                  Container(
+                    width: daySize,
+                    height: daySize,
+                    decoration: BoxDecoration(
+                      color: complete
+                          ? scheme.primary
+                          : scheme.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: date == today
+                            ? scheme.primary
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: complete
+                        ? Icon(
+                            CupertinoIcons.check_mark,
+                            size: 17,
+                            color: scheme.onPrimary,
+                          )
+                        : Text(
+                            '${date.day}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                   ),
-                ),
-                alignment: Alignment.center,
-                child: complete
-                    ? const Icon(
-                        CupertinoIcons.check_mark,
-                        size: 17,
-                        color: Colors.white,
-                      )
-                    : Text('${date.day}', style: const TextStyle(fontSize: 12)),
-              ),
-            ],
+                ],
+              );
+            }),
           );
-        }),
+        },
       ),
     );
   }
@@ -108,6 +120,7 @@ class _MilestoneRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         ListTile(
@@ -122,7 +135,7 @@ class _MilestoneRow extends StatelessWidget {
             ),
             child: Icon(
               complete ? CupertinoIcons.rosette : CupertinoIcons.circle,
-              color: complete ? AppColors.primary : AppColors.subtitle,
+              color: complete ? scheme.primary : scheme.onSurfaceVariant,
             ),
           ),
           title: Text(
@@ -133,7 +146,7 @@ class _MilestoneRow extends StatelessWidget {
           trailing: Text(
             complete ? 'Done' : 'In progress',
             style: TextStyle(
-              color: complete ? AppColors.primary : AppColors.subtitle,
+              color: complete ? scheme.primary : scheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -169,7 +182,7 @@ class _DeletedRow extends StatelessWidget {
           ),
           subtitle: Text(
             '${_shortDate(note.deletedAt ?? note.updatedAt)} · $remaining days remaining',
-            style: const TextStyle(color: AppColors.red),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
           trailing: const Icon(CupertinoIcons.chevron_right, size: 16),
         ),

@@ -18,83 +18,47 @@ class RecentlyDeletedSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = HomeStyle.of(context);
     final trashNotes = notes.toList();
+    final noteCount = trashNotes.length;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      decoration: BoxDecoration(
-        color: style.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return _NotesSheet(
+      maxHeightFactor: 0.9,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 36,
-            height: 5,
-            decoration: BoxDecoration(
-              color: style.placeholder,
-              borderRadius: BorderRadius.circular(2.5),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          _SheetHeader(
+            title: 'Recently Deleted',
+            subtitle: noteCount == 0
+                ? 'Deleted notes will appear here.'
+                : '$noteCount ${noteCount == 1 ? 'note' : 'notes'} waiting to be recovered.',
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Recently Deleted',
-                      style: style.theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 22,
-                      ),
-                    ),
-                    if (trashNotes.isNotEmpty && onClearAll != null)
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        onPressed: onClearAll,
-                        child: const Text(
-                          'Empty Trash',
-                          style: TextStyle(
-                            color: HomeStyle.red,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Get.back(),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: HomeStyle.blue,
-                    ),
+                if (trashNotes.isNotEmpty && onClearAll != null) ...[
+                  _SheetIconButton(
+                    icon: CupertinoIcons.trash,
+                    tooltip: 'Empty trash',
+                    onPressed: onClearAll!,
+                    isDestructive: true,
                   ),
+                  const SizedBox(width: 8),
+                ],
+                _SheetIconButton(
+                  icon: CupertinoIcons.xmark,
+                  tooltip: 'Close recently deleted',
+                  onPressed: () => Get.back(),
                 ),
               ],
             ),
           ),
-          const Divider(height: 32),
           if (trashNotes.isEmpty)
             _EmptyTrashState(style: style)
           else
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 20),
                 itemCount: trashNotes.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final note = trashNotes[index];
                   return _DeletedNoteCard(
@@ -144,17 +108,45 @@ class _EmptyTrashState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60),
+    final scheme = style.theme.colorScheme;
+    final height = (MediaQuery.sizeOf(context).height * 0.42)
+        .clamp(180.0, 300.0)
+        .toDouble();
+
+    return SizedBox(
+      height: height,
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(CupertinoIcons.trash_slash, size: 64, color: style.placeholder),
-          const SizedBox(height: 16),
+          Container(
+            width: 76,
+            height: 76,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              CupertinoIcons.trash_slash_fill,
+              size: 34,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(height: 18),
           Text(
-            'Trash is empty',
-            style: style.theme.textTheme.titleMedium?.copyWith(
-              color: style.secondaryText,
-              fontWeight: FontWeight.w600,
+            'No Deleted Notes',
+            style: style.theme.textTheme.titleLarge?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Notes you delete can be recovered from here.',
+            textAlign: TextAlign.center,
+            style: style.theme.textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -178,47 +170,88 @@ class _DeletedNoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = style.theme.colorScheme;
+    final title = note.title.trim().isEmpty ? 'Untitled Note' : note.title;
+    final preview = note.content.trim().isEmpty
+        ? 'No additional text'
+        : note.content;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
       decoration: BoxDecoration(
-        color: style.secondarySurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: style.border),
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            note.title.isEmpty ? 'Untitled' : note.title,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            note.content.isEmpty ? 'No content' : note.content,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: style.secondaryText,
-              fontSize: 14,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ActionButton(
-                label: 'Restore',
-                icon: CupertinoIcons.arrow_counterclockwise,
-                color: HomeStyle.blue,
-                onPressed: onRestore,
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.13),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  CupertinoIcons.doc_text_fill,
+                  color: scheme.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              _ActionButton(
-                label: 'Delete',
-                icon: CupertinoIcons.trash,
-                color: HomeStyle.red,
-                onPressed: onDelete,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: style.theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      preview,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: style.theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  label: 'Recover',
+                  icon: CupertinoIcons.arrow_counterclockwise,
+                  color: scheme.primary,
+                  onPressed: onRestore,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  label: 'Delete',
+                  icon: CupertinoIcons.trash,
+                  color: scheme.error,
+                  onPressed: onDelete,
+                ),
               ),
             ],
           ),
@@ -243,26 +276,39 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      minimumSize: Size.zero,
-      color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(10),
-      onPressed: onPressed,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: color.withValues(alpha: 0.11),
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: SizedBox(
+            height: 46,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 17, color: color),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
