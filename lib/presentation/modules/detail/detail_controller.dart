@@ -45,15 +45,18 @@ class DetailController extends GetxController {
 
     try {
       isLoading.value = true;
+      errorMessage.value = null;
       final result = await _getNoteUseCase(id);
 
       if (result != null) {
         note.value = NoteModel.fromEntity(result);
       } else {
+        note.value = null;
         errorMessage.value = 'Note not found.';
       }
     } catch (error) {
-      errorMessage.value = error.toString();
+      note.value = null;
+      errorMessage.value = 'Failed to load note. ${_readableError(error)}';
     } finally {
       isLoading.value = false;
     }
@@ -114,7 +117,7 @@ class DetailController extends GetxController {
                   duration: const Duration(seconds: 2),
                 );
               } catch (e) {
-                Get.snackbar('Error', 'Failed to delete note: $e');
+                _showError('Failed to delete note. ${_readableError(e)}');
               }
             },
             child: const Text('Delete'),
@@ -154,7 +157,7 @@ class DetailController extends GetxController {
         }
       } catch (e) {
         if (copiedPath != null) await _deleteFile(copiedPath);
-        _showError('Failed to add the attachment.');
+        _showError('Failed to add the attachment. ${_readableError(e)}');
       }
     }
   }
@@ -179,7 +182,9 @@ class DetailController extends GetxController {
           if (editedPath != imagePath) await _deleteFile(imagePath);
         } catch (error) {
           if (editedPath != imagePath) await _deleteFile(editedPath);
-          _showError('Failed to save the edited image.');
+          _showError(
+            'Failed to save the edited image. ${_readableError(error)}',
+          );
         }
       }
     }
@@ -201,8 +206,8 @@ class DetailController extends GetxController {
         await _updateNoteUseCase(updatedNote);
         note.value = updatedNote;
         await _deleteFile(removedPath);
-      } catch (_) {
-        _showError('Failed to remove the attachment.');
+      } catch (error) {
+        _showError('Failed to remove the attachment. ${_readableError(error)}');
       }
     }
   }
@@ -237,22 +242,26 @@ class DetailController extends GetxController {
       MoveNoteSheet(
         note: currentNote,
         onMove: (folderId) async {
-          final updatedNote = currentNote.copyWith(
-            folderId: folderId,
-            updatedAt: DateTime.now(),
-          );
-          await _updateNoteUseCase(updatedNote);
-          note.value = updatedNote;
-          Get.snackbar(
-            'Moved',
-            'Note moved successfully.',
-            snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: AppColors.primary,
-            colorText: Colors.white,
-            borderRadius: 15,
-            margin: const EdgeInsets.all(15),
-            duration: const Duration(seconds: 2),
-          );
+          try {
+            final updatedNote = currentNote.copyWith(
+              folderId: folderId,
+              updatedAt: DateTime.now(),
+            );
+            await _updateNoteUseCase(updatedNote);
+            note.value = updatedNote;
+            Get.snackbar(
+              'Moved',
+              'Note moved successfully.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: AppColors.primary,
+              colorText: Colors.white,
+              borderRadius: 15,
+              margin: const EdgeInsets.all(15),
+              duration: const Duration(seconds: 2),
+            );
+          } catch (error) {
+            _showError('Failed to move note. ${_readableError(error)}');
+          }
         },
       ),
       isScrollControlled: true,
@@ -265,8 +274,20 @@ class DetailController extends GetxController {
     if (currentNote == null) return;
 
     final updatedNote = currentNote.copyWith(isPinned: !currentNote.isPinned);
-    await _updateNoteUseCase(updatedNote);
-    note.value = updatedNote;
-    HapticFeedback.mediumImpact();
+    try {
+      await _updateNoteUseCase(updatedNote);
+      note.value = updatedNote;
+      HapticFeedback.mediumImpact();
+    } catch (error) {
+      _showError('Failed to update pin. ${_readableError(error)}');
+    }
+  }
+
+  String _readableError(Object error) {
+    final message = error.toString().trim();
+    if (message.isEmpty) return 'Please try again.';
+    return message
+        .replaceFirst(RegExp(r'^(Exception|StateError):\s*'), '')
+        .trim();
   }
 }

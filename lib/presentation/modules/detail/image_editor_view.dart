@@ -8,6 +8,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:notes/app/theme/colors.dart';
+import 'package:notes/core/utils/image_helper.dart';
 import '../../../shared/components/drawing_canvas.dart';
 import '../home/home_style.dart';
 
@@ -112,29 +113,10 @@ class ImageEditorView extends StatelessWidget {
                   controller: controller.screenshotController,
                   child: Stack(
                     children: [
-                      Image.file(
-                        File(imagePath),
+                      ImageHelper.buildSafeImage(
+                        imagePath,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[900],
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.broken_image,
-                                  color: Colors.white54,
-                                  size: 64,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Image could not be loaded',
-                                  style: TextStyle(color: Colors.white54),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        radius: 0,
                       ),
                       Positioned.fill(
                         child: LayoutBuilder(
