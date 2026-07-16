@@ -1,7 +1,5 @@
 import 'dart:convert';
-
 import 'package:get/get.dart';
-
 import '../../core/constants/api_config.dart';
 import '../models/folder_model.dart';
 import 'auth_service.dart';
