@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'colors.dart';
+import 'app_colors.dart';
 
 abstract final class AppTheme {
   static ThemeData get lightTheme => _build(Brightness.light);

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:notes/presentation/modules/auth/login_view.dart';
-import 'package:notes/presentation/modules/auth/signup_view.dart';
+import 'package:notes/features/auth/presentation/controllers/login_controller.dart';
+import 'package:notes/features/auth/presentation/controllers/signup_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
