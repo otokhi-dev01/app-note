@@ -12,9 +12,17 @@ class SplashController extends GetxController {
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 2));
     final authService = Get.find<AuthService>();
-    if (authService.isLoggedIn) {
-      Get.offAllNamed(AppRoutes.home);
-    } else {
+    try {
+      await authService.ready;
+      if (authService.isLoggedIn) {
+        Get.offAllNamed(AppRoutes.home);
+        return;
+      }
+    } catch (_) {
+      // Fall through to sign-in if session restoration fails.
+    }
+
+    if (Get.currentRoute != AppRoutes.login) {
       Get.offAllNamed(AppRoutes.login);
     }
   }

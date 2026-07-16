@@ -51,7 +51,8 @@ class SketchController extends GetxController {
     final Uint8List? imageBytes = await screenshotController.capture();
     if (imageBytes != null) {
       final directory = await getApplicationDocumentsDirectory();
-      final String fileName = 'sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      final String fileName =
+          'sketch_${DateTime.now().millisecondsSinceEpoch}.png';
       final String filePath = p.join(directory.path, fileName);
       final File file = File(filePath);
       await file.writeAsBytes(imageBytes);
@@ -67,22 +68,38 @@ class SketchView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(SketchController());
     final style = HomeStyle.of(context);
-    
+
     return Scaffold(
-      backgroundColor: style.surface,
+      backgroundColor: style.background,
       appBar: AppBar(
-        backgroundColor: style.surface,
+        backgroundColor: style.background,
         elevation: 0,
         leadingWidth: 100,
         leading: TextButton(
           onPressed: () => Get.back(),
-          child: const Text('Cancel', style: TextStyle(color: AppColors.magenta, fontSize: 17)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: AppColors.magenta, fontSize: 17),
+          ),
         ),
-        title: Text('Sketch', style: TextStyle(color: style.primaryText, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Sketch',
+          style: TextStyle(
+            color: style.primaryText,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: controller.saveSketch,
-            child: const Text('Done', style: TextStyle(color: AppColors.magenta, fontWeight: FontWeight.bold, fontSize: 17)),
+            child: const Text(
+              'Done',
+              style: TextStyle(
+                color: AppColors.magenta,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
           ),
         ],
       ),
@@ -92,21 +109,24 @@ class SketchView extends StatelessWidget {
             child: Screenshot(
               controller: controller.screenshotController,
               child: Container(
-                color: style.surface,
+                // Keep exported sketches readable in every app theme.
+                color: Colors.white,
                 width: double.infinity,
                 height: double.infinity,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    return Obx(() => DrawingCanvas(
-                      width: constraints.maxWidth,
-                      height: constraints.maxHeight,
-                      selectedColor: controller.selectedColor.value,
-                      strokeWidth: controller.strokeWidth.value,
-                      initialPoints: controller.points.toList(),
-                      onDrawingChanged: (newPoints) {
-                        controller.points.assignAll(newPoints);
-                      },
-                    ));
+                    return Obx(
+                      () => DrawingCanvas(
+                        width: constraints.maxWidth,
+                        height: constraints.maxHeight,
+                        selectedColor: controller.selectedColor.value,
+                        strokeWidth: controller.strokeWidth.value,
+                        initialPoints: controller.points.toList(),
+                        onDrawingChanged: (newPoints) {
+                          controller.points.assignAll(newPoints);
+                        },
+                      ),
+                    );
                   },
                 ),
               ),
@@ -118,10 +138,14 @@ class SketchView extends StatelessWidget {
     );
   }
 
-  Widget _buildToolbar(BuildContext context, SketchController controller, HomeStyle style) {
+  Widget _buildToolbar(
+    BuildContext context,
+    SketchController controller,
+    HomeStyle style,
+  ) {
     return Container(
       decoration: BoxDecoration(
-        color: style.isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7),
+        color: style.secondarySurface,
         border: Border(top: BorderSide(color: style.border, width: 0.5)),
       ),
       padding: EdgeInsets.only(
@@ -136,6 +160,7 @@ class SketchView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
+                _ColorButton(color: Colors.white, controller: controller),
                 _ColorButton(color: Colors.black, controller: controller),
                 _ColorButton(color: Colors.grey, controller: controller),
                 _ColorButton(color: Colors.red, controller: controller),
@@ -146,7 +171,11 @@ class SketchView extends StatelessWidget {
                 _ColorButton(color: Colors.purple, controller: controller),
                 _ColorButton(color: AppColors.magenta, controller: controller),
                 IconButton(
-                  icon: const Icon(CupertinoIcons.color_filter, size: 28),
+                  icon: Icon(
+                    CupertinoIcons.color_filter,
+                    color: style.primaryText,
+                    size: 28,
+                  ),
                   onPressed: () => controller.pickColor(context),
                 ),
               ],
@@ -156,27 +185,43 @@ class SketchView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Obx(() => IconButton(
-                icon: Icon(CupertinoIcons.pencil, 
-                  color: controller.strokeWidth.value < 10 ? AppColors.magenta : style.primaryText),
-                onPressed: () => controller.strokeWidth.value = 5.0,
-              )),
-              Obx(() => IconButton(
-                icon: Icon(CupertinoIcons.paintbrush, 
-                  color: controller.strokeWidth.value >= 10 ? AppColors.magenta : style.primaryText),
-                onPressed: () => controller.strokeWidth.value = 15.0,
-              )),
+              Obx(
+                () => IconButton(
+                  icon: Icon(
+                    CupertinoIcons.pencil,
+                    color: controller.strokeWidth.value < 10
+                        ? AppColors.magenta
+                        : style.primaryText,
+                  ),
+                  onPressed: () => controller.strokeWidth.value = 5.0,
+                ),
+              ),
+              Obx(
+                () => IconButton(
+                  icon: Icon(
+                    CupertinoIcons.paintbrush,
+                    color: controller.strokeWidth.value >= 10
+                        ? AppColors.magenta
+                        : style.primaryText,
+                  ),
+                  onPressed: () => controller.strokeWidth.value = 15.0,
+                ),
+              ),
               IconButton(
                 icon: const Icon(CupertinoIcons.trash, color: Colors.red),
                 onPressed: controller.clearPoints,
               ),
               IconButton(
-                icon: const Icon(CupertinoIcons.arrow_uturn_left),
+                icon: Icon(
+                  CupertinoIcons.arrow_uturn_left,
+                  color: style.primaryText,
+                ),
                 onPressed: () {
                   if (controller.points.isNotEmpty) {
                     controller.points.removeLast();
                     // Remove until we find the last 'null' or start of list
-                    while (controller.points.isNotEmpty && controller.points.last != null) {
+                    while (controller.points.isNotEmpty &&
+                        controller.points.last != null) {
                       controller.points.removeLast();
                     }
                   }
@@ -197,25 +242,35 @@ class _ColorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => GestureDetector(
-      onTap: () => controller.selectedColor.value = color,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: controller.selectedColor.value == color ? AppColors.magenta : Colors.transparent,
-            width: 2,
+    final style = HomeStyle.of(context);
+
+    return Obx(
+      () => GestureDetector(
+        onTap: () => controller.selectedColor.value = color,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 6),
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: controller.selectedColor.value == color
+                  ? AppColors.magenta
+                  : style.border,
+              width: 2,
+            ),
+            boxShadow: [
+              if (controller.selectedColor.value == color)
+                BoxShadow(
+                  color: color.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+            ],
           ),
-          boxShadow: [
-            if (controller.selectedColor.value == color)
-              BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 4, spreadRadius: 1),
-          ],
         ),
       ),
-    ));
+    );
   }
 }

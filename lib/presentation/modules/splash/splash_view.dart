@@ -9,15 +9,18 @@ class SplashView extends GetView<SplashController> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
             // Center Logo and Indicator
             Center(
               child: FadeInWidget(
-                duration: const Duration(milliseconds: 800),
+                duration: Duration(milliseconds: 800),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -25,9 +28,13 @@ class SplashView extends GetView<SplashController> {
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
+                            color: theme.shadowColor.withValues(
+                              alpha: theme.brightness == Brightness.dark
+                                  ? 0.35
+                                  : 0.08,
+                            ),
                             blurRadius: 40,
-                            offset: const Offset(0, 12),
+                            offset: Offset(0, 12),
                           ),
                         ],
                       ),
@@ -41,20 +48,19 @@ class SplashView extends GetView<SplashController> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 60),
-                    const CupertinoActivityIndicator(radius: 12),
+                    SizedBox(height: 60),
+                    CupertinoActivityIndicator(radius: 12),
                   ],
                 ),
               ),
             ),
-            
             // Bottom Branding (Minimalist iOS Style)
             Align(
               alignment: Alignment.bottomCenter,
               child: FadeInWidget(
-                duration: const Duration(milliseconds: 1500),
+                duration: Duration(milliseconds: 1500),
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 30),
+                  padding: EdgeInsets.only(bottom: 30),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -63,26 +69,26 @@ class SplashView extends GetView<SplashController> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: colors.onSurface.withValues(alpha: 0.5),
                           letterSpacing: 2.0,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            CupertinoIcons.cloud_fill,
+                            CupertinoIcons.lock_shield_fill,
                             size: 14,
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: colors.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Text(
-                            'iCloud Security',
+                            'Secure Account',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black.withValues(alpha: 0.25),
+                              color: colors.onSurfaceVariant,
                             ),
                           ),
                         ],

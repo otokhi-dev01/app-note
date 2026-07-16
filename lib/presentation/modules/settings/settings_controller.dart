@@ -8,7 +8,23 @@ class SettingsController extends GetxController {
   SettingsController(this._localStorage);
 
   final LocalStorage _localStorage;
-  final isDarkMode = false.obs;
+  final themeMode = ThemeMode.system.obs;
+
+  String get themeModeLabel => switch (themeMode.value) {
+    ThemeMode.system => 'System Default',
+    ThemeMode.light => 'Light',
+    ThemeMode.dark => 'Dark',
+  };
+
+  String get accountIdentifier {
+    final user = Get.find<AuthService>().user;
+    final phone = user?.phone?.trim();
+    if (phone != null && phone.isNotEmpty) return phone;
+
+    final email = user?.email?.trim();
+    if (email != null && email.isNotEmpty) return email;
+    return 'Authenticated account';
+  }
 
   @override
   void onInit() {
@@ -17,18 +33,18 @@ class SettingsController extends GetxController {
   }
 
   Future<void> loadTheme() async {
-    isDarkMode.value = await _localStorage.getDarkMode();
+    themeMode.value = await _localStorage.getThemeMode();
+    Get.changeThemeMode(themeMode.value);
   }
 
-  Future<void> toggleDarkMode() async {
-    final newValue = !isDarkMode.value;
-    isDarkMode.value = newValue;
-    await _localStorage.saveDarkMode(newValue);
-    Get.changeThemeMode(newValue ? ThemeMode.dark : ThemeMode.light);
+  Future<void> setThemeMode(ThemeMode mode) async {
+    themeMode.value = mode;
+    Get.changeThemeMode(mode);
+    await _localStorage.saveThemeMode(mode);
   }
 
-  void logout() {
-    Get.find<AuthService>().logout();
+  Future<void> logout() async {
+    await Get.find<AuthService>().logout();
     Get.offAllNamed(AppRoutes.login);
   }
 }

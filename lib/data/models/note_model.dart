@@ -1,6 +1,8 @@
 import '../../domain/entities/note.dart';
 
 class NoteModel extends Note {
+  static const _notProvided = Object();
+
   const NoteModel({
     super.id,
     required super.title,
@@ -21,12 +23,17 @@ class NoteModel extends Note {
       title: map['title'] as String? ?? '',
       content: map['content'] as String? ?? '',
       isDeleted: (map['is_deleted'] as int? ?? 0) == 1,
-      deletedAt: map['deleted_at'] != null 
-          ? DateTime.parse(map['deleted_at'] as String) 
+      deletedAt: map['deleted_at'] != null
+          ? DateTime.parse(map['deleted_at'] as String)
           : null,
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
-      imagePaths: (map['image_paths'] as String?)?.split('|').where((e) => e.isNotEmpty).toList() ?? [],
+      imagePaths:
+          (map['image_paths'] as String?)
+              ?.split('|')
+              .where((e) => e.isNotEmpty)
+              .toList() ??
+          [],
       folderId: map['folder_id'] as int?,
       isPinned: (map['is_pinned'] as int? ?? 0) == 1,
       isLocked: (map['is_locked'] as int? ?? 0) == 1,
@@ -56,9 +63,9 @@ class NoteModel extends Note {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
-    DateTime? deletedAt,
+    Object? deletedAt = _notProvided,
     List<String>? imagePaths,
-    int? folderId,
+    Object? folderId = _notProvided,
     bool? isPinned,
     bool? isLocked,
   }) {
@@ -69,9 +76,13 @@ class NoteModel extends Note {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
-      deletedAt: deletedAt ?? this.deletedAt,
+      deletedAt: identical(deletedAt, _notProvided)
+          ? this.deletedAt
+          : deletedAt as DateTime?,
       imagePaths: imagePaths ?? this.imagePaths,
-      folderId: folderId ?? this.folderId,
+      folderId: identical(folderId, _notProvided)
+          ? this.folderId
+          : folderId as int?,
       isPinned: isPinned ?? this.isPinned,
       isLocked: isLocked ?? this.isLocked,
     );

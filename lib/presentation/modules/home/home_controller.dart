@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:notes/presentation/modules/home/widgets/create_folder_view.dart';
 import 'package:notes/presentation/modules/home/widgets/home_sheets.dart';
 import 'package:notes/data/models/note_model.dart';
+import 'package:notes/data/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:notes/domain/usecases/delete_note_usecase.dart';
 import 'package:notes/domain/repositories/note_repository.dart';
@@ -24,7 +27,7 @@ class HomeController extends GetxController {
   final GetNotesUseCase _getNotesUseCase;
   final UpdateNoteUseCase _updateNoteUseCase;
   final DeleteNoteUseCase _deleteNoteUseCase;
-  
+
   // Note: We still use the interface for complex things like folders if not using specific use cases
   final NoteRepository _repository = Get.find<NoteRepository>();
   // Observable states
@@ -48,21 +51,28 @@ class HomeController extends GetxController {
   final isLoading = false.obs;
   final errorMessage = RxnString();
 
+  late final String _recentSearchesKey;
+
   @override
   void onInit() {
     super.onInit();
+    _recentSearchesKey =
+        'recent_searches_${Get.find<AuthService>().accountScopeId}';
     loadNotes();
     _loadRecentSearches();
   }
+
   Future<void> _loadRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
-    final list = prefs.getStringList('recent_searches') ?? [];
+    final list = prefs.getStringList(_recentSearchesKey) ?? [];
     recentSearches.assignAll(list);
   }
+
   Future<void> _saveRecentSearches() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('recent_searches', recentSearches);
+    await prefs.setStringList(_recentSearchesKey, recentSearches);
   }
+
   void addRecentSearch(String query) {
     if (query.trim().isEmpty) return;
     final trimmedQuery = query.trim();
@@ -94,7 +104,16 @@ class HomeController extends GetxController {
       notes.assignAll(activeNotes);
       trashNotes.assignAll(deletedNotes);
       folders.assignAll(allFolders);
-      _applyFilter();
+      if (isSearching.value) {
+        final token = activeSearchToken.value;
+        if (token != null) {
+          searchByFilter(token.toLowerCase());
+        } else {
+          search(searchQuery.value);
+        }
+      } else {
+        _applyFilter();
+      }
     } catch (error) {
       errorMessage.value = 'Failed to load notes. Please try again.';
     } finally {
@@ -109,6 +128,7 @@ class HomeController extends GetxController {
     pinnedNotes.assignAll(baseNotes.where((n) => n.isPinned).toList());
     filteredNotes.assignAll(baseNotes.where((n) => !n.isPinned).toList());
   }
+
   void toggleViewMode() {
     isGalleryView.value = !isGalleryView.value;
     HapticFeedback.selectionClick();
@@ -136,6 +156,7 @@ class HomeController extends GetxController {
     await loadNotes();
     HapticFeedback.mediumImpact();
   }
+
   void selectFolder(Folder? folder) {
     if (isEditing.value) return;
     selectedFolder.value = folder;
@@ -144,41 +165,50 @@ class HomeController extends GetxController {
     isTrashView.value = false;
     _applyFilter();
   }
+
   void toggleEdit() {
     isEditing.value = !isEditing.value;
   }
+
   void toggleNotesSection() {
     isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
   }
+
   void toggleLocalSection() {
     isLocalSectionExpanded.value = !isLocalSectionExpanded.value;
   }
+
   void toggleTagsSection() {
     isTagsSectionExpanded.value = !isTagsSectionExpanded.value;
   }
+
   void showFolders() {
     isFolderView.value = true;
     isSearching.value = false;
     isEditing.value = false;
     isTrashView.value = false;
   }
+
   void showTrash() {
     isTrashView.value = true;
     isFolderView.value = false;
     isSearching.value = false;
     isEditing.value = false;
   }
+
   void startSearch() {
     isSearching.value = true;
     // When starting search from a folder, we search globally
     filteredNotes.assignAll(notes);
   }
+
   void cancelSearch() {
     isSearching.value = false;
     searchQuery.value = '';
     activeSearchToken.value = null;
     _applyFilter();
   }
+
   void search(String query) {
     searchQuery.value = query;
     final keyword = query.trim().toLowerCase();
@@ -187,12 +217,16 @@ class HomeController extends GetxController {
       filteredNotes.assignAll(notes);
       return;
     }
-    final results = notes.where(
-      (note) =>
-          note.title.toLowerCase().contains(keyword) ||
-          note.content.toLowerCase().contains(keyword) ||
-          note.imagePaths.any((path) => path.toLowerCase().contains(keyword)),
-    ).toList();
+    final results = notes
+        .where(
+          (note) =>
+              note.title.toLowerCase().contains(keyword) ||
+              note.content.toLowerCase().contains(keyword) ||
+              note.imagePaths.any(
+                (path) => path.toLowerCase().contains(keyword),
+              ),
+        )
+        .toList();
     filteredNotes.assignAll(results);
     // Add to recent searches if there are results and the query is long enough
     if (results.isNotEmpty && keyword.length > 2) {
@@ -208,16 +242,29 @@ class HomeController extends GetxController {
         activeSearchToken.value = 'Attachments';
         break;
       case 'shared':
-        _showStatusSnackbar('Shared Notes', 'Sharing features are coming soon!');
+        _showStatusSnackbar(
+          'Shared Notes',
+          'Sharing features are coming soon!',
+        );
         filteredNotes.assignAll([]); // Implementation for shared notes
         activeSearchToken.value = 'Shared';
         break;
       case 'drawings':
-        filteredNotes.assignAll(notes.where((n) => n.imagePaths.any((p) => p.contains('sketch') || p.contains('drawing'))));
+        filteredNotes.assignAll(
+          notes.where(
+            (n) => n.imagePaths.any(
+              (p) => p.contains('sketch') || p.contains('drawing'),
+            ),
+          ),
+        );
         activeSearchToken.value = 'Drawings';
         break;
       case 'checklists':
-        filteredNotes.assignAll(notes.where((n) => n.content.contains('☐') || n.content.contains('☑')));
+        filteredNotes.assignAll(
+          notes.where(
+            (n) => n.content.contains('☐') || n.content.contains('☑'),
+          ),
+        );
         activeSearchToken.value = 'Checklists';
         break;
       case 'tags':
@@ -229,7 +276,10 @@ class HomeController extends GetxController {
         activeSearchToken.value = 'Locked';
         break;
       case 'scanned':
-        _showStatusSnackbar('Scanned Documents', 'Document scanning is not available.');
+        _showStatusSnackbar(
+          'Scanned Documents',
+          'Document scanning is not available.',
+        );
         filteredNotes.assignAll([]); // Implementation for scanned docs
         activeSearchToken.value = 'Scanned';
         break;
@@ -240,28 +290,39 @@ class HomeController extends GetxController {
     activeSearchToken.value = null;
     search(searchQuery.value);
   }
+
   Future<void> openCreateNote() async {
     HapticFeedback.lightImpact();
-    final changed = await Get.toNamed(AppRoutes.editor);
-    if (changed == true) await loadNotes();
+    final result = await Get.toNamed(
+      AppRoutes.editor,
+      arguments: selectedFolder.value?.id,
+    );
+    if (result != null) await loadNotes();
   }
+
   Future<void> openCreateFolder() async {
     HapticFeedback.lightImpact();
-    final res = await Get.to<String>(() => const CreateFolderView(), fullscreenDialog: true);
-    if (res != null) { 
-      await _repository.createFolder(res); 
-      await loadNotes(); 
+    final res = await Get.to<String>(
+      () => const CreateFolderView(),
+      fullscreenDialog: true,
+    );
+    if (res != null) {
+      await _repository.createFolder(res);
+      await loadNotes();
     }
   }
+
   Future<void> openNote(Note note) async {
     HapticFeedback.selectionClick();
-    final changed = await Get.toNamed(AppRoutes.detail, arguments: note.id);
-    if (changed == true) await loadNotes();
+    await Get.toNamed(AppRoutes.detail, arguments: note.id);
+    await loadNotes();
   }
+
   void goToSettings() {
     HapticFeedback.lightImpact();
     Get.toNamed(AppRoutes.settings);
   }
+
   Future<void> deleteNote(Note note) async {
     if (note.id == null) return;
     HapticFeedback.mediumImpact();
@@ -282,6 +343,7 @@ class HomeController extends GetxController {
     await loadNotes();
     _showStatusSnackbar('Moved to Trash', 'Note moved to Recently Deleted.');
   }
+
   Future<void> restoreNote(Note note) async {
     if (note.id == null) return;
     HapticFeedback.mediumImpact();
@@ -302,19 +364,28 @@ class HomeController extends GetxController {
     await loadNotes();
     _showStatusSnackbar('Restored', 'Note restored successfully.');
   }
+
   Future<void> permanentlyDeleteNote(Note note) async {
     if (note.id == null) return;
     HapticFeedback.heavyImpact();
     await _deleteNoteUseCase(note.id!);
+    await _deleteAttachmentFiles(note.imagePaths);
     await loadNotes();
-    _showStatusSnackbar('Deleted', 'Note permanently deleted.', isDestructive: true);
+    _showStatusSnackbar(
+      'Deleted',
+      'Note permanently deleted.',
+      isDestructive: true,
+    );
   }
+
   Future<void> clearTrash() async {
     if (trashNotes.isEmpty) return;
     Get.dialog(
       CupertinoAlertDialog(
-        title:   Text('Empty Trash?'),
-        content: Text('All notes in Recently Deleted will be permanently removed. This action cannot be undone.'),
+        title: Text('Empty Trash?'),
+        content: Text(
+          'All notes in Recently Deleted will be permanently removed. This action cannot be undone.',
+        ),
         actions: [
           CupertinoDialogAction(
             child: Text('Cancel'),
@@ -327,17 +398,35 @@ class HomeController extends GetxController {
               for (var note in trashNotes) {
                 if (note.id != null) {
                   await _deleteNoteUseCase(note.id!);
+                  await _deleteAttachmentFiles(note.imagePaths);
                 }
               }
               await loadNotes();
-              _showStatusSnackbar('Trash Emptied', 'All deleted notes removed.', isDestructive: true);
+              _showStatusSnackbar(
+                'Trash Emptied',
+                'All deleted notes removed.',
+                isDestructive: true,
+              );
             },
-            child:  Text('Empty Trash'),
+            child: Text('Empty Trash'),
           ),
         ],
       ),
     );
   }
+
+  Future<void> _deleteAttachmentFiles(List<String> paths) async {
+    for (final path in paths) {
+      try {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      } catch (_) {
+        // The note is already deleted; an unavailable attachment must not
+        // prevent the rest of the trash from being emptied.
+      }
+    }
+  }
+
   void shareNote(Note note) {
     HapticFeedback.selectionClick();
     Get.bottomSheet(
@@ -346,6 +435,7 @@ class HomeController extends GetxController {
       enableDrag: true,
     );
   }
+
   void moveNote(Note note) {
     HapticFeedback.selectionClick();
     Get.bottomSheet(
@@ -366,17 +456,21 @@ class HomeController extends GetxController {
       enableDrag: true,
     );
   }
+
   void openRecentlyDeleted() {
     if (isEditing.value) return;
     HapticFeedback.selectionClick();
     showTrash();
   }
+
   Future<void> deleteFolder(Folder folder) async {
     if (folder.id == null) return;
     Get.dialog(
       CupertinoAlertDialog(
         title: Text('Delete "${folder.name}"?'),
-        content: Text('This folder will be deleted. Any notes inside will be kept but unorganized.'),
+        content: Text(
+          'This folder will be deleted. Any notes inside will be kept but unorganized.',
+        ),
         actions: [
           CupertinoDialogAction(
             child: Text('Cancel'),
@@ -395,6 +489,7 @@ class HomeController extends GetxController {
       ),
     );
   }
+
   Future<void> renameFolder(Folder folder) async {
     if (folder.id == null) return;
     final textController = TextEditingController(text: folder.name);
@@ -430,7 +525,12 @@ class HomeController extends GetxController {
       ),
     );
   }
-  void _showStatusSnackbar(String title, String message, {bool isDestructive = false}) {
+
+  void _showStatusSnackbar(
+    String title,
+    String message, {
+    bool isDestructive = false,
+  }) {
     Get.snackbar(
       title,
       message,
@@ -441,7 +541,9 @@ class HomeController extends GetxController {
       margin: EdgeInsets.all(15),
       duration: Duration(seconds: 2),
       icon: Icon(
-        isDestructive ? CupertinoIcons.trash_fill : CupertinoIcons.info_circle_fill,
+        isDestructive
+            ? CupertinoIcons.trash_fill
+            : CupertinoIcons.info_circle_fill,
         color: Colors.white,
       ),
     );

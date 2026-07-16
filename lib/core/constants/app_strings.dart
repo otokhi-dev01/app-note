@@ -1,5 +1,5 @@
 abstract final class AppStrings {
-  static const appName = 'All Cloud';
+  static const appName = 'Piisiit Notes';
   static const notes = 'My Notes';
   static const createNote = 'Create note';
   static const editNote = 'Edit note';

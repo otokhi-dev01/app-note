@@ -20,31 +20,39 @@ class HomeView extends GetView<HomeController> {
           Obx(() {
             return CustomScrollView(
               key: const ValueKey('home_scroll_view'),
-              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               slivers: _buildAllSlivers(context, style),
             );
           }),
 
           // Search Overlay
-          Obx(() => controller.isSearching.value && 
-                    controller.searchQuery.value.isEmpty && 
-                    controller.activeSearchToken.value == null 
-              ? SearchOverlay(style: style, controller: controller)
-              : const SizedBox.shrink()),
+          Obx(
+            () =>
+                controller.isSearching.value &&
+                    controller.searchQuery.value.isEmpty &&
+                    controller.activeSearchToken.value == null
+                ? SearchOverlay(style: style, controller: controller)
+                : const SizedBox.shrink(),
+          ),
 
           // Bottom Bar
           Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: Obx(() {
               if (controller.isSearching.value) {
                 return SearchBottomBar(style: style, controller: controller);
               }
               return HomeBottomBar(
                 style: style,
-                noteCount: controller.isFolderView.value 
-                    ? controller.notes.length 
-                    : controller.filteredNotes.length + controller.pinnedNotes.length,
+                noteCount: controller.isFolderView.value
+                    ? controller.notes.length
+                    : controller.filteredNotes.length +
+                          controller.pinnedNotes.length,
                 isFolderView: controller.isFolderView.value,
                 onSearch: controller.startSearch,
                 onCreateNote: controller.openCreateNote,
@@ -68,20 +76,33 @@ class HomeView extends GetView<HomeController> {
 
     // 1. Header
     if (!isSearching) {
-      slivers.add(SliverPersistentHeader(
-        pinned: true,
-        delegate: HomeHeaderDelegate(
-          style: style,
-          controller: controller,
-          topPadding: MediaQuery.of(context).padding.top,
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: HomeHeaderDelegate(
+            style: style,
+            controller: controller,
+            topPadding: MediaQuery.of(context).padding.top,
+          ),
         ),
-      ));
+      );
     }
 
     // 2. Content
     if (!isSearching) {
       if (controller.isLoading.value) {
         slivers.add(LoadingNotes(style: style));
+      } else if (controller.errorMessage.value != null) {
+        slivers.add(
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: ErrorState(
+              style: style,
+              error: controller.errorMessage.value!,
+              onRetry: controller.loadNotes,
+            ),
+          ),
+        );
       } else if (isTrashView) {
         slivers.add(TrashList(style: style, controller: controller));
       } else if (isFolderView) {
@@ -112,11 +133,19 @@ class HomeView extends GetView<HomeController> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(CupertinoIcons.doc_plaintext, size: 64, color: Colors.grey.withValues(alpha: 0.5)),
+              Icon(
+                CupertinoIcons.doc_plaintext,
+                size: 64,
+                color: Colors.grey.withValues(alpha: 0.5),
+              ),
               const SizedBox(height: 12),
-              const Text(
-                'No Notes', 
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black)
+              Text(
+                'No Notes',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                  color: style.primaryText,
+                ),
               ),
             ],
           ),
@@ -129,19 +158,43 @@ class HomeView extends GetView<HomeController> {
         const SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(22, 16, 22, 8),
-            child: Text('PINNED', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+            child: Text(
+              'PINNED',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
           ),
         ),
-        NotesGrid(key:  ValueKey('pinned_grid'), notes: pinned, style: style, controller: controller),
+        NotesGrid(
+          key: ValueKey('pinned_grid'),
+          notes: pinned,
+          style: style,
+          controller: controller,
+        ),
       ],
       if (others.isNotEmpty) ...[
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(22, 24, 22, 8),
-            child: Text(pinned.isNotEmpty ? 'NOTES' : 'ALL NOTES', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey)),
+            child: Text(
+              pinned.isNotEmpty ? 'NOTES' : 'ALL NOTES',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
           ),
         ),
-        NotesGrid(key: ValueKey('others_grid'), notes: others, style: style, controller: controller),
+        NotesGrid(
+          key: ValueKey('others_grid'),
+          notes: others,
+          style: style,
+          controller: controller,
+        ),
       ],
     ];
   }
@@ -162,7 +215,11 @@ class HomeView extends GetView<HomeController> {
               children: topHits.asMap().entries.map((entry) {
                 final note = entry.value;
                 final isLast = entry.key == topHits.length - 1;
-                return SearchNoteCard(note: note, controller: controller, isLast: isLast);
+                return SearchNoteCard(
+                  note: note,
+                  controller: controller,
+                  isLast: isLast,
+                );
               }).toList(),
             ),
           ),
@@ -178,7 +235,11 @@ class HomeView extends GetView<HomeController> {
               children: others.asMap().entries.map((entry) {
                 final note = entry.value;
                 final isLast = entry.key == others.length - 1;
-                return SearchNoteCard(note: note, controller: controller, isLast: isLast);
+                return SearchNoteCard(
+                  note: note,
+                  controller: controller,
+                  isLast: isLast,
+                );
               }).toList(),
             ),
           ),
@@ -194,8 +255,14 @@ class HomeView extends GetView<HomeController> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('$count Found', style: const TextStyle(fontSize: 15, color: Colors.grey)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '$count Found',
+              style: const TextStyle(fontSize: 15, color: Colors.grey),
+            ),
           ],
         ),
       ),

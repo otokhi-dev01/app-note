@@ -13,13 +13,14 @@ import 'package:path/path.dart' as p;
 import '../home/widgets/home_sheets.dart';
 import 'package:notes/app/theme/colors.dart';
 import 'image_editor_view.dart';
+import '../editor/editor_controller.dart';
 
 class DetailController extends GetxController {
   DetailController(this._getNoteUseCase, this._updateNoteUseCase);
 
   final GetNoteUseCase _getNoteUseCase;
   final UpdateNoteUseCase _updateNoteUseCase;
-  
+
   final note = Rxn<NoteModel>();
   final isLoading = false.obs;
   final errorMessage = RxnString();
@@ -62,9 +63,11 @@ class DetailController extends GetxController {
     final currentNote = note.value;
     if (currentNote == null) return;
 
-    final changed = await Get.toNamed(AppRoutes.editor, arguments: currentNote);
+    final result = await Get.toNamed(AppRoutes.editor, arguments: currentNote);
 
-    if (changed == true) {
+    if (result == EditorResult.deleted) {
+      Get.back(result: true);
+    } else if (result == EditorResult.saved) {
       await loadNote();
     }
   }
@@ -86,7 +89,7 @@ class DetailController extends GetxController {
             isDestructiveAction: true,
             onPressed: () async {
               Get.back(); // Close dialog
-              
+
               try {
                 final updatedNote = currentNote.copyWith(
                   isDeleted: true,
@@ -94,10 +97,10 @@ class DetailController extends GetxController {
                 );
 
                 await _updateNoteUseCase(updatedNote);
-                
+
                 // Go back to home first
-                Get.back(result: true); 
-                
+                Get.back(result: true);
+
                 // Show snackbar after navigation
                 Get.snackbar(
                   'Moved to Trash',
@@ -129,11 +132,14 @@ class DetailController extends GetxController {
     );
 
     if (image != null) {
+      String? copiedPath;
       try {
         final directory = await getApplicationDocumentsDirectory();
-        final String fileName = 'note_image_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
+        final String fileName =
+            'note_image_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
         final String filePath = p.join(directory.path, fileName);
         await File(image.path).copy(filePath);
+        copiedPath = filePath;
 
         final currentNote = note.value;
         if (currentNote != null) {
@@ -143,43 +149,83 @@ class DetailController extends GetxController {
           );
           await _updateNoteUseCase(updatedNote);
           note.value = updatedNote;
+        } else {
+          await _deleteFile(filePath);
         }
       } catch (e) {
-        errorMessage.value = 'Failed to add image: $e';
+        if (copiedPath != null) await _deleteFile(copiedPath);
+        _showError('Failed to add the attachment.');
       }
     }
   }
 
   Future<void> editImage(String imagePath, int index) async {
-    final editedPath = await Get.to<String>(() => ImageEditorView(imagePath: imagePath));
+    final editedPath = await Get.to<String>(
+      () => ImageEditorView(imagePath: imagePath),
+    );
 
     if (editedPath != null) {
       final currentNote = note.value;
       if (currentNote != null) {
-        final newPaths = List<String>.from(currentNote.imagePaths);
-        newPaths[index] = editedPath;
-        final updatedNote = currentNote.copyWith(
-          imagePaths: newPaths,
-          updatedAt: DateTime.now(),
-        );
-        await _updateNoteUseCase(updatedNote);
-        note.value = updatedNote;
+        try {
+          final newPaths = List<String>.from(currentNote.imagePaths);
+          newPaths[index] = editedPath;
+          final updatedNote = currentNote.copyWith(
+            imagePaths: newPaths,
+            updatedAt: DateTime.now(),
+          );
+          await _updateNoteUseCase(updatedNote);
+          note.value = updatedNote;
+          if (editedPath != imagePath) await _deleteFile(imagePath);
+        } catch (error) {
+          if (editedPath != imagePath) await _deleteFile(editedPath);
+          _showError('Failed to save the edited image.');
+        }
       }
     }
   }
 
   Future<void> removeImage(int index) async {
     final currentNote = note.value;
-    if (currentNote != null) {
+    if (currentNote != null &&
+        index >= 0 &&
+        index < currentNote.imagePaths.length) {
+      final removedPath = currentNote.imagePaths[index];
       final newPaths = List<String>.from(currentNote.imagePaths);
       newPaths.removeAt(index);
       final updatedNote = currentNote.copyWith(
         imagePaths: newPaths,
         updatedAt: DateTime.now(),
       );
-      await _updateNoteUseCase(updatedNote);
-      note.value = updatedNote;
+      try {
+        await _updateNoteUseCase(updatedNote);
+        note.value = updatedNote;
+        await _deleteFile(removedPath);
+      } catch (_) {
+        _showError('Failed to remove the attachment.');
+      }
     }
+  }
+
+  Future<void> _deleteFile(String path) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    } catch (_) {
+      // Database state is authoritative; stale files are safe to ignore.
+    }
+  }
+
+  void _showError(String message) {
+    Get.snackbar(
+      'Error',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Get.theme.colorScheme.error,
+      colorText: Get.theme.colorScheme.onError,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 15,
+    );
   }
 
   void moveNote() {

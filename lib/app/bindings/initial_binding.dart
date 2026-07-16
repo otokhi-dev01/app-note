@@ -10,10 +10,16 @@ class InitialBinding extends Bindings {
   void dependencies() {
     Get.put<DatabaseService>(DatabaseService(), permanent: true);
     Get.put<LocalStorage>(LocalStorage(), permanent: true);
-    Get.putAsync<AuthService>(() => AuthService().init(), permanent: true);
+    Get.put<AuthService>(
+      AuthService(Get.find<LocalStorage>()),
+      permanent: true,
+    );
 
     Get.lazyPut<NoteRepository>(
-      () => NoteRepositoryImpl(Get.find<DatabaseService>()),
+      () => NoteRepositoryImpl(
+        Get.find<DatabaseService>(),
+        Get.find<AuthService>(),
+      ),
       fenix: true,
     );
   }

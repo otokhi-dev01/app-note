@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'colors.dart';
 
@@ -13,6 +14,12 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      cupertinoOverrideTheme: const CupertinoThemeData(
+        brightness: Brightness.light,
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: AppColors.background,
+        barBackgroundColor: AppColors.surface,
+      ),
       scaffoldBackgroundColor: AppColors.background,
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -45,15 +52,23 @@ abstract final class AppTheme {
           horizontal: 18,
           vertical: 18,
         ),
-        hintStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.55)),
-        labelStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.75)),
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.55),
+        ),
+        labelStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.75),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.8)),
+          borderSide: BorderSide(
+            color: AppColors.outline.withValues(alpha: 0.8),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.6)),
+          borderSide: BorderSide(
+            color: AppColors.outline.withValues(alpha: 0.6),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
@@ -119,8 +134,12 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      colorScheme: colorScheme.copyWith(
-        surface: AppColors.textPrimary,
+      colorScheme: colorScheme.copyWith(surface: AppColors.textPrimary),
+      cupertinoOverrideTheme: const CupertinoThemeData(
+        brightness: Brightness.dark,
+        primaryColor: AppColors.primary,
+        scaffoldBackgroundColor: Color(0xFF000000),
+        barBackgroundColor: AppColors.textPrimary,
       ),
       scaffoldBackgroundColor: const Color(0xFF000000),
       appBarTheme: AppBarTheme(
@@ -154,15 +173,19 @@ abstract final class AppTheme {
           horizontal: 18,
           vertical: 18,
         ),
-        hintStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.55)),
-        labelStyle: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.75)),
+        hintStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.55),
+        ),
+        labelStyle: TextStyle(
+          color: colorScheme.onSurface.withValues(alpha: 0.75),
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.8)),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: AppColors.outline.withValues(alpha: 0.6)),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
@@ -211,7 +234,10 @@ abstract final class AppTheme {
           fontSize: 14,
         ),
       ),
-      dividerTheme: DividerThemeData(color: AppColors.outline, thickness: 1),
+      dividerTheme: DividerThemeData(
+        color: colorScheme.outlineVariant,
+        thickness: 1,
+      ),
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),

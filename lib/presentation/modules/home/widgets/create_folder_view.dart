@@ -30,6 +30,7 @@ class CreateFolderController extends GetxController {
     nameController.dispose();
     super.onClose();
   }
+
   void clearName() {
     nameController.clear();
   }
@@ -53,7 +54,11 @@ class CreateFolderView extends StatelessWidget {
         leading: Center(
           child: _TopCircleButton(
             onTap: () => Get.back(),
-            child: Icon(CupertinoIcons.xmark, color: Colors.black, size: 20),
+            child: Icon(
+              CupertinoIcons.xmark,
+              color: style.primaryText,
+              size: 20,
+            ),
           ),
         ),
         title: Text(
@@ -66,20 +71,28 @@ class CreateFolderView extends StatelessWidget {
         ),
         centerTitle: true,
         actions: [
-          Obx(() => Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Center(
-              child: _TopCircleButton(
-                onTap: controller.canDone.value
-                    ? () => Get.back(result: controller.nameController.text.trim())
-                    : null,
-                backgroundColor: controller.canDone.value
-                    ? AppColors.yellow
-                    : AppColors.yellow.withValues(alpha: 0.5),
-                child: Icon(CupertinoIcons.check_mark, color: Colors.white, size: 18),
+          Obx(
+            () => Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: Center(
+                child: _TopCircleButton(
+                  onTap: controller.canDone.value
+                      ? () => Get.back(
+                          result: controller.nameController.text.trim(),
+                        )
+                      : null,
+                  backgroundColor: controller.canDone.value
+                      ? style.theme.colorScheme.primary
+                      : style.theme.colorScheme.primary.withValues(alpha: 0.5),
+                  child: Icon(
+                    CupertinoIcons.check_mark,
+                    color: style.theme.colorScheme.onPrimary,
+                    size: 18,
+                  ),
+                ),
               ),
             ),
-          )),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -89,7 +102,7 @@ class CreateFolderView extends StatelessWidget {
             // Name Input Section
             Container(
               decoration: BoxDecoration(
-                color: style.isDark ? Color(0xFF1C1C1E) : Colors.white,
+                color: style.surface,
                 borderRadius: BorderRadius.circular(14),
               ),
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -115,24 +128,26 @@ class CreateFolderView extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Obx(() => controller.folderName.value.isNotEmpty
-                      ? GestureDetector(
-                          onTap: controller.clearName,
-                          child: Icon(
-                            CupertinoIcons.clear_fill,
-                            size: 20,
-                            color: style.secondaryText.withValues(alpha: 0.3),
-                          ),
-                        )
-                      : SizedBox.shrink()),
+                  Obx(
+                    () => controller.folderName.value.isNotEmpty
+                        ? GestureDetector(
+                            onTap: controller.clearName,
+                            child: Icon(
+                              CupertinoIcons.clear_fill,
+                              size: 20,
+                              color: style.secondaryText.withValues(alpha: 0.3),
+                            ),
+                          )
+                        : SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
-             SizedBox(height: 24),
+            SizedBox(height: 24),
             // Smart Folder Section
             Container(
               decoration: BoxDecoration(
-                color: style.isDark ? Color(0xFF1C1C1E) : Colors.white,
+                color: style.surface,
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Material(
@@ -140,22 +155,28 @@ class CreateFolderView extends StatelessWidget {
                 child: InkWell(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    Get.snackbar("Smart Folder", "Smart Folder features coming soon!");
+                    Get.snackbar(
+                      "Smart Folder",
+                      "Smart Folder features coming soon!",
+                    );
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: AppColors.yellow,
+                            color: style.theme.colorScheme.primary,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             CupertinoIcons.gear_alt_fill,
-                            color: Colors.white,
+                            color: style.theme.colorScheme.onPrimary,
                             size: 20,
                           ),
                         ),
@@ -177,7 +198,9 @@ class CreateFolderView extends StatelessWidget {
                                 'Organize using tags and other filters',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: style.secondaryText.withValues(alpha: 0.6),
+                                  color: style.secondaryText.withValues(
+                                    alpha: 0.6,
+                                  ),
                                 ),
                               ),
                             ],
@@ -214,17 +237,19 @@ class _TopCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = HomeStyle.of(context);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 36,
         width: 36,
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white,
+          color: backgroundColor ?? style.surface,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: style.shadow,
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

@@ -3,9 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:notes/domain/entities/note.dart';
 import 'package:notes/domain/usecases/create_note_usecase.dart';
 import 'package:notes/domain/usecases/update_note_usecase.dart';
-import 'package:notes/domain/usecases/delete_note_usecase.dart';
 import 'package:notes/data/models/note_model.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,16 +12,13 @@ import 'package:path/path.dart' as p;
 import '../detail/image_editor_view.dart';
 import 'sketch_view.dart';
 
+enum EditorResult { saved, deleted }
+
 class EditorController extends GetxController {
-  EditorController(
-    this._createNoteUseCase, 
-    this._updateNoteUseCase,
-    this._deleteNoteUseCase,
-  );
+  EditorController(this._createNoteUseCase, this._updateNoteUseCase);
 
   final CreateNoteUseCase _createNoteUseCase;
   final UpdateNoteUseCase _updateNoteUseCase;
-  final DeleteNoteUseCase _deleteNoteUseCase;
 
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
@@ -31,8 +26,17 @@ class EditorController extends GetxController {
   final contentFocusNode = FocusNode();
 
   final isSaving = false.obs;
+  final canPop = true.obs;
   final imagePaths = <String>[].obs;
   NoteModel? existingNote;
+  int? initialFolderId;
+
+  late final String _initialTitle;
+  late final String _initialContent;
+  late final List<String> _initialImagePaths;
+  late final Worker _imagePathsWorker;
+  final _createdImagePaths = <String>{};
+  bool _isCloseDialogOpen = false;
 
   // Undo/Redo Stacks
   final _undoStack = <String>[];
@@ -53,10 +57,37 @@ class EditorController extends GetxController {
       titleController.text = argument.title;
       contentController.text = argument.content;
       imagePaths.assignAll(argument.imagePaths);
+    } else if (argument is int) {
+      initialFolderId = argument;
     }
 
+    _initialTitle = titleController.text;
+    _initialContent = contentController.text;
+    _initialImagePaths = imagePaths.toList(growable: false);
     _lastText = contentController.text;
+    titleController.addListener(_updateDirtyState);
     contentController.addListener(_onContentChanged);
+    _imagePathsWorker = ever<List<String>>(
+      imagePaths,
+      (_) => _updateDirtyState(),
+    );
+  }
+
+  bool get hasUnsavedChanges {
+    if (titleController.text != _initialTitle ||
+        contentController.text != _initialContent ||
+        imagePaths.length != _initialImagePaths.length) {
+      return true;
+    }
+
+    for (var index = 0; index < imagePaths.length; index++) {
+      if (imagePaths[index] != _initialImagePaths[index]) return true;
+    }
+    return false;
+  }
+
+  void _updateDirtyState() {
+    canPop.value = !hasUnsavedChanges;
   }
 
   void _onContentChanged() {
@@ -68,6 +99,7 @@ class EditorController extends GetxController {
       _lastText = newText;
       update(['undo_redo']);
     }
+    _updateDirtyState();
   }
 
   void undo() {
@@ -75,13 +107,14 @@ class EditorController extends GetxController {
     final text = _undoStack.removeLast();
     _redoStack.add(contentController.text);
     _lastText = text;
-    
+
     contentController.removeListener(_onContentChanged);
     contentController.text = text;
     contentController.selection = TextSelection.collapsed(offset: text.length);
     contentController.addListener(_onContentChanged);
-    
+
     HapticFeedback.lightImpact();
+    _updateDirtyState();
     update(['undo_redo']);
   }
 
@@ -97,31 +130,90 @@ class EditorController extends GetxController {
     contentController.addListener(_onContentChanged);
 
     HapticFeedback.lightImpact();
+    _updateDirtyState();
     update(['undo_redo']);
+  }
+
+  Future<void> requestClose() async {
+    if (isSaving.value || _isCloseDialogOpen) return;
+
+    if (!hasUnsavedChanges) {
+      Get.back();
+      return;
+    }
+
+    _isCloseDialogOpen = true;
+    final shouldDiscard = await Get.dialog<bool>(
+      CupertinoAlertDialog(
+        title: const Text('Discard Changes?'),
+        content: const Text('Your unsaved changes will be lost.'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Keep Editing'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Get.back(result: true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    _isCloseDialogOpen = false;
+
+    if (shouldDiscard == true) {
+      await _deleteFiles(_createdImagePaths);
+      await _closeEditor();
+    }
+  }
+
+  Future<void> _closeEditor({EditorResult? result}) async {
+    canPop.value = true;
+    await WidgetsBinding.instance.endOfFrame;
+    Get.back(result: result);
   }
 
   void toggleChecklist() {
     final text = contentController.text;
-    final selection = contentController.selection;
-    
+    final selection = _safeSelection();
+
     // Simple logic: insert checkbox at start of line or cursor
     const checkbox = '☐ ';
     final newText = text.replaceRange(selection.start, selection.end, checkbox);
-    
+
     contentController.text = newText;
-    contentController.selection = TextSelection.collapsed(offset: selection.start + checkbox.length);
+    contentController.selection = TextSelection.collapsed(
+      offset: selection.start + checkbox.length,
+    );
     HapticFeedback.mediumImpact();
   }
 
   void addTag(String tag) {
     final text = contentController.text;
-    final selection = contentController.selection;
+    final selection = _safeSelection();
     final tagWithSpace = '$tag ';
-    
-    final newText = text.replaceRange(selection.start, selection.end, tagWithSpace);
+
+    final newText = text.replaceRange(
+      selection.start,
+      selection.end,
+      tagWithSpace,
+    );
     contentController.text = newText;
-    contentController.selection = TextSelection.collapsed(offset: selection.start + tagWithSpace.length);
+    contentController.selection = TextSelection.collapsed(
+      offset: selection.start + tagWithSpace.length,
+    );
     HapticFeedback.lightImpact();
+  }
+
+  TextSelection _safeSelection() {
+    final selection = contentController.selection;
+    if (!selection.isValid ||
+        selection.start < 0 ||
+        selection.end > contentController.text.length) {
+      return TextSelection.collapsed(offset: contentController.text.length);
+    }
+    return selection;
   }
 
   String? validateTitle(String? value) {
@@ -129,6 +221,20 @@ class EditorController extends GetxController {
       return 'Please enter a note title.';
     }
     return null;
+  }
+
+  Future<void> copyToClipboard() async {
+    final title = titleController.text.trim();
+    final content = contentController.text.trim();
+    final text = title.isEmpty ? content : '$title\n\n$content';
+    if (text.trim().isEmpty) {
+      Get.snackbar('Nothing to copy', 'Add a title or note text first.');
+      return;
+    }
+
+    await Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.selectionClick();
+    Get.snackbar('Copied', 'Note content copied to clipboard.');
   }
 
   Future<void> save() async {
@@ -146,6 +252,7 @@ class EditorController extends GetxController {
             createdAt: now,
             updatedAt: now,
             imagePaths: imagePaths.toList(),
+            folderId: initialFolderId,
           ),
         );
       } else {
@@ -159,7 +266,12 @@ class EditorController extends GetxController {
         );
       }
 
-      Get.back(result: true);
+      final currentPaths = imagePaths.toSet();
+      await _deleteFiles(<String>{
+        ..._initialImagePaths.where((path) => !currentPaths.contains(path)),
+        ..._createdImagePaths.where((path) => !currentPaths.contains(path)),
+      });
+      await _closeEditor(result: EditorResult.saved);
     } catch (error) {
       Get.snackbar('Save failed', error.toString());
     } finally {
@@ -177,9 +289,11 @@ class EditorController extends GetxController {
     if (image != null) {
       try {
         final directory = await getApplicationDocumentsDirectory();
-        final String fileName = 'note_image_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
+        final String fileName =
+            'note_image_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
         final String filePath = p.join(directory.path, fileName);
         await File(image.path).copy(filePath);
+        _createdImagePaths.add(filePath);
         imagePaths.add(filePath);
       } catch (e) {
         Get.snackbar('Error', 'Failed to add image: $e');
@@ -189,9 +303,12 @@ class EditorController extends GetxController {
 
   Future<void> editImage(int index) async {
     final imagePath = imagePaths[index];
-    final editedPath = await Get.to<String>(() => ImageEditorView(imagePath: imagePath));
+    final editedPath = await Get.to<String>(
+      () => ImageEditorView(imagePath: imagePath),
+    );
 
     if (editedPath != null) {
+      if (editedPath != imagePath) _createdImagePaths.add(editedPath);
       imagePaths[index] = editedPath;
     }
   }
@@ -199,6 +316,7 @@ class EditorController extends GetxController {
   Future<void> openSketch() async {
     final sketchPath = await Get.to<String>(() => const SketchView());
     if (sketchPath != null) {
+      _createdImagePaths.add(sketchPath);
       imagePaths.add(sketchPath);
     }
   }
@@ -213,9 +331,11 @@ class EditorController extends GetxController {
     if (image != null) {
       try {
         final directory = await getApplicationDocumentsDirectory();
-        final String fileName = 'note_image_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
+        final String fileName =
+            'note_image_${DateTime.now().millisecondsSinceEpoch}${p.extension(image.path)}';
         final String filePath = p.join(directory.path, fileName);
         await File(image.path).copy(filePath);
+        _createdImagePaths.add(filePath);
         imagePaths[index] = filePath;
       } catch (e) {
         Get.snackbar('Error', 'Failed to update image: $e');
@@ -230,7 +350,8 @@ class EditorController extends GetxController {
   Future<void> delete() async {
     final note = existingNote;
     if (note == null) {
-      Get.back();
+      await _deleteFiles(_createdImagePaths);
+      await _closeEditor();
       return;
     }
 
@@ -247,7 +368,7 @@ class EditorController extends GetxController {
             isDestructiveAction: true,
             onPressed: () async {
               Get.back(); // Close dialog
-              
+
               try {
                 final updatedNote = note.copyWith(
                   isDeleted: true,
@@ -255,9 +376,10 @@ class EditorController extends GetxController {
                 );
 
                 await _updateNoteUseCase(updatedNote);
-                
+                await _deleteFiles(_createdImagePaths);
+
                 // Go back to previous screen (Home)
-                Get.back(result: true); 
+                await _closeEditor(result: EditorResult.deleted);
               } catch (e) {
                 Get.snackbar('Error', 'Failed to delete note: $e');
               }
@@ -269,8 +391,22 @@ class EditorController extends GetxController {
     );
   }
 
+  Future<void> _deleteFiles(Iterable<String> paths) async {
+    for (final path in paths.toSet()) {
+      try {
+        final file = File(path);
+        if (await file.exists()) await file.delete();
+      } catch (_) {
+        // Attachment cleanup should not block saving or navigation.
+      }
+    }
+  }
+
   @override
   void onClose() {
+    _imagePathsWorker.dispose();
+    titleController.removeListener(_updateDirtyState);
+    contentController.removeListener(_onContentChanged);
     titleController.dispose();
     contentController.dispose();
     contentFocusNode.dispose();

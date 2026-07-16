@@ -1,14 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:notes/core/constants/app_strings.dart';
 import '../home_style.dart';
 
 class EmptyState extends StatelessWidget {
-  const EmptyState({
-    super.key,
-    required this.style,
-  });
+  const EmptyState({super.key, required this.style});
 
   final HomeStyle style;
 
@@ -51,9 +47,7 @@ class EmptyState extends StatelessWidget {
 }
 
 class _EmptyStateIcon extends StatelessWidget {
-  const _EmptyStateIcon({
-    required this.style,
-  });
+  const _EmptyStateIcon({required this.style});
 
   final HomeStyle style;
 
@@ -64,9 +58,7 @@ class _EmptyStateIcon extends StatelessWidget {
       height: 92,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: HomeStyle.yellow.withValues(
-          alpha: style.isDark ? 0.18 : 0.14,
-        ),
+        color: HomeStyle.yellow.withValues(alpha: style.isDark ? 0.18 : 0.14),
         shape: BoxShape.circle,
       ),
       child: const Icon(
@@ -99,9 +91,7 @@ class ErrorState extends StatelessWidget {
         decoration: BoxDecoration(
           color: style.errorBackground,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: HomeStyle.red.withValues(alpha: 0.18),
-          ),
+          border: Border.all(color: HomeStyle.red.withValues(alpha: 0.18)),
         ),
         child: Column(
           children: [
@@ -111,10 +101,7 @@ class ErrorState extends StatelessWidget {
                 const _ErrorIcon(),
                 const SizedBox(width: 13),
                 Expanded(
-                  child: _ErrorMessage(
-                    style: style,
-                    error: error,
-                  ),
+                  child: _ErrorMessage(style: style, error: error),
                 ),
               ],
             ),
@@ -166,10 +153,7 @@ class _ErrorIcon extends StatelessWidget {
 }
 
 class _ErrorMessage extends StatelessWidget {
-  const _ErrorMessage({
-    required this.style,
-    required this.error,
-  });
+  const _ErrorMessage({required this.style, required this.error});
 
   final HomeStyle style;
   final String error;
@@ -200,75 +184,56 @@ class _ErrorMessage extends StatelessWidget {
   }
 }
 
-class LoadingNotesController extends GetxController with GetSingleTickerProviderStateMixin {
-  late final AnimationController animationController;
-  late final Animation<double> opacity;
-
-  @override
-  void onInit() {
-    super.onInit();
-    animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..repeat(reverse: true);
-
-    opacity = Tween<double>(
-      begin: 0.45,
-      end: 0.85,
-    ).animate(
-      CurvedAnimation(
-        parent: animationController,
-        curve: Curves.easeInOut,
-      ),
-    );
-  }
-
-  @override
-  void onClose() {
-    animationController.dispose();
-    super.onClose();
-  }
-}
-
-class LoadingNotes extends StatelessWidget {
-  const LoadingNotes({
-    super.key,
-    required this.style,
-  });
+class LoadingNotes extends StatefulWidget {
+  const LoadingNotes({super.key, required this.style});
 
   final HomeStyle style;
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(LoadingNotesController());
+  State<LoadingNotes> createState() => _LoadingNotesState();
+}
 
+class _LoadingNotesState extends State<LoadingNotes>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animationController;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.45, end: 0.85).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 120),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: index == 2 ? 0 : 14,
-              ),
-              child: _LoadingNoteCard(
-                style: style,
-                opacity: controller.opacity,
-              ),
-            );
-          },
-          childCount: 3,
-        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: index == 2 ? 0 : 14),
+            child: _LoadingNoteCard(style: widget.style, opacity: _opacity),
+          );
+        }, childCount: 3),
       ),
     );
   }
 }
 
 class _LoadingNoteCard extends StatelessWidget {
-  const _LoadingNoteCard({
-    required this.style,
-    required this.opacity,
-  });
+  const _LoadingNoteCard({required this.style, required this.opacity});
 
   final HomeStyle style;
   final Animation<double> opacity;
@@ -307,15 +272,9 @@ class _LoadingNoteCard extends StatelessWidget {
                     height: 14,
                   ),
                   const SizedBox(height: 12),
-                  _SkeletonLine(
-                    color: style.placeholder,
-                    widthFactor: 0.88,
-                  ),
+                  _SkeletonLine(color: style.placeholder, widthFactor: 0.88),
                   const SizedBox(height: 8),
-                  _SkeletonLine(
-                    color: style.placeholder,
-                    widthFactor: 0.66,
-                  ),
+                  _SkeletonLine(color: style.placeholder, widthFactor: 0.66),
                 ],
               ),
             ),
