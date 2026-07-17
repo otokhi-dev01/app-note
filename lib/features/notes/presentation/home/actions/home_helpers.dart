@@ -34,7 +34,7 @@ int _wordCount(String value) {
 
 TextStyle _eyebrowStyle(BuildContext context) => TextStyle(
   color: Theme.of(context).colorScheme.onSurfaceVariant,
-  fontSize: 12,
-  letterSpacing: 1.25,
-  fontWeight: FontWeight.w700,
+  fontSize: 13,
+  letterSpacing: .05,
+  fontWeight: FontWeight.w600,
 );

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/features/notes/presentation/attachments/controllers/drawing_editor_controller.dart';
 import 'package:notes/features/notes/presentation/home/home_style.dart';
 
@@ -18,27 +19,9 @@ class DrawingEditorToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = style.theme.colorScheme;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: .97),
-        border: Border(
-          top: BorderSide(
-            color: scheme.outlineVariant.withValues(
-              alpha: showTopBorder ? .85 : .55,
-            ),
-            width: .5,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: style.isDark ? .2 : .06),
-            blurRadius: 22,
-            offset: const Offset(0, -7),
-          ),
-        ],
-      ),
+    return AppGlassSurface(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      opacity: style.isDark ? .82 : .88,
       child: SafeArea(
         top: false,
         minimum: const EdgeInsets.fromLTRB(14, 10, 14, 10),
@@ -69,7 +52,7 @@ class _ColorPalette extends StatelessWidget {
       ('White', Colors.white),
       ('Gray', const Color(0xFF8E8E93)),
       ('Red', const Color(0xFFFF453A)),
-      ('Orange', scheme.primary),
+      ('Magenta', scheme.primary),
       ('Yellow', const Color(0xFFFFD60A)),
       ('Green', const Color(0xFF30D158)),
       ('Blue', const Color(0xFF0A84FF)),

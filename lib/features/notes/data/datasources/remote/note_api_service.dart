@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 
 import 'package:notes/core/network/api_endpoints.dart';
+import 'package:notes/core/network/api_failure.dart';
 import 'package:notes/features/auth/domain/repositories/auth_repository.dart';
 import 'package:notes/features/notes/data/models/note_model.dart';
 
@@ -21,44 +22,79 @@ class NoteApiService {
   final String? Function()? _tokenProvider;
 
   Future<List<NoteModel>> getNotes({bool includeDeleted = false}) async {
-    final response = await _client.get<dynamic>(
-      ApiEndpoints.notes,
-      headers: _headers,
-      query: includeDeleted
-          ? const {
-              'includeDeleted': true,
-              'include_deleted': true,
-              'withDeleted': true,
-            }
-          : null,
+    final response = await _request(
+      () => _client.get<dynamic>(
+        ApiEndpoints.notes,
+        headers: _headers,
+        query: includeDeleted
+            ? const {
+                'includeDeleted': true,
+                'include_deleted': true,
+                'withDeleted': true,
+              }
+            : null,
+      ),
+      'load notes',
     );
     _ensureSuccess(response, 'load notes');
-    final notes = _extractList(
-      response.body,
-    ).map(_noteFromJson).whereType<NoteModel>().toList(growable: false);
+    _ensureApplicationSuccess(response.body, 'load notes');
+    if (response.statusCode == 204) return const [];
+
+    final notes = <NoteModel>[];
+    for (final json in _extractList(response.body)) {
+      final note = _noteFromJson(json);
+      if (note == null) {
+        throw const NoteApiException(
+          'The notes API returned an invalid note record.',
+        );
+      }
+      notes.add(note);
+    }
     return includeDeleted
         ? notes
         : notes.where((note) => !note.isDeleted).toList(growable: false);
   }
 
   Future<NoteModel?> getNote(int id) async {
-    final response = await _client.get<dynamic>(
-      ApiEndpoints.note(id),
-      headers: _headers,
+    final response = await _request(
+      () => _client.get<dynamic>(
+        ApiEndpoints.note(id),
+        headers: _headers,
+      ),
+      'load the note',
     );
     _ensureSuccess(response, 'load the note');
+    _ensureApplicationSuccess(response.body, 'load the note');
     final json = _extractObject(response.body);
-    return json == null ? null : _noteFromJson(json);
+    if (json == null) {
+      if (response.statusCode == 204 || _isExplicitEmptyObject(response.body)) {
+        return null;
+      }
+      throw const NoteApiException(
+        'The notes API returned an invalid note response.',
+      );
+    }
+    final note = _noteFromJson(json);
+    if (note == null) {
+      throw const NoteApiException(
+        'The notes API returned an invalid note record.',
+      );
+    }
+    return note;
   }
 
   Future<NoteModel> saveContent(NoteModel note) async {
     final body = _contentPayload(note);
-    final response = await _client.post<dynamic>(
-      ApiEndpoints.saveNoteContent,
-      body,
-      headers: _headers,
+    final response = await _request(
+      () => _client.post<dynamic>(
+        ApiEndpoints.saveNoteContent,
+        body,
+        headers: _headers,
+      ),
+      'save note content',
     );
     _ensureSuccess(response, 'save note content');
+    _ensureApplicationSuccess(response.body, 'save note content');
 
     final json = _extractObject(response.body);
     final saved = json == null ? null : _noteFromJson(json, fallback: note);
@@ -127,12 +163,16 @@ class NoteApiService {
       'updatedAt': note.updatedAt.toUtc().toIso8601String(),
       'updated_at': note.updatedAt.toUtc().toIso8601String(),
     };
-    final response = await _client.post<dynamic>(
-      ApiEndpoints.updateNoteState,
-      body,
-      headers: _headers,
+    final response = await _request(
+      () => _client.post<dynamic>(
+        ApiEndpoints.updateNoteState,
+        body,
+        headers: _headers,
+      ),
+      'update note state',
     );
     _ensureSuccess(response, 'update note state');
+    _ensureApplicationSuccess(response.body, 'update note state');
     final json = _extractObject(response.body);
     final updated = json == null ? null : _noteFromJson(json, fallback: note);
     if (updated != null) return updated;
@@ -172,6 +212,8 @@ class NoteApiService {
     if (token == null || token.isEmpty) {
       throw const NoteApiException(
         'An authenticated session is required for note sync.',
+        kind: ApiFailureKind.http,
+        statusCode: 401,
       );
     }
     return {
@@ -184,32 +226,94 @@ class NoteApiService {
   void _ensureSuccess(Response<dynamic> response, String operation) {
     if (response.isOk) return;
     final message = _errorMessage(response.body);
+    final statusCode = response.statusCode;
     throw NoteApiException(
       message ??
-          'Unable to $operation (${response.statusCode ?? 'network error'}).',
-      statusCode: response.statusCode,
+          'Unable to $operation (${statusCode ?? 'network error'}).',
+      statusCode: statusCode,
+      kind: statusCode == null || statusCode <= 0
+          ? ApiFailureKind.transport
+          : ApiFailureKind.http,
+    );
+  }
+
+  Future<Response<dynamic>> _request(
+    Future<Response<dynamic>> Function() request,
+    String operation,
+  ) async {
+    try {
+      return await request();
+    } on NoteApiException {
+      rethrow;
+    } on FormatException catch (error) {
+      throw NoteApiException(
+        error.message,
+        kind: ApiFailureKind.protocol,
+        cause: error,
+      );
+    } on Exception catch (error) {
+      throw NoteApiException(
+        'Unable to $operation because the server could not be reached.',
+        kind: ApiFailureKind.transport,
+        cause: error,
+      );
+    }
+  }
+
+  void _ensureApplicationSuccess(dynamic value, String operation) {
+    final map = _asMap(_decode(value));
+    if (map?['success'] != false) return;
+
+    throw NoteApiException(
+      _errorMessage(map) ?? 'The server could not $operation.',
     );
   }
 
   List<Map<String, dynamic>> _extractList(dynamic value) {
+    final result = _tryExtractList(value);
+    if (!result.found) {
+      throw const NoteApiException(
+        'The notes API returned an invalid notes response.',
+      );
+    }
+    return result.values;
+  }
+
+  ({bool found, List<Map<String, dynamic>> values}) _tryExtractList(
+    dynamic value,
+  ) {
     final decoded = _decode(value);
     if (decoded is List) {
-      return decoded.map(_asMap).whereType<Map<String, dynamic>>().toList();
+      return (found: true, values: _mapList(decoded));
     }
     final map = _asMap(decoded);
-    if (map == null) return const [];
+    if (map == null) return (found: false, values: const []);
+    if (_looksLikeNote(map)) return (found: true, values: [map]);
+
     for (final key in const ['data', 'result', 'items', 'notes', 'records']) {
+      if (!map.containsKey(key)) continue;
       final nested = map[key];
       if (nested is List) {
-        return nested.map(_asMap).whereType<Map<String, dynamic>>().toList();
+        return (found: true, values: _mapList(nested));
       }
-      final nestedMap = _asMap(nested);
-      if (nestedMap != null) {
-        final result = _extractList(nestedMap);
-        if (result.isNotEmpty) return result;
-      }
+      final result = _tryExtractList(nested);
+      if (result.found) return result;
     }
-    return _looksLikeNote(map) ? [map] : const [];
+    return (found: false, values: const []);
+  }
+
+  List<Map<String, dynamic>> _mapList(List<dynamic> values) {
+    final result = <Map<String, dynamic>>[];
+    for (final value in values) {
+      final map = _asMap(value);
+      if (map == null) {
+        throw const NoteApiException(
+          'The notes API returned an invalid note record.',
+        );
+      }
+      result.add(map);
+    }
+    return result;
   }
 
   Map<String, dynamic>? _extractObject(dynamic value) {
@@ -223,6 +327,18 @@ class NoteApiService {
       if (result != null) return result;
     }
     return null;
+  }
+
+  bool _isExplicitEmptyObject(dynamic value) {
+    final map = _asMap(_decode(value));
+    if (map == null) return false;
+    for (final key in const ['data', 'result', 'note', 'item', 'record']) {
+      if (!map.containsKey(key)) continue;
+      final nested = map[key];
+      if (nested == null) return true;
+      if (_isExplicitEmptyObject(nested)) return true;
+    }
+    return false;
   }
 
   int? _extractResourceId(dynamic value) {
@@ -296,6 +412,7 @@ class NoteApiService {
                   json['images'],
             )
           : fallback?.imagePaths ?? const [],
+      imageAnchors: fallback?.imageAnchors ?? const [],
       folderId: _int(folderValue) ?? fallback?.folderId,
       isPinned: _hasAnyKey(json, const ['isPinned', 'is_pinned', 'pinned'])
           ? _bool(json['isPinned'] ?? json['is_pinned'] ?? json['pinned'])
@@ -408,12 +525,16 @@ class NoteApiService {
   }
 }
 
-class NoteApiException implements Exception {
-  const NoteApiException(this.message, {this.statusCode});
-
-  final String message;
-  final int? statusCode;
-
-  @override
-  String toString() => message;
+class NoteApiException extends ApiFailure {
+  const NoteApiException(
+    String message, {
+    ApiFailureKind kind = ApiFailureKind.protocol,
+    int? statusCode,
+    Object? cause,
+  }) : super(
+         message,
+         kind: kind,
+         statusCode: statusCode,
+         cause: cause,
+       );
 }

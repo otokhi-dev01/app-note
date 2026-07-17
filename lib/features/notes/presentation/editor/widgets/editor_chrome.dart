@@ -3,29 +3,19 @@ part of '../editor_view.dart';
 class _CircleButton extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget child;
-  final Color? backgroundColor;
 
-  const _CircleButton({
-    required this.onTap,
-    required this.child,
-    this.backgroundColor,
-  });
+  const _CircleButton({super.key, required this.onTap, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    final style = HomeStyle.of(context);
-
     return Semantics(
       button: true,
       enabled: onTap != null,
-      child: Material(
-        color: backgroundColor ?? style.secondarySurface,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox.square(dimension: 40, child: Center(child: child)),
-        ),
+      child: IconButton(
+        onPressed: onTap,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+        icon: child,
       ),
     );
   }
@@ -38,15 +28,8 @@ class _PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = HomeStyle.of(context);
-
-    return Container(
-      height: 40,
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        color: style.secondarySurface,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return SizedBox(
+      height: 44,
       child: Row(mainAxisSize: MainAxisSize.min, children: children),
     );
   }

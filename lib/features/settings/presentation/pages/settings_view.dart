@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_components.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_palette.dart';
@@ -15,143 +16,139 @@ class SettingsView extends GetView<SettingsController> {
     final colors = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: style.background,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(
-          parent: AlwaysScrollableScrollPhysics(),
-        ),
-        slivers: [
-          CupertinoSliverNavigationBar(
-            automaticallyImplyLeading: false,
-            automaticallyImplyTitle: false,
-            transitionBetweenRoutes: false,
-            stretch: true,
-            backgroundColor: style.background.withValues(alpha: .92),
-            brightness: Theme.of(context).brightness,
-            border: Border(
-              bottom: BorderSide(color: style.separator, width: .5),
-            ),
-            leading: CupertinoNavigationBarBackButton(
-              color: style.accent,
-              previousPageTitle: 'Notes',
-              onPressed: Get.back,
-            ),
-            largeTitle: const Text('Settings'),
+    return AppBrandBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: CupertinoNavigationBar(
+          backgroundColor: Colors.transparent,
+          border: null,
+          brightness: Theme.of(context).brightness,
+          leading: CupertinoNavigationBarBackButton(
+            color: style.accent,
+            previousPageTitle: 'Notes',
+            onPressed: Get.back,
           ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 10, 16, 32 + bottomInset),
-            sliver: SliverToBoxAdapter(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 620),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SettingsSection(
-                        style: style,
-                        title: 'Account',
-                        children: [
-                          SettingsAccountCard(
-                            style: style,
-                            identifier: controller.accountIdentifier,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              _showInfoMessage(
-                                context,
-                                title: 'Notes Account',
-                                message:
-                                    'Signed in as ${controller.accountIdentifier}.',
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 26),
-                      SettingsSection(
-                        style: style,
-                        title: 'App Preferences',
-                        footer:
-                            'System Default follows the appearance selected on your device.',
-                        children: [
-                          Obx(
-                            () => SettingsRow(
+          middle: const Text('Settings'),
+        ),
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
+          ),
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 10, 16, 32 + bottomInset),
+              sliver: SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SettingsSection(
+                          style: style,
+                          title: 'Account',
+                          children: [
+                            SettingsAccountCard(
                               style: style,
-                              icon: CupertinoIcons.circle_lefthalf_fill,
-                              iconColor: colors.tertiary,
-                              title: 'Appearance',
-                              subtitle: controller.themeModeLabel,
-                              onTap: () => _showAppearancePicker(context),
+                              identifier: controller.accountIdentifier,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _showInfoMessage(
+                                  context,
+                                  title: 'Notes Account',
+                                  message:
+                                      'Signed in as ${controller.accountIdentifier}.',
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 26),
+                        SettingsSection(
+                          style: style,
+                          title: 'App Preferences',
+                          footer:
+                              'System Default follows the appearance selected on your device.',
+                          children: [
+                            Obx(
+                              () => SettingsRow(
+                                style: style,
+                                icon: CupertinoIcons.circle_lefthalf_fill,
+                                iconColor: colors.tertiary,
+                                title: 'Appearance',
+                                subtitle: controller.themeModeLabel,
+                                onTap: () => _showAppearancePicker(context),
+                                isFirst: true,
+                                isLast: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 26),
+                        SettingsSection(
+                          style: style,
+                          title: 'Support',
+                          children: [
+                            SettingsRow(
+                              style: style,
+                              icon: CupertinoIcons.info_circle_fill,
+                              iconColor: colors.secondary,
+                              title: 'About Notes',
                               isFirst: true,
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _showInfoMessage(
+                                  context,
+                                  title: 'About Notes',
+                                  message: 'Version 1.0.0 (Build 2026)',
+                                );
+                              },
+                            ),
+                            SettingsRow(
+                              style: style,
+                              icon: CupertinoIcons.question_circle_fill,
+                              iconColor: style.accent,
+                              title: 'Help & Feedback',
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _showInfoMessage(
+                                  context,
+                                  title: 'Help & Feedback',
+                                  message:
+                                      'Help and feedback are not available yet.',
+                                );
+                              },
                               isLast: true,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 26),
-                      SettingsSection(
-                        style: style,
-                        title: 'Support',
-                        children: [
-                          SettingsRow(
-                            style: style,
-                            icon: CupertinoIcons.info_circle_fill,
-                            iconColor: colors.secondary,
-                            title: 'About Notes',
-                            isFirst: true,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              _showInfoMessage(
-                                context,
-                                title: 'About Notes',
-                                message: 'Version 1.0.0 (Build 2026)',
-                              );
-                            },
-                          ),
-                          SettingsRow(
-                            style: style,
-                            icon: CupertinoIcons.question_circle_fill,
-                            iconColor: style.accent,
-                            title: 'Help & Feedback',
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              _showInfoMessage(
-                                context,
-                                title: 'Help & Feedback',
-                                message:
-                                    'Help and feedback are not available yet.',
-                              );
-                            },
-                            isLast: true,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      SettingsSection(
-                        style: style,
-                        title: '',
-                        children: [
-                          SettingsRow(
-                            style: style,
-                            icon: CupertinoIcons.square_arrow_right,
-                            iconColor: style.destructive,
-                            title: 'Sign Out',
-                            titleColor: style.destructive,
-                            onTap: () => _showSignOutDialog(context),
-                            isFirst: true,
-                            isLast: true,
-                            hideChevron: true,
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        SettingsSection(
+                          style: style,
+                          title: '',
+                          children: [
+                            SettingsRow(
+                              style: style,
+                              icon: CupertinoIcons.square_arrow_right,
+                              iconColor: style.destructive,
+                              title: 'Sign Out',
+                              titleColor: style.destructive,
+                              onTap: () => _showSignOutDialog(context),
+                              isFirst: true,
+                              isLast: true,
+                              hideChevron: true,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

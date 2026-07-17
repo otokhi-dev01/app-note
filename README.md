@@ -20,6 +20,25 @@ flutter run
 The application starts in `lib/main.dart`. App-wide routing, dependency
 registration, and themes live under `lib/app`.
 
+## API configuration
+
+The app uses `https://note.piisiit.com` by default. API hosts are compile-time
+settings supplied with Dart defines:
+
+```sh
+# Use a development API for this run. A non-empty local value takes precedence.
+flutter run --dart-define=PIISIIT_NOTE_LOCAL=https://dev-api.example.com
+
+# Override the production API for a release build.
+flutter build apk --release \
+  --dart-define=PIISIIT_NOTE_PROD=https://api.example.com
+```
+
+Use an absolute HTTPS origin without an API route suffix; the app adds paths
+such as `/api/auth/login` and `/api/note`. HTTPS is required for consistent
+Android, iOS, and macOS behavior. Because Dart defines are compiled into the
+application, restart or rebuild after changing them.
+
 ## Project structure
 
 ```text

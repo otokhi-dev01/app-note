@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/core/presentation/images/image_helper.dart';
 
 import '../home/home_style.dart';
@@ -13,8 +14,7 @@ part 'sheets/editor_action_sheets.dart';
 part 'widgets/editor_bottom_bar.dart';
 part 'widgets/editor_chrome.dart';
 part 'widgets/integrated_image.dart';
-part 'widgets/keyboard_accessory_bar.dart';
-part 'widgets/tag_suggestions_bar.dart';
+part 'widgets/statement_composer.dart';
 
 class EditorView extends GetView<EditorController> {
   const EditorView({super.key});
@@ -40,79 +40,80 @@ class EditorView extends GetView<EditorController> {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-          child: Scaffold(
-            backgroundColor: style.surface,
-            appBar: AppBar(
-              backgroundColor: style.surface,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              leading: Center(
-                child: _CircleButton(
-                  onTap: controller.requestClose,
-                  child: Icon(
-                    CupertinoIcons.left_chevron,
-                    color: style.primaryText,
-                    size: 20,
+          child: AppBrandBackdrop(
+            child: Scaffold(
+              resizeToAvoidBottomInset: true,
+              extendBody: true,
+              backgroundColor: Colors.transparent,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                leading: Center(
+                  child: _CircleButton(
+                    onTap: controller.requestClose,
+                    child: Icon(
+                      CupertinoIcons.left_chevron,
+                      color: style.primaryText,
+                      size: 20,
+                    ),
                   ),
                 ),
+                actions: [
+                  _PillButton(
+                    children: [
+                      _ActionIconButton(
+                        icon: CupertinoIcons.share,
+                        onTap: controller.copyToClipboard,
+                      ),
+                      _ActionIconButton(
+                        icon: CupertinoIcons.ellipsis,
+                        onTap: () => _showMoreOptions(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Obx(
+                    () => Tooltip(
+                      message: 'Save note',
+                      child: _CircleButton(
+                        key: const ValueKey('note_save_button'),
+                        onTap: controller.isSaving.value
+                            ? null
+                            : () async {
+                                FocusScope.of(context).unfocus();
+                                await controller.save();
+                              },
+                        child: controller.isSaving.value
+                            ? CupertinoActivityIndicator(
+                                color: style.theme.colorScheme.primary,
+                                radius: 9,
+                              )
+                            : Icon(
+                                CupertinoIcons.check_mark,
+                                color: style.theme.colorScheme.primary,
+                                size: 18,
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                ],
               ),
-              actions: [
-                _PillButton(
-                  children: [
-                    _ActionIconButton(
-                      icon: CupertinoIcons.share,
-                      onTap: controller.copyToClipboard,
-                    ),
-                    _ActionIconButton(
-                      icon: CupertinoIcons.ellipsis,
-                      onTap: () => _showMoreOptions(context),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
-                Obx(
-                  () => _CircleButton(
-                    onTap: controller.isSaving.value
-                        ? null
-                        : () {
-                            FocusScope.of(context).unfocus();
-                            controller.save();
-                          },
-                    backgroundColor: style.theme.colorScheme.primary,
-                    child: controller.isSaving.value
-                        ? CupertinoActivityIndicator(
-                            color: style.theme.colorScheme.onPrimary,
-                            radius: 9,
-                          )
-                        : Icon(
-                            CupertinoIcons.check_mark,
-                            color: style.theme.colorScheme.onPrimary,
-                            size: 18,
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-              ],
-            ),
-            body: SafeArea(
-              child: Column(
+              body: Stack(
                 children: [
-                  Expanded(
-                    child: Form(
-                      key: controller.formKey,
-                      child: ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        children: [
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: style.secondarySurface,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                  Positioned.fill(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Form(
+                        key: controller.formKey,
+                        child: ListView(
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: const EdgeInsets.fromLTRB(22, 14, 22, 104),
+                          children: [
+                            Center(
                               child: Text(
                                 DateFormat('MMMM d, yyyy \'at\' h:mm a').format(
                                   controller.existingNote?.updatedAt ??
@@ -125,105 +126,71 @@ class EditorView extends GetView<EditorController> {
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          TextFormField(
-                            controller: controller.titleController,
-                            validator: controller.validateTitle,
-                            autofocus: controller.existingNote == null,
-                            style: TextStyle(
-                              color: style.primaryText,
-                              fontSize: 31,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Title',
-                              hintStyle: TextStyle(color: style.secondaryText),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: controller.contentController,
-                            focusNode: controller.contentFocusNode,
-                            minLines: 10,
-                            maxLines: null,
-                            keyboardType: TextInputType.multiline,
-                            style: TextStyle(
-                              color: style.primaryText.withValues(alpha: 0.9),
-                              fontSize: 18,
-                              height: 1.55,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Start writing…',
-                              hintStyle: TextStyle(color: style.secondaryText),
-                            ),
-                          ),
-
-                          Obx(
-                            () => controller.imagePaths.isEmpty
-                                ? const SizedBox.shrink()
-                                : Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 20,
-                                      bottom: 40,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: controller.imagePaths
-                                          .asMap()
-                                          .entries
-                                          .map(
-                                            (entry) => Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 20,
-                                              ),
-                                              child: _IntegratedImage(
-                                                path: entry.value,
-                                                onRemove: () => controller
-                                                    .removeImage(entry.key),
-                                                onEdit: () => controller
-                                                    .editImage(entry.key),
-                                                onTap: () => _showImageOptions(
-                                                  context,
-                                                  entry.key,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                          .toList(),
-                                    ),
+                            const SizedBox(height: 24),
+                            TextFormField(
+                              key: const ValueKey('note_title_field'),
+                              controller: controller.titleController,
+                              focusNode: controller.titleFocusNode,
+                              validator: controller.validateTitle,
+                              autofocus: controller.existingNote == null,
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) =>
+                                  controller.focusFirstStatement(),
+                              style: TextStyle(
+                                color: style.primaryText,
+                                fontSize: 34,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -1,
+                                height: 1.15,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Title',
+                                hintStyle: TextStyle(
+                                  color: style.secondaryText.withValues(
+                                    alpha: .68,
                                   ),
-                          ),
-                        ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            _StatementComposer(
+                              controller: controller,
+                              onImageOptions: (imageIndex) =>
+                                  _showImageOptions(context, imageIndex),
+                            ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: controller.focusContent,
+                              child: const SizedBox(height: 120),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  if (isKeyboardVisible) ...[
-                    _FloatingKeyboardAccessoryBar(
-                      onAddPhoto: () => _showAttachmentOptions(context),
-                      onDraw: controller.openSketch,
-                      onChecklist: controller.toggleChecklist,
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: _ModernBottomBar(
+                      keyboardVisible: isKeyboardVisible,
                       onFormat: () => _showFormattingMenu(context),
                       onDone: () => FocusScope.of(context).unfocus(),
+                      onChecklist: controller.toggleChecklist,
+                      onAttachment: () => _showAttachmentOptions(
+                        context,
+                        afterStatement: controller.activeStatementIndex.value,
+                      ),
+                      onSketch: controller.openSketch,
+                      onCompose: () {
+                        controller.focusContent();
+                        HapticFeedback.lightImpact();
+                      },
                     ),
-                    _TagSuggestionsBar(onTagTap: controller.addTag),
-                  ],
+                  ),
                 ],
               ),
             ),
-            bottomNavigationBar: isKeyboardVisible
-                ? null
-                : _ModernBottomBar(
-                    onChecklist: controller.toggleChecklist,
-                    onAttachment: () => _showAttachmentOptions(context),
-                    onSketch: controller.openSketch,
-                    onCompose: () {
-                      controller.contentFocusNode.requestFocus();
-                      HapticFeedback.lightImpact();
-                    },
-                  ),
           ),
         ),
       ),

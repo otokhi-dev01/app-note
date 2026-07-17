@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:notes/app/navigation/route_contracts.dart';
+import 'package:notes/core/presentation/images/image_picker_feedback.dart';
+import 'package:notes/core/presentation/images/note_image_picker.dart';
 import 'package:notes/features/notes/application/editor/note_formatting_service.dart';
 import 'package:notes/features/notes/domain/entities/note.dart';
 import 'package:notes/features/notes/domain/repositories/attachment_file_repository.dart';
@@ -19,29 +21,42 @@ class EditorController extends GetxController {
     this._createNoteUseCase,
     this._updateNoteUseCase, {
     AttachmentFileRepository? attachmentFiles,
-  }) : _attachmentFiles = attachmentFiles;
+    NoteImagePicker? imagePicker,
+  }) : _attachmentFiles = attachmentFiles,
+       _imagePicker = imagePicker ?? SystemNoteImagePicker();
 
   final CreateNoteUseCase _createNoteUseCase;
   final UpdateNoteUseCase _updateNoteUseCase;
   final AttachmentFileRepository? _attachmentFiles;
+  final NoteImagePicker _imagePicker;
   final NoteFormattingService _formattingService =
       const NoteFormattingService();
+  String Function()? _activeStatementText;
+  TextSelection Function()? _activeStatementSelection;
+  void Function(String text, TextSelection selection)? _applyToActiveStatement;
 
   final formKey = GlobalKey<FormState>();
   final titleController = TextEditingController();
+  final titleFocusNode = FocusNode();
   final contentController = TextEditingController();
   final contentFocusNode = FocusNode();
+  VoidCallback? focusStatementComposer;
+  VoidCallback? focusFirstStatementComposer;
 
   final isSaving = false.obs;
   final canPop = true.obs;
+  final activeStatementIndex = 0.obs;
   final imagePaths = <String>[].obs;
+  final imageAnchors = <int>[].obs;
   Note? existingNote;
   int? initialFolderId;
 
   late final String _initialTitle;
   late final String _initialContent;
   late final List<String> _initialImagePaths;
+  late final List<int> _initialImageAnchors;
   late final Worker _imagePathsWorker;
+  late final Worker _imageAnchorsWorker;
   final _createdImagePaths = <String>{};
   bool _isCloseDialogOpen = false;
 
@@ -65,6 +80,7 @@ class EditorController extends GetxController {
       titleController.text = note.title;
       contentController.text = note.content;
       imagePaths.assignAll(note.imagePaths);
+      imageAnchors.assignAll(_normalizedAnchors(note));
     } else {
       initialFolderId = arguments.folderId;
     }
@@ -72,6 +88,8 @@ class EditorController extends GetxController {
     _initialTitle = titleController.text;
     _initialContent = contentController.text;
     _initialImagePaths = imagePaths.toList(growable: false);
+    _initialImageAnchors = imageAnchors.toList(growable: false);
+    activeStatementIndex.value = statementCount - 1;
     _lastText = contentController.text;
     titleController.addListener(_updateDirtyState);
     contentController.addListener(_onContentChanged);
@@ -79,6 +97,99 @@ class EditorController extends GetxController {
       imagePaths,
       (_) => _updateDirtyState(),
     );
+    _imageAnchorsWorker = ever<List<int>>(
+      imageAnchors,
+      (_) => _updateDirtyState(),
+    );
+  }
+
+  List<int> _normalizedAnchors(Note note) {
+    final lastStatement = _statementCount(note.content) - 1;
+    return List<int>.generate(note.imagePaths.length, (index) {
+      if (index < note.imageAnchors.length) {
+        return note.imageAnchors[index].clamp(0, lastStatement);
+      }
+      return lastStatement;
+    });
+  }
+
+  int _statementCount(String value) => value.split('\n').length.clamp(1, 9999);
+
+  int get statementCount => _statementCount(contentController.text);
+
+  void focusContent() {
+    (focusStatementComposer ?? contentFocusNode.requestFocus).call();
+  }
+
+  void focusFirstStatement() {
+    (focusFirstStatementComposer ?? focusContent).call();
+  }
+
+  void setActiveStatement(int index) {
+    activeStatementIndex.value = index.clamp(0, statementCount - 1);
+  }
+
+  void bindActiveStatementEditor({
+    required String Function() text,
+    required TextSelection Function() selection,
+    required void Function(String text, TextSelection selection) apply,
+  }) {
+    _activeStatementText = text;
+    _activeStatementSelection = selection;
+    _applyToActiveStatement = apply;
+  }
+
+  void unbindActiveStatementEditor() {
+    _activeStatementText = null;
+    _activeStatementSelection = null;
+    _applyToActiveStatement = null;
+  }
+
+  void setStatements(List<String> statements) {
+    final value = statements.isEmpty ? '' : statements.join('\n');
+    if (contentController.text == value) return;
+    final oldLast = statementCount - 1;
+    contentController.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    final newLast = statementCount - 1;
+    if (newLast < oldLast) {
+      for (var index = 0; index < imageAnchors.length; index++) {
+        imageAnchors[index] = imageAnchors[index].clamp(0, newLast);
+      }
+    }
+  }
+
+  List<int> imagesAfterStatement(int statementIndex) {
+    return List<int>.generate(imagePaths.length, (index) => index)
+        .where((index) => imageAnchors[index] == statementIndex)
+        .toList(growable: false);
+  }
+
+  void statementInsertedAfter(int statementIndex) {
+    for (var index = 0; index < imageAnchors.length; index++) {
+      if (imageAnchors[index] > statementIndex) {
+        imageAnchors[index]++;
+      }
+    }
+  }
+
+  void statementRemoved(int statementIndex) {
+    for (var index = 0; index < imageAnchors.length; index++) {
+      final anchor = imageAnchors[index];
+      if (anchor == statementIndex) {
+        imageAnchors[index] = (statementIndex - 1).clamp(0, 9999);
+      } else if (anchor > statementIndex) {
+        imageAnchors[index]--;
+      }
+    }
+    final active = activeStatementIndex.value;
+    if (active > statementIndex) {
+      activeStatementIndex.value = active - 1;
+    } else if (active == statementIndex) {
+      activeStatementIndex.value = (statementIndex - 1).clamp(0, 9999);
+    }
   }
 
   bool get hasUnsavedChanges {
@@ -90,6 +201,10 @@ class EditorController extends GetxController {
 
     for (var index = 0; index < imagePaths.length; index++) {
       if (imagePaths[index] != _initialImagePaths[index]) return true;
+      if (index >= _initialImageAnchors.length ||
+          imageAnchors[index] != _initialImageAnchors[index]) {
+        return true;
+      }
     }
     return false;
   }
@@ -222,20 +337,31 @@ class EditorController extends GetxController {
   }
 
   NoteFormattingValue get _currentFormattingValue {
-    final selection = contentController.selection;
+    final text = _activeStatementText?.call() ?? contentController.text;
+    final rawSelection =
+        _activeStatementSelection?.call() ?? contentController.selection;
+    final selection = rawSelection.isValid
+        ? rawSelection
+        : TextSelection.collapsed(offset: text.length);
     return NoteFormattingValue(
-      text: contentController.text,
+      text: text,
       selectionStart: selection.start,
       selectionEnd: selection.end,
     );
   }
 
   void _applyFormattingValue(NoteFormattingValue value) {
-    contentController.text = value.text;
-    contentController.selection = TextSelection(
+    final selection = TextSelection(
       baseOffset: value.selectionStart,
       extentOffset: value.selectionEnd,
     );
+    final applyToStatement = _applyToActiveStatement;
+    if (applyToStatement != null) {
+      applyToStatement(value.text, selection);
+      return;
+    }
+    contentController.text = value.text;
+    contentController.selection = selection;
   }
 
   String? validateTitle(String? value) {
@@ -260,7 +386,13 @@ class EditorController extends GetxController {
   }
 
   Future<void> save() async {
-    if (!(formKey.currentState?.validate() ?? false)) return;
+    if (isSaving.value) return;
+    final form = formKey.currentState;
+    if (form == null || !form.validate()) {
+      titleFocusNode.requestFocus();
+      Get.snackbar('Title required', 'Enter a title before saving this note.');
+      return;
+    }
 
     try {
       isSaving.value = true;
@@ -270,10 +402,11 @@ class EditorController extends GetxController {
         await _createNoteUseCase(
           Note(
             title: titleController.text.trim(),
-            content: contentController.text.trim(),
+            content: contentController.text,
             createdAt: now,
             updatedAt: now,
             imagePaths: imagePaths.toList(),
+            imageAnchors: imageAnchors.toList(),
             folderId: initialFolderId,
           ),
         );
@@ -281,9 +414,10 @@ class EditorController extends GetxController {
         await _updateNoteUseCase(
           existingNote!.copyWith(
             title: titleController.text.trim(),
-            content: contentController.text.trim(),
+            content: contentController.text,
             updatedAt: now,
             imagePaths: imagePaths.toList(),
+            imageAnchors: imageAnchors.toList(),
           ),
         );
       }
@@ -301,21 +435,27 @@ class EditorController extends GetxController {
     }
   }
 
-  Future<void> addImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: source,
-      imageQuality: 90,
+  Future<void> addImage(ImageSource source, {int? afterStatement}) async {
+    final image = await _pickImage(
+      source,
+      onUsePhotoLibrary: source == ImageSource.camera
+          ? () => addImage(ImageSource.gallery, afterStatement: afterStatement)
+          : null,
     );
+    if (image == null) return;
 
-    if (image != null) {
-      try {
-        final filePath = await _attachmentRepository.importImage(image.path);
-        _createdImagePaths.add(filePath);
-        imagePaths.add(filePath);
-      } catch (e) {
-        Get.snackbar('Error', 'Failed to add image: $e');
-      }
+    try {
+      final filePath = await _attachmentRepository.importImage(image.path);
+      _createdImagePaths.add(filePath);
+      imageAnchors.add(
+        (afterStatement ?? activeStatementIndex.value).clamp(
+          0,
+          statementCount - 1,
+        ),
+      );
+      imagePaths.add(filePath);
+    } catch (error) {
+      Get.snackbar('Image not added', 'The selected image could not be saved.');
     }
   }
 
@@ -335,30 +475,59 @@ class EditorController extends GetxController {
     final sketchPath = await Get.to<String>(() => const SketchView());
     if (sketchPath != null) {
       _createdImagePaths.add(sketchPath);
+      imageAnchors.add(activeStatementIndex.value.clamp(0, statementCount - 1));
       imagePaths.add(sketchPath);
     }
   }
 
   Future<void> replaceImage(int index, ImageSource source) async {
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: source,
-      imageQuality: 90,
+    final image = await _pickImage(
+      source,
+      onUsePhotoLibrary: source == ImageSource.camera
+          ? () => replaceImage(index, ImageSource.gallery)
+          : null,
     );
+    if (image == null) return;
 
-    if (image != null) {
-      try {
-        final filePath = await _attachmentRepository.importImage(image.path);
-        _createdImagePaths.add(filePath);
-        imagePaths[index] = filePath;
-      } catch (e) {
-        Get.snackbar('Error', 'Failed to update image: $e');
+    try {
+      final filePath = await _attachmentRepository.importImage(image.path);
+      _createdImagePaths.add(filePath);
+      imagePaths[index] = filePath;
+    } catch (error) {
+      Get.snackbar(
+        'Image not replaced',
+        'The selected image could not be saved.',
+      );
+    }
+  }
+
+  Future<XFile?> _pickImage(
+    ImageSource source, {
+    Future<void> Function()? onUsePhotoLibrary,
+  }) async {
+    try {
+      return await _imagePicker.pickImage(source: source, imageQuality: 90);
+    } on PlatformException catch (error) {
+      final usePhotoLibrary = await ImagePickerFeedback.show(
+        error,
+        source: source,
+      );
+      if (usePhotoLibrary && onUsePhotoLibrary != null) {
+        await onUsePhotoLibrary();
       }
+      return null;
+    } catch (_) {
+      Get.snackbar(
+        'Unable to open images',
+        'The image picker could not be opened. Please try again.',
+      );
+      return null;
     }
   }
 
   void removeImage(int index) {
     imagePaths.removeAt(index);
+    imageAnchors.removeAt(index);
   }
 
   Future<void> delete() async {
@@ -406,7 +575,9 @@ class EditorController extends GetxController {
   }
 
   Future<void> _deleteFiles(Iterable<String> paths) async {
-    await _attachmentRepository.deleteAll(paths.toSet());
+    final uniquePaths = paths.toSet();
+    if (uniquePaths.isEmpty) return;
+    await _attachmentRepository.deleteAll(uniquePaths);
   }
 
   AttachmentFileRepository get _attachmentRepository =>
@@ -415,9 +586,11 @@ class EditorController extends GetxController {
   @override
   void onClose() {
     _imagePathsWorker.dispose();
+    _imageAnchorsWorker.dispose();
     titleController.removeListener(_updateDirtyState);
     contentController.removeListener(_onContentChanged);
     titleController.dispose();
+    titleFocusNode.dispose();
     contentController.dispose();
     contentFocusNode.dispose();
     super.onClose();

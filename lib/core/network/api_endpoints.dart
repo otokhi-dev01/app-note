@@ -14,24 +14,55 @@ abstract final class ApiEndpoints {
     defaultValue: 'https://note.piisiit.com',
   );
 
-  static String get baseUrl =>
+  static String get _configuredBaseUrl =>
       _localBaseUrl.trim().isNotEmpty ? _localBaseUrl : _productionBaseUrl;
 
-  static String get login => '${_normalizedBaseUrl()}/api/auth/login';
-  static String get register => '${_normalizedBaseUrl()}/api/auth/register';
-  static String get folders => '${_normalizedBaseUrl()}/api/folder';
-  static String get saveFolder => '${_normalizedBaseUrl()}/api/folder/save';
-  static String get deleteRestoreFolder =>
-      '${_normalizedBaseUrl()}/api/folder/delete-restore';
-  static String get notes => '${_normalizedBaseUrl()}/api/note';
-  static String note(int id) => '${_normalizedBaseUrl()}/api/note/$id';
-  static String get saveNoteContent =>
-      '${_normalizedBaseUrl()}/api/note/save-content';
-  static String get updateNoteState =>
-      '${_normalizedBaseUrl()}/api/note/update-state';
+  static String get baseUrl =>
+      ApiEndpointResolver(_configuredBaseUrl).baseUrl;
 
-  static String _normalizedBaseUrl() {
-    final value = baseUrl.trim();
+  static String get login => _endpoint('/api/auth/login');
+  static String get register => _endpoint('/api/auth/register');
+  static String get folders => _endpoint('/api/folder');
+  static String get saveFolder => _endpoint('/api/folder/save');
+  static String get deleteRestoreFolder =>
+      _endpoint('/api/folder/delete-restore');
+  static String get notes => _endpoint('/api/note');
+  static String note(int id) => _endpoint('/api/note/$id');
+  static String get saveNoteContent => _endpoint('/api/note/save-content');
+  static String get updateNoteState => _endpoint('/api/note/update-state');
+
+  static String _endpoint(String path) =>
+      ApiEndpointResolver(_configuredBaseUrl).endpoint(path);
+}
+
+/// Validates the configured API origin and joins it with an API route.
+///
+/// Keeping this separate from the compile-time Dart defines makes endpoint
+/// behavior deterministic and directly testable.
+final class ApiEndpointResolver {
+  ApiEndpointResolver(String rawBaseUrl) : _baseUri = _parse(rawBaseUrl);
+
+  final Uri _baseUri;
+
+  String get baseUrl {
+    final path = _baseUri.path.replaceFirst(RegExp(r'/+$'), '');
+    return _baseUri.replace(path: path).toString();
+  }
+
+  String endpoint(String route) {
+    final normalizedRoute = route.trim().replaceFirst(RegExp(r'^/+'), '');
+    if (normalizedRoute.isEmpty) {
+      throw const FormatException('An API route cannot be empty.');
+    }
+
+    final basePath = _baseUri.path.replaceFirst(RegExp(r'/+$'), '');
+    return _baseUri
+        .replace(path: '$basePath/$normalizedRoute')
+        .toString();
+  }
+
+  static Uri _parse(String rawBaseUrl) {
+    final value = rawBaseUrl.trim();
     if (value.isEmpty) {
       throw const FormatException(
         'No notes API host is configured. Start the app with '
@@ -40,6 +71,22 @@ abstract final class ApiEndpoints {
       );
     }
 
-    return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
+    final uri = Uri.tryParse(value);
+    final scheme = uri?.scheme.toLowerCase();
+    if (uri == null ||
+        (scheme != 'http' && scheme != 'https') ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty) {
+      throw FormatException(
+        'The notes API host must be an absolute http or https URL: $value',
+      );
+    }
+    if (uri.hasQuery || uri.hasFragment) {
+      throw const FormatException(
+        'The notes API host cannot contain a query string or fragment.',
+      );
+    }
+
+    return uri.replace(scheme: scheme);
   }
 }

@@ -12,9 +12,11 @@ class FadeInWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: duration,
+      duration: reducedMotion ? Duration.zero : duration,
       builder: (_, value, child) {
         return Opacity(opacity: value, child: child);
       },

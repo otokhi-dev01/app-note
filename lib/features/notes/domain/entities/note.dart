@@ -10,6 +10,7 @@ class Note {
     this.isDeleted = false,
     this.deletedAt,
     this.imagePaths = const [],
+    this.imageAnchors = const [],
     this.folderId,
     this.isPinned = false,
     this.isLocked = false,
@@ -23,6 +24,10 @@ class Note {
   final bool isDeleted;
   final DateTime? deletedAt;
   final List<String> imagePaths;
+
+  /// Zero-based statement index after which each matching image is shown.
+  /// Older notes have no anchors and are rendered with images at the end.
+  final List<int> imageAnchors;
   final int? folderId;
   final bool isPinned;
   final bool isLocked;
@@ -36,6 +41,7 @@ class Note {
     bool? isDeleted,
     Object? deletedAt = _notProvided,
     List<String>? imagePaths,
+    List<int>? imageAnchors,
     Object? folderId = _notProvided,
     bool? isPinned,
     bool? isLocked,
@@ -51,6 +57,7 @@ class Note {
           ? this.deletedAt
           : deletedAt as DateTime?,
       imagePaths: imagePaths ?? this.imagePaths,
+      imageAnchors: imageAnchors ?? this.imageAnchors,
       folderId: identical(folderId, _notProvided)
           ? this.folderId
           : folderId as int?,

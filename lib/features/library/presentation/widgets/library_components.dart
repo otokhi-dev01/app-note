@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 
 import '../library_helpers.dart';
 
@@ -19,38 +20,45 @@ class LibraryScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        leading: IconButton(
-          onPressed: Get.back,
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: Icon(
-            CupertinoIcons.chevron_left,
-            color: colors.primary,
-            size: 22,
+    return AppBrandBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            onPressed: Get.back,
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: Icon(
+              CupertinoIcons.chevron_left,
+              color: colors.primary,
+              size: 22,
+            ),
           ),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: colors.onSurface,
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -.2,
+          title: Text(
+            title,
+            style: TextStyle(
+              color: colors.onSurface,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -.2,
+            ),
           ),
+          actions: action == null
+              ? null
+              : [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: action,
+                  ),
+                ],
         ),
-        actions: action == null
-            ? null
-            : [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: action,
-                ),
-              ],
+        body: child,
       ),
-      body: child,
     );
   }
 }
@@ -294,12 +302,7 @@ class LibrarySectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 9),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              title.toUpperCase(),
-              style: libraryFeatureEyebrow(context),
-            ),
-          ),
+          Expanded(child: Text(title, style: libraryFeatureEyebrow(context))),
           if (trailing != null) trailing!,
         ],
       ),

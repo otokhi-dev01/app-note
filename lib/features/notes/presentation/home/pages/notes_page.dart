@@ -9,6 +9,7 @@ class _NotesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SafeArea(
+      top: false,
       bottom: false,
       child: Obx(() {
         final pinned = controller.pinnedNotes;
@@ -20,33 +21,6 @@ class _NotesPage extends StatelessWidget {
             key: const PageStorageKey('notes_page'),
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(
-                child: _LinenHeader(
-                  title: controller.selectedFolder.value?.name ?? 'Notes',
-                  onMenu: () => _showAppMenu(context, controller),
-                  actions: [
-                    IconButton(
-                      onPressed: controller.toggleViewMode,
-                      tooltip: controller.isGalleryView.value
-                          ? 'List view'
-                          : 'Gallery view',
-                      icon: Icon(
-                        controller.isGalleryView.value
-                            ? CupertinoIcons.list_bullet
-                            : CupertinoIcons.square_grid_2x2,
-                        color: scheme.primary,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: controller.goToSettings,
-                      icon: Icon(
-                        CupertinoIcons.ellipsis_vertical,
-                        color: scheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 sliver: SliverToBoxAdapter(
@@ -82,7 +56,7 @@ class _NotesPage extends StatelessWidget {
                 )
               else ...[
                 if (pinned.isNotEmpty) ...[
-                  const _SliverSectionTitle(title: 'PINNED'),
+                  const _SliverSectionTitle(title: 'Pinned'),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverToBoxAdapter(
@@ -95,9 +69,7 @@ class _NotesPage extends StatelessWidget {
                   ),
                 ],
                 _SliverSectionTitle(
-                  title:
-                      controller.selectedFolder.value?.name.toUpperCase() ??
-                      'ALL NOTES',
+                  title: controller.selectedFolder.value?.name ?? 'All Notes',
                   trailing: '${pinned.length + notes.length} notes',
                 ),
                 if (controller.isGalleryView.value)

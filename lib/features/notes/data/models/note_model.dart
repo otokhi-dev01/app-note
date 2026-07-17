@@ -12,6 +12,7 @@ class NoteModel extends Note {
     super.isDeleted,
     super.deletedAt,
     super.imagePaths,
+    super.imageAnchors,
     super.folderId,
     super.isPinned,
     super.isLocked,
@@ -34,6 +35,13 @@ class NoteModel extends Note {
               .where((e) => e.isNotEmpty)
               .toList() ??
           [],
+      imageAnchors:
+          (map['image_anchors'] as String?)
+              ?.split('|')
+              .map(int.tryParse)
+              .whereType<int>()
+              .toList() ??
+          [],
       folderId: map['folder_id'] as int?,
       isPinned: (map['is_pinned'] as int? ?? 0) == 1,
       isLocked: (map['is_locked'] as int? ?? 0) == 1,
@@ -50,6 +58,7 @@ class NoteModel extends Note {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'image_paths': imagePaths.join('|'),
+      'image_anchors': imageAnchors.join('|'),
       'folder_id': folderId,
       'is_pinned': isPinned ? 1 : 0,
       'is_locked': isLocked ? 1 : 0,
@@ -66,6 +75,7 @@ class NoteModel extends Note {
     bool? isDeleted,
     Object? deletedAt = _notProvided,
     List<String>? imagePaths,
+    List<int>? imageAnchors,
     Object? folderId = _notProvided,
     bool? isPinned,
     bool? isLocked,
@@ -81,6 +91,7 @@ class NoteModel extends Note {
           ? this.deletedAt
           : deletedAt as DateTime?,
       imagePaths: imagePaths ?? this.imagePaths,
+      imageAnchors: imageAnchors ?? this.imageAnchors,
       folderId: identical(folderId, _notProvided)
           ? this.folderId
           : folderId as int?,
@@ -99,6 +110,7 @@ class NoteModel extends Note {
       isDeleted: note.isDeleted,
       deletedAt: note.deletedAt,
       imagePaths: note.imagePaths,
+      imageAnchors: note.imageAnchors,
       folderId: note.folderId,
       isPinned: note.isPinned,
       isLocked: note.isLocked,

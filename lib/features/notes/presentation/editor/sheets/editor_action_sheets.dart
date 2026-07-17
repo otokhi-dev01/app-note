@@ -64,20 +64,6 @@ extension _EditorActionSheets on EditorView {
               ],
             ),
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-              controller.insertTable();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.table),
-                SizedBox(width: 12),
-                Text('Insert Table'),
-              ],
-            ),
-          ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Get.back(),
@@ -208,7 +194,7 @@ extension _EditorActionSheets on EditorView {
     );
   }
 
-  void _showAttachmentOptions(BuildContext context) {
+  void _showAttachmentOptions(BuildContext context, {int? afterStatement}) {
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
@@ -218,14 +204,20 @@ extension _EditorActionSheets on EditorView {
             child: const Text('Take Photo or Video'),
             onPressed: () {
               Get.back();
-              controller.addImage(ImageSource.camera);
+              controller.addImage(
+                ImageSource.camera,
+                afterStatement: afterStatement,
+              );
             },
           ),
           CupertinoActionSheetAction(
             child: const Text('Choose Photo or Video'),
             onPressed: () {
               Get.back();
-              controller.addImage(ImageSource.gallery);
+              controller.addImage(
+                ImageSource.gallery,
+                afterStatement: afterStatement,
+              );
             },
           ),
           CupertinoActionSheetAction(

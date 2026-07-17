@@ -5,7 +5,7 @@ import '../models/note_model.dart';
 
 class DatabaseService {
   static const _databaseName = 'clean_notes.db';
-  static const _databaseVersion = 7;
+  static const _databaseVersion = 8;
   static const notesTable = 'notes';
   static const foldersTable = 'folders';
   static const _metadataTable = 'app_metadata';
@@ -39,6 +39,7 @@ class DatabaseService {
         is_deleted INTEGER DEFAULT 0,
         deleted_at TEXT,
         image_paths TEXT,
+        image_anchors TEXT,
         folder_id INTEGER,
         owner_id TEXT NOT NULL,
         is_pinned INTEGER DEFAULT 0,
@@ -106,6 +107,9 @@ class DatabaseService {
       // No table has a foreign key to notes.id, so the primary keys can be
       // remapped in place without rebuilding related data.
       await db.execute('UPDATE $notesTable SET id = -id WHERE id > 0');
+    }
+    if (oldVersion < 8) {
+      await db.execute('ALTER TABLE $notesTable ADD COLUMN image_anchors TEXT');
     }
   }
 
@@ -379,7 +383,7 @@ class DatabaseService {
         }
         final existing = await transaction.query(
           notesTable,
-          columns: const ['id', 'image_paths'],
+          columns: const ['id', 'image_paths', 'image_anchors'],
           where: 'id = ? AND owner_id = ?',
           whereArgs: [note.id, owner],
           limit: 1,
@@ -391,6 +395,9 @@ class DatabaseService {
           final localPaths = cachedPaths.where((path) => !_isNetworkPath(path));
           final mergedPaths = <String>{...note.imagePaths, ...localPaths};
           values['image_paths'] = mergedPaths.join('|');
+          if (note.imageAnchors.isEmpty) {
+            values['image_anchors'] = existing.first['image_anchors'];
+          }
         }
         if (existing.isEmpty) {
           await transaction.insert(notesTable, values);
@@ -408,7 +415,11 @@ class DatabaseService {
       if (replaceRemote) {
         final where = StringBuffer('owner_id = ? AND id > 0');
         final whereArgs = <Object?>[owner];
-        if (!includeDeleted) where.write(' AND is_deleted = 0');
+        // Active and deleted snapshots reconcile only their own rows. A trash
+        // response must never remove a newly cached active note.
+        where.write(
+          includeDeleted ? ' AND is_deleted = 1' : ' AND is_deleted = 0',
+        );
         if (remoteIds.isNotEmpty) {
           where.write(
             ' AND id NOT IN (${List.filled(remoteIds.length, '?').join(',')})',

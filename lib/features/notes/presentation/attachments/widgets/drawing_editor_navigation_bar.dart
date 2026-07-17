@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class DrawingEditorNavigationBar extends StatelessWidget
@@ -30,22 +29,6 @@ class DrawingEditorNavigationBar extends StatelessWidget
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
-      flexibleSpace: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: .9),
-              border: Border(
-                bottom: BorderSide(
-                  color: scheme.outlineVariant.withValues(alpha: .72),
-                  width: .5,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
       leadingWidth: 94,
       leading: Align(
         alignment: Alignment.centerLeft,
@@ -82,12 +65,10 @@ class DrawingEditorNavigationBar extends StatelessWidget
           child: TextButton(
             onPressed: onDone,
             style: TextButton.styleFrom(
-              foregroundColor: scheme.onPrimary,
-              backgroundColor: scheme.primary,
+              foregroundColor: scheme.primary,
               minimumSize: const Size(62, 44),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               tapTargetSize: MaterialTapTargetSize.padded,
-              shape: const StadiumBorder(),
               textStyle: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,

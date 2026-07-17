@@ -9,6 +9,7 @@ class _GoalsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SafeArea(
+      top: false,
       bottom: false,
       child: Obx(() {
         final todayWords = controller.notes
@@ -33,26 +34,6 @@ class _GoalsPage extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 100),
             children: [
-              _LinenHeader(
-                title: 'Writing Goals',
-                onMenu: () => _showAppMenu(context, controller),
-                actions: [
-                  IconButton(
-                    onPressed: () => Get.toNamed(AppRoutes.calendar),
-                    icon: Icon(
-                      CupertinoIcons.calendar,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: controller.goToSettings,
-                    icon: Icon(
-                      CupertinoIcons.ellipsis_vertical,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ],
-              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: _SurfaceCard(

@@ -13,37 +13,42 @@ class _LinenHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 12, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: onMenu,
-                tooltip: 'Menu',
-                style: IconButton.styleFrom(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainer,
-                  minimumSize: const Size.square(40),
+    return SafeArea(
+      bottom: false,
+      minimum: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      child: SizedBox(
+        height: 52,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final showBrandMark = constraints.maxWidth >= 360;
+            return Row(
+              children: [
+                IconButton(
+                  onPressed: onMenu,
+                  tooltip: 'Menu',
+                  icon: const Icon(CupertinoIcons.line_horizontal_3),
                 ),
-                icon: const Icon(CupertinoIcons.line_horizontal_3),
-              ),
-              const Spacer(),
-              ...actions,
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: 36,
-              letterSpacing: -1.1,
-            ),
-          ),
-        ],
+                if (showBrandMark) ...[
+                  const SizedBox(width: 8),
+                  const AppBrandMark(size: 34, borderRadius: 11),
+                ],
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -.4,
+                    ),
+                  ),
+                ),
+                ...actions,
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -64,38 +69,35 @@ class _CompactBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(
-          bottom: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: .7),
-          ),
-        ),
-      ),
-      child: Row(
-        children: [
-          TextButton.icon(
-            onPressed: onBack,
-            icon: const Icon(CupertinoIcons.chevron_left, size: 18),
-            label: const Text('Folders'),
-          ),
-          Expanded(
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      child: SizedBox(
+        height: 52,
+        child: Row(
+          children: [
+            TextButton.icon(
+              onPressed: onBack,
+              icon: const Icon(CupertinoIcons.chevron_left, size: 18),
+              label: const Text('Folders'),
             ),
-          ),
-          SizedBox(
-            width: 86,
-            child: actionLabel == null
-                ? null
-                : TextButton(onPressed: onAction, child: Text(actionLabel!)),
-          ),
-        ],
+            Expanded(
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 86,
+              child: actionLabel == null
+                  ? null
+                  : TextButton(onPressed: onAction, child: Text(actionLabel!)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -119,79 +121,60 @@ class _LinenNavigationBar extends StatelessWidget {
       (CupertinoIcons.scope, 'Goals'),
     ];
     final scheme = Theme.of(context).colorScheme;
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return SafeArea(
       top: false,
       minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: ClipRRect(
+      child: AppGlassSurface(
         borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: scheme.surface.withValues(alpha: .86),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: .72),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              child: Row(
-                children: items.asMap().entries.map((entry) {
-                  final selected = selectedIndex == entry.key;
-                  final color = selected
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurfaceVariant;
-                  return Expanded(
-                    child: Semantics(
-                      selected: selected,
-                      button: true,
-                      label: entry.value.$2,
-                      child: InkWell(
-                        onTap: () => onSelect(entry.key),
-                        borderRadius: BorderRadius.circular(22),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 240),
-                          curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? scheme.primary.withValues(alpha: .2)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(entry.value.$1, color: color, size: 22),
-                              const SizedBox(height: 2),
-                              Text(
-                                entry.value.$2,
-                                style: TextStyle(
-                                  color: color,
-                                  fontSize: 10.5,
-                                  fontWeight: selected
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                ),
-                              ),
-                            ],
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Row(
+          children: items.asMap().entries.map((entry) {
+            final selected = selectedIndex == entry.key;
+            final color = selected ? scheme.primary : scheme.onSurfaceVariant;
+            return Expanded(
+              child: Semantics(
+                selected: selected,
+                button: true,
+                label: entry.value.$2,
+                child: InkWell(
+                  onTap: () => onSelect(entry.key),
+                  borderRadius: BorderRadius.circular(22),
+                  child: AnimatedContainer(
+                    duration: reducedMotion
+                        ? Duration.zero
+                        : const Duration(milliseconds: 240),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? scheme.primary.withValues(alpha: .18)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(entry.value.$1, color: color, size: 22),
+                        const SizedBox(height: 2),
+                        Text(
+                          entry.value.$2,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10.5,
+                            fontWeight: selected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  );
-                }).toList(),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          }).toList(),
         ),
       ),
     );

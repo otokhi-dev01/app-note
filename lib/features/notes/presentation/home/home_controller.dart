@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:notes/app/navigation/app_routes.dart';
+import 'package:notes/app/navigation/route_contracts.dart';
 import 'package:notes/features/auth/domain/repositories/auth_repository.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 import 'package:notes/features/notes/domain/entities/folder.dart';
@@ -95,9 +96,10 @@ class HomeController extends GetxController implements LibraryCoordinator {
   final isLoading = false.obs;
   final errorMessage = RxnString();
   final isFolderSyncing = false.obs;
-  final selectedTab = 1.obs;
+  final selectedTab = 0.obs;
   final selectedCalendarDay = DateTime.now().day.obs;
   final searchFieldController = TextEditingController();
+  int _loadGeneration = 0;
 
   @override
   int get selectedCalendarDayValue => selectedCalendarDay.value;
@@ -116,14 +118,23 @@ class HomeController extends GetxController implements LibraryCoordinator {
 
   @override
   Future<void> loadNotes() async {
+    final generation = ++_loadGeneration;
     try {
       isLoading.value = true;
       errorMessage.value = null;
       // Folders must be cached first so remote notes retain valid links.
       final allFolders = await _getFolders();
-      folders.assignAll(allFolders);
       final activeNotes = await _getNotesUseCase();
-      final deletedNotes = await _getRecentlyDeletedNotes();
+      List<Note> deletedNotes;
+      try {
+        deletedNotes = await _getRecentlyDeletedNotes();
+      } catch (_) {
+        // A trash sync problem must not hide successfully loaded active notes.
+        deletedNotes = trashNotes.toList(growable: false);
+      }
+      if (generation != _loadGeneration) return;
+
+      folders.assignAll(allFolders);
       notes.assignAll(activeNotes);
       trashNotes.assignAll(deletedNotes);
       if (isSearching.value) {
@@ -137,9 +148,11 @@ class HomeController extends GetxController implements LibraryCoordinator {
         _applyFilter();
       }
     } catch (error) {
-      errorMessage.value = 'Failed to sync notes. ${_readableError(error)}';
+      if (generation == _loadGeneration) {
+        errorMessage.value = 'Failed to sync notes. ${_readableError(error)}';
+      }
     } finally {
-      isLoading.value = false;
+      if (generation == _loadGeneration) isLoading.value = false;
     }
   }
 

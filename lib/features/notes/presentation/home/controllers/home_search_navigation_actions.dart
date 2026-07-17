@@ -212,7 +212,14 @@ extension _HomeSearchNavigationActions on HomeController {
       AppRoutes.editor,
       arguments: selectedFolder.value?.id,
     );
-    if (result != null) await loadNotes();
+    if (result != EditorResult.saved) return;
+
+    await loadNotes();
+    isFolderView.value = false;
+    isSearching.value = false;
+    isTrashView.value = false;
+    selectedTab.value = 0;
+    _applyFilter();
   }
 
   Future<void> _openNote(Note note) async {

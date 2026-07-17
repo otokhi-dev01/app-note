@@ -23,7 +23,7 @@ class AuthService extends GetxService implements AuthRepository {
   UserModel? get user => _user.value;
 
   @override
-  bool get isLoggedIn => _user.value?.token?.isNotEmpty ?? false;
+  bool get isLoggedIn => _normalizeToken(_user.value?.token) != null;
 
   @override
   String? get accountScopeId {
@@ -47,8 +47,18 @@ class AuthService extends GetxService implements AuthRepository {
   Future<void> _restoreSession() async {
     try {
       final savedUser = await _localStorage.getAuthUser();
-      if (_isTokenUsable(savedUser?.token)) {
-        _user.value = savedUser;
+      final token = _normalizeToken(savedUser?.token);
+      if (savedUser != null && token != null && _isTokenUsable(token)) {
+        _user.value = token == savedUser.token
+            ? savedUser
+            : UserModel(
+                id: savedUser.id,
+                email: savedUser.email,
+                phone: savedUser.phone,
+                name: savedUser.name,
+                avatar: savedUser.avatar,
+                token: token,
+              );
         return;
       }
     } catch (_) {
@@ -139,14 +149,22 @@ class AuthService extends GetxService implements AuthRepository {
 
   String? _readToken(Map<String, dynamic>? json) {
     if (json == null) return null;
-    return (json['access_token'] ?? json['accessToken'] ?? json['token'])
-        ?.toString();
+    return _normalizeToken(
+      json['access_token'] ?? json['accessToken'] ?? json['token'],
+    );
+  }
+
+  String? _normalizeToken(Object? value) {
+    if (value == null) return null;
+    final token = value.toString().trim();
+    return token.isEmpty ? null : token;
   }
 
   bool _isTokenUsable(String? token) {
-    if (token == null || token.trim().isEmpty) return false;
+    final normalizedToken = _normalizeToken(token);
+    if (normalizedToken == null) return false;
 
-    final parts = token.split('.');
+    final parts = normalizedToken.split('.');
     if (parts.length != 3) return true; // The API may use an opaque token.
 
     try {
@@ -154,9 +172,14 @@ class AuthService extends GetxService implements AuthRepository {
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
       );
       final expiration = payload?['exp'];
-      if (expiration is! num) return false;
+      final expirationSeconds = switch (expiration) {
+        num value => value.toInt(),
+        String value => num.tryParse(value.trim())?.toInt(),
+        _ => null,
+      };
+      if (expirationSeconds == null) return false;
       final expiresAt = DateTime.fromMillisecondsSinceEpoch(
-        expiration.toInt() * 1000,
+        expirationSeconds * 1000,
         isUtc: true,
       );
       return expiresAt.isAfter(DateTime.now().toUtc());

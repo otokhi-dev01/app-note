@@ -108,7 +108,7 @@ class _NoteCardState extends State<NoteCard>
           width: _actionWidth,
           icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
           label: 'Pin',
-          color: const Color(0xFFFF9F0A),
+          color: scheme.primary,
           onPressed: () => _executeAction(widget.onPin!),
         ),
       if (widget.onShare != null)

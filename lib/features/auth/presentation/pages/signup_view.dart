@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:notes/core/network/api_endpoints.dart';
 import 'package:notes/core/presentation/animations/fade_in_widget.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/features/auth/presentation/controllers/signup_controller.dart';
 
 class SignupView extends GetView<SignupController> {
@@ -54,13 +55,7 @@ class SignupView extends GetView<SignupController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
-                        child: _AppIcon(
-                          shadowColor: colors.primary.withValues(
-                            alpha: isDark ? 0.2 : 0.16,
-                          ),
-                        ),
-                      ),
+                      Center(child: const _AppIcon()),
                       const SizedBox(height: 34),
                       Text(
                         'Create Account',
@@ -211,64 +206,16 @@ class _AuthBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final background = theme.scaffoldBackgroundColor;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            background,
-            Color.alphaBlend(
-              colors.primary.withValues(alpha: 0.055),
-              background,
-            ),
-            background,
-          ],
-          stops: const [0, 0.5, 1],
-        ),
-      ),
-      child: child,
-    );
+    return AppBrandBackdrop(child: child);
   }
 }
 
 class _AppIcon extends StatelessWidget {
-  const _AppIcon({required this.shadowColor});
-
-  final Color shadowColor;
+  const _AppIcon();
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(alpha: 0.82),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.onSurface.withValues(alpha: 0.08)),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 26,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(19),
-        child: Image.asset(
-          'assets/icons/notes_v26.png',
-          width: 70,
-          height: 70,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
+    return const AppBrandLogo(height: 96, borderRadius: 22);
   }
 }
 
@@ -280,29 +227,10 @@ class _InsetForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
 
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: colors.surface.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.9 : 0.96,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: 0.72),
-          width: 0.7,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.18 : 0.06,
-            ),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
+    return AppGlassSurface(
+      borderRadius: BorderRadius.circular(22),
+      opacity: theme.brightness == Brightness.dark ? .72 : .78,
       child: Column(children: children),
     );
   }
