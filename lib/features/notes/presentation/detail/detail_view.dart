@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:notes/core/constants/app_strings.dart';
 import 'package:notes/core/formatters/date_formatter.dart';
 import 'package:notes/core/presentation/brand/app_brand.dart';
+import 'package:notes/core/presentation/widgets/liquid_glass_sliver_app_bar.dart';
 import 'package:notes/features/notes/domain/entities/note.dart';
 import '../home/home_style.dart';
 import 'package:notes/core/presentation/images/image_helper.dart';
@@ -18,178 +19,191 @@ class DetailView extends GetView<DetailController> {
     final style = HomeStyle.of(context);
 
     return AppBrandBackdrop(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        extendBody: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          leading: IconButton(
-            tooltip: 'Back',
-            icon: const Icon(CupertinoIcons.back),
-            onPressed: () => Get.back(),
-          ),
-          title: Text(
-            AppStrings.noteDetails,
-            style: TextStyle(
-              color: style.primaryText,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          actions: [
-            Obx(
-              () => IconButton(
-                tooltip: controller.note.value?.isPinned == true
-                    ? 'Unpin note'
-                    : 'Pin note',
-                onPressed: controller.togglePin,
-                icon: Icon(
-                  controller.note.value?.isPinned == true
-                      ? CupertinoIcons.pin_fill
-                      : CupertinoIcons.pin,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+            sliver: LiquidGlassSliverAppBar(
+              height: 60,
+              blur: 22,
+              borderRadius: const BorderRadius.all(Radius.circular(28)),
+              title: Text(
+                AppStrings.noteDetails,
+                style: TextStyle(
+                  color: style.primaryText,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        bottomNavigationBar: SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-          child: AppGlassSurface(
-            borderRadius: BorderRadius.circular(28),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                IconButton(
-                  tooltip: 'Add attachment',
-                  onPressed: () => _showAttachmentOptions(context),
-                  icon: const Icon(CupertinoIcons.camera),
-                ),
-                IconButton(
-                  tooltip: 'Move note',
-                  onPressed: controller.moveNote,
-                  icon: const Icon(CupertinoIcons.folder),
-                ),
-                IconButton(
-                  tooltip: 'Edit note',
-                  onPressed: controller.edit,
-                  icon: const Icon(CupertinoIcons.square_pencil),
-                ),
-                IconButton(
-                  tooltip: 'Delete note',
-                  onPressed: controller.delete,
-                  icon: Icon(
-                    CupertinoIcons.trash,
-                    color: style.theme.colorScheme.error,
+              leading: (_) => IconButton(
+                tooltip: 'Back',
+                icon: const Icon(CupertinoIcons.back),
+                onPressed: () => Get.back(),
+              ),
+              actions: [
+                Obx(
+                  () => IconButton(
+                    tooltip: controller.note.value?.isPinned == true
+                        ? 'Unpin note'
+                        : 'Pin note',
+                    onPressed: controller.togglePin,
+                    icon: Icon(
+                      controller.note.value?.isPinned == true
+                          ? CupertinoIcons.pin_fill
+                          : CupertinoIcons.pin,
+                      color: style.primaryText,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
               ],
             ),
           ),
-        ),
-        body: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(child: CupertinoActivityIndicator());
-          }
-          final error = controller.errorMessage.value;
-          if (error != null) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      CupertinoIcons.exclamationmark_triangle,
-                      color: style.secondaryText,
-                      size: 36,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      error,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: style.secondaryText),
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: controller.loadNote,
-                      child: const Text('Try Again'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-          final note = controller.note.value;
-          if (note == null) {
-            return Center(
-              child: Text(
-                'Note not found.',
-                style: TextStyle(color: style.secondaryText),
-              ),
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: style.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: style.shadow,
-                      blurRadius: 20,
-                      offset: const Offset(0, 7),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.fromLTRB(22, 24, 22, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      note.title.isEmpty ? 'Untitled' : note.title,
-                      style: style.theme.textTheme.headlineMedium?.copyWith(
-                        color: style.primaryText,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
+          SliverFillRemaining(
+            hasScrollBody: true,
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return const Center(child: CupertinoActivityIndicator());
+              }
+              final error = controller.errorMessage.value;
+              if (error != null) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          CupertinoIcons.clock,
-                          size: 14,
+                          CupertinoIcons.exclamationmark_triangle,
                           color: style.secondaryText,
+                          size: 36,
                         ),
-                        SizedBox(width: 6),
+                        const SizedBox(height: 12),
                         Text(
-                          'Updated ${DateFormatter.format(note.updatedAt)}',
-                          style: TextStyle(
-                            color: style.secondaryText,
-                            fontSize: 13,
-                          ),
+                          error,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: style.secondaryText),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton(
+                          onPressed: controller.loadNote,
+                          child: const Text('Try Again'),
                         ),
                       ],
                     ),
-                    const Divider(height: 34),
-                    _NoteStatementBlocks(
-                      note: note,
-                      style: style,
-                      controller: controller,
+                  ),
+                );
+              }
+              final note = controller.note.value;
+              if (note == null) {
+                return Center(
+                  child: Text(
+                    'Note not found.',
+                    style: TextStyle(color: style.secondaryText),
+                  ),
+                );
+              }
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: style.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: style.shadow,
+                          blurRadius: 20,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        }),
+                    padding: const EdgeInsets.fromLTRB(22, 24, 22, 28),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          note.title.isEmpty ? 'Untitled' : note.title,
+                          style: style.theme.textTheme.headlineMedium?.copyWith(
+                            color: style.primaryText,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              CupertinoIcons.clock,
+                              size: 14,
+                              color: style.secondaryText,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Updated ${DateFormatter.format(note.updatedAt)}',
+                              style: TextStyle(
+                                color: style.secondaryText,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 34),
+                        _NoteStatementBlocks(
+                          note: note,
+                          style: style,
+                          controller: controller,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SafeArea(
+                    top: false,
+                    minimum: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                    child: AppGlassSurface(
+                      borderRadius: BorderRadius.circular(28),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          IconButton(
+                            tooltip: 'Add attachment',
+                            onPressed: () => _showAttachmentOptions(context),
+                            icon: const Icon(CupertinoIcons.camera),
+                          ),
+                          IconButton(
+                            tooltip: 'Move note',
+                            onPressed: controller.moveNote,
+                            icon: const Icon(CupertinoIcons.folder),
+                          ),
+                          IconButton(
+                            tooltip: 'Edit note',
+                            onPressed: controller.edit,
+                            icon: const Icon(CupertinoIcons.square_pencil),
+                          ),
+                          IconButton(
+                            tooltip: 'Delete note',
+                            onPressed: controller.delete,
+                            icon: Icon(
+                              CupertinoIcons.trash,
+                              color: style.theme.colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:notes/core/presentation/brand/app_brand.dart';
+import 'package:notes/core/presentation/widgets/liquid_glass_sliver_app_bar.dart';
 import 'package:notes/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_components.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_palette.dart';
@@ -17,138 +18,142 @@ class SettingsView extends GetView<SettingsController> {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return AppBrandBackdrop(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        appBar: CupertinoNavigationBar(
-          backgroundColor: Colors.transparent,
-          border: null,
-          brightness: Theme.of(context).brightness,
-          leading: CupertinoNavigationBarBackButton(
-            color: style.accent,
-            previousPageTitle: 'Notes',
-            onPressed: Get.back,
-          ),
-          middle: const Text('Settings'),
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
         ),
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 0),
+            sliver: LiquidGlassSliverAppBar(
+              height: 60,
+              blur: 22,
+              borderRadius: const BorderRadius.all(Radius.circular(28)),
+              title: const Text('Settings'),
+              leading: (context) => IconButton(
+                tooltip: 'Back',
+                onPressed: Get.back,
+                icon: Icon(
+                  CupertinoIcons.chevron_left,
+                  color: style.accent,
+                  size: 20,
+                ),
+              ),
+            ),
           ),
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(16, 10, 16, 32 + bottomInset),
-              sliver: SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 620),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SettingsSection(
-                          style: style,
-                          title: 'Account',
-                          children: [
-                            SettingsAccountCard(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(16, 10, 16, 32 + bottomInset),
+            sliver: SliverToBoxAdapter(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 620),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SettingsSection(
+                        style: style,
+                        title: 'Account',
+                        children: [
+                          SettingsAccountCard(
+                            style: style,
+                            identifier: controller.accountIdentifier,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showInfoMessage(
+                                context,
+                                title: 'Notes Account',
+                                message:
+                                    'Signed in as ${controller.accountIdentifier}.',
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 26),
+                      SettingsSection(
+                        style: style,
+                        title: 'App Preferences',
+                        footer:
+                            'System Default follows the appearance selected on your device.',
+                        children: [
+                          Obx(
+                            () => SettingsRow(
                               style: style,
-                              identifier: controller.accountIdentifier,
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                _showInfoMessage(
-                                  context,
-                                  title: 'Notes Account',
-                                  message:
-                                      'Signed in as ${controller.accountIdentifier}.',
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 26),
-                        SettingsSection(
-                          style: style,
-                          title: 'App Preferences',
-                          footer:
-                              'System Default follows the appearance selected on your device.',
-                          children: [
-                            Obx(
-                              () => SettingsRow(
-                                style: style,
-                                icon: CupertinoIcons.circle_lefthalf_fill,
-                                iconColor: colors.tertiary,
-                                title: 'Appearance',
-                                subtitle: controller.themeModeLabel,
-                                onTap: () => _showAppearancePicker(context),
-                                isFirst: true,
-                                isLast: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 26),
-                        SettingsSection(
-                          style: style,
-                          title: 'Support',
-                          children: [
-                            SettingsRow(
-                              style: style,
-                              icon: CupertinoIcons.info_circle_fill,
-                              iconColor: colors.secondary,
-                              title: 'About Notes',
-                              isFirst: true,
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                _showInfoMessage(
-                                  context,
-                                  title: 'About Notes',
-                                  message: 'Version 1.0.0 (Build 2026)',
-                                );
-                              },
-                            ),
-                            SettingsRow(
-                              style: style,
-                              icon: CupertinoIcons.question_circle_fill,
-                              iconColor: style.accent,
-                              title: 'Help & Feedback',
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                _showInfoMessage(
-                                  context,
-                                  title: 'Help & Feedback',
-                                  message:
-                                      'Help and feedback are not available yet.',
-                                );
-                              },
-                              isLast: true,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        SettingsSection(
-                          style: style,
-                          title: '',
-                          children: [
-                            SettingsRow(
-                              style: style,
-                              icon: CupertinoIcons.square_arrow_right,
-                              iconColor: style.destructive,
-                              title: 'Sign Out',
-                              titleColor: style.destructive,
-                              onTap: () => _showSignOutDialog(context),
+                              icon: CupertinoIcons.circle_lefthalf_fill,
+                              iconColor: colors.tertiary,
+                              title: 'Appearance',
+                              subtitle: controller.themeModeLabel,
+                              onTap: () => _showAppearancePicker(context),
                               isFirst: true,
                               isLast: true,
-                              hideChevron: true,
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 26),
+                      SettingsSection(
+                        style: style,
+                        title: 'Support',
+                        children: [
+                          SettingsRow(
+                            style: style,
+                            icon: CupertinoIcons.info_circle_fill,
+                            iconColor: colors.secondary,
+                            title: 'About Notes',
+                            isFirst: true,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showInfoMessage(
+                                context,
+                                title: 'About Notes',
+                                message: 'Version 1.0.0 (Build 2026)',
+                              );
+                            },
+                          ),
+                          SettingsRow(
+                            style: style,
+                            icon: CupertinoIcons.question_circle_fill,
+                            iconColor: style.accent,
+                            title: 'Help & Feedback',
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showInfoMessage(
+                                context,
+                                title: 'Help & Feedback',
+                                message:
+                                    'Help and feedback are not available yet.',
+                              );
+                            },
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      SettingsSection(
+                        style: style,
+                        title: '',
+                        children: [
+                          SettingsRow(
+                            style: style,
+                            icon: CupertinoIcons.square_arrow_right,
+                            iconColor: style.destructive,
+                            title: 'Sign Out',
+                            titleColor: style.destructive,
+                            onTap: () => _showSignOutDialog(context),
+                            isFirst: true,
+                            isLast: true,
+                            hideChevron: true,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -165,11 +170,11 @@ class SettingsView extends GetView<SettingsController> {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: colors.surfaceContainerHighest,
       colorText: colors.onSurface,
-      margin: const EdgeInsets.all(16),
+      margin: EdgeInsets.all(16),
       borderRadius: 18,
       borderColor: colors.outlineVariant,
       borderWidth: .5,
-      duration: const Duration(seconds: 3),
+      duration: Duration(seconds: 3),
     );
   }
 

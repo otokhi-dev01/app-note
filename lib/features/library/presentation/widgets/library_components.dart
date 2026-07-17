@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:notes/core/presentation/brand/app_brand.dart';
 
+import 'package:notes/core/presentation/widgets/liquid_glass_sliver_app_bar.dart';
+
 import '../library_helpers.dart';
 
 class LibraryScaffold extends StatelessWidget {
@@ -20,44 +22,51 @@ class LibraryScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+
     return AppBrandBackdrop(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-          leading: IconButton(
-            onPressed: Get.back,
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            icon: Icon(
-              CupertinoIcons.chevron_left,
-              color: colors.primary,
-              size: 22,
-            ),
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics(),
           ),
-          title: Text(
-            title,
-            style: TextStyle(
-              color: colors.onSurface,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -.2,
-            ),
-          ),
-          actions: action == null
-              ? null
-              : [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: action,
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+              sliver: LiquidGlassSliverAppBar(
+                height: 60,
+                blur: 22,
+                borderRadius: const BorderRadius.all(Radius.circular(28)),
+                leading: (_) => IconButton(
+                  onPressed: Get.back,
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  icon: Icon(
+                    CupertinoIcons.chevron_left,
+                    color: colors.primary,
+                    size: 22,
                   ),
+                ),
+                title: Text(
+                  title,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -.2,
+                  ),
+                ),
+                actions: [
+                  if (action != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: action!,
+                    ),
                 ],
+              ),
+            ),
+            SliverToBoxAdapter(child: child),
+          ],
         ),
-        body: child,
       ),
     );
   }

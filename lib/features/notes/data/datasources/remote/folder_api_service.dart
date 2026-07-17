@@ -23,10 +23,7 @@ class FolderApiService {
 
   Future<List<FolderModel>> getFolders() async {
     final response = await _request(
-      () => _client.get<dynamic>(
-        ApiEndpoints.folders,
-        headers: _headers,
-      ),
+      () => _client.get<dynamic>(ApiEndpoints.folders, headers: _headers),
       'load folders',
     );
     _ensureSuccess(response, 'load folders');
@@ -62,7 +59,7 @@ class FolderApiService {
     final response = await _request(
       () => _client.post<dynamic>(
         ApiEndpoints.saveFolder,
-        body,
+        jsonEncode(body),
         headers: _headers,
       ),
       'save the folder',
@@ -101,19 +98,16 @@ class FolderApiService {
   }
 
   Future<void> setFolderDeleted(int id, {required bool deleted}) async {
+    // Keep delete-restore payload strict/minimal to match backend validation.
     final response = await _request(
       () => _client.post<dynamic>(
         ApiEndpoints.deleteRestoreFolder,
-        <String, dynamic>{
+        jsonEncode(<String, dynamic>{
           'id': id,
-          'folderId': id,
-          'folder_id': id,
-          'isDeleted': deleted,
-          'is_deleted': deleted,
           'deleted': deleted,
-          'restore': !deleted,
           'action': deleted ? 'delete' : 'restore',
-        },
+          'restore': !deleted,
+        }),
         headers: _headers,
       ),
       deleted ? 'delete the folder' : 'restore the folder',
@@ -148,9 +142,17 @@ class FolderApiService {
     if (response.isOk) return;
     final message = _errorMessage(response.body);
     final statusCode = response.statusCode;
+
+    final rawBody = response.body;
+    final raw = rawBody is String
+        ? rawBody
+        : rawBody == null
+        ? null
+        : const JsonEncoder().convert(rawBody);
+
     throw FolderApiException(
-      message ??
-          'Unable to $operation (${statusCode ?? 'network error'}).',
+      '${message ?? 'Unable to $operation'} (${statusCode ?? 'network error'}). '
+      'Response: ${raw ?? '<empty>'}',
       statusCode: statusCode,
       kind: statusCode == null || statusCode <= 0
           ? ApiFailureKind.transport
@@ -324,10 +326,5 @@ class FolderApiException extends ApiFailure {
     ApiFailureKind kind = ApiFailureKind.protocol,
     int? statusCode,
     Object? cause,
-  }) : super(
-         message,
-         kind: kind,
-         statusCode: statusCode,
-         cause: cause,
-       );
+  }) : super(message, kind: kind, statusCode: statusCode, cause: cause);
 }

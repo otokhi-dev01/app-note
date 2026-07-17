@@ -57,10 +57,7 @@ class NoteApiService {
 
   Future<NoteModel?> getNote(int id) async {
     final response = await _request(
-      () => _client.get<dynamic>(
-        ApiEndpoints.note(id),
-        headers: _headers,
-      ),
+      () => _client.get<dynamic>(ApiEndpoints.note(id), headers: _headers),
       'load the note',
     );
     _ensureSuccess(response, 'load the note');
@@ -88,7 +85,7 @@ class NoteApiService {
     final response = await _request(
       () => _client.post<dynamic>(
         ApiEndpoints.saveNoteContent,
-        body,
+        jsonEncode(body),
         headers: _headers,
       ),
       'save note content',
@@ -125,48 +122,25 @@ class NoteApiService {
         'A synced note ID is required to update state.',
       );
     }
+    // Keep update-state payload strict/minimal to match backend validation.
+    // Sending many aliased field names can cause 400/protocol failures.
     final body = <String, dynamic>{
       'id': note.id,
-      'noteId': note.id,
-      'note_id': note.id,
       'state': state,
-      'stateName': state,
-      'state_name': state,
-      'field': switch (state) {
-        'deleted' => 'isDeleted',
-        'pinned' => 'isPinned',
-        'locked' => 'isLocked',
-        'folder' => 'folderId',
-        _ => state,
-      },
       'action': switch (state) {
         'deleted' => value == true ? 'delete' : 'restore',
         'pinned' => value == true ? 'pin' : 'unpin',
         'locked' => value == true ? 'lock' : 'unlock',
         'folder' => 'move',
-        _ => state,
+        _ => value,
       },
+      // Backend-specific value for the state/action.
       'value': value,
-      'isDeleted': note.isDeleted,
-      'is_deleted': note.isDeleted,
-      'deleted': note.isDeleted,
-      'isPinned': note.isPinned,
-      'is_pinned': note.isPinned,
-      'pinned': note.isPinned,
-      'isLocked': note.isLocked,
-      'is_locked': note.isLocked,
-      'locked': note.isLocked,
-      'folderId': note.folderId,
-      'folder_id': note.folderId,
-      'deletedAt': note.deletedAt?.toUtc().toIso8601String(),
-      'deleted_at': note.deletedAt?.toUtc().toIso8601String(),
-      'updatedAt': note.updatedAt.toUtc().toIso8601String(),
-      'updated_at': note.updatedAt.toUtc().toIso8601String(),
     };
     final response = await _request(
       () => _client.post<dynamic>(
         ApiEndpoints.updateNoteState,
-        body,
+        jsonEncode(body),
         headers: _headers,
       ),
       'update note state',
@@ -227,9 +201,17 @@ class NoteApiService {
     if (response.isOk) return;
     final message = _errorMessage(response.body);
     final statusCode = response.statusCode;
+
+    final rawBody = response.body;
+    final raw = rawBody is String
+        ? rawBody
+        : rawBody == null
+        ? null
+        : const JsonEncoder().convert(rawBody);
+
     throw NoteApiException(
-      message ??
-          'Unable to $operation (${statusCode ?? 'network error'}).',
+      '${message ?? 'Unable to $operation'} (${statusCode ?? 'network error'}). '
+      'Response: ${raw ?? '<empty>'}',
       statusCode: statusCode,
       kind: statusCode == null || statusCode <= 0
           ? ApiFailureKind.transport
@@ -531,10 +513,5 @@ class NoteApiException extends ApiFailure {
     ApiFailureKind kind = ApiFailureKind.protocol,
     int? statusCode,
     Object? cause,
-  }) : super(
-         message,
-         kind: kind,
-         statusCode: statusCode,
-         cause: cause,
-       );
+  }) : super(message, kind: kind, statusCode: statusCode, cause: cause);
 }

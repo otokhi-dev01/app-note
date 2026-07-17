@@ -45,62 +45,6 @@ class EditorView extends GetView<EditorController> {
               resizeToAvoidBottomInset: true,
               extendBody: true,
               backgroundColor: Colors.transparent,
-              appBar: AppBar(
-                backgroundColor: Colors.transparent,
-                surfaceTintColor: Colors.transparent,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                leading: Center(
-                  child: _CircleButton(
-                    onTap: controller.requestClose,
-                    child: Icon(
-                      CupertinoIcons.left_chevron,
-                      color: style.primaryText,
-                      size: 20,
-                    ),
-                  ),
-                ),
-                actions: [
-                  _PillButton(
-                    children: [
-                      _ActionIconButton(
-                        icon: CupertinoIcons.share,
-                        onTap: controller.copyToClipboard,
-                      ),
-                      _ActionIconButton(
-                        icon: CupertinoIcons.ellipsis,
-                        onTap: () => _showMoreOptions(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 12),
-                  Obx(
-                    () => Tooltip(
-                      message: 'Save note',
-                      child: _CircleButton(
-                        key: const ValueKey('note_save_button'),
-                        onTap: controller.isSaving.value
-                            ? null
-                            : () async {
-                                FocusScope.of(context).unfocus();
-                                await controller.save();
-                              },
-                        child: controller.isSaving.value
-                            ? CupertinoActivityIndicator(
-                                color: style.theme.colorScheme.primary,
-                                radius: 9,
-                              )
-                            : Icon(
-                                CupertinoIcons.check_mark,
-                                color: style.theme.colorScheme.primary,
-                                size: 18,
-                              ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                ],
-              ),
               body: Stack(
                 children: [
                   Positioned.fill(

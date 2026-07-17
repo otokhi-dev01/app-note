@@ -1,10 +1,11 @@
 part of '../editor_view.dart';
 
+// ignore: unused_element
 class _CircleButton extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget child;
 
-  const _CircleButton({super.key, required this.onTap, required this.child});
+  const _CircleButton({required this.onTap, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +22,7 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _PillButton extends StatelessWidget {
   final List<Widget> children;
 
@@ -35,6 +37,7 @@ class _PillButton extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _ActionIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
