@@ -1,8 +1,6 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-
 import 'package:notes/core/network/api_endpoints.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/user_model.dart';
@@ -77,7 +75,11 @@ class AuthService extends GetxService implements AuthRepository {
     lastError = null;
 
     try {
-      debugPrint('[Auth] Logging in with phone=$phone to ${ApiEndpoints.login}');
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] Logging in with phone=$phone to ${ApiEndpoints.login}',
+        );
+      }
       final response = await _client.post<dynamic>(
         ApiEndpoints.login,
         {'phone': phone, 'password': password},
@@ -117,7 +119,11 @@ class AuthService extends GetxService implements AuthRepository {
 
       final token =
           _readToken(data) ?? _readToken(payload) ?? _readToken(userJson);
-      debugPrint('[Auth] token resolved: ${token != null ? '${token.substring(0, token.length.clamp(0, 20))}...' : 'null'}');
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] token resolved: ${token != null ? '${token.substring(0, token.length.clamp(0, 20))}...' : 'null'}',
+        );
+      }
 
       if (token == null || token.isEmpty) {
         lastError = 'The login response did not include an access token.';
@@ -126,16 +132,35 @@ class AuthService extends GetxService implements AuthRepository {
       }
 
       final authenticatedUser = UserModel(
-        id: (userJson['id'] ?? userJson['_id'] ?? userJson['userId'] ?? userJson['UserId'] ?? '').toString(),
+        id:
+            (userJson['id'] ??
+                    userJson['_id'] ??
+                    userJson['userId'] ??
+                    userJson['UserId'] ??
+                    '')
+                .toString(),
         email: userJson['email']?.toString(),
-        phone: (userJson['phone'] ?? userJson['phoneNumber'] ?? userJson['Phone'] ?? phone)
-            .toString(),
-        name: (userJson['name'] ?? userJson['fullName'] ?? userJson['FullName'])?.toString(),
-        avatar: (userJson['avatar'] ?? userJson['avatar_url'] ?? userJson['avatarUrl'])?.toString(),
+        phone:
+            (userJson['phone'] ??
+                    userJson['phoneNumber'] ??
+                    userJson['Phone'] ??
+                    phone)
+                .toString(),
+        name: (userJson['name'] ?? userJson['fullName'] ?? userJson['FullName'])
+            ?.toString(),
+        avatar:
+            (userJson['avatar'] ??
+                    userJson['avatar_url'] ??
+                    userJson['avatarUrl'])
+                ?.toString(),
         token: token,
       );
 
-      debugPrint('[Auth] Authenticated user: id=${authenticatedUser.id}, name=${authenticatedUser.name}, phone=${authenticatedUser.phone}');
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] Authenticated user: id=${authenticatedUser.id}, name=${authenticatedUser.name}, phone=${authenticatedUser.phone}',
+        );
+      }
 
       await _localStorage.saveAuthUser(authenticatedUser);
       _user.value = authenticatedUser;

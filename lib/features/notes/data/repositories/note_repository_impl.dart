@@ -121,7 +121,12 @@ class NoteRepositoryImpl implements NoteRepository {
   Future<int> createNote(Note note) async {
     final model = NoteModel.fromEntity(note);
     try {
-      final remote = await _noteApiService.saveContent(model);
+      final remote = await _noteApiService.createNote(model);
+      if (remote.id == null) {
+        // The server confirmed creation but did not return the new identifier.
+        // Fall back to a local temporary ID so the note is usable immediately.
+        return _databaseService.insertNote(model, ownerId: _ownerId);
+      }
       final cached = _withLocalAttachments(remote, model);
       await _cacheNotes([cached]);
       _createdNotesAwaitingListConfirmation.add(cached.id!);
@@ -229,7 +234,9 @@ class NoteRepositoryImpl implements NoteRepository {
       debugPrint('[Repo] Remote folders from API: ${remoteFolders.length}');
       try {
         await _cacheFolders(remoteFolders);
-        debugPrint('[Repo] Cached ${remoteFolders.length} remote folders to DB');
+        debugPrint(
+          '[Repo] Cached ${remoteFolders.length} remote folders to DB',
+        );
       } catch (cacheError) {
         debugPrint('[Repo] Warning: caching folders failed: $cacheError');
       }
@@ -239,19 +246,31 @@ class NoteRepositoryImpl implements NoteRepository {
         for (final folder in remoteFolders)
           if (folder.id != null) folder.id!: folder,
       };
-      final result = merged.values.toList()
+      final result = merged.values.where((folder) => !folder.isDeleted).toList()
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      debugPrint('[Repo] getFolders() returning ${result.length} total folders');
+      debugPrint(
+        '[Repo] getFolders() returning ${result.length} total folders',
+      );
       return result;
     } on FolderApiException catch (error) {
-      debugPrint('[Repo] FolderApiException: ${error.message}, isRetryable=${error.isRetryable}');
+      debugPrint(
+        '[Repo] FolderApiException: ${error.message}, isRetryable=${error.isRetryable}',
+      );
       if (!error.isRetryable) rethrow;
-      return localFolders;
+      return localFolders.where((folder) => !folder.isDeleted).toList();
     } catch (error, stackTrace) {
       debugPrint('[Repo] Unexpected error in getFolders: $error');
       debugPrint('[Repo] $stackTrace');
       rethrow;
     }
+  }
+
+  @override
+  Future<List<Folder>> getDeletedFolders() async {
+    final rows = await _databaseService.getDeletedFolders(ownerId: _ownerId);
+    final folders = rows.map(FolderModel.fromMap).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return folders;
   }
 
   @override
@@ -288,22 +307,41 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<int> deleteFolder(int id) async {
+    // Soft-delete locally first so the folder can be restored even if the
+    // remote call fails or the app restarts before the next sync.
+    await _databaseService.setFolderDeleted(
+      id,
+      deleted: true,
+      ownerId: _ownerId,
+    );
     try {
       await _folderApiService.setFolderDeleted(id, deleted: true);
     } on FolderApiException catch (error) {
       if (!error.isRetryable) rethrow;
-      // Delete locally while offline; the remote list remains authoritative
+      // Keep the local soft-delete; the remote list remains authoritative
       // after the next successful authenticated refresh.
     }
-    return _databaseService.deleteFolder(id, ownerId: _ownerId);
+    return 1;
   }
 
   @override
   Future<int> restoreFolder(int id) async {
-    await _folderApiService.setFolderDeleted(id, deleted: false);
-    final remoteFolders = await _folderApiService.getFolders();
-    await _cacheFolders(remoteFolders);
-    return remoteFolders.any((folder) => folder.id == id) ? 1 : 0;
+    // Restore locally first so the folder reappears immediately and survives a
+    // restart even if the remote call fails.
+    await _databaseService.setFolderDeleted(
+      id,
+      deleted: false,
+      ownerId: _ownerId,
+    );
+    try {
+      await _folderApiService.setFolderDeleted(id, deleted: false);
+      final remoteFolders = await _folderApiService.getFolders();
+      await _cacheFolders(remoteFolders);
+    } on FolderApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Local restore already applied; the next sync reconciles with the server.
+    }
+    return 1;
   }
 
   Future<void> _cacheFolders(List<FolderModel> folders) {

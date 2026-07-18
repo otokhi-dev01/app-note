@@ -25,6 +25,7 @@ abstract final class ApiEndpoints {
       '${_normalizedBaseUrl()}/api/folder/delete-restore';
   static String get notes => '${_normalizedBaseUrl()}/api/note';
   static String note(int id) => '${_normalizedBaseUrl()}/api/note/$id';
+  static String get saveNote => '${_normalizedBaseUrl()}/api/note/save';
   static String get saveNoteContent =>
       '${_normalizedBaseUrl()}/api/note/save-content';
   static String get updateNoteState =>

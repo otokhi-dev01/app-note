@@ -58,10 +58,6 @@ extension _HomeFolderActions on HomeController {
               try {
                 isFolderSyncing.value = true;
                 await _deleteFolder(folder.id!);
-                recentlyDeletedFolders.removeWhere(
-                  (item) => item.id == folder.id,
-                );
-                recentlyDeletedFolders.insert(0, folder);
                 await loadNotes();
                 _showFolderDeletedSnackbar(folder);
               } catch (error) {
@@ -137,7 +133,6 @@ extension _HomeFolderActions on HomeController {
     try {
       isFolderSyncing.value = true;
       await _restoreFolder(folder.id!);
-      recentlyDeletedFolders.removeWhere((item) => item.id == folder.id);
       await loadNotes();
       _showStatusSnackbar('Folder Restored', '“${folder.name}” was restored.');
     } catch (error) {
@@ -161,9 +156,9 @@ extension _HomeFolderActions on HomeController {
       margin: const EdgeInsets.all(15),
       borderRadius: 15,
       mainButton: TextButton(
-        onPressed: () {
+        onPressed: () async {
           Get.closeCurrentSnackbar();
-          restoreFolder(folder);
+          await restoreFolder(folder);
         },
         child: const Text('Restore'),
       ),

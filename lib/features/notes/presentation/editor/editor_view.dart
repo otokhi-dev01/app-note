@@ -6,10 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/core/presentation/images/image_helper.dart';
-
 import '../home/home_style.dart';
 import 'editor_controller.dart';
-
 part 'sheets/editor_action_sheets.dart';
 part 'widgets/editor_bottom_bar.dart';
 part 'widgets/editor_chrome.dart';
@@ -55,7 +53,7 @@ class EditorView extends GetView<EditorController> {
                         child: ListView(
                           keyboardDismissBehavior:
                               ScrollViewKeyboardDismissBehavior.onDrag,
-                          padding: const EdgeInsets.fromLTRB(22, 14, 22, 104),
+                          padding: const EdgeInsets.fromLTRB(22, 64, 22, 104),
                           children: [
                             Center(
                               child: Text(
@@ -130,6 +128,18 @@ class EditorView extends GetView<EditorController> {
                         controller.focusContent();
                         HapticFeedback.lightImpact();
                       },
+                    ),
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Obx(
+                      () => _EditorTopBar(
+                        onClose: controller.requestClose,
+                        onSave: controller.save,
+                        isSaving: controller.isSaving.value,
+                      ),
                     ),
                   ),
                 ],

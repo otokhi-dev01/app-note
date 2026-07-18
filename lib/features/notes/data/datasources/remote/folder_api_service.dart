@@ -45,7 +45,9 @@ class FolderApiService {
           'The folders API returned an invalid folder record.',
         );
       }
-      debugPrint('[Folder] Parsed folder: id=${folder.id}, name=${folder.name}');
+      debugPrint(
+        '[Folder] Parsed folder: id=${folder.id}, name=${folder.name}',
+      );
       folders.add(folder);
     }
     debugPrint('[Folder] Total folders fetched: ${folders.length}');
@@ -106,13 +108,16 @@ class FolderApiService {
   }
 
   Future<void> setFolderDeleted(int id, {required bool deleted}) async {
-    // Keep delete-restore payload strict/minimal to match backend validation.
+    // Send several aliases so the request matches whatever key the backend
+    // expects for the delete-restore endpoint.
     final response = await _request(
       () => _client.post<dynamic>(
         ApiEndpoints.deleteRestoreFolder,
         jsonEncode(<String, dynamic>{
           'id': id,
+          'folderId': id,
           'deleted': deleted,
+          'isDeleted': deleted,
           'action': deleted ? 'delete' : 'restore',
           'restore': !deleted,
         }),
@@ -221,7 +226,14 @@ class FolderApiService {
     if (map == null) return (found: false, values: const []);
     if (_looksLikeFolder(map)) return (found: true, values: [map]);
 
-    for (final key in const ['data', 'result', 'items', 'folders', 'folder', 'records']) {
+    for (final key in const [
+      'data',
+      'result',
+      'items',
+      'folders',
+      'folder',
+      'records',
+    ]) {
       if (!map.containsKey(key)) continue;
       final nested = map[key];
       if (nested is List) {
@@ -262,7 +274,11 @@ class FolderApiService {
 
   FolderModel? _folderFromJson(Map<String, dynamic> json) {
     final rawId =
-        json['id'] ?? json['folderId'] ?? json['folder_id'] ?? json['Id'] ?? json['FolderId'];
+        json['id'] ??
+        json['folderId'] ??
+        json['folder_id'] ??
+        json['Id'] ??
+        json['FolderId'];
     final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
     if (id == null) return null;
 
@@ -286,10 +302,20 @@ class FolderApiService {
     final createdAt = DateTime.tryParse(
       rawCreatedAt?.toString() ?? '',
     )?.toLocal();
+
+    final rawDeleted =
+        json['is_deleted'] ??
+        json['isDeleted'] ??
+        json['deleted'] ??
+        json['IsDeleted'] ??
+        json['Deleted'];
+    final isDeleted = _bool(rawDeleted);
+
     return FolderModel(
       id: id,
       name: name,
       createdAt: createdAt ?? DateTime.now(),
+      isDeleted: isDeleted,
     );
   }
 
@@ -298,7 +324,13 @@ class FolderApiService {
       const ['id', 'folderId', 'folder_id', 'Id', 'FolderId'].contains,
     );
     final hasName = value.keys.any(
-      const ['name', 'folderName', 'folder_name', 'title', 'FolderName'].contains,
+      const [
+        'name',
+        'folderName',
+        'folder_name',
+        'title',
+        'FolderName',
+      ].contains,
     );
     return hasId && hasName;
   }
@@ -327,6 +359,17 @@ class FolderApiService {
       return value.map((key, item) => MapEntry(key.toString(), item));
     }
     return null;
+  }
+
+  bool _bool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value != 0;
+    if (value is String) {
+      final lower = value.trim().toLowerCase();
+      return lower == 'true' || lower == '1' || lower == 'yes';
+    }
+    return false;
   }
 }
 

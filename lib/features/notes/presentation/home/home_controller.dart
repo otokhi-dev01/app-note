@@ -14,6 +14,7 @@ import 'package:notes/features/notes/domain/usecases/create_folder_usecase.dart'
 import 'package:notes/features/notes/domain/usecases/delete_folder_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/delete_note_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_folders_usecase.dart';
+import 'package:notes/features/notes/domain/usecases/get_deleted_folders_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_notes_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_recently_deleted_notes_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/rename_folder_usecase.dart';
@@ -65,6 +66,7 @@ class HomeController extends GetxController implements LibraryCoordinator {
   final _noteSearchService = const NoteSearchService();
 
   late final _getFolders = GetFoldersUseCase(_repository);
+  late final _getDeletedFolders = GetDeletedFoldersUseCase(_repository);
   late final _getRecentlyDeletedNotes = GetRecentlyDeletedNotesUseCase(
     _repository,
   );
@@ -137,6 +139,11 @@ class HomeController extends GetxController implements LibraryCoordinator {
       folders.assignAll(allFolders);
       notes.assignAll(activeNotes);
       trashNotes.assignAll(deletedNotes);
+      try {
+        recentlyDeletedFolders.assignAll(await _getDeletedFolders());
+      } catch (_) {
+        // A deleted-folders query failure must not hide loaded folders/notes.
+      }
       if (isSearching.value) {
         final token = activeSearchToken.value;
         if (token != null) {

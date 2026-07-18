@@ -1,6 +1,5 @@
 part of '../editor_view.dart';
 
-// ignore: unused_element
 class _CircleButton extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget child;
@@ -22,37 +21,72 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-// ignore: unused_element
-class _PillButton extends StatelessWidget {
-  final List<Widget> children;
+/// Top app bar for the editor with a close (discard) button on the left and
+/// a save action on the right.
+class _EditorTopBar extends StatelessWidget {
+  const _EditorTopBar({
+    required this.onClose,
+    required this.onSave,
+    required this.isSaving,
+  });
 
-  const _PillButton({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Row(mainAxisSize: MainAxisSize.min, children: children),
-    );
-  }
-}
-
-// ignore: unused_element
-class _ActionIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ActionIconButton({required this.icon, required this.onTap});
+  final VoidCallback onClose;
+  final VoidCallback onSave;
+  final bool isSaving;
 
   @override
   Widget build(BuildContext context) {
     final style = HomeStyle.of(context);
+    final scheme = style.theme.colorScheme;
 
-    return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      onPressed: onTap,
-      minimumSize: Size.zero,
-      child: Icon(icon, color: style.theme.colorScheme.primary, size: 21),
+    return SafeArea(
+      bottom: false,
+      minimum: const EdgeInsets.fromLTRB(8, 4, 12, 4),
+      child: SizedBox(
+        height: 52,
+        child: Row(
+          children: [
+            _CircleButton(
+              onTap: onClose,
+              child: Icon(
+                CupertinoIcons.xmark,
+                color: scheme.onSurface,
+                size: 22,
+              ),
+            ),
+            const Spacer(),
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              onPressed: isSaving ? null : onSave,
+              minimumSize: Size.zero,
+              child: isSaving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          CupertinoIcons.checkmark_circle_fill,
+                          color: scheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Save',
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

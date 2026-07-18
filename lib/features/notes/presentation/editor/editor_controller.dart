@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -386,9 +387,17 @@ class EditorController extends GetxController {
   }
 
   Future<void> save() async {
+    if (kDebugMode) {
+      debugPrint('[EditorController.save] tapped. isSaving=${isSaving.value}');
+    }
     if (isSaving.value) return;
     final form = formKey.currentState;
     if (form == null || !form.validate()) {
+      if (kDebugMode) {
+        debugPrint(
+          '[EditorController.save] validation failed. form=${form == null ? 'null' : 'present'}',
+        );
+      }
       titleFocusNode.requestFocus();
       Get.snackbar('Title required', 'Enter a title before saving this note.');
       return;
@@ -399,7 +408,15 @@ class EditorController extends GetxController {
       final now = DateTime.now();
 
       if (existingNote == null) {
-        await _createNoteUseCase(
+        if (kDebugMode) {
+          debugPrint(
+            '[EditorController.save] creating note '
+            'title="${titleController.text.trim()}" '
+            'contentLength=${contentController.text.length} '
+            'images=${imagePaths.length} folderId=$initialFolderId',
+          );
+        }
+        final newId = await _createNoteUseCase(
           Note(
             title: titleController.text.trim(),
             content: contentController.text,
@@ -410,8 +427,19 @@ class EditorController extends GetxController {
             folderId: initialFolderId,
           ),
         );
+        if (kDebugMode) {
+          debugPrint('[EditorController.save] create succeeded id=$newId');
+        }
       } else {
-        await _updateNoteUseCase(
+        if (kDebugMode) {
+          debugPrint(
+            '[EditorController.save] updating note id=${existingNote!.id} '
+            'title="${titleController.text.trim()}" '
+            'contentLength=${contentController.text.length} '
+            'images=${imagePaths.length}',
+          );
+        }
+        final updated = await _updateNoteUseCase(
           existingNote!.copyWith(
             title: titleController.text.trim(),
             content: contentController.text,
@@ -420,6 +448,11 @@ class EditorController extends GetxController {
             imageAnchors: imageAnchors.toList(),
           ),
         );
+        if (kDebugMode) {
+          debugPrint(
+            '[EditorController.save] update succeeded result=$updated',
+          );
+        }
       }
 
       final currentPaths = imagePaths.toSet();
@@ -427,8 +460,15 @@ class EditorController extends GetxController {
         ..._initialImagePaths.where((path) => !currentPaths.contains(path)),
         ..._createdImagePaths.where((path) => !currentPaths.contains(path)),
       });
+      if (kDebugMode) {
+        debugPrint('[EditorController.save] closing editor with saved result');
+      }
       await _closeEditor(result: EditorResult.saved);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('[EditorController.save] FAILED: $error');
+        debugPrint('[EditorController.save] stackTrace:\n$stackTrace');
+      }
       Get.snackbar('Save failed', error.toString());
     } finally {
       isSaving.value = false;
