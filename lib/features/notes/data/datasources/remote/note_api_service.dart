@@ -272,7 +272,7 @@ class NoteApiService {
     if (map == null) return (found: false, values: const []);
     if (_looksLikeNote(map)) return (found: true, values: [map]);
 
-    for (final key in const ['data', 'result', 'items', 'notes', 'records']) {
+    for (final key in const ['data', 'result', 'items', 'notes', 'note', 'records']) {
       if (!map.containsKey(key)) continue;
       final nested = map[key];
       if (nested is List) {
@@ -326,7 +326,7 @@ class NoteApiService {
   int? _extractResourceId(dynamic value) {
     final map = _asMap(_decode(value));
     if (map == null) return null;
-    final id = _int(map['id'] ?? map['noteId'] ?? map['note_id'] ?? map['Id']);
+    final id = _int(map['id'] ?? map['noteId'] ?? map['note_id'] ?? map['Id'] ?? map['NoteId']);
     if (id != null) return id;
     for (final key in const ['data', 'result', 'note', 'item', 'record']) {
       final nestedId = _extractResourceId(map[key]);
@@ -336,7 +336,7 @@ class NoteApiService {
   }
 
   NoteModel? _noteFromJson(Map<String, dynamic> json, {NoteModel? fallback}) {
-    final rawId = json['id'] ?? json['noteId'] ?? json['note_id'] ?? json['Id'];
+    final rawId = json['id'] ?? json['noteId'] ?? json['note_id'] ?? json['Id'] ?? json['NoteId'];
     final id = _int(rawId) ?? fallback?.id;
     if (id == null) return null;
 
@@ -344,6 +344,8 @@ class NoteApiService {
         (json['title'] ??
                 json['name'] ??
                 json['noteTitle'] ??
+                json['Title'] ??
+                json['NoteTitle'] ??
                 fallback?.title ??
                 '')
             .toString();
@@ -353,22 +355,25 @@ class NoteApiService {
                 json['note_content'] ??
                 json['body'] ??
                 json['text'] ??
+                json['Content'] ??
+                json['NoteContent'] ??
                 fallback?.content ??
                 '')
             .toString();
     final rawCreatedAt =
-        json['createdAt'] ?? json['created_at'] ?? json['dateCreated'];
+        json['createdAt'] ?? json['created_at'] ?? json['dateCreated'] ?? json['CreatedAt'];
     final rawUpdatedAt =
         json['updatedAt'] ??
         json['updated_at'] ??
         json['modifiedAt'] ??
-        json['modified_at'];
+        json['modified_at'] ??
+        json['UpdatedAt'];
     final createdAt =
         _date(rawCreatedAt) ?? fallback?.createdAt ?? _stableFallbackDate;
     final updatedAt = _date(rawUpdatedAt) ?? fallback?.updatedAt ?? createdAt;
-    final rawDeletedAt = json['deletedAt'] ?? json['deleted_at'];
+    final rawDeletedAt = json['deletedAt'] ?? json['deleted_at'] ?? json['DeletedAt'];
     final folderValue =
-        json['folderId'] ?? json['folder_id'] ?? _asMap(json['folder'])?['id'];
+        json['folderId'] ?? json['folder_id'] ?? json['FolderId'] ?? _asMap(json['folder'])?['id'];
 
     return NoteModel(
       id: id,
@@ -377,7 +382,7 @@ class NoteApiService {
       createdAt: createdAt,
       updatedAt: updatedAt,
       isDeleted:
-          _bool(json['isDeleted'] ?? json['is_deleted'] ?? json['deleted']) ||
+          _bool(json['isDeleted'] ?? json['is_deleted'] ?? json['deleted'] ?? json['IsDeleted']) ||
           rawDeletedAt != null,
       deletedAt: _date(rawDeletedAt) ?? fallback?.deletedAt,
       imagePaths:
@@ -396,11 +401,11 @@ class NoteApiService {
           : fallback?.imagePaths ?? const [],
       imageAnchors: fallback?.imageAnchors ?? const [],
       folderId: _int(folderValue) ?? fallback?.folderId,
-      isPinned: _hasAnyKey(json, const ['isPinned', 'is_pinned', 'pinned'])
-          ? _bool(json['isPinned'] ?? json['is_pinned'] ?? json['pinned'])
+      isPinned: _hasAnyKey(json, const ['isPinned', 'is_pinned', 'pinned', 'IsPinned'])
+          ? _bool(json['isPinned'] ?? json['is_pinned'] ?? json['pinned'] ?? json['IsPinned'])
           : fallback?.isPinned ?? false,
-      isLocked: _hasAnyKey(json, const ['isLocked', 'is_locked', 'locked'])
-          ? _bool(json['isLocked'] ?? json['is_locked'] ?? json['locked'])
+      isLocked: _hasAnyKey(json, const ['isLocked', 'is_locked', 'locked', 'IsLocked'])
+          ? _bool(json['isLocked'] ?? json['is_locked'] ?? json['locked'] ?? json['IsLocked'])
           : fallback?.isLocked ?? false,
     );
   }
@@ -434,7 +439,7 @@ class NoteApiService {
 
   bool _looksLikeNote(Map<String, dynamic> value) {
     final hasId = value.keys.any(
-      const ['id', 'noteId', 'note_id', 'Id'].contains,
+      const ['id', 'noteId', 'note_id', 'Id', 'NoteId'].contains,
     );
     final hasContent = value.keys.any(
       const [
@@ -444,6 +449,10 @@ class NoteApiService {
         'noteContent',
         'note_content',
         'body',
+        'Title',
+        'Content',
+        'NoteTitle',
+        'NoteContent',
       ].contains,
     );
     return hasId && hasContent;

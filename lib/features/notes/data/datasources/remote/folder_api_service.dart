@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import 'package:notes/core/network/api_endpoints.dart';
@@ -22,25 +23,32 @@ class FolderApiService {
   final String? Function()? _tokenProvider;
 
   Future<List<FolderModel>> getFolders() async {
+    debugPrint('[Folder] GET ${ApiEndpoints.folders}');
     final response = await _request(
       () => _client.get<dynamic>(ApiEndpoints.folders, headers: _headers),
       'load folders',
     );
+    debugPrint('[Folder] Response status: ${response.statusCode}');
+    debugPrint('[Folder] Response body: ${response.body}');
     _ensureSuccess(response, 'load folders');
     _ensureApplicationSuccess(response.body, 'load folders');
     if (response.statusCode == 204) return const [];
 
     final values = _extractList(response.body);
+    debugPrint('[Folder] Parsed ${values.length} folder records');
     final folders = <FolderModel>[];
     for (final json in values) {
       final folder = _folderFromJson(json);
       if (folder == null) {
+        debugPrint('[Folder] Skipping invalid folder record: $json');
         throw const FolderApiException(
           'The folders API returned an invalid folder record.',
         );
       }
+      debugPrint('[Folder] Parsed folder: id=${folder.id}, name=${folder.name}');
       folders.add(folder);
     }
+    debugPrint('[Folder] Total folders fetched: ${folders.length}');
     return folders;
   }
 
@@ -213,7 +221,7 @@ class FolderApiService {
     if (map == null) return (found: false, values: const []);
     if (_looksLikeFolder(map)) return (found: true, values: [map]);
 
-    for (final key in const ['data', 'result', 'items', 'folders', 'records']) {
+    for (final key in const ['data', 'result', 'items', 'folders', 'folder', 'records']) {
       if (!map.containsKey(key)) continue;
       final nested = map[key];
       if (nested is List) {
@@ -254,7 +262,7 @@ class FolderApiService {
 
   FolderModel? _folderFromJson(Map<String, dynamic> json) {
     final rawId =
-        json['id'] ?? json['folderId'] ?? json['folder_id'] ?? json['Id'];
+        json['id'] ?? json['folderId'] ?? json['folder_id'] ?? json['Id'] ?? json['FolderId'];
     final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
     if (id == null) return null;
 
@@ -263,6 +271,7 @@ class FolderApiService {
                 json['folderName'] ??
                 json['folder_name'] ??
                 json['title'] ??
+                json['FolderName'] ??
                 '')
             .toString()
             .trim();
@@ -272,7 +281,8 @@ class FolderApiService {
         json['createdAt'] ??
         json['created_at'] ??
         json['dateCreated'] ??
-        json['createdDate'];
+        json['createdDate'] ??
+        json['CreatedAt'];
     final createdAt = DateTime.tryParse(
       rawCreatedAt?.toString() ?? '',
     )?.toLocal();
@@ -285,10 +295,10 @@ class FolderApiService {
 
   bool _looksLikeFolder(Map<String, dynamic> value) {
     final hasId = value.keys.any(
-      const ['id', 'folderId', 'folder_id', 'Id'].contains,
+      const ['id', 'folderId', 'folder_id', 'Id', 'FolderId'].contains,
     );
     final hasName = value.keys.any(
-      const ['name', 'folderName', 'folder_name', 'title'].contains,
+      const ['name', 'folderName', 'folder_name', 'title', 'FolderName'].contains,
     );
     return hasId && hasName;
   }

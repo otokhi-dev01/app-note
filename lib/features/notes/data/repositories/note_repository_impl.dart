@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/note_repository.dart';
@@ -218,22 +220,37 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<List<Folder>> getFolders() async {
+    debugPrint('[Repo] getFolders() called, ownerId=$_ownerId');
     final localRows = await _databaseService.getFolders(ownerId: _ownerId);
     final localFolders = localRows.map(FolderModel.fromMap).toList();
+    debugPrint('[Repo] Local folders from DB: ${localFolders.length}');
     try {
       final remoteFolders = await _folderApiService.getFolders();
-      await _cacheFolders(remoteFolders);
+      debugPrint('[Repo] Remote folders from API: ${remoteFolders.length}');
+      try {
+        await _cacheFolders(remoteFolders);
+        debugPrint('[Repo] Cached ${remoteFolders.length} remote folders to DB');
+      } catch (cacheError) {
+        debugPrint('[Repo] Warning: caching folders failed: $cacheError');
+      }
       final merged = <int, FolderModel>{
         for (final folder in localFolders)
           if (folder.id != null) folder.id!: folder,
         for (final folder in remoteFolders)
           if (folder.id != null) folder.id!: folder,
       };
-      return merged.values.toList()
+      final result = merged.values.toList()
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      debugPrint('[Repo] getFolders() returning ${result.length} total folders');
+      return result;
     } on FolderApiException catch (error) {
+      debugPrint('[Repo] FolderApiException: ${error.message}, isRetryable=${error.isRetryable}');
       if (!error.isRetryable) rethrow;
       return localFolders;
+    } catch (error, stackTrace) {
+      debugPrint('[Repo] Unexpected error in getFolders: $error');
+      debugPrint('[Repo] $stackTrace');
+      rethrow;
     }
   }
 

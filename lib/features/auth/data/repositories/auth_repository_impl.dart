@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import 'package:notes/core/network/api_endpoints.dart';
@@ -76,6 +77,7 @@ class AuthService extends GetxService implements AuthRepository {
     lastError = null;
 
     try {
+      debugPrint('[Auth] Logging in with phone=$phone to ${ApiEndpoints.login}');
       final response = await _client.post<dynamic>(
         ApiEndpoints.login,
         {'phone': phone, 'password': password},
@@ -85,49 +87,68 @@ class AuthService extends GetxService implements AuthRepository {
         },
       );
 
+      debugPrint('[Auth] Login response status: ${response.statusCode}');
+      debugPrint('[Auth] Login response body: ${response.body}');
+
       final body = response.body;
       if (!response.isOk) {
         lastError =
             _errorMessage(body) ??
             'Login failed (${response.statusCode ?? 'network error'}).';
+        debugPrint('[Auth] Login failed: $lastError');
         return false;
       }
 
       final payload = _asMap(body);
       if (payload == null) {
         lastError = 'The server returned an invalid response.';
+        debugPrint('[Auth] Login failed: could not parse response body as map');
         return false;
       }
 
+      debugPrint('[Auth] Parsed payload keys: ${payload.keys.toList()}');
+
       final data = _asMap(payload['data']);
+      debugPrint('[Auth] data keys: ${data?.keys.toList()}');
+
       final userJson =
           _asMap(data?['user']) ?? _asMap(payload['user']) ?? data ?? payload;
+      debugPrint('[Auth] userJson keys: ${userJson.keys.toList()}');
+
       final token =
           _readToken(data) ?? _readToken(payload) ?? _readToken(userJson);
+      debugPrint('[Auth] token resolved: ${token != null ? '${token.substring(0, token.length.clamp(0, 20))}...' : 'null'}');
 
       if (token == null || token.isEmpty) {
         lastError = 'The login response did not include an access token.';
+        debugPrint('[Auth] Login failed: no token in response');
         return false;
       }
 
       final authenticatedUser = UserModel(
-        id: (userJson['id'] ?? userJson['_id'] ?? '').toString(),
+        id: (userJson['id'] ?? userJson['_id'] ?? userJson['userId'] ?? userJson['UserId'] ?? '').toString(),
         email: userJson['email']?.toString(),
-        phone: (userJson['phone'] ?? userJson['phoneNumber'] ?? phone)
+        phone: (userJson['phone'] ?? userJson['phoneNumber'] ?? userJson['Phone'] ?? phone)
             .toString(),
-        name: userJson['name']?.toString(),
-        avatar: (userJson['avatar'] ?? userJson['avatar_url'])?.toString(),
+        name: (userJson['name'] ?? userJson['fullName'] ?? userJson['FullName'])?.toString(),
+        avatar: (userJson['avatar'] ?? userJson['avatar_url'] ?? userJson['avatarUrl'])?.toString(),
         token: token,
       );
 
+      debugPrint('[Auth] Authenticated user: id=${authenticatedUser.id}, name=${authenticatedUser.name}, phone=${authenticatedUser.phone}');
+
       await _localStorage.saveAuthUser(authenticatedUser);
       _user.value = authenticatedUser;
+      debugPrint('[Auth] Login successful!');
       return true;
     } on FormatException catch (error) {
       lastError = error.message;
+      debugPrint('[Auth] Login FormatException: ${error.message}');
       return false;
-    } catch (_) {
+    } catch (error, stackTrace) {
       lastError = 'Unable to connect to the server. Please try again.';
+      debugPrint('[Auth] Login unexpected error: $error');
+      debugPrint('[Auth] Stack trace: $stackTrace');
       return false;
     }
   }

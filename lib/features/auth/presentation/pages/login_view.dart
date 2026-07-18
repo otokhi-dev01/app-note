@@ -26,14 +26,12 @@ class LoginView extends GetView<LoginController> {
         slivers: [
           SliverPadding(
             padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-            sliver: SliverToBoxAdapter(
-              child: LiquidGlassSliverAppBar(
-                height: 60,
-                blur: 22,
-                title: const SizedBox.shrink(),
-                leading: (c) => const SizedBox.shrink(),
-                actions: const [],
-              ),
+            sliver: LiquidGlassSliverAppBar(
+              height: 60,
+              blur: 22,
+              title: const SizedBox.shrink(),
+              leading: (c) => const SizedBox.shrink(),
+              actions: const [],
             ),
           ),
           SliverFillRemaining(

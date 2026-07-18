@@ -6,8 +6,7 @@ abstract final class ApiEndpoints {
 
   static const _localBaseUrl = String.fromEnvironment(
     'PIISIIT_NOTE_LOCAL',
-    // If not provided, fall back to production.
-    defaultValue: '',
+    defaultValue: String.fromEnvironment('piisiit_note_local'),
   );
 
   static const _productionBaseUrl = String.fromEnvironment(
@@ -32,13 +31,9 @@ abstract final class ApiEndpoints {
       '${_normalizedBaseUrl()}/api/note/update-state';
 
   static String _normalizedBaseUrl() {
-    final value = baseUrl.trim();
-    if (value.isEmpty) {
-      throw const FormatException(
-        'No notes API host is configured. Start the app with '
-        '--dart-define=PIISIIT_NOTE_LOCAL=https://your-local-api-host.com '
-        'or --dart-define=PIISIIT_NOTE_PROD=https://your-api-host.com',
-      );
+    var value = baseUrl.trim();
+    if (value.isEmpty || value.contains('piisiit_note_local')) {
+      value = 'https://note.piisiit.com';
     }
 
     return value.endsWith('/') ? value.substring(0, value.length - 1) : value;
