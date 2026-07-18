@@ -64,98 +64,6 @@ extension _EditorActionSheets on EditorView {
               ],
             ),
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-              controller.insertTable();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.table),
-                SizedBox(width: 12),
-                Text('Insert Table'),
-              ],
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Get.back(),
-          child: const Text('Cancel'),
-        ),
-      ),
-    );
-  }
-
-  void _showMoreOptions(BuildContext context) {
-    HapticFeedback.mediumImpact();
-    showCupertinoModalPopup(
-      context: context,
-      builder: (context) => CupertinoActionSheet(
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-              Get.snackbar(
-                "Note Options",
-                "Pinning notes is not available in editor.",
-              );
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.pin),
-                SizedBox(width: 8),
-                Text('Pin Note'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-              Get.snackbar(
-                "Note Options",
-                "Locking notes is not available yet.",
-              );
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.lock),
-                SizedBox(width: 8),
-                Text('Lock Note'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Get.back();
-              Get.snackbar("Note Options", "Duplication is not available yet.");
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.doc_on_doc),
-                SizedBox(width: 8),
-                Text('Duplicate'),
-              ],
-            ),
-          ),
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              Get.back();
-              controller.delete();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.trash),
-                SizedBox(width: 8),
-                Text('Delete'),
-              ],
-            ),
-          ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Get.back(),
@@ -208,7 +116,7 @@ extension _EditorActionSheets on EditorView {
     );
   }
 
-  void _showAttachmentOptions(BuildContext context) {
+  void _showAttachmentOptions(BuildContext context, {int? afterStatement}) {
     showCupertinoModalPopup(
       context: context,
       builder: (context) => CupertinoActionSheet(
@@ -218,14 +126,20 @@ extension _EditorActionSheets on EditorView {
             child: const Text('Take Photo or Video'),
             onPressed: () {
               Get.back();
-              controller.addImage(ImageSource.camera);
+              controller.addImage(
+                ImageSource.camera,
+                afterStatement: afterStatement,
+              );
             },
           ),
           CupertinoActionSheetAction(
             child: const Text('Choose Photo or Video'),
             onPressed: () {
               Get.back();
-              controller.addImage(ImageSource.gallery);
+              controller.addImage(
+                ImageSource.gallery,
+                afterStatement: afterStatement,
+              );
             },
           ),
           CupertinoActionSheetAction(

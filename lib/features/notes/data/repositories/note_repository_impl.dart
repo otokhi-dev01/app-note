@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../domain/entities/folder.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/note_repository.dart';
@@ -20,6 +22,7 @@ class NoteRepositoryImpl implements NoteRepository {
   final AuthRepository _authService;
   final FolderApiService _folderApiService;
   final NoteApiService _noteApiService;
+  final _awaitingListConfirmationByOwner = <String, Set<int>>{};
 
   String get _ownerId {
     final ownerId = _authService.accountScopeId;
@@ -29,19 +32,31 @@ class NoteRepositoryImpl implements NoteRepository {
     return ownerId;
   }
 
+  Set<int> get _createdNotesAwaitingListConfirmation =>
+      _awaitingListConfirmationByOwner.putIfAbsent(_ownerId, () => <int>{});
+
   @override
   Future<List<Note>> getNotes({bool includeDeleted = false}) async {
     try {
       final remoteNotes = await _noteApiService.getNotes(
         includeDeleted: includeDeleted,
       );
+      final remoteIds = remoteNotes
+          .map((note) => note.id)
+          .whereType<int>()
+          .toSet();
+      final hasUnconfirmedCreate = _createdNotesAwaitingListConfirmation.any(
+        (id) => !remoteIds.contains(id),
+      );
       await _cacheNotes(
         remoteNotes,
-        replaceRemote: true,
+        replaceRemote: !hasUnconfirmedCreate,
         includeDeleted: includeDeleted,
       );
-    } on NoteApiException {
-      // Use the last account-scoped snapshot while the API is unavailable.
+      _createdNotesAwaitingListConfirmation.removeAll(remoteIds);
+    } on NoteApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Use the last account-scoped snapshot for a temporary API failure.
     }
     final rows = await _databaseService.getNotes(
       ownerId: _ownerId,
@@ -54,9 +69,22 @@ class NoteRepositoryImpl implements NoteRepository {
   Future<List<Note>> getRecentlyDeleted() async {
     try {
       final remoteNotes = await _noteApiService.getNotes(includeDeleted: true);
-      await _cacheNotes(remoteNotes, replaceRemote: true, includeDeleted: true);
-    } on NoteApiException {
-      // Use the cached trash while the API is unavailable.
+      final remoteIds = remoteNotes
+          .map((note) => note.id)
+          .whereType<int>()
+          .toSet();
+      final hasUnconfirmedCreate = _createdNotesAwaitingListConfirmation.any(
+        (id) => !remoteIds.contains(id),
+      );
+      await _cacheNotes(
+        remoteNotes,
+        replaceRemote: !hasUnconfirmedCreate,
+        includeDeleted: true,
+      );
+      _createdNotesAwaitingListConfirmation.removeAll(remoteIds);
+    } on NoteApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Use the cached trash for a temporary API failure.
     }
     final rows = await _databaseService.getRecentlyDeleted(ownerId: _ownerId);
     return rows.map(NoteModel.fromMap).toList(growable: false);
@@ -77,8 +105,9 @@ class NoteRepositoryImpl implements NoteRepository {
       if (remote != null) {
         await _cacheNotes([remote]);
       }
-    } on NoteApiException {
-      // Read the account-scoped cache while offline.
+    } on NoteApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Read the account-scoped cache for a temporary API failure.
     }
     final row = await _databaseService.getNoteById(
       id,
@@ -91,10 +120,23 @@ class NoteRepositoryImpl implements NoteRepository {
   @override
   Future<int> createNote(Note note) async {
     final model = NoteModel.fromEntity(note);
-    final remote = await _noteApiService.saveContent(model);
-    final cached = _withLocalAttachments(remote, model);
-    await _cacheNotes([cached]);
-    return cached.id!;
+    try {
+      final remote = await _noteApiService.createNote(model);
+      if (remote.id == null) {
+        // The server confirmed creation but did not return the new identifier.
+        // Fall back to a local temporary ID so the note is usable immediately.
+        return _databaseService.insertNote(model, ownerId: _ownerId);
+      }
+      final cached = _withLocalAttachments(remote, model);
+      await _cacheNotes([cached]);
+      _createdNotesAwaitingListConfirmation.add(cached.id!);
+      return cached.id!;
+    } on NoteApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Note creation must remain available without a reachable API. Local
+      // notes use negative IDs, so they cannot collide with server records.
+      return _databaseService.insertNote(model, ownerId: _ownerId);
+    }
   }
 
   @override
@@ -111,7 +153,14 @@ class NoteRepositoryImpl implements NoteRepository {
     final previous = localRow == null ? null : NoteModel.fromMap(localRow);
 
     if (model.id! <= 0) {
-      final created = await _noteApiService.saveContent(model);
+      late final NoteModel created;
+      try {
+        created = await _noteApiService.saveContent(model);
+      } on NoteApiException catch (error) {
+        if (!error.isRetryable) rethrow;
+        return _databaseService.updateNote(model, ownerId: _ownerId);
+      }
+
       final synced = _withLocalAttachments(
         created.copyWith(
           isDeleted: model.isDeleted,
@@ -121,9 +170,15 @@ class NoteRepositoryImpl implements NoteRepository {
         ),
         model,
       );
-      await _sendStateChanges(null, synced);
       await _cacheNotes([synced]);
       await _databaseService.deleteNote(model.id!, ownerId: _ownerId);
+      try {
+        await _sendStateChanges(null, synced);
+      } on NoteApiException catch (error) {
+        if (!error.isRetryable) rethrow;
+        // Content already has a confirmed server ID and is cached locally.
+        // A state-only failure must not recreate the note on the next save.
+      }
       return 1;
     }
 
@@ -131,11 +186,24 @@ class NoteRepositoryImpl implements NoteRepository {
         previous == null ||
         previous.title != model.title ||
         previous.content != model.content;
-    if (contentChanged) {
-      final saved = await _noteApiService.saveContent(model);
-      await _cacheNotes([_withLocalAttachments(saved, model)]);
+    try {
+      if (contentChanged) {
+        final saved = await _noteApiService.saveContent(model);
+        await _cacheNotes([_withLocalAttachments(saved, model)]);
+      }
+      await _sendStateChanges(previous, model);
+    } on NoteApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Preserve the user's edit in the account-scoped cache even when the
+      // remote service cannot accept it right now.
+      final updated = await _databaseService.updateNote(
+        model,
+        ownerId: _ownerId,
+      );
+      if (updated != 0) return updated;
+      await _cacheNotes([model]);
+      return 1;
     }
-    await _sendStateChanges(previous, model);
 
     // Upsert the confirmed state before the local update so a note opened
     // directly from a deep link is cached even when it was not in the list.
@@ -157,22 +225,52 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<List<Folder>> getFolders() async {
+    debugPrint('[Repo] getFolders() called, ownerId=$_ownerId');
     final localRows = await _databaseService.getFolders(ownerId: _ownerId);
     final localFolders = localRows.map(FolderModel.fromMap).toList();
+    debugPrint('[Repo] Local folders from DB: ${localFolders.length}');
     try {
       final remoteFolders = await _folderApiService.getFolders();
-      await _cacheFolders(remoteFolders);
+      debugPrint('[Repo] Remote folders from API: ${remoteFolders.length}');
+      try {
+        await _cacheFolders(remoteFolders);
+        debugPrint(
+          '[Repo] Cached ${remoteFolders.length} remote folders to DB',
+        );
+      } catch (cacheError) {
+        debugPrint('[Repo] Warning: caching folders failed: $cacheError');
+      }
       final merged = <int, FolderModel>{
         for (final folder in localFolders)
           if (folder.id != null) folder.id!: folder,
         for (final folder in remoteFolders)
           if (folder.id != null) folder.id!: folder,
       };
-      return merged.values.toList()
+      final result = merged.values.where((folder) => !folder.isDeleted).toList()
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    } on FolderApiException {
-      return localFolders;
+      debugPrint(
+        '[Repo] getFolders() returning ${result.length} total folders',
+      );
+      return result;
+    } on FolderApiException catch (error) {
+      debugPrint(
+        '[Repo] FolderApiException: ${error.message}, isRetryable=${error.isRetryable}',
+      );
+      if (!error.isRetryable) rethrow;
+      return localFolders.where((folder) => !folder.isDeleted).toList();
+    } catch (error, stackTrace) {
+      debugPrint('[Repo] Unexpected error in getFolders: $error');
+      debugPrint('[Repo] $stackTrace');
+      rethrow;
     }
+  }
+
+  @override
+  Future<List<Folder>> getDeletedFolders() async {
+    final rows = await _databaseService.getDeletedFolders(ownerId: _ownerId);
+    final folders = rows.map(FolderModel.fromMap).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return folders;
   }
 
   @override
@@ -183,7 +281,8 @@ class NoteRepositoryImpl implements NoteRepository {
         await _cacheFolders([remote]);
         return remote.id!;
       }
-    } on FolderApiException {
+    } on FolderApiException catch (error) {
+      if (!error.isRetryable) rethrow;
       // Keep folder creation usable offline. The cache remains scoped to the
       // authenticated account and the next successful refresh is server-first.
     }
@@ -199,7 +298,8 @@ class NoteRepositoryImpl implements NoteRepository {
     try {
       final remote = await _folderApiService.saveFolder(id: id, name: newName);
       if (remote != null) await _cacheFolders([remote]);
-    } on FolderApiException {
+    } on FolderApiException catch (error) {
+      if (!error.isRetryable) rethrow;
       // Apply the change to the offline cache when the API is unavailable.
     }
     return _databaseService.updateFolder(id, newName.trim(), ownerId: _ownerId);
@@ -207,21 +307,41 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<int> deleteFolder(int id) async {
+    // Soft-delete locally first so the folder can be restored even if the
+    // remote call fails or the app restarts before the next sync.
+    await _databaseService.setFolderDeleted(
+      id,
+      deleted: true,
+      ownerId: _ownerId,
+    );
     try {
       await _folderApiService.setFolderDeleted(id, deleted: true);
-    } on FolderApiException {
-      // Delete locally while offline; the remote list remains authoritative
+    } on FolderApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Keep the local soft-delete; the remote list remains authoritative
       // after the next successful authenticated refresh.
     }
-    return _databaseService.deleteFolder(id, ownerId: _ownerId);
+    return 1;
   }
 
   @override
   Future<int> restoreFolder(int id) async {
-    await _folderApiService.setFolderDeleted(id, deleted: false);
-    final remoteFolders = await _folderApiService.getFolders();
-    await _cacheFolders(remoteFolders);
-    return remoteFolders.any((folder) => folder.id == id) ? 1 : 0;
+    // Restore locally first so the folder reappears immediately and survives a
+    // restart even if the remote call fails.
+    await _databaseService.setFolderDeleted(
+      id,
+      deleted: false,
+      ownerId: _ownerId,
+    );
+    try {
+      await _folderApiService.setFolderDeleted(id, deleted: false);
+      final remoteFolders = await _folderApiService.getFolders();
+      await _cacheFolders(remoteFolders);
+    } on FolderApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      // Local restore already applied; the next sync reconciles with the server.
+    }
+    return 1;
   }
 
   Future<void> _cacheFolders(List<FolderModel> folders) {
@@ -286,6 +406,9 @@ class NoteRepositoryImpl implements NoteRepository {
           uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
       if (!isNetwork) paths.add(path);
     }
-    return remote.copyWith(imagePaths: paths.toList(growable: false));
+    return remote.copyWith(
+      imagePaths: paths.toList(growable: false),
+      imageAnchors: local.imageAnchors,
+    );
   }
 }

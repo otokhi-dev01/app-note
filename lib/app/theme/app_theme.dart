@@ -11,18 +11,18 @@ abstract final class AppTheme {
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final accent = isDark ? AppColors.primaryDark : AppColors.primary;
-    final onAccent = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final onAccent = isDark ? const Color(0xFF2B001F) : Colors.white;
     final danger = isDark ? AppColors.redDark : AppColors.danger;
-    final background = isDark ? const Color(0xFF000000) : AppColors.background;
-    final surface = isDark ? const Color(0xFF1C1C1E) : AppColors.surface;
+    final background = isDark ? const Color(0xFF090709) : AppColors.background;
+    final surface = isDark ? const Color(0xFF211C20) : AppColors.surface;
     final surfaceContainer = isDark
-        ? const Color(0xFF2C2C2E)
+        ? const Color(0xFF302930)
         : AppColors.surfaceVariant;
-    final onSurface = isDark ? const Color(0xFFF5F5F7) : AppColors.textPrimary;
+    final onSurface = isDark ? const Color(0xFFFFF7FC) : AppColors.textPrimary;
     final secondaryText = isDark
-        ? const Color(0xFFAEAEB2)
+        ? const Color(0xFFD0C4CC)
         : AppColors.textSecondary;
-    final separator = isDark ? const Color(0xFF38383A) : AppColors.outline;
+    final separator = isDark ? const Color(0xFF4C414A) : AppColors.outline;
     final scheme =
         ColorScheme.fromSeed(
           seedColor: accent,
@@ -31,30 +31,33 @@ abstract final class AppTheme {
           primary: accent,
           onPrimary: onAccent,
           primaryContainer: isDark
-              ? const Color(0xFF4D3300)
-              : const Color(0xFFFFE7B8),
-          onPrimaryContainer: onSurface,
-          secondary: isDark ? AppColors.blue : const Color(0xFF007AFF),
-          onSecondary: Colors.white,
+              ? const Color(0xFF5A0849)
+              : const Color(0xFFFFD9F2),
+          onPrimaryContainer: isDark
+              ? const Color(0xFFFFD8F1)
+              : const Color(0xFF3D002D),
+          secondary: isDark ? const Color(0xFFBDAAFF) : AppColors.blue,
+          onSecondary: isDark ? const Color(0xFF26134E) : Colors.white,
+          tertiary: isDark ? const Color(0xFFFFA8DC) : const Color(0xFFB61B7E),
           error: danger,
           onError: isDark ? const Color(0xFF1C1C1E) : Colors.white,
           surface: surface,
           onSurface: onSurface,
           onSurfaceVariant: secondaryText,
           surfaceContainerLowest: isDark
-              ? const Color(0xFF101012)
+              ? const Color(0xFF100D10)
               : Colors.white,
           surfaceContainerLow: isDark
-              ? const Color(0xFF171719)
-              : const Color(0xFFF8F8FA),
+              ? const Color(0xFF191519)
+              : const Color(0xFFFCF8FB),
           surfaceContainer: surfaceContainer,
           surfaceContainerHigh: isDark
-              ? const Color(0xFF333336)
-              : const Color(0xFFE5E5EA),
+              ? const Color(0xFF393139)
+              : const Color(0xFFECE3EA),
           surfaceContainerHighest: isDark
-              ? const Color(0xFF3A3A3C)
-              : const Color(0xFFDEDEE3),
-          outline: isDark ? const Color(0xFF636366) : const Color(0xFFA8A8AD),
+              ? const Color(0xFF443A42)
+              : const Color(0xFFE3D8E1),
+          outline: isDark ? const Color(0xFF776A74) : const Color(0xFFAFA2AC),
           outlineVariant: separator,
         );
 
@@ -75,7 +78,7 @@ abstract final class AppTheme {
         primaryColor: accent,
         primaryContrastingColor: onAccent,
         scaffoldBackgroundColor: background,
-        barBackgroundColor: surface.withValues(alpha: .88),
+        barBackgroundColor: Colors.transparent,
         textTheme: CupertinoTextThemeData(
           primaryColor: onSurface,
           textStyle: TextStyle(
@@ -93,10 +96,11 @@ abstract final class AppTheme {
       ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: background,
+        backgroundColor: Colors.transparent,
         foregroundColor: onSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
+        shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         iconTheme: IconThemeData(color: accent),
         actionsIconTheme: IconThemeData(color: accent),
@@ -128,7 +132,7 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 66,
         elevation: 0,
-        backgroundColor: surface.withValues(alpha: .92),
+        backgroundColor: surface.withValues(alpha: .78),
         surfaceTintColor: Colors.transparent,
         indicatorColor: accent.withValues(alpha: .17),
         indicatorShape: const StadiumBorder(),
@@ -231,11 +235,11 @@ abstract final class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: accent,
         foregroundColor: onAccent,
-        elevation: 4,
-        focusElevation: 4,
-        hoverElevation: 5,
-        highlightElevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        elevation: 5,
+        focusElevation: 5,
+        hoverElevation: 7,
+        highlightElevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: surfaceContainer,
@@ -272,9 +276,7 @@ abstract final class AppTheme {
       ),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? onAccent
-              : null,
+          (states) => states.contains(WidgetState.selected) ? onAccent : null,
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)

@@ -4,11 +4,13 @@ BoxDecoration libraryCardDecoration(BuildContext context) {
   final theme = Theme.of(context);
   final colors = Theme.of(context).colorScheme;
   return BoxDecoration(
-    color: colors.surface,
-    borderRadius: BorderRadius.circular(22),
+    color: colors.surface.withValues(
+      alpha: theme.brightness == Brightness.dark ? .90 : .94,
+    ),
+    borderRadius: BorderRadius.circular(24),
     border: Border.all(
       color: colors.outlineVariant.withValues(
-        alpha: theme.brightness == Brightness.dark ? .42 : .28,
+        alpha: theme.brightness == Brightness.dark ? .48 : .36,
       ),
     ),
     boxShadow: theme.brightness == Brightness.dark
@@ -16,8 +18,9 @@ BoxDecoration libraryCardDecoration(BuildContext context) {
         : [
             BoxShadow(
               color: colors.shadow.withValues(alpha: .045),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
+              blurRadius: 28,
+              spreadRadius: -8,
+              offset: const Offset(0, 12),
             ),
           ],
   );
@@ -26,8 +29,8 @@ BoxDecoration libraryCardDecoration(BuildContext context) {
 TextStyle libraryFeatureEyebrow(BuildContext context) {
   return TextStyle(
     color: Theme.of(context).colorScheme.onSurfaceVariant,
-    fontSize: 12,
-    letterSpacing: .7,
-    fontWeight: FontWeight.w700,
+    fontSize: 13,
+    letterSpacing: .05,
+    fontWeight: FontWeight.w600,
   );
 }

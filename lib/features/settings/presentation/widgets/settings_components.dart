@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_palette.dart';
 
 const _settingsRadius = 20.0;
@@ -33,7 +34,7 @@ class SettingsSection extends StatelessWidget {
                 bottom: 9,
               ),
               child: Text(
-                title.toUpperCase(),
+                title,
                 style: TextStyle(
                   color: style.secondaryText,
                   fontSize: 12,
@@ -108,26 +109,7 @@ class SettingsAccountCard extends StatelessWidget {
           padding: const EdgeInsetsDirectional.fromSTEB(17, 16, 15, 16),
           child: Row(
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: style.accent,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: style.accent.withValues(alpha: .22),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  CupertinoIcons.person_crop_circle_fill,
-                  color: style.onAccent,
-                  size: 31,
-                ),
-              ),
+              const AppBrandMark(size: 54, borderRadius: 17),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

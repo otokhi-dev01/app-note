@@ -41,7 +41,7 @@ class StorageManagementView extends GetView<LibraryCoordinator> {
                         children: [
                           Expanded(
                             child: Text(
-                              'STORAGE USAGE',
+                              'Storage Usage',
                               style: libraryFeatureEyebrow(context),
                             ),
                           ),

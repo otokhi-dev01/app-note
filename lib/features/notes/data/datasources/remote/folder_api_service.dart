@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import 'package:notes/core/network/api_endpoints.dart';
+import 'package:notes/core/network/api_failure.dart';
 import 'package:notes/features/auth/domain/repositories/auth_repository.dart';
 import 'package:notes/features/notes/data/models/folder_model.dart';
 
@@ -21,17 +23,35 @@ class FolderApiService {
   final String? Function()? _tokenProvider;
 
   Future<List<FolderModel>> getFolders() async {
-    final response = await _client.get<dynamic>(
-      ApiEndpoints.folders,
-      headers: _headers,
+    debugPrint('[Folder] GET ${ApiEndpoints.folders}');
+    final response = await _request(
+      () => _client.get<dynamic>(ApiEndpoints.folders, headers: _headers),
+      'load folders',
     );
+    debugPrint('[Folder] Response status: ${response.statusCode}');
+    debugPrint('[Folder] Response body: ${response.body}');
     _ensureSuccess(response, 'load folders');
+    _ensureApplicationSuccess(response.body, 'load folders');
+    if (response.statusCode == 204) return const [];
 
     final values = _extractList(response.body);
-    return values
-        .map(_folderFromJson)
-        .whereType<FolderModel>()
-        .toList(growable: false);
+    debugPrint('[Folder] Parsed ${values.length} folder records');
+    final folders = <FolderModel>[];
+    for (final json in values) {
+      final folder = _folderFromJson(json);
+      if (folder == null) {
+        debugPrint('[Folder] Skipping invalid folder record: $json');
+        throw const FolderApiException(
+          'The folders API returned an invalid folder record.',
+        );
+      }
+      debugPrint(
+        '[Folder] Parsed folder: id=${folder.id}, name=${folder.name}',
+      );
+      folders.add(folder);
+    }
+    debugPrint('[Folder] Total folders fetched: ${folders.length}');
+    return folders;
   }
 
   Future<FolderModel?> saveFolder({int? id, required String name}) async {
@@ -46,12 +66,16 @@ class FolderApiService {
       'folderName': normalizedName,
       'folder_name': normalizedName,
     };
-    final response = await _client.post<dynamic>(
-      ApiEndpoints.saveFolder,
-      body,
-      headers: _headers,
+    final response = await _request(
+      () => _client.post<dynamic>(
+        ApiEndpoints.saveFolder,
+        jsonEncode(body),
+        headers: _headers,
+      ),
+      'save the folder',
     );
     _ensureSuccess(response, 'save the folder');
+    _ensureApplicationSuccess(response.body, 'save the folder');
 
     final json = _extractObject(response.body);
     final folder = json == null ? null : _folderFromJson(json);
@@ -59,26 +83,54 @@ class FolderApiService {
 
     // Some save endpoints return only a success envelope. Refreshing the list
     // gives the repository the server-assigned identifier in that case.
-    final folders = await getFolders();
-    return folders.firstWhereOrNull(
+    late final List<FolderModel> folders;
+    try {
+      folders = await getFolders();
+    } on FolderApiException catch (error) {
+      if (!error.isRetryable) rethrow;
+      if (id != null) rethrow;
+      // The POST may already have committed. Treat a failed confirmation as
+      // ambiguous instead of falling back to another local create.
+      throw FolderApiException(
+        'The folder may have been saved, but the server confirmation failed.',
+        kind: ApiFailureKind.protocol,
+        statusCode: error.statusCode,
+        cause: error,
+      );
+    }
+    final refreshed = folders.firstWhereOrNull(
       (item) => item.name.toLowerCase() == normalizedName.toLowerCase(),
+    );
+    if (refreshed != null) return refreshed;
+    throw const FolderApiException(
+      'The folder was saved, but the server did not return its identifier.',
     );
   }
 
   Future<void> setFolderDeleted(int id, {required bool deleted}) async {
-    final response = await _client
-        .post<dynamic>(ApiEndpoints.deleteRestoreFolder, <String, dynamic>{
+    // Send several aliases so the request matches whatever key the backend
+    // expects for the delete-restore endpoint.
+    final response = await _request(
+      () => _client.post<dynamic>(
+        ApiEndpoints.deleteRestoreFolder,
+        jsonEncode(<String, dynamic>{
           'id': id,
           'folderId': id,
-          'folder_id': id,
-          'isDeleted': deleted,
-          'is_deleted': deleted,
           'deleted': deleted,
-          'restore': !deleted,
+          'isDeleted': deleted,
           'action': deleted ? 'delete' : 'restore',
-        }, headers: _headers);
+          'restore': !deleted,
+        }),
+        headers: _headers,
+      ),
+      deleted ? 'delete the folder' : 'restore the folder',
+    );
     _ensureSuccess(
       response,
+      deleted ? 'delete the folder' : 'restore the folder',
+    );
+    _ensureApplicationSuccess(
+      response.body,
       deleted ? 'delete the folder' : 'restore the folder',
     );
   }
@@ -88,6 +140,8 @@ class FolderApiService {
     if (token == null || token.isEmpty) {
       throw const FolderApiException(
         'An authenticated session is required for folder sync.',
+        kind: ApiFailureKind.http,
+        statusCode: 401,
       );
     }
     return {
@@ -100,33 +154,109 @@ class FolderApiService {
   void _ensureSuccess(Response<dynamic> response, String operation) {
     if (response.isOk) return;
     final message = _errorMessage(response.body);
+    final statusCode = response.statusCode;
+
+    final rawBody = response.body;
+    final raw = rawBody is String
+        ? rawBody
+        : rawBody == null
+        ? null
+        : const JsonEncoder().convert(rawBody);
+
     throw FolderApiException(
-      message ??
-          'Unable to $operation (${response.statusCode ?? 'network error'}).',
-      statusCode: response.statusCode,
+      '${message ?? 'Unable to $operation'} (${statusCode ?? 'network error'}). '
+      'Response: ${raw ?? '<empty>'}',
+      statusCode: statusCode,
+      kind: statusCode == null || statusCode <= 0
+          ? ApiFailureKind.transport
+          : ApiFailureKind.http,
+    );
+  }
+
+  Future<Response<dynamic>> _request(
+    Future<Response<dynamic>> Function() request,
+    String operation,
+  ) async {
+    try {
+      return await request();
+    } on FolderApiException {
+      rethrow;
+    } on FormatException catch (error) {
+      throw FolderApiException(
+        error.message,
+        kind: ApiFailureKind.protocol,
+        cause: error,
+      );
+    } on Exception catch (error) {
+      throw FolderApiException(
+        'Unable to $operation because the server could not be reached.',
+        kind: ApiFailureKind.transport,
+        cause: error,
+      );
+    }
+  }
+
+  void _ensureApplicationSuccess(dynamic value, String operation) {
+    final map = _asMap(_decode(value));
+    if (map?['success'] != false) return;
+
+    throw FolderApiException(
+      _errorMessage(map) ?? 'The server could not $operation.',
     );
   }
 
   List<Map<String, dynamic>> _extractList(dynamic value) {
+    final result = _tryExtractList(value);
+    if (!result.found) {
+      throw const FolderApiException(
+        'The folders API returned an invalid folders response.',
+      );
+    }
+    return result.values;
+  }
+
+  ({bool found, List<Map<String, dynamic>> values}) _tryExtractList(
+    dynamic value,
+  ) {
     final decoded = _decode(value);
     if (decoded is List) {
-      return decoded.map(_asMap).whereType<Map<String, dynamic>>().toList();
+      return (found: true, values: _mapList(decoded));
     }
     final map = _asMap(decoded);
-    if (map == null) return const [];
+    if (map == null) return (found: false, values: const []);
+    if (_looksLikeFolder(map)) return (found: true, values: [map]);
 
-    for (final key in const ['data', 'result', 'items', 'folders', 'records']) {
+    for (final key in const [
+      'data',
+      'result',
+      'items',
+      'folders',
+      'folder',
+      'records',
+    ]) {
+      if (!map.containsKey(key)) continue;
       final nested = map[key];
       if (nested is List) {
-        return nested.map(_asMap).whereType<Map<String, dynamic>>().toList();
+        return (found: true, values: _mapList(nested));
       }
-      final nestedMap = _asMap(nested);
-      if (nestedMap != null) {
-        final result = _extractList(nestedMap);
-        if (result.isNotEmpty) return result;
-      }
+      final result = _tryExtractList(nested);
+      if (result.found) return result;
     }
-    return _looksLikeFolder(map) ? [map] : const [];
+    return (found: false, values: const []);
+  }
+
+  List<Map<String, dynamic>> _mapList(List<dynamic> values) {
+    final result = <Map<String, dynamic>>[];
+    for (final value in values) {
+      final map = _asMap(value);
+      if (map == null) {
+        throw const FolderApiException(
+          'The folders API returned an invalid folder record.',
+        );
+      }
+      result.add(map);
+    }
+    return result;
   }
 
   Map<String, dynamic>? _extractObject(dynamic value) {
@@ -144,7 +274,11 @@ class FolderApiService {
 
   FolderModel? _folderFromJson(Map<String, dynamic> json) {
     final rawId =
-        json['id'] ?? json['folderId'] ?? json['folder_id'] ?? json['Id'];
+        json['id'] ??
+        json['folderId'] ??
+        json['folder_id'] ??
+        json['Id'] ??
+        json['FolderId'];
     final id = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '');
     if (id == null) return null;
 
@@ -153,6 +287,7 @@ class FolderApiService {
                 json['folderName'] ??
                 json['folder_name'] ??
                 json['title'] ??
+                json['FolderName'] ??
                 '')
             .toString()
             .trim();
@@ -162,23 +297,40 @@ class FolderApiService {
         json['createdAt'] ??
         json['created_at'] ??
         json['dateCreated'] ??
-        json['createdDate'];
+        json['createdDate'] ??
+        json['CreatedAt'];
     final createdAt = DateTime.tryParse(
       rawCreatedAt?.toString() ?? '',
     )?.toLocal();
+
+    final rawDeleted =
+        json['is_deleted'] ??
+        json['isDeleted'] ??
+        json['deleted'] ??
+        json['IsDeleted'] ??
+        json['Deleted'];
+    final isDeleted = _bool(rawDeleted);
+
     return FolderModel(
       id: id,
       name: name,
       createdAt: createdAt ?? DateTime.now(),
+      isDeleted: isDeleted,
     );
   }
 
   bool _looksLikeFolder(Map<String, dynamic> value) {
     final hasId = value.keys.any(
-      const ['id', 'folderId', 'folder_id', 'Id'].contains,
+      const ['id', 'folderId', 'folder_id', 'Id', 'FolderId'].contains,
     );
     final hasName = value.keys.any(
-      const ['name', 'folderName', 'folder_name', 'title'].contains,
+      const [
+        'name',
+        'folderName',
+        'folder_name',
+        'title',
+        'FolderName',
+      ].contains,
     );
     return hasId && hasName;
   }
@@ -208,14 +360,24 @@ class FolderApiService {
     }
     return null;
   }
+
+  bool _bool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value != 0;
+    if (value is String) {
+      final lower = value.trim().toLowerCase();
+      return lower == 'true' || lower == '1' || lower == 'yes';
+    }
+    return false;
+  }
 }
 
-class FolderApiException implements Exception {
-  const FolderApiException(this.message, {this.statusCode});
-
-  final String message;
-  final int? statusCode;
-
-  @override
-  String toString() => message;
+class FolderApiException extends ApiFailure {
+  const FolderApiException(
+    String message, {
+    ApiFailureKind kind = ApiFailureKind.protocol,
+    int? statusCode,
+    Object? cause,
+  }) : super(message, kind: kind, statusCode: statusCode, cause: cause);
 }

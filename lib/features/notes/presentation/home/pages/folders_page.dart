@@ -9,6 +9,7 @@ class _FoldersPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return SafeArea(
+      top: false,
       bottom: false,
       child: Obx(() {
         return RefreshIndicator(
@@ -19,44 +20,8 @@ class _FoldersPage extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 120),
             children: [
-              _LinenHeader(
-                title: 'Folders',
-                onMenu: () => _showAppMenu(context, controller),
-                actions: [
-                  IconButton(
-                    onPressed: controller.isFolderSyncing.value
-                        ? null
-                        : controller.syncFolders,
-                    tooltip: 'Sync folders',
-                    icon: controller.isFolderSyncing.value
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(
-                            CupertinoIcons.cloud_download,
-                            color: scheme.primary,
-                          ),
-                  ),
-                  TextButton(
-                    onPressed: controller.toggleEdit,
-                    child: Text(controller.isEditing.value ? 'Done' : 'Edit'),
-                  ),
-                  IconButton(
-                    onPressed: controller.goToSettings,
-                    icon: Icon(
-                      CupertinoIcons.ellipsis_vertical,
-                      color: scheme.primary,
-                    ),
-                  ),
-                ],
-              ),
               if (controller.isFolderSyncing.value)
-                LinearProgressIndicator(
-                  minHeight: 2,
-                  color: scheme.primary,
-                ),
+                LinearProgressIndicator(minHeight: 2, color: scheme.primary),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 26),
                 child: _SearchField(
@@ -65,7 +30,7 @@ class _FoldersPage extends StatelessWidget {
                   onTap: () => controller.selectTab(2),
                 ),
               ),
-              const _SectionLabel('ON MY DEVICE'),
+              const _SectionLabel('On My Device'),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                 child: _SurfaceCard(
@@ -106,7 +71,7 @@ class _FoldersPage extends StatelessWidget {
               ),
               if (controller.recentlyDeletedFolders.isNotEmpty) ...[
                 const SizedBox(height: 26),
-                const _SectionLabel('RECENTLY DELETED FOLDERS'),
+                const _SectionLabel('Recently Deleted Folders'),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                   child: _SurfaceCard(
@@ -136,7 +101,7 @@ class _FoldersPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _QuickCard(
-                        label: 'QUICK NOTE',
+                        label: 'Quick Note',
                         title: controller.notes.isEmpty
                             ? 'Create a new idea'
                             : controller.notes.first.title,
@@ -149,7 +114,7 @@ class _FoldersPage extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _QuickCard(
-                        label: 'SMART CATEGORY',
+                        label: 'Smart Category',
                         title: 'Receipts and scans',
                         icon: CupertinoIcons.sparkles,
                         onTap: () => Get.toNamed(AppRoutes.categories),

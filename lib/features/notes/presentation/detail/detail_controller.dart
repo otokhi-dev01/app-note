@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:notes/app/navigation/app_routes.dart';
 import 'package:notes/app/navigation/route_contracts.dart';
+import 'package:notes/core/presentation/images/image_picker_feedback.dart';
+import 'package:notes/core/presentation/images/note_image_picker.dart';
 import 'package:notes/features/notes/domain/entities/note.dart';
 import 'package:notes/features/notes/domain/repositories/attachment_file_repository.dart';
 import 'package:notes/features/notes/domain/usecases/get_note_usecase.dart';
@@ -17,11 +19,14 @@ class DetailController extends GetxController {
     this._getNoteUseCase,
     this._updateNoteUseCase, {
     AttachmentFileRepository? attachmentFiles,
-  }) : _attachmentFiles = attachmentFiles;
+    NoteImagePicker? imagePicker,
+  }) : _attachmentFiles = attachmentFiles,
+       _imagePicker = imagePicker ?? SystemNoteImagePicker();
 
   final GetNoteUseCase _getNoteUseCase;
   final UpdateNoteUseCase _updateNoteUseCase;
   final AttachmentFileRepository? _attachmentFiles;
+  final NoteImagePicker _imagePicker;
 
   final note = Rxn<Note>();
   final isLoading = false.obs;
@@ -132,11 +137,22 @@ class DetailController extends GetxController {
   }
 
   Future<void> addImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: source,
-      imageQuality: 90,
-    );
+    XFile? image;
+    try {
+      image = await _imagePicker.pickImage(source: source, imageQuality: 90);
+    } on PlatformException catch (error) {
+      final usePhotoLibrary = await ImagePickerFeedback.show(
+        error,
+        source: source,
+      );
+      if (usePhotoLibrary && source == ImageSource.camera) {
+        await addImage(ImageSource.gallery);
+      }
+      return;
+    } catch (_) {
+      _showError('The image picker could not be opened. Please try again.');
+      return;
+    }
 
     if (image != null) {
       String? copiedPath;
@@ -148,6 +164,10 @@ class DetailController extends GetxController {
         if (currentNote != null) {
           final updatedNote = currentNote.copyWith(
             imagePaths: [...currentNote.imagePaths, filePath],
+            imageAnchors: [
+              ...currentNote.imageAnchors,
+              currentNote.content.split('\n').length - 1,
+            ],
             updatedAt: DateTime.now(),
           );
           await _updateNoteUseCase(updatedNote);
@@ -198,8 +218,11 @@ class DetailController extends GetxController {
       final removedPath = currentNote.imagePaths[index];
       final newPaths = List<String>.from(currentNote.imagePaths);
       newPaths.removeAt(index);
+      final newAnchors = List<int>.from(currentNote.imageAnchors);
+      if (index < newAnchors.length) newAnchors.removeAt(index);
       final updatedNote = currentNote.copyWith(
         imagePaths: newPaths,
+        imageAnchors: newAnchors,
         updatedAt: DateTime.now(),
       );
       try {

@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
+import 'package:notes/core/presentation/widgets/liquid_glass_sliver_app_bar.dart';
 import 'package:notes/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_components.dart';
 import 'package:notes/features/settings/presentation/widgets/settings_palette.dart';
@@ -15,29 +17,29 @@ class SettingsView extends GetView<SettingsController> {
     final colors = Theme.of(context).colorScheme;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: style.background,
-      body: CustomScrollView(
+    return AppBrandBackdrop(
+      child: CustomScrollView(
         physics: const BouncingScrollPhysics(
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
-          CupertinoSliverNavigationBar(
-            automaticallyImplyLeading: false,
-            automaticallyImplyTitle: false,
-            transitionBetweenRoutes: false,
-            stretch: true,
-            backgroundColor: style.background.withValues(alpha: .92),
-            brightness: Theme.of(context).brightness,
-            border: Border(
-              bottom: BorderSide(color: style.separator, width: .5),
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 0),
+            sliver: LiquidGlassSliverAppBar(
+              height: 60,
+              blur: 22,
+              borderRadius: const BorderRadius.all(Radius.circular(28)),
+              title: const Text('Settings'),
+              leading: (context) => IconButton(
+                tooltip: 'Back',
+                onPressed: Get.back,
+                icon: Icon(
+                  CupertinoIcons.chevron_left,
+                  color: style.accent,
+                  size: 20,
+                ),
+              ),
             ),
-            leading: CupertinoNavigationBarBackButton(
-              color: style.accent,
-              previousPageTitle: 'Notes',
-              onPressed: Get.back,
-            ),
-            largeTitle: const Text('Settings'),
           ),
           SliverPadding(
             padding: EdgeInsets.fromLTRB(16, 10, 16, 32 + bottomInset),
@@ -168,11 +170,11 @@ class SettingsView extends GetView<SettingsController> {
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: colors.surfaceContainerHighest,
       colorText: colors.onSurface,
-      margin: const EdgeInsets.all(16),
+      margin: EdgeInsets.all(16),
       borderRadius: 18,
       borderColor: colors.outlineVariant,
       borderWidth: .5,
-      duration: const Duration(seconds: 3),
+      duration: Duration(seconds: 3),
     );
   }
 

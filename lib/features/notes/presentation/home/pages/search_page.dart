@@ -7,8 +7,8 @@ class _SearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
+      top: false,
       bottom: false,
       child: Obx(() {
         final hasFilter =
@@ -18,23 +18,6 @@ class _SearchPage extends StatelessWidget {
           key: const PageStorageKey('search_page'),
           padding: const EdgeInsets.only(bottom: 100),
           children: [
-            _LinenHeader(
-              title: 'Search',
-              onMenu: () => _showAppMenu(context, controller),
-              actions: [
-                TextButton(
-                  onPressed: controller.clearRecentSearches,
-                  child: const Text('Clear'),
-                ),
-                IconButton(
-                  onPressed: controller.goToSettings,
-                  icon: Icon(
-                    CupertinoIcons.ellipsis_vertical,
-                    color: scheme.primary,
-                  ),
-                ),
-              ],
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               child: TextField(

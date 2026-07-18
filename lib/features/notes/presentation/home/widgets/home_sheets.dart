@@ -7,7 +7,6 @@ import 'package:notes/features/notes/domain/entities/note.dart';
 import 'package:notes/features/notes/domain/repositories/note_repository.dart';
 import 'package:notes/features/notes/domain/usecases/create_folder_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_folders_usecase.dart';
-
 import '../home_style.dart';
 
 part 'move_note_sheet.dart';
@@ -134,7 +133,7 @@ class _SheetSectionLabel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
       child: Text(
-        label.toUpperCase(),
+        label,
         style: theme.textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w700,

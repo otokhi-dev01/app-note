@@ -1,7 +1,6 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-
 import 'package:notes/core/network/api_endpoints.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/user_model.dart';
@@ -23,7 +22,7 @@ class AuthService extends GetxService implements AuthRepository {
   UserModel? get user => _user.value;
 
   @override
-  bool get isLoggedIn => _user.value?.token?.isNotEmpty ?? false;
+  bool get isLoggedIn => _normalizeToken(_user.value?.token) != null;
 
   @override
   String? get accountScopeId {
@@ -47,8 +46,18 @@ class AuthService extends GetxService implements AuthRepository {
   Future<void> _restoreSession() async {
     try {
       final savedUser = await _localStorage.getAuthUser();
-      if (_isTokenUsable(savedUser?.token)) {
-        _user.value = savedUser;
+      final token = _normalizeToken(savedUser?.token);
+      if (savedUser != null && token != null && _isTokenUsable(token)) {
+        _user.value = token == savedUser.token
+            ? savedUser
+            : UserModel(
+                id: savedUser.id,
+                email: savedUser.email,
+                phone: savedUser.phone,
+                name: savedUser.name,
+                avatar: savedUser.avatar,
+                token: token,
+              );
         return;
       }
     } catch (_) {
@@ -66,6 +75,11 @@ class AuthService extends GetxService implements AuthRepository {
     lastError = null;
 
     try {
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] Logging in with phone=$phone to ${ApiEndpoints.login}',
+        );
+      }
       final response = await _client.post<dynamic>(
         ApiEndpoints.login,
         {'phone': phone, 'password': password},
@@ -75,49 +89,91 @@ class AuthService extends GetxService implements AuthRepository {
         },
       );
 
+      debugPrint('[Auth] Login response status: ${response.statusCode}');
+      debugPrint('[Auth] Login response body: ${response.body}');
+
       final body = response.body;
       if (!response.isOk) {
         lastError =
             _errorMessage(body) ??
             'Login failed (${response.statusCode ?? 'network error'}).';
+        debugPrint('[Auth] Login failed: $lastError');
         return false;
       }
 
       final payload = _asMap(body);
       if (payload == null) {
         lastError = 'The server returned an invalid response.';
+        debugPrint('[Auth] Login failed: could not parse response body as map');
         return false;
       }
 
+      debugPrint('[Auth] Parsed payload keys: ${payload.keys.toList()}');
+
       final data = _asMap(payload['data']);
+      debugPrint('[Auth] data keys: ${data?.keys.toList()}');
+
       final userJson =
           _asMap(data?['user']) ?? _asMap(payload['user']) ?? data ?? payload;
+      debugPrint('[Auth] userJson keys: ${userJson.keys.toList()}');
+
       final token =
           _readToken(data) ?? _readToken(payload) ?? _readToken(userJson);
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] token resolved: ${token != null ? '${token.substring(0, token.length.clamp(0, 20))}...' : 'null'}',
+        );
+      }
 
       if (token == null || token.isEmpty) {
         lastError = 'The login response did not include an access token.';
+        debugPrint('[Auth] Login failed: no token in response');
         return false;
       }
 
       final authenticatedUser = UserModel(
-        id: (userJson['id'] ?? userJson['_id'] ?? '').toString(),
+        id:
+            (userJson['id'] ??
+                    userJson['_id'] ??
+                    userJson['userId'] ??
+                    userJson['UserId'] ??
+                    '')
+                .toString(),
         email: userJson['email']?.toString(),
-        phone: (userJson['phone'] ?? userJson['phoneNumber'] ?? phone)
-            .toString(),
-        name: userJson['name']?.toString(),
-        avatar: (userJson['avatar'] ?? userJson['avatar_url'])?.toString(),
+        phone:
+            (userJson['phone'] ??
+                    userJson['phoneNumber'] ??
+                    userJson['Phone'] ??
+                    phone)
+                .toString(),
+        name: (userJson['name'] ?? userJson['fullName'] ?? userJson['FullName'])
+            ?.toString(),
+        avatar:
+            (userJson['avatar'] ??
+                    userJson['avatar_url'] ??
+                    userJson['avatarUrl'])
+                ?.toString(),
         token: token,
       );
 
+      if (kDebugMode) {
+        debugPrint(
+          '[Auth] Authenticated user: id=${authenticatedUser.id}, name=${authenticatedUser.name}, phone=${authenticatedUser.phone}',
+        );
+      }
+
       await _localStorage.saveAuthUser(authenticatedUser);
       _user.value = authenticatedUser;
+      debugPrint('[Auth] Login successful!');
       return true;
     } on FormatException catch (error) {
       lastError = error.message;
+      debugPrint('[Auth] Login FormatException: ${error.message}');
       return false;
-    } catch (_) {
+    } catch (error, stackTrace) {
       lastError = 'Unable to connect to the server. Please try again.';
+      debugPrint('[Auth] Login unexpected error: $error');
+      debugPrint('[Auth] Stack trace: $stackTrace');
       return false;
     }
   }
@@ -139,14 +195,22 @@ class AuthService extends GetxService implements AuthRepository {
 
   String? _readToken(Map<String, dynamic>? json) {
     if (json == null) return null;
-    return (json['access_token'] ?? json['accessToken'] ?? json['token'])
-        ?.toString();
+    return _normalizeToken(
+      json['access_token'] ?? json['accessToken'] ?? json['token'],
+    );
+  }
+
+  String? _normalizeToken(Object? value) {
+    if (value == null) return null;
+    final token = value.toString().trim();
+    return token.isEmpty ? null : token;
   }
 
   bool _isTokenUsable(String? token) {
-    if (token == null || token.trim().isEmpty) return false;
+    final normalizedToken = _normalizeToken(token);
+    if (normalizedToken == null) return false;
 
-    final parts = token.split('.');
+    final parts = normalizedToken.split('.');
     if (parts.length != 3) return true; // The API may use an opaque token.
 
     try {
@@ -154,9 +218,14 @@ class AuthService extends GetxService implements AuthRepository {
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
       );
       final expiration = payload?['exp'];
-      if (expiration is! num) return false;
+      final expirationSeconds = switch (expiration) {
+        num value => value.toInt(),
+        String value => num.tryParse(value.trim())?.toInt(),
+        _ => null,
+      };
+      if (expirationSeconds == null) return false;
       final expiresAt = DateTime.fromMillisecondsSinceEpoch(
-        expiration.toInt() * 1000,
+        expirationSeconds * 1000,
         isUtc: true,
       );
       return expiresAt.isAfter(DateTime.now().toUtc());

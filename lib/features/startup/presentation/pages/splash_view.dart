@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:notes/core/presentation/brand/app_brand.dart';
 import 'package:notes/core/presentation/animations/fade_in_widget.dart';
 import 'package:notes/features/startup/presentation/controllers/splash_controller.dart';
 
@@ -20,8 +21,6 @@ class SplashView extends GetView<SplashController> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxHeight < 430;
-              final iconSize = compact ? 76.0 : 108.0;
-
               return Stack(
                 children: [
                   Center(
@@ -30,44 +29,13 @@ class SplashView extends GetView<SplashController> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(compact ? 4 : 6),
-                            decoration: BoxDecoration(
-                              color: colors.surface.withValues(
-                                alpha: isDark ? 0.72 : 0.82,
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                compact ? 25 : 34,
-                              ),
-                              border: Border.all(
-                                color: colors.onSurface.withValues(alpha: 0.08),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colors.primary.withValues(
-                                    alpha: isDark ? 0.26 : 0.2,
-                                  ),
-                                  blurRadius: compact ? 28 : 48,
-                                  spreadRadius: compact ? 0 : 2,
-                                  offset: Offset(0, compact ? 8 : 16),
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                compact ? 21 : 28,
-                              ),
-                              child: Image.asset(
-                                'assets/icons/notes_v26.png',
-                                width: iconSize,
-                                height: iconSize,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
+                          AppBrandLogo(
+                            height: compact ? 104 : 154,
+                            borderRadius: compact ? 22 : 30,
                           ),
                           SizedBox(height: compact ? 16 : 32),
                           Text(
-                            'NOTES',
+                            'P NOTE',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: colors.onSurface,
                               fontSize: compact ? 15 : 17,
@@ -155,26 +123,6 @@ class _SplashBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final background = theme.scaffoldBackgroundColor;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: const Alignment(0, -0.22),
-          radius: 1.15,
-          colors: [
-            Color.alphaBlend(
-              colors.primary.withValues(alpha: 0.11),
-              background,
-            ),
-            background,
-          ],
-          stops: const [0, 0.72],
-        ),
-      ),
-      child: child,
-    );
+    return AppBrandBackdrop(child: child);
   }
 }

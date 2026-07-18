@@ -5,7 +5,7 @@ import '../models/note_model.dart';
 
 class DatabaseService {
   static const _databaseName = 'clean_notes.db';
-  static const _databaseVersion = 7;
+  static const _databaseVersion = 9;
   static const notesTable = 'notes';
   static const foldersTable = 'folders';
   static const _metadataTable = 'app_metadata';
@@ -39,6 +39,7 @@ class DatabaseService {
         is_deleted INTEGER DEFAULT 0,
         deleted_at TEXT,
         image_paths TEXT,
+        image_anchors TEXT,
         folder_id INTEGER,
         owner_id TEXT NOT NULL,
         is_pinned INTEGER DEFAULT 0,
@@ -54,7 +55,8 @@ class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         owner_id TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        is_deleted INTEGER DEFAULT 0
       )
     ''');
 
@@ -106,6 +108,16 @@ class DatabaseService {
       // No table has a foreign key to notes.id, so the primary keys can be
       // remapped in place without rebuilding related data.
       await db.execute('UPDATE $notesTable SET id = -id WHERE id > 0');
+    }
+    if (oldVersion < 8) {
+      await db.execute('ALTER TABLE $notesTable ADD COLUMN image_anchors TEXT');
+    }
+    if (oldVersion < 9) {
+      // Folders are soft-deleted (mirroring notes) so they can be restored
+      // from the local cache after a restart, not just from in-memory state.
+      await db.execute(
+        'ALTER TABLE $foldersTable ADD COLUMN is_deleted INTEGER DEFAULT 0',
+      );
     }
   }
 
@@ -206,7 +218,20 @@ class DatabaseService {
     final db = await _databaseForOwner(owner);
     return db.query(
       foldersTable,
-      where: 'owner_id = ?',
+      where: 'owner_id = ? AND is_deleted = 0',
+      whereArgs: [owner],
+      orderBy: 'name ASC',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> getDeletedFolders({
+    required String ownerId,
+  }) async {
+    final owner = _normalizeOwnerId(ownerId);
+    final db = await _databaseForOwner(owner);
+    return db.query(
+      foldersTable,
+      where: 'owner_id = ? AND is_deleted = 1',
       whereArgs: [owner],
       orderBy: 'name ASC',
     );
@@ -219,7 +244,11 @@ class DatabaseService {
     final owner = _normalizeOwnerId(ownerId);
     final db = await _databaseForOwner(owner);
     final values = Map<String, Object?>.from(folder)..['owner_id'] = owner;
-    return db.insert(foldersTable, values);
+    return db.insert(
+      foldersTable,
+      values,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> cacheRemoteFolders(
@@ -236,26 +265,58 @@ class DatabaseService {
         final values = Map<String, Object?>.from(folder)
           ..['id'] = id
           ..['owner_id'] = owner;
-        final existing = await transaction.query(
-          foldersTable,
-          columns: const ['id'],
-          where: 'id = ? AND owner_id = ?',
-          whereArgs: [id, owner],
-          limit: 1,
-        );
-        if (existing.isEmpty) {
-          await transaction.insert(foldersTable, values);
+
+        // Reconcile the soft-delete flag with the server. Only trust the
+        // server when it explicitly reports a deleted state; otherwise keep the
+        // existing local flag so a folder the user just deleted locally is not
+        // resurrected by a list response that omits the field.
+        final serverDeleted =
+            _bool(folder['is_deleted']) ||
+            _bool(folder['isDeleted']) ||
+            _bool(folder['deleted']);
+        final serverReportsState =
+            folder.containsKey('is_deleted') ||
+            folder.containsKey('isDeleted') ||
+            folder.containsKey('deleted');
+        if (serverReportsState) {
+          values['is_deleted'] = serverDeleted ? 1 : 0;
         } else {
-          values.remove('id');
-          await transaction.update(
+          final existing = await transaction.query(
             foldersTable,
-            values,
+            columns: const ['is_deleted'],
             where: 'id = ? AND owner_id = ?',
             whereArgs: [id, owner],
+            limit: 1,
           );
+          values['is_deleted'] = existing.isEmpty
+              ? 0
+              : (existing.first['is_deleted'] as int? ?? 0);
         }
+
+        // Use INSERT OR REPLACE so a locally cached row with the same id is
+        // updated atomically instead of throwing a UNIQUE constraint error.
+        await transaction.insert(
+          foldersTable,
+          values,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
       }
     });
+  }
+
+  Future<int> setFolderDeleted(
+    int id, {
+    required bool deleted,
+    required String ownerId,
+  }) async {
+    final owner = _normalizeOwnerId(ownerId);
+    final db = await _databaseForOwner(owner);
+    return db.update(
+      foldersTable,
+      {'is_deleted': deleted ? 1 : 0},
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [id, owner],
+    );
   }
 
   Future<int> updateFolder(
@@ -276,28 +337,14 @@ class DatabaseService {
   Future<int> deleteFolder(int id, {required String ownerId}) async {
     final owner = _normalizeOwnerId(ownerId);
     final db = await _databaseForOwner(owner);
-    return db.transaction((transaction) async {
-      final folder = await transaction.query(
-        foldersTable,
-        columns: const ['id'],
-        where: 'id = ? AND owner_id = ?',
-        whereArgs: [id, owner],
-        limit: 1,
-      );
-      if (folder.isEmpty) return 0;
-
-      await transaction.update(
-        notesTable,
-        {'folder_id': null},
-        where: 'folder_id = ? AND owner_id = ?',
-        whereArgs: [id, owner],
-      );
-      return transaction.delete(
-        foldersTable,
-        where: 'id = ? AND owner_id = ?',
-        whereArgs: [id, owner],
-      );
-    });
+    // Soft-delete: keep the row and its notes' folder_id so the folder can be
+    // restored from the local cache. The server is the source of truth on sync.
+    return db.update(
+      foldersTable,
+      {'is_deleted': 1},
+      where: 'id = ? AND owner_id = ?',
+      whereArgs: [id, owner],
+    );
   }
 
   Future<List<Map<String, Object?>>> getNotes({
@@ -379,7 +426,7 @@ class DatabaseService {
         }
         final existing = await transaction.query(
           notesTable,
-          columns: const ['id', 'image_paths'],
+          columns: const ['id', 'image_paths', 'image_anchors'],
           where: 'id = ? AND owner_id = ?',
           whereArgs: [note.id, owner],
           limit: 1,
@@ -391,6 +438,9 @@ class DatabaseService {
           final localPaths = cachedPaths.where((path) => !_isNetworkPath(path));
           final mergedPaths = <String>{...note.imagePaths, ...localPaths};
           values['image_paths'] = mergedPaths.join('|');
+          if (note.imageAnchors.isEmpty) {
+            values['image_anchors'] = existing.first['image_anchors'];
+          }
         }
         if (existing.isEmpty) {
           await transaction.insert(notesTable, values);
@@ -408,7 +458,11 @@ class DatabaseService {
       if (replaceRemote) {
         final where = StringBuffer('owner_id = ? AND id > 0');
         final whereArgs = <Object?>[owner];
-        if (!includeDeleted) where.write(' AND is_deleted = 0');
+        // Active and deleted snapshots reconcile only their own rows. A trash
+        // response must never remove a newly cached active note.
+        where.write(
+          includeDeleted ? ' AND is_deleted = 1' : ' AND is_deleted = 0',
+        );
         if (remoteIds.isNotEmpty) {
           where.write(
             ' AND id NOT IN (${List.filled(remoteIds.length, '?').join(',')})',
@@ -432,6 +486,17 @@ class DatabaseService {
   bool _isNetworkPath(String path) {
     final uri = Uri.tryParse(path.trim());
     return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+  }
+
+  bool _bool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value != 0;
+    if (value is String) {
+      final lower = value.trim().toLowerCase();
+      return lower == 'true' || lower == '1' || lower == 'yes';
+    }
+    return false;
   }
 
   Future<int> insertNote(NoteModel note, {required String ownerId}) async {

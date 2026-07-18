@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:notes/app/navigation/app_routes.dart';
+import 'package:notes/app/navigation/route_contracts.dart';
 import 'package:notes/features/auth/domain/repositories/auth_repository.dart';
 import 'package:notes/features/library/application/library_coordinator.dart';
 import 'package:notes/features/notes/domain/entities/folder.dart';
@@ -13,6 +14,7 @@ import 'package:notes/features/notes/domain/usecases/create_folder_usecase.dart'
 import 'package:notes/features/notes/domain/usecases/delete_folder_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/delete_note_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_folders_usecase.dart';
+import 'package:notes/features/notes/domain/usecases/get_deleted_folders_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_notes_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/get_recently_deleted_notes_usecase.dart';
 import 'package:notes/features/notes/domain/usecases/rename_folder_usecase.dart';
@@ -64,6 +66,7 @@ class HomeController extends GetxController implements LibraryCoordinator {
   final _noteSearchService = const NoteSearchService();
 
   late final _getFolders = GetFoldersUseCase(_repository);
+  late final _getDeletedFolders = GetDeletedFoldersUseCase(_repository);
   late final _getRecentlyDeletedNotes = GetRecentlyDeletedNotesUseCase(
     _repository,
   );
@@ -95,9 +98,10 @@ class HomeController extends GetxController implements LibraryCoordinator {
   final isLoading = false.obs;
   final errorMessage = RxnString();
   final isFolderSyncing = false.obs;
-  final selectedTab = 1.obs;
+  final selectedTab = 0.obs;
   final selectedCalendarDay = DateTime.now().day.obs;
   final searchFieldController = TextEditingController();
+  int _loadGeneration = 0;
 
   @override
   int get selectedCalendarDayValue => selectedCalendarDay.value;
@@ -116,16 +120,30 @@ class HomeController extends GetxController implements LibraryCoordinator {
 
   @override
   Future<void> loadNotes() async {
+    final generation = ++_loadGeneration;
     try {
       isLoading.value = true;
       errorMessage.value = null;
       // Folders must be cached first so remote notes retain valid links.
       final allFolders = await _getFolders();
-      folders.assignAll(allFolders);
       final activeNotes = await _getNotesUseCase();
-      final deletedNotes = await _getRecentlyDeletedNotes();
+      List<Note> deletedNotes;
+      try {
+        deletedNotes = await _getRecentlyDeletedNotes();
+      } catch (_) {
+        // A trash sync problem must not hide successfully loaded active notes.
+        deletedNotes = trashNotes.toList(growable: false);
+      }
+      if (generation != _loadGeneration) return;
+
+      folders.assignAll(allFolders);
       notes.assignAll(activeNotes);
       trashNotes.assignAll(deletedNotes);
+      try {
+        recentlyDeletedFolders.assignAll(await _getDeletedFolders());
+      } catch (_) {
+        // A deleted-folders query failure must not hide loaded folders/notes.
+      }
       if (isSearching.value) {
         final token = activeSearchToken.value;
         if (token != null) {
@@ -137,9 +155,11 @@ class HomeController extends GetxController implements LibraryCoordinator {
         _applyFilter();
       }
     } catch (error) {
-      errorMessage.value = 'Failed to sync notes. ${_readableError(error)}';
+      if (generation == _loadGeneration) {
+        errorMessage.value = 'Failed to sync notes. ${_readableError(error)}';
+      }
     } finally {
-      isLoading.value = false;
+      if (generation == _loadGeneration) isLoading.value = false;
     }
   }
 
