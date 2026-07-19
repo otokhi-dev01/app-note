@@ -31,7 +31,7 @@ class ProfileView
                   16,
                   0,
                 ),
-                child: MainTabHeaderWidget(
+                child: MainTabHeader(
                   title: 'Profile'.tr,
                   subtitle:
                   'Account and application settings',
@@ -160,17 +160,17 @@ class ProfileView
               },
               child: const Text('Cancel'),
             ),
-            _ProfileMenuTile(
-              icon: Icons.delete_outline_rounded,
-              title: 'Recycle Bin',
-              subtitle:
-              'Restore deleted folders and archived notes',
-              onTap: () {
-                Get.toNamed(
-                  AppRoutes.recycleBin,
-                );
-              },
-            ),
+            // _ProfileMenuTile(
+            //   icon: Icons.delete_outline_rounded,
+            //   title: 'Recycle Bin',
+            //   subtitle:
+            //   'Restore deleted folders and archived notes',
+            //   onTap: () {
+            //     Get.toNamed(
+            //       AppRoutes.recycleBin,
+            //     );
+            //   },
+            // ),
             const Divider(height: 1),
             CupertinoDialogAction(
               isDestructiveAction: true,

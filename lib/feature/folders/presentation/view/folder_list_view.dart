@@ -2,10 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:note_app/feature/main/presentation/widgets/app_liquid_background_widget.dart';
-import 'package:note_app/feature/main/presentation/widgets/main_tab_header_widget.dart';
+import '../../../../app/routes/app_routes.dart';
 import '../../../main/presentation/controller/main_navigation_controller.dart';
+import '../../../main/presentation/widgets/main_tab_header_widget.dart';
 import '../../../notes/presentation/controllers/home_controller.dart';
-import '../../../profile/presentation/views/profile_view.dart';
 import '../../domain/entities/folder_entity.dart';
 
 class FolderListView
@@ -26,33 +26,59 @@ class FolderListView
           child: Column(
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.fromLTRB(
+                padding:
+                const EdgeInsets.fromLTRB(
                   16,
                   10,
                   16,
                   0,
                 ),
                 child: Obx(
-                      () => MainTabHeaderWidget(
-                    title: 'Folders'.tr,
-                    subtitle:
-                    '${controller.folders.length} folders',
-                    onRefresh:
-                    controller.loadFolders,
-                    onAdd: () {
-                      _showCreateFolderDialog(
-                        context,
-                      );
-                    },
-                    addIcon: Icons
-                        .create_new_folder_outlined,
-                  ),
+                      () {
+                    final int folderCount =
+                        controller
+                            .folders.length;
+
+                    final int deletedCount =
+                        controller
+                            .deletedFolders
+                            .length;
+
+                    return MainTabHeader(
+                      title: 'Folders',
+                      subtitle:
+                      '$folderCount active '
+                          '${folderCount == 1 ? 'folder' : 'folders'}',
+                      trailing:
+                      MainTabHeaderAction(
+                        tooltip:
+                        'Recently Deleted',
+                        icon: deletedCount > 0
+                            ? CupertinoIcons
+                            .delete_solid
+                            : CupertinoIcons
+                            .delete,
+                        onPressed: () {
+                          _openRecentlyDeleted();
+                        },
+                      ),
+                      onRefresh:
+                      controller.loadFolders,
+                      onAdd: () {
+                        _openCreateFolder();
+                      },
+                      addIcon: Icons
+                          .create_new_folder_outlined,
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 14),
               Expanded(
                 child: Obx(
-                      () => _buildContent(context),
+                      () => _buildContent(
+                    context,
+                  ),
                 ),
               ),
             ],
@@ -62,28 +88,35 @@ class FolderListView
     );
   }
 
-  Widget _buildContent(BuildContext context) {
-    if (controller.isFoldersLoading.value &&
-        controller.folders.isEmpty) {
+  Widget _buildContent(
+      BuildContext context,
+      ) {
+    final List<FolderEntity>
+    folderSnapshot =
+    List<FolderEntity>.unmodifiable(
+      controller.folders.toList(),
+    );
+
+    if (controller
+        .isFoldersLoading.value &&
+        folderSnapshot.isEmpty) {
       return const _FolderLoadingState();
     }
 
     if (controller.hasFolderError &&
-        controller.folders.isEmpty) {
+        folderSnapshot.isEmpty) {
       return _FolderErrorState(
-        message:
-        controller.folderErrorMessage.value,
-        onRetry: controller.loadFolders,
+        message: controller
+            .folderErrorMessage.value,
+        onRetry:
+        controller.loadFolders,
       );
     }
-
-    final List<FolderEntity> folders =
-        controller.folders;
 
     final int totalNotes =
     controller.notes.isNotEmpty
         ? controller.notes.length
-        : folders.fold<int>(
+        : folderSnapshot.fold<int>(
       0,
           (
           int total,
@@ -95,11 +128,16 @@ class FolderListView
     );
 
     return RefreshIndicator.adaptive(
-      onRefresh: controller.loadFolders,
+      onRefresh:
+      controller.loadFolders,
       child: ListView(
         physics:
-        const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
+        const AlwaysScrollableScrollPhysics(
+          parent:
+          BouncingScrollPhysics(),
+        ),
+        padding:
+        const EdgeInsets.fromLTRB(
           16,
           4,
           16,
@@ -108,32 +146,34 @@ class FolderListView
         children: <Widget>[
           _FolderCard(
             title: 'All Notes',
-            subtitle: 'View notes from every folder',
+            subtitle:
+            '$totalNotes '
+                '${totalNotes == 1 ? 'note' : 'notes'}',
             noteCount: totalNotes,
             color: Theme.of(context)
-                .colorScheme
-                .primary,
+                .colorScheme.primary,
             icon: Icons.notes_rounded,
-            selected:
-            controller.selectedFolderId.value ==
+            selected: controller
+                .selectedFolderId
+                .value ==
                 null,
             onTap: () {
-              controller.selectAllNotes();
+              controller
+                  .selectAllNotes();
 
-              Get.find<
-                  MainNavigationController>()
-                  .changeTab(1);
+              _openNoteTab();
             },
           ),
           const SizedBox(height: 12),
-          if (folders.isEmpty)
+          if (folderSnapshot.isEmpty)
             _EmptyFolderState(
-              onCreate: () {
-                _showCreateFolderDialog(context);
-              },
+              onCreate:
+              _openCreateFolder,
+              onOpenDeleted:
+              _openRecentlyDeleted,
             )
           else
-            ...folders.map(
+            ...folderSnapshot.map(
                   (FolderEntity folder) {
                 final Color folderColor =
                 _parseFolderColor(
@@ -144,33 +184,40 @@ class FolderListView
                 );
 
                 return Padding(
+                  key: ValueKey<int>(
+                    folder.id,
+                  ),
                   padding:
                   const EdgeInsets.only(
                     bottom: 12,
                   ),
                   child: _FolderCard(
                     title:
-                    folder.name.trim().isEmpty
+                    folder.name
+                        .trim()
+                        .isEmpty
                         ? 'Unnamed Folder'
                         : folder.name,
                     subtitle:
-                    '${folder.noteCount} ${folder.noteCount == 1 ? 'note' : 'notes'}',
+                    '${folder.noteCount} '
+                        '${folder.noteCount == 1 ? 'note' : 'notes'}',
                     noteCount:
                     folder.noteCount,
                     color: folderColor,
-                    icon:
-                    Icons.folder_rounded,
+                    icon: _folderIcon(
+                      folder.iconName,
+                    ),
                     selected: controller
                         .selectedFolderId
                         .value ==
                         folder.id,
                     onTap: () {
                       controller
-                          .selectFolder(folder.id);
+                          .selectFolder(
+                        folder.id,
+                      );
 
-                      Get.find<
-                          MainNavigationController>()
-                          .changeTab(1);
+                      _openNoteTab();
                     },
                     onMore: () {
                       _showFolderActions(
@@ -187,149 +234,35 @@ class FolderListView
     );
   }
 
-  Future<void> _showCreateFolderDialog(
-      BuildContext context,
-      ) async {
-    String folderName = '';
-
-    final String? result =
-    await showCupertinoDialog<String>(
-      context: context,
-      builder: (
-          BuildContext dialogContext,
-          ) {
-        return CupertinoAlertDialog(
-          title: const Text('New Folder'),
-          content: Padding(
-            padding:
-            const EdgeInsets.only(top: 14),
-            child: CupertinoTextField(
-              autofocus: true,
-              placeholder: 'Folder name',
-              textInputAction:
-              TextInputAction.done,
-              onChanged: (String value) {
-                folderName = value;
-              },
-              onSubmitted: (String value) {
-                final String name =
-                value.trim();
-
-                if (name.isNotEmpty) {
-                  Navigator.of(dialogContext)
-                      .pop(name);
-                }
-              },
-            ),
-          ),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () {
-                final String name =
-                folderName.trim();
-
-                if (name.isNotEmpty) {
-                  Navigator.of(dialogContext)
-                      .pop(name);
-                }
-              },
-              child: const Text('Create'),
-            ),
-          ],
-        );
-      },
+  Future<void>
+  _openRecentlyDeleted() async {
+    await Get.toNamed(
+      AppRoutes
+          .recentlyDeletedFolders,
     );
 
-    if (result == null ||
-        result.trim().isEmpty) {
-      return;
-    }
-
-    await controller.createFolder(
-      name: result,
-    );
+    await controller.loadFolders();
   }
 
-  Future<void> _showRenameFolderDialog(
-      BuildContext context,
-      FolderEntity folder,
-      ) async {
-    final TextEditingController textController =
-    TextEditingController(
-      text: folder.name,
+  Future<void>
+  _openCreateFolder() async {
+    final dynamic result =
+    await Get.toNamed(
+      AppRoutes.createFolder,
     );
 
-    final String? result =
-    await showCupertinoDialog<String>(
-      context: context,
-      builder: (
-          BuildContext dialogContext,
-          ) {
-        return CupertinoAlertDialog(
-          title: const Text('Rename Folder'),
-          content: Padding(
-            padding:
-            const EdgeInsets.only(top: 14),
-            child: CupertinoTextField(
-              controller: textController,
-              autofocus: true,
-              placeholder: 'Folder name',
-              textInputAction:
-              TextInputAction.done,
-              onSubmitted: (String value) {
-                final String name =
-                value.trim();
-
-                if (name.isNotEmpty) {
-                  Navigator.of(dialogContext)
-                      .pop(name);
-                }
-              },
-            ),
-          ),
-          actions: <Widget>[
-            CupertinoDialogAction(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Cancel'),
-            ),
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () {
-                final String name =
-                textController.text.trim();
-
-                if (name.isNotEmpty) {
-                  Navigator.of(dialogContext)
-                      .pop(name);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-
-    textController.dispose();
-
-    if (result == null ||
-        result.trim().isEmpty) {
-      return;
+    if (result == true) {
+      await controller.loadFolders();
     }
+  }
 
-    await controller.updateFolder(
-      folder: folder,
-      name: result,
-    );
+  void _openNoteTab() {
+    if (Get.isRegistered<
+        MainNavigationController>()) {
+      Get.find<
+          MainNavigationController>()
+          .changeTab(1);
+    }
   }
 
   Future<void> _showFolderActions(
@@ -343,51 +276,167 @@ class FolderListView
           ) {
         return CupertinoActionSheet(
           title: Text(
-            folder.name.trim().isEmpty
+            folder.name
+                .trim()
+                .isEmpty
                 ? 'Unnamed Folder'
                 : folder.name,
+          ),
+          message: const Text(
+            'Choose an action for this folder.',
           ),
           actions: <Widget>[
             CupertinoActionSheetAction(
               onPressed: () {
-                Navigator.of(sheetContext).pop();
+                Navigator.of(
+                  sheetContext,
+                ).pop();
 
-                _showRenameFolderDialog(
+                _showRenameDialog(
                   context,
                   folder,
                 );
               },
-              child: const Text('Rename Folder'),
+              child: const Text(
+                'Rename Folder',
+              ),
             ),
             CupertinoActionSheetAction(
               isDestructiveAction: true,
               onPressed: () {
-                Navigator.of(sheetContext).pop();
+                Navigator.of(
+                  sheetContext,
+                ).pop();
 
-                _confirmDeleteFolder(
+                _confirmDelete(
                   context,
                   folder,
                 );
               },
-              child: const Text('Delete Folder'),
+              child: const Text(
+                'Move to Recently Deleted',
+              ),
             ),
           ],
           cancelButton:
           CupertinoActionSheetAction(
             onPressed: () {
-              Navigator.of(sheetContext).pop();
+              Navigator.of(
+                sheetContext,
+              ).pop();
             },
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+            ),
           ),
         );
       },
     );
   }
 
-  Future<void> _confirmDeleteFolder(
+  Future<void> _showRenameDialog(
       BuildContext context,
       FolderEntity folder,
       ) async {
+    final TextEditingController
+    textController =
+    TextEditingController(
+      text: folder.name,
+    );
+
+    final String? newName =
+    await showCupertinoDialog<
+        String>(
+      context: context,
+      builder: (
+          BuildContext dialogContext,
+          ) {
+        return CupertinoAlertDialog(
+          title: const Text(
+            'Rename Folder',
+          ),
+          content: Padding(
+            padding:
+            const EdgeInsets.only(
+              top: 14,
+            ),
+            child: CupertinoTextField(
+              controller:
+              textController,
+              autofocus: true,
+              placeholder:
+              'Folder name',
+              textInputAction:
+              TextInputAction.done,
+              onSubmitted: (
+                  String value,
+                  ) {
+                final String name =
+                value.trim();
+
+                if (name.isNotEmpty) {
+                  Navigator.of(
+                    dialogContext,
+                  ).pop(name);
+                }
+              },
+            ),
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              onPressed: () {
+                Navigator.of(
+                  dialogContext,
+                ).pop();
+              },
+              child: const Text(
+                'Cancel',
+              ),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () {
+                final String name =
+                textController.text
+                    .trim();
+
+                if (name.isNotEmpty) {
+                  Navigator.of(
+                    dialogContext,
+                  ).pop(name);
+                }
+              },
+              child: const Text(
+                'Save',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    textController.dispose();
+
+    if (newName == null ||
+        newName.trim().isEmpty) {
+      return;
+    }
+
+    await controller.updateFolder(
+      folder: folder,
+      name: newName,
+    );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context,
+      FolderEntity folder,
+      ) async {
+    final String folderName =
+    folder.name.trim().isEmpty
+        ? 'Unnamed Folder'
+        : folder.name.trim();
+
     final bool? confirmed =
     await showCupertinoDialog<bool>(
       context: context,
@@ -395,26 +444,35 @@ class FolderListView
           BuildContext dialogContext,
           ) {
         return CupertinoAlertDialog(
-          title: const Text('Delete Folder?'),
+          title: const Text(
+            'Delete Folder?',
+          ),
           content: Text(
-            'Delete "${folder.name}"? '
-                'Notes inside this folder may also be affected.',
+            '"$folderName" will be moved '
+                'to Recently Deleted. You can '
+                'restore it later.',
           ),
           actions: <Widget>[
             CupertinoDialogAction(
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(false);
+                Navigator.of(
+                  dialogContext,
+                ).pop(false);
               },
-              child: const Text('Cancel'),
+              child: const Text(
+                'Cancel',
+              ),
             ),
             CupertinoDialogAction(
               isDestructiveAction: true,
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(true);
+                Navigator.of(
+                  dialogContext,
+                ).pop(true);
               },
-              child: const Text('Delete'),
+              child: const Text(
+                'Delete',
+              ),
             ),
           ],
         );
@@ -425,14 +483,16 @@ class FolderListView
       return;
     }
 
-    await controller.deleteOrRestoreFolder(
+    await controller
+        .deleteOrRestoreFolder(
       folderId: folder.id,
       isDelete: true,
     );
   }
 }
 
-class _FolderCard extends StatelessWidget {
+class _FolderCard
+    extends StatelessWidget {
   final String title;
   final String subtitle;
   final int noteCount;
@@ -455,12 +515,15 @@ class _FolderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final ThemeData theme =
+    Theme.of(context);
+
     final ColorScheme colorScheme =
         theme.colorScheme;
 
     final bool isDark =
-        theme.brightness == Brightness.dark;
+        theme.brightness ==
+            Brightness.dark;
 
     return Material(
       color: Colors.transparent,
@@ -469,30 +532,40 @@ class _FolderCard extends StatelessWidget {
         borderRadius:
         BorderRadius.circular(24),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding:
+          const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isDark
-                ? const Color(0xFF1B1D22)
+                ? const Color(
+              0xFF1B1D22,
+            )
                 : Colors.white,
             borderRadius:
             BorderRadius.circular(24),
             border: Border.all(
               color: selected
-                  ? color.withValues(alpha: 0.55)
-                  : colorScheme.outlineVariant
+                  ? color.withValues(
+                alpha: 0.55,
+              )
+                  : colorScheme
+                  .outlineVariant
                   .withValues(
-                alpha:
-                isDark ? 0.20 : 0.36,
+                alpha: isDark
+                    ? 0.20
+                    : 0.36,
               ),
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withValues(
-                  alpha:
-                  isDark ? 0.14 : 0.045,
+                color: Colors.black
+                    .withValues(
+                  alpha: isDark
+                      ? 0.14
+                      : 0.045,
                 ),
                 blurRadius: 22,
-                offset: const Offset(0, 8),
+                offset:
+                const Offset(0, 8),
               ),
             ],
           ),
@@ -502,10 +575,14 @@ class _FolderCard extends StatelessWidget {
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color:
-                  color.withValues(alpha: 0.13),
+                  color: color
+                      .withValues(
+                    alpha: 0.13,
+                  ),
                   borderRadius:
-                  BorderRadius.circular(17),
+                  BorderRadius.circular(
+                    17,
+                  ),
                 ),
                 child: Icon(
                   icon,
@@ -517,15 +594,18 @@ class _FolderCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  CrossAxisAlignment
+                      .start,
                   children: <Widget>[
                     Text(
                       title,
                       maxLines: 1,
                       overflow:
-                      TextOverflow.ellipsis,
+                      TextOverflow
+                          .ellipsis,
                       style: theme
-                          .textTheme.titleMedium
+                          .textTheme
+                          .titleMedium
                           ?.copyWith(
                         fontWeight:
                         FontWeight.w700,
@@ -535,7 +615,8 @@ class _FolderCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: theme
-                          .textTheme.bodySmall
+                          .textTheme
+                          .bodySmall
                           ?.copyWith(
                         color: colorScheme
                             .onSurfaceVariant,
@@ -550,34 +631,44 @@ class _FolderCard extends StatelessWidget {
                   minWidth: 34,
                 ),
                 padding:
-                const EdgeInsets.symmetric(
+                const EdgeInsets
+                    .symmetric(
                   horizontal: 9,
                   vertical: 5,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                  color.withValues(alpha: 0.10),
+                  color: color
+                      .withValues(
+                    alpha: 0.10,
+                  ),
                   borderRadius:
-                  BorderRadius.circular(20),
+                  BorderRadius.circular(
+                    20,
+                  ),
                 ),
                 child: Text(
                   noteCount.toString(),
-                  textAlign: TextAlign.center,
+                  textAlign:
+                  TextAlign.center,
                   style: theme
                       .textTheme.labelMedium
                       ?.copyWith(
                     color: color,
-                    fontWeight: FontWeight.w700,
+                    fontWeight:
+                    FontWeight.w700,
                   ),
                 ),
               ),
-              if (onMore != null) ...<Widget>[
+              if (onMore != null) ...<
+                  Widget>[
                 const SizedBox(width: 4),
                 CupertinoButton(
-                  padding: EdgeInsets.zero,
+                  padding:
+                  EdgeInsets.zero,
                   onPressed: onMore,
                   child: Icon(
-                    Icons.more_horiz_rounded,
+                    Icons
+                        .more_horiz_rounded,
                     color: colorScheme
                         .onSurfaceVariant,
                   ),
@@ -585,7 +676,8 @@ class _FolderCard extends StatelessWidget {
               ] else ...<Widget>[
                 const SizedBox(width: 8),
                 Icon(
-                  Icons.chevron_right_rounded,
+                  Icons
+                      .chevron_right_rounded,
                   color: colorScheme
                       .onSurfaceVariant,
                 ),
@@ -601,49 +693,74 @@ class _FolderCard extends StatelessWidget {
 class _EmptyFolderState
     extends StatelessWidget {
   final VoidCallback onCreate;
+  final VoidCallback onOpenDeleted;
 
   const _EmptyFolderState({
     required this.onCreate,
+    required this.onOpenDeleted,
   });
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme =
+    Theme.of(context);
+
+    final ColorScheme colorScheme =
+        theme.colorScheme;
+
     return Padding(
       padding:
-      const EdgeInsets.symmetric(vertical: 70),
+      const EdgeInsets.symmetric(
+        vertical: 65,
+      ),
       child: Column(
         children: <Widget>[
           Icon(
-            Icons.create_new_folder_outlined,
+            Icons
+                .create_new_folder_outlined,
             size: 58,
             color:
-            Theme.of(context).colorScheme.primary,
+            colorScheme.primary,
           ),
           const SizedBox(height: 16),
           Text(
-            'No folders yet',
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
+            'No Folders Yet',
+            style: theme
+                .textTheme.titleLarge
                 ?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight:
+              FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Create a folder to organize your notes.',
+            'Create a folder to organize '
+                'your notes.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
+              color: colorScheme
                   .onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
             onPressed: onCreate,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Create Folder'),
+            icon: const Icon(
+              Icons.add_rounded,
+            ),
+            label: const Text(
+              'Create Folder',
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: onOpenDeleted,
+            icon: const Icon(
+              CupertinoIcons.delete,
+            ),
+            label: const Text(
+              'Recently Deleted',
+            ),
           ),
         ],
       ),
@@ -658,7 +775,9 @@ class _FolderLoadingState
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: CircularProgressIndicator.adaptive(),
+      child:
+      CircularProgressIndicator
+          .adaptive(),
     );
   }
 }
@@ -677,38 +796,45 @@ class _FolderErrorState
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(30),
+        padding:
+        const EdgeInsets.all(30),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize:
+          MainAxisSize.min,
           children: <Widget>[
             Icon(
               Icons.cloud_off_outlined,
               size: 54,
-              color:
-              Theme.of(context).colorScheme.error,
+              color: Theme.of(context)
+                  .colorScheme.error,
             ),
             const SizedBox(height: 16),
             Text(
-              'Folders are unavailable',
+              'Folders Are Unavailable',
               style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
+                  .textTheme.titleLarge
                   ?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight:
+                FontWeight.w700,
               ),
             ),
             const SizedBox(height: 10),
             Text(
               message,
-              textAlign: TextAlign.center,
+              textAlign:
+              TextAlign.center,
             ),
             const SizedBox(height: 20),
             FilledButton.tonalIcon(
-              onPressed: onRetry,
+              onPressed: () {
+                onRetry();
+              },
               icon: const Icon(
                 Icons.refresh_rounded,
               ),
-              label: const Text('Try Again'),
+              label: const Text(
+                'Try Again',
+              ),
             ),
           ],
         ),
@@ -717,14 +843,41 @@ class _FolderErrorState
   }
 }
 
+IconData _folderIcon(
+    String value,
+    ) {
+  switch (
+  value.trim().toLowerCase()) {
+    case 'work':
+      return Icons.work_rounded;
+
+    case 'school':
+      return Icons.school_rounded;
+
+    case 'personal':
+      return Icons.person_rounded;
+
+    case 'favorite':
+      return Icons.favorite_rounded;
+
+    case 'travel':
+      return Icons.flight_rounded;
+
+    default:
+      return Icons.folder_rounded;
+  }
+}
+
 Color _parseFolderColor(
     String rawValue,
     Color fallback,
     ) {
-  final String value = rawValue.trim();
+  final String value =
+  rawValue.trim();
 
   if (value.isEmpty ||
-      value.toLowerCase() == 'string') {
+      value.toLowerCase() ==
+          'string') {
     return fallback;
   }
 
@@ -742,7 +895,10 @@ Color _parseFolderColor(
     }
 
     return Color(
-      int.parse(hex, radix: 16),
+      int.parse(
+        hex,
+        radix: 16,
+      ),
     );
   } catch (_) {
     return fallback;
