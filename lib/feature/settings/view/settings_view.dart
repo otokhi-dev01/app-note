@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:note_app/feature/main/presentation/widgets/app_liquid_background_widget.dart';
-import 'package:note_app/feature/main/presentation/widgets/main_tab_header_widget.dart';
+import '../../main/presentation/widgets/main_tab_header_widget.dart';
 import '../presentation/controllers/settings_controller.dart';
 import '../presentation/widgets/languages_selector_widget.dart';
 import '../presentation/widgets/settings_section_card_widget.dart';
@@ -31,7 +31,7 @@ class SettingsView
                   16,
                   0,
                 ),
-                child: MainTabHeaderWidget(
+                child: MainTabHeader(
                   title: 'settings'.tr,
                   subtitle: 'app_settings'.tr,
                 ),

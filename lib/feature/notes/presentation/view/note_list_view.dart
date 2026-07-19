@@ -36,7 +36,7 @@ class NoteListView extends GetView<HomeController> {
                     final int noteCount =
                         controller.visibleNotes.length;
 
-                    return MainTabHeaderWidget(
+                    return MainTabHeader(
                       title: controller.selectedFolderName,
                       subtitle:
                       '$noteCount ${noteCount == 1 ? 'note' : 'notes'}',

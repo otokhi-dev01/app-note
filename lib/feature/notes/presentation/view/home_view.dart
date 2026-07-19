@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../controllers/home_controller.dart';
 import '../widgets/home/home_bottom_bar_widget.dart';
 import '../widgets/home/home_content_widget.dart';
