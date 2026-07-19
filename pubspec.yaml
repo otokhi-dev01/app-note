@@ -1,4 +1,4 @@
-name: notes
+name: note_app
 description: "A new Flutter project."
 
 publish_to: "none"
@@ -12,34 +12,43 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_launcher_icons: "^0.14.4"
   cupertino_icons: ^1.0.8
-  get: ^4.6.5
-  shared_preferences: ^2.1.1
+  get: ^4.7.3
+  dio: ^5.10.0
   flutter_secure_storage: ^10.3.1
-  flutter_slidable: ^3.1.2
-  sqflite: ^2.4.1
-  path: ^1.9.1
-  intl: ^0.20.3
-  image_picker: ^1.1.2
-  path_provider: ^2.1.4
-  screenshot: ^3.0.0
-  flutter_colorpicker: ^1.1.0
+  file_picker: ^3.0.4
+  uuid: ^4.6.0
+  http: ^1.6.0
+  get_storage: ^2.1.1
+  image_picker: ^1.2.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^6.0.0
-
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/icons/notes_v26.png"
-  min_sdk_android: 21
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
   assets:
-    - assets/icons/notes_v26.png
-    - assets/icons/notes.jpg
+    - assets/images/
+    - assets/images/flags/
+    - assets/icons/
+
+  fonts:
+    - family: NotoSansKhmer
+      fonts:
+        - asset: assets/fonts/NotoSansKhmer-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansKhmer-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansKhmer-Bold.ttf
+          weight: 700
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  remove_alpha_ios: true

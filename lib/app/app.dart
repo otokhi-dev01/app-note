@@ -1,33 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:notes/app/di/app_binding.dart';
-import 'package:notes/app/navigation/app_router.dart';
-import 'package:notes/app/navigation/app_routes.dart';
-import 'package:notes/app/theme/app_theme.dart';
-import 'package:notes/core/constants/app_strings.dart';
-import 'package:notes/features/auth/data/datasources/local_storage.dart';
 
-class NoteApp extends StatelessWidget {
-  const NoteApp({
-    super.key,
-    this.initialThemeMode = ThemeMode.system,
-    this.localStorage,
-  });
+import '../core/theme/app_theme.dart';
+import 'bindings/app_binding.dart';
+import 'routes/app_pages.dart';
+import 'routes/app_routes.dart';
 
-  final ThemeMode initialThemeMode;
-  final LocalStorage? localStorage;
+class PiisiitNoteApp extends StatelessWidget {
+  const PiisiitNoteApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: AppStrings.appName,
+      title: 'Piisiit Note',
       debugShowCheckedModeBanner: false,
+      initialBinding: AppBinding(),
       initialRoute: AppRoutes.splash,
-      getPages: AppRouter.pages,
-      initialBinding: AppBinding(localStorage: localStorage),
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: initialThemeMode,
+      getPages: AppPages.pages,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
     );
   }
 }
