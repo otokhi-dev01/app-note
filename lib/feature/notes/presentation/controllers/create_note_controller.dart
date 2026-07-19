@@ -1,0 +1,506 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
+import '../../../../app/routes/app_routes.dart';
+import '../../../folders/domain/entities/folder_entity.dart';
+import '../../domain/repositories/note_repository.dart';
+import 'home_controller.dart';
+
+class NoteDraftImage {
+  final XFile file;
+  final String blockId;
+
+  const NoteDraftImage({
+    required this.file,
+    required this.blockId,
+  });
+}
+
+class CreateNoteController extends GetxController {
+  final NoteRepository noteRepository;
+  final HomeController homeController;
+
+  CreateNoteController({
+    required this.noteRepository,
+    required this.homeController,
+  });
+
+  final TextEditingController titleController =
+  TextEditingController();
+
+  final TextEditingController statementController =
+  TextEditingController();
+
+  final RxnInt selectedFolderId = RxnInt();
+
+  final RxList<NoteDraftImage> selectedImages =
+      <NoteDraftImage>[].obs;
+
+  final RxBool isSaving = false.obs;
+  final RxBool isLoadingFolders = false.obs;
+
+  final RxString errorMessage = ''.obs;
+
+  final ImagePicker _imagePicker = ImagePicker();
+  final Uuid _uuid = const Uuid();
+
+  /*
+   * Keep the created ID when an upload fails.
+   * Retrying will update the same note instead of
+   * creating another note.
+   */
+  int? _createdNoteId;
+
+  /*
+   * Keeps successfully uploaded image IDs so retrying
+   * does not upload the same image twice.
+   */
+  final Set<String> _uploadedBlockIds =
+  <String>{};
+
+  List<FolderEntity> get folders {
+    return homeController.folders.toList(
+      growable: false,
+    );
+  }
+
+  FolderEntity? get selectedFolder {
+    final int? folderId =
+        selectedFolderId.value;
+
+    if (folderId == null) {
+      return null;
+    }
+
+    for (final FolderEntity folder in folders) {
+      if (folder.id == folderId) {
+        return folder;
+      }
+    }
+
+    return null;
+  }
+
+  String get selectedFolderName {
+    final FolderEntity? folder =
+        selectedFolder;
+
+    if (folder == null) {
+      return 'Choose folder';
+    }
+
+    final String name = folder.name.trim();
+
+    return name.isEmpty
+        ? 'Unnamed Folder'
+        : name;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+
+    _selectInitialFolder();
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+
+    if (homeController.folders.isEmpty) {
+      loadFolders();
+    }
+  }
+
+  void _selectInitialFolder() {
+    final int? currentFolderId =
+        homeController.selectedFolderId.value;
+
+    if (currentFolderId != null) {
+      final bool exists =
+      homeController.folders.any(
+            (FolderEntity folder) {
+          return folder.id == currentFolderId;
+        },
+      );
+
+      if (exists) {
+        selectedFolderId.value =
+            currentFolderId;
+        return;
+      }
+    }
+
+    if (homeController.folders.isNotEmpty) {
+      selectedFolderId.value =
+          homeController.folders.first.id;
+    }
+  }
+
+  Future<void> loadFolders() async {
+    try {
+      isLoadingFolders.value = true;
+      errorMessage.value = '';
+
+      await homeController.loadFolders();
+
+      final int? currentFolderId =
+          selectedFolderId.value;
+
+      final bool selectedFolderExists =
+          currentFolderId != null &&
+              homeController.folders.any(
+                    (FolderEntity folder) {
+                  return folder.id ==
+                      currentFolderId;
+                },
+              );
+
+      if (!selectedFolderExists &&
+          homeController.folders.isNotEmpty) {
+        selectedFolderId.value =
+            homeController.folders.first.id;
+      }
+    } catch (error) {
+      errorMessage.value =
+          _cleanError(error);
+    } finally {
+      isLoadingFolders.value = false;
+    }
+  }
+
+  void selectFolder(int folderId) {
+    final bool folderExists =
+    homeController.folders.any(
+          (FolderEntity folder) {
+        return folder.id == folderId;
+      },
+    );
+
+    if (!folderExists) {
+      errorMessage.value =
+      'The selected folder is unavailable.';
+      return;
+    }
+
+    selectedFolderId.value = folderId;
+    errorMessage.value = '';
+  }
+
+  Future<void> takePhoto() async {
+    try {
+      errorMessage.value = '';
+
+      final XFile? photo =
+      await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice:
+        CameraDevice.rear,
+        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+      );
+
+      if (photo == null) {
+        return;
+      }
+
+      selectedImages.add(
+        NoteDraftImage(
+          file: photo,
+          blockId: _uuid.v4(),
+        ),
+      );
+    } catch (error) {
+      errorMessage.value =
+      'Could not open the camera. '
+          '${_cleanError(error)}';
+    }
+  }
+
+  Future<void> choosePhotos() async {
+    try {
+      errorMessage.value = '';
+
+      final List<XFile> images =
+      await _imagePicker.pickMultiImage(
+        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
+      );
+
+      if (images.isEmpty) {
+        return;
+      }
+
+      final List<NoteDraftImage> newImages =
+      images.map(
+            (XFile image) {
+          return NoteDraftImage(
+            file: image,
+            blockId: _uuid.v4(),
+          );
+        },
+      ).toList(
+        growable: false,
+      );
+
+      selectedImages.addAll(newImages);
+    } catch (error) {
+      errorMessage.value =
+      'Could not open the photo library. '
+          '${_cleanError(error)}';
+    }
+  }
+
+  void removeImage(
+      NoteDraftImage image,
+      ) {
+    selectedImages.removeWhere(
+          (NoteDraftImage currentImage) {
+        return currentImage.blockId ==
+            image.blockId;
+      },
+    );
+
+    _uploadedBlockIds.remove(
+      image.blockId,
+    );
+  }
+
+  /*
+   * This is the method called by your Create Note button.
+   *
+   * Order:
+   * 1. Create note header
+   * 2. Save note content
+   * 3. Upload camera/gallery images
+   * 4. Refresh home
+   * 5. Open Note Editor
+   */
+  Future<void> createNote() async {
+    FocusManager.instance.primaryFocus
+        ?.unfocus();
+
+    final String title =
+    titleController.text.trim();
+
+    final String statement =
+    statementController.text.trim();
+
+    final int? folderId =
+        selectedFolderId.value;
+
+    final String? validationError =
+    _validate(
+      folderId: folderId,
+      title: title,
+    );
+
+    if (validationError != null) {
+      errorMessage.value =
+          validationError;
+      return;
+    }
+
+    try {
+      isSaving.value = true;
+      errorMessage.value = '';
+
+      /*
+       * Create the note header first and receive
+       * the newly created note ID.
+       */
+      final int noteId =
+          _createdNoteId ??
+              await noteRepository.saveNote(
+                noteId: 0,
+                folderId: folderId!,
+                title: title,
+              );
+
+      _createdNoteId = noteId;
+
+      /*
+       * Convert statement and images into content blocks.
+       */
+      final List<Map<String, dynamic>>
+      contentBlocks =
+      _buildContentBlocks(
+        statement: statement,
+      );
+
+      /*
+       * SAVE CONTENT METHOD GOES HERE.
+       *
+       * Send contentBlocks directly as a List.
+       * Do not use jsonEncode(contentBlocks).
+       */
+      await noteRepository.saveContent(
+        id: noteId,
+        title: title,
+        content: contentBlocks,
+      );
+
+      /*
+       * Upload images after the content structure
+       * has been saved.
+       */
+      final List<NoteDraftImage> imageSnapshot =
+      selectedImages.toList(
+        growable: false,
+      );
+
+      for (
+      int index = 0;
+      index < imageSnapshot.length;
+      index++
+      ) {
+        final NoteDraftImage image =
+        imageSnapshot[index];
+
+        if (_uploadedBlockIds.contains(
+          image.blockId,
+        )) {
+          continue;
+        }
+
+        await noteRepository.uploadAttachment(
+          noteId: noteId,
+          filePath: image.file.path,
+          blockId: image.blockId,
+          displayOrder: index + 1,
+        );
+
+        _uploadedBlockIds.add(
+          image.blockId,
+        );
+      }
+
+      homeController.selectedFolderId.value =
+          folderId;
+
+      await homeController.loadAll();
+
+      Get.offNamed(
+        AppRoutes.noteEditor,
+        arguments: noteId,
+      );
+
+      Get.snackbar(
+        'Note created',
+        'Your note was created successfully.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (error) {
+      errorMessage.value =
+          _cleanError(error);
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  List<Map<String, dynamic>>
+  _buildContentBlocks({
+    required String statement,
+  }) {
+    final List<Map<String, dynamic>> blocks =
+    <Map<String, dynamic>>[];
+
+    int displayOrder = 0;
+
+    if (statement.isNotEmpty) {
+      displayOrder++;
+
+      blocks.add(
+        <String, dynamic>{
+          'id': _uuid.v4(),
+          'blockId': _uuid.v4(),
+          'type': 'text',
+          'text': statement,
+          'displayOrder': displayOrder,
+        },
+      );
+    }
+
+    final List<NoteDraftImage> imageSnapshot =
+    selectedImages.toList(
+      growable: false,
+    );
+
+    for (final NoteDraftImage image
+    in imageSnapshot) {
+      displayOrder++;
+
+      blocks.add(
+        <String, dynamic>{
+          'id': image.blockId,
+          'blockId': image.blockId,
+          'type': 'attachment',
+          'attachmentType': 'image',
+          'displayOrder': displayOrder,
+        },
+      );
+    }
+
+    return blocks;
+  }
+
+  String? _validate({
+    required int? folderId,
+    required String title,
+  }) {
+    if (folderId == null) {
+      return 'Please choose a folder.';
+    }
+
+    final bool folderExists =
+    homeController.folders.any(
+          (FolderEntity folder) {
+        return folder.id == folderId;
+      },
+    );
+
+    if (!folderExists) {
+      return 'The selected folder no longer exists.';
+    }
+
+    if (title.isEmpty) {
+      return 'Please enter a note title.';
+    }
+
+    if (title.length > 250) {
+      return 'The note title cannot exceed 250 characters.';
+    }
+
+    return null;
+  }
+
+  String _cleanError(
+      Object error,
+      ) {
+    return error
+        .toString()
+        .replaceFirst(
+      'ApiException: ',
+      '',
+    )
+        .replaceFirst(
+      'Exception: ',
+      '',
+    )
+        .trim();
+  }
+
+  @override
+  void onClose() {
+    titleController.dispose();
+    statementController.dispose();
+
+    selectedImages.clear();
+    _uploadedBlockIds.clear();
+
+    super.onClose();
+  }
+}
