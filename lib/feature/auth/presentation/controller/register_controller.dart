@@ -12,6 +12,7 @@ class RegisterController extends GetxController {
     required this.authRepository,
   });
 
+
   final TextEditingController fullNameController =
   TextEditingController();
 

@@ -86,12 +86,21 @@ abstract final class AppPages {
       page: () => const NoteEditorView(),
       binding: NoteEditorBinding(),
     ),
-
+    GetPage<dynamic>(
+      name: AppRoutes.register,
+      page: () => const RegisterView(),
+      binding: RegisterBinding(),
+    ),
     // Recycle bin
     GetPage<dynamic>(
       name: AppRoutes.recycleBin,
       page: () => const RecycleBinView(),
       binding: RecycleBinBinding(),
+    ),
+    GetPage<dynamic>(
+      name: AppRoutes.register,
+      page: () => const RegisterView(),
+      binding: RegisterBinding(),
     ),
   ];
 }
