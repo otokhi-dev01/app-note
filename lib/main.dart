@@ -10,7 +10,7 @@ import 'feature/settings/presentation/controllers/settings_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // code update
+  // code update at 20.07.26 by nona
   await GetStorage.init();
 
   Get.put<SettingsController>(
