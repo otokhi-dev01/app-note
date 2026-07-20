@@ -6,7 +6,6 @@ class FolderEntity {
   final String colorValue;
   final int sortOrder;
   final int noteCount;
-
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
@@ -24,52 +23,55 @@ class FolderEntity {
     this.deletedAt,
   });
 
-  bool get isDeleted {
-    return deletedAt != null;
-  }
+  bool get isDeleted => deletedAt != null;
 
-  factory FolderEntity.fromJson(Map<String, dynamic> json) {
+  factory FolderEntity.fromJson(
+      Map<String, dynamic> json,
+      ) {
     return FolderEntity(
       id: _toInt(
-        _readValue(json, const <String>['FolderId', 'folderId', 'Id', 'id']),
+        json['FolderId'] ??
+            json['folderId'] ??
+            json['Id'] ??
+            json['id'],
       ),
       userId:
-          _readValue(json, const <String>['UserId', 'userId'])?.toString() ??
+      json['UserId']?.toString() ??
+          json['userId']?.toString() ??
           '',
       name:
-          _readValue(json, const <String>[
-            'FolderName',
-            'folderName',
-            'Name',
-            'name',
-          ])?.toString() ??
+      json['FolderName']?.toString() ??
+          json['folderName']?.toString() ??
+          json['Name']?.toString() ??
+          json['name']?.toString() ??
           '',
       iconName:
-          _readValue(json, const <String>[
-            'IconName',
-            'iconName',
-          ])?.toString() ??
+      json['IconName']?.toString() ??
+          json['iconName']?.toString() ??
           'folder',
       colorValue:
-          _readValue(json, const <String>[
-            'ColorValue',
-            'colorValue',
-          ])?.toString() ??
+      json['ColorValue']?.toString() ??
+          json['colorValue']?.toString() ??
           '#2196F3',
       sortOrder: _toInt(
-        _readValue(json, const <String>['SortOrder', 'sortOrder']),
+        json['SortOrder'] ??
+            json['sortOrder'],
       ),
       noteCount: _toInt(
-        _readValue(json, const <String>['NoteCount', 'noteCount']),
+        json['NoteCount'] ??
+            json['noteCount'],
       ),
       createdAt: _toDateTime(
-        _readValue(json, const <String>['CreatedAt', 'createdAt']),
+        json['CreatedAt'] ??
+            json['createdAt'],
       ),
       updatedAt: _toDateTime(
-        _readValue(json, const <String>['UpdatedAt', 'updatedAt']),
+        json['UpdatedAt'] ??
+            json['updatedAt'],
       ),
       deletedAt: _toDateTime(
-        _readValue(json, const <String>['DeletedAt', 'deletedAt']),
+        json['DeletedAt'] ??
+            json['deletedAt'],
       ),
     );
   }
@@ -97,31 +99,18 @@ class FolderEntity {
       noteCount: noteCount ?? this.noteCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: clearDeletedAt ? null : deletedAt ?? this.deletedAt,
+      deletedAt:
+      clearDeletedAt
+          ? null
+          : deletedAt ?? this.deletedAt,
     );
   }
 
-  static dynamic _readValue(Map<String, dynamic> json, List<String> keys) {
-    for (final String key in keys) {
-      if (json.containsKey(key)) {
-        return json[key];
-      }
-    }
-
-    for (final MapEntry<String, dynamic> entry in json.entries) {
-      final String currentKey = entry.key.toLowerCase();
-
-      for (final String key in keys) {
-        if (currentKey == key.toLowerCase()) {
-          return entry.value;
-        }
-      }
-    }
-
-    return null;
-  }
-
   static int _toInt(dynamic value) {
+    if (value == null) {
+      return 0;
+    }
+
     if (value is int) {
       return value;
     }
@@ -130,7 +119,7 @@ class FolderEntity {
       return value.toInt();
     }
 
-    return int.tryParse(value?.toString().trim() ?? '') ?? 0;
+    return int.tryParse(value.toString()) ?? 0;
   }
 
   static DateTime? _toDateTime(dynamic value) {
@@ -138,13 +127,10 @@ class FolderEntity {
       return null;
     }
 
-    if (value is DateTime) {
-      return value;
-    }
-
     final String text = value.toString().trim();
 
-    if (text.isEmpty || text.toLowerCase() == 'null') {
+    if (text.isEmpty ||
+        text.toLowerCase() == 'null') {
       return null;
     }
 

@@ -44,6 +44,8 @@ abstract final class ApiEndpoints {
   static const String updateNoteState =
       '/api/note/update-state';
 
+  static String get folderDeleteRestore => 'api/folder/delete-restore';
+
   static String noteDetail(int noteId) {
     return '/api/note/$noteId';
   }

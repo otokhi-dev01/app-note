@@ -1,64 +1,37 @@
 import 'package:get/get.dart';
-
+import 'package:note_app/feature/notes/presentation/controllers/home_controller.dart';
 import '../../../folders/domain/entities/folder_entity.dart';
+import '../../../folders/domain/repositories/folder_repository.dart';
 import '../../../notes/domain/entities/note_entity.dart';
-import '../../../notes/presentation/controllers/home_controller.dart';
+import '../../../notes/domain/repositories/note_repository.dart';
+
 
 class RecycleBinController extends GetxController {
-  final HomeController homeController;
+  final FolderRepository folderRepository;
+  final NoteRepository noteRepository;
 
-  RecycleBinController({required this.homeController});
+  RecycleBinController({
+    required this.folderRepository,
+    required this.noteRepository, required HomeController homeController,
+  });
+
+  final RxList<FolderEntity> deletedFolders =
+      <FolderEntity>[].obs;
+
+  final RxList<NoteEntity> archivedNotes =
+      <NoteEntity>[].obs;
 
   final RxBool isRefreshing = false.obs;
-
-  final RxnInt restoringFolderId = RxnInt();
-
-  final RxnInt restoringNoteId = RxnInt();
-
   final RxString errorMessage = ''.obs;
 
-  List<FolderEntity> get deletedFolders {
-    final List<FolderEntity> result = homeController.deletedFolders.toList(
-      growable: false,
-    );
-
-    result.sort((FolderEntity first, FolderEntity second) {
-      final DateTime firstDate =
-          first.deletedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-      final DateTime secondDate =
-          second.deletedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-      return secondDate.compareTo(firstDate);
-    });
-
-    return result;
-  }
-
-  List<NoteEntity> get archivedNotes {
-    return homeController.notes
-        .where((NoteEntity note) {
-          return note.isArchived;
-        })
-        .toList(growable: false);
-  }
-
   bool get isEmpty {
-    return deletedFolders.isEmpty && archivedNotes.isEmpty;
-  }
-
-  bool isRestoringFolder(int folderId) {
-    return restoringFolderId.value == folderId;
-  }
-
-  bool isRestoringNote(int noteId) {
-    return restoringNoteId.value == noteId;
+    return deletedFolders.isEmpty &&
+        archivedNotes.isEmpty;
   }
 
   @override
-  void onReady() {
-    super.onReady();
-
+  void onInit() {
+    super.onInit();
     refreshData();
   }
 
@@ -71,13 +44,39 @@ class RecycleBinController extends GetxController {
       isRefreshing.value = true;
       errorMessage.value = '';
 
-      /*
-       * Both calls read fresh data from the API.
-       */
-      await Future.wait<void>(<Future<void>>[
-        homeController.loadFolders(),
-        homeController.loadNotes(),
-      ]);
+      final List<FolderEntity> allFolders =
+      await folderRepository.getFolders();
+
+      final List<NoteEntity> allNotes =
+      await noteRepository.getNotes();
+
+      final List<FolderEntity> deleted =
+      allFolders.where((FolderEntity folder) {
+        return folder.isDeleted;
+      }).toList();
+
+      deleted.sort((
+          FolderEntity first,
+          FolderEntity second,
+          ) {
+        final DateTime firstDate =
+            first.deletedAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+
+        final DateTime secondDate =
+            second.deletedAt ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+
+        return secondDate.compareTo(firstDate);
+      });
+
+      final List<NoteEntity> archived =
+      allNotes.where((NoteEntity note) {
+        return note.isArchived;
+      }).toList();
+
+      deletedFolders.assignAll(deleted);
+      archivedNotes.assignAll(archived);
     } catch (error) {
       errorMessage.value = _cleanError(error);
     } finally {
@@ -85,47 +84,51 @@ class RecycleBinController extends GetxController {
     }
   }
 
-  Future<void> restoreFolder(FolderEntity folder) async {
-    if (restoringFolderId.value != null) {
-      return;
-    }
-
+  Future<void> restoreFolder(
+      FolderEntity folder,
+      ) async {
     try {
-      restoringFolderId.value = folder.id;
-
-      errorMessage.value = '';
-
-      await homeController.deleteOrRestoreFolder(
-        folderId: folder.id,
+      await folderRepository.deleteOrRestoreFolder(
+        id: folder.id,
         isDelete: false,
       );
 
-      await homeController.loadFolders();
+      deletedFolders.removeWhere(
+            (FolderEntity item) => item.id == folder.id,
+      );
+
+      await refreshData();
+
+      Get.snackbar(
+        'Folder restored',
+        '${_folderName(folder)} was restored successfully.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (error) {
-      errorMessage.value = _cleanError(error);
-    } finally {
-      restoringFolderId.value = null;
+      Get.snackbar(
+        'Restore failed',
+        _cleanError(error),
+        snackPosition: SnackPosition.BOTTOM,
+      );
     }
   }
 
-  Future<void> restoreNote(NoteEntity note) async {
-    if (restoringNoteId.value != null) {
-      return;
-    }
-
+  Future<void> restoreNote(
+      NoteEntity note,
+      ) async {
     try {
-      restoringNoteId.value = note.id;
-
-      errorMessage.value = '';
-
-      await homeController.noteRepository.updateState(
+      await noteRepository.updateState(
         noteId: note.id,
         isPinned: note.isPinned,
         isArchived: false,
         isLocked: note.isLocked,
       );
 
-      await homeController.loadNotes();
+      archivedNotes.removeWhere(
+            (NoteEntity item) => item.id == note.id,
+      );
+
+      await refreshData();
 
       Get.snackbar(
         'Note restored',
@@ -133,23 +136,24 @@ class RecycleBinController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (error) {
-      errorMessage.value = _cleanError(error);
-
       Get.snackbar(
-        'Restore note failed',
-        errorMessage.value,
+        'Restore failed',
+        _cleanError(error),
         snackPosition: SnackPosition.BOTTOM,
       );
-    } finally {
-      restoringNoteId.value = null;
     }
+  }
+
+  String _folderName(FolderEntity folder) {
+    final String name = folder.name.trim();
+
+    return name.isEmpty ? 'The folder' : name;
   }
 
   String _cleanError(Object error) {
     return error
         .toString()
         .replaceFirst('ApiException: ', '')
-        .replaceFirst('StateError: ', '')
         .replaceFirst('Exception: ', '')
         .trim();
   }

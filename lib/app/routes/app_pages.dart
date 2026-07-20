@@ -102,5 +102,10 @@ abstract final class AppPages {
       page: () => const RegisterView(),
       binding: RegisterBinding(),
     ),
+    GetPage(
+      name: AppRoutes.recycleBin,
+      page: () => const RecycleBinView(),
+      binding: RecycleBinBinding(),
+    ),
   ];
 }
