@@ -1,15 +1,34 @@
 abstract final class ApiEndpoints {
-  // Authentication
-  static const String login = '/api/auth/login';
-  static const String register = '/api/auth/register';
+  // ===========================================================================
+  // AUTHENTICATION
+  // ===========================================================================
 
-  // Folders
-  static const String folders = '/api/folder';
-  static const String saveFolder = '/api/folder/save';
+  static const String login =
+      '/api/auth/login';
+
+  static const String register =
+      '/api/auth/register';
+
+  // ===========================================================================
+  // FOLDERS
+  // ===========================================================================
+
+  static const String folders =
+      '/api/folder';
+
+  static const String saveFolder =
+      '/api/folder/save';
+
   static const String deleteRestoreFolder =
       '/api/folder/delete-restore';
 
-  // Notes
+  static const String deletedFolders =
+      '/api/folder/deleted';
+
+  // ===========================================================================
+  // NOTES
+  // ===========================================================================
+
   static const String notes =
       '/api/note';
 

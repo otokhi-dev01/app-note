@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:note_app/feature/main/presentation/widgets/app_liquid_background_widget.dart';
-
 import '../../../../app/routes/app_routes.dart';
 import '../../../main/presentation/controller/main_navigation_controller.dart';
 import '../../../main/presentation/widgets/main_tab_header_widget.dart';
@@ -881,9 +878,8 @@ class _FolderCard extends StatelessWidget {
 
             CupertinoButton(
               padding: EdgeInsets.zero,
-              minSize: 42,
               pressedOpacity: 0.55,
-              onPressed: onMore,
+              onPressed: onMore, minimumSize: Size(42, 42),
               child: Icon(
                 CupertinoIcons.ellipsis,
                 size: 22,
@@ -1296,7 +1292,7 @@ class _FolderErrorState extends StatelessWidget {
                   children: <Widget>[
                     // Icon(
                     //   CupertinoIcons
-                    //       .exclamationmark_icloud,
+                    //       .exclamation_icloud,
                     //   size: 56,
                     //   color:
                     //       colorScheme.error,
