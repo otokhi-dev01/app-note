@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:note_app/feature/main/presentation/widgets/app_liquid_background_widget.dart';
 import 'package:note_app/feature/main/presentation/widgets/main_tab_header_widget.dart';
-import '../../../../app/routes/app_routes.dart';
 import '../../../main/presentation/controller/main_navigation_controller.dart';
 import '../../../notes/presentation/controllers/home_controller.dart';
 
