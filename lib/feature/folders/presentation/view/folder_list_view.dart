@@ -1,333 +1,519 @@
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:note_app/feature/main/presentation/widgets/app_liquid_background_widget.dart';
+
 import '../../../../app/routes/app_routes.dart';
 import '../../../main/presentation/controller/main_navigation_controller.dart';
 import '../../../main/presentation/widgets/main_tab_header_widget.dart';
 import '../../../notes/presentation/controllers/home_controller.dart';
 import '../../domain/entities/folder_entity.dart';
 
-class FolderListView
-    extends GetView<HomeController> {
-  const FolderListView({
-    super.key,
-  });
+class FolderListView extends GetView<HomeController> {
+  const FolderListView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _FolderListContent(controller: controller);
+  }
+}
+
+class _FolderListContent extends StatefulWidget {
+  final HomeController controller;
+
+  const _FolderListContent({required this.controller});
+
+  @override
+  State<_FolderListContent> createState() {
+    return _FolderListContentState();
+  }
+}
+
+class _FolderListContentState extends State<_FolderListContent>
+    with SingleTickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+
+  late final Ticker _scrollTicker;
+  double _lastTickElapsedSeconds = 0.0;
+  double _scrollVelocityScale =
+      0.0; // -1.0 (scrolling up) to 1.0 (scrolling down)
+
+  bool _isAtTop = true;
+  bool _isAtBottom = false;
+  bool _canScroll = false;
+  bool _scrollStateUpdateScheduled = false;
+
+  HomeController get controller {
+    return widget.controller;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollTicker = createTicker(_onScrollTick);
+
+    _scrollController.addListener(_updateScrollState);
+
+    _scheduleScrollStateUpdate();
+  }
+
+  @override
+  void dispose() {
+    _stopContinuousScroll();
+    _scrollTicker.dispose();
+
+    _scrollController
+      ..removeListener(_updateScrollState)
+      ..dispose();
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
-        const Positioned.fill(
-          child: AppLiquidBackgroundWidget(),
-        ),
+        const Positioned.fill(child: AppLiquidBackgroundWidget()),
+
         SafeArea(
           bottom: false,
           child: Column(
             children: <Widget>[
+              // Sticky header: outside the scroll view.
               Padding(
-                padding:
-                const EdgeInsets.fromLTRB(
-                  16,
-                  10,
-                  16,
-                  0,
-                ),
-                child: Obx(
-                      () {
-                    final int folderCount =
-                        controller
-                            .folders.length;
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Obx(() {
+                  final int folderCount = controller.folders.length;
 
-                    final int deletedCount =
-                        controller
-                            .deletedFolders
-                            .length;
+                  final int deletedCount = controller.deletedFolders.length;
 
-                    return MainTabHeader(
-                      title: 'Folders',
-                      subtitle:
-                      '$folderCount active '
-                          '${folderCount == 1 ? 'folder' : 'folders'}',
-                      trailing:
-                      MainTabHeaderAction(
-                        tooltip:
-                        'Recently Deleted',
-                        icon: deletedCount > 0
-                            ? CupertinoIcons
-                            .delete_solid
-                            : CupertinoIcons
-                            .delete,
-                        onPressed: () {
-                          _openRecentlyDeleted();
-                        },
-                      ),
-                      onRefresh:
-                      controller.loadFolders,
-                      onAdd: () {
-                        _openCreateFolder();
-                      },
-                      addIcon: Icons
-                          .create_new_folder_outlined,
-                    );
-                  },
-                ),
+                  return MainTabHeader(
+                    title: 'Folders',
+                    subtitle:
+                        '$folderCount active '
+                        '${folderCount == 1 ? 'folder' : 'folders'}',
+                    trailing: MainTabHeaderAction(
+                      tooltip: 'Recently Deleted',
+                      icon: deletedCount > 0
+                          ? CupertinoIcons.delete_solid
+                          : CupertinoIcons.delete,
+                      onPressed: _openRecentlyDeleted,
+                    ),
+                    onRefresh: controller.loadFolders,
+                    onAdd: _openCreateFolder,
+                    addIcon: CupertinoIcons.folder_badge_plus,
+                  );
+                }),
               ),
-              const SizedBox(height: 14),
+
+              const SizedBox(height: 10),
+
               Expanded(
-                child: Obx(
-                      () => _buildContent(
-                    context,
-                  ),
-                ),
+                child: Obx(() {
+                  return _buildContent(context);
+                }),
               ),
             ],
+          ),
+        ),
+
+        Positioned(
+          right: 14,
+          bottom: 108,
+          child: SafeArea(
+            top: false,
+            child: _ScrollEdgeControls(
+              visible: _canScroll,
+              isAtTop: _isAtTop,
+              isAtBottom: _isAtBottom,
+              onVelocityChanged: (double scale) {
+                if (scale == 0.0) {
+                  _stopContinuousScroll();
+                } else {
+                  _startContinuousScroll(velocityScale: scale);
+                }
+              },
+              onTopTap: () {
+                _scrollToEdge(goToBottom: false);
+              },
+              onBottomTap: () {
+                _scrollToEdge(goToBottom: true);
+              },
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildContent(
-      BuildContext context,
-      ) {
-    final List<FolderEntity>
-    folderSnapshot =
-    List<FolderEntity>.unmodifiable(
+  Widget _buildContent(BuildContext context) {
+    final List<FolderEntity> folderSnapshot = List<FolderEntity>.unmodifiable(
       controller.folders.toList(),
     );
 
-    if (controller
-        .isFoldersLoading.value &&
-        folderSnapshot.isEmpty) {
+    final bool isLoading = controller.isFoldersLoading.value;
+
+    final String errorMessage = controller.folderErrorMessage.value.trim();
+
+    final int? selectedFolderId = controller.selectedFolderId.value;
+
+    _scheduleScrollStateUpdate();
+
+    if (isLoading && folderSnapshot.isEmpty) {
       return const _FolderLoadingState();
     }
 
-    if (controller.hasFolderError &&
-        folderSnapshot.isEmpty) {
+    if (controller.hasFolderError && folderSnapshot.isEmpty) {
       return _FolderErrorState(
-        message: controller
-            .folderErrorMessage.value,
-        onRetry:
-        controller.loadFolders,
+        message: errorMessage,
+        onRetry: controller.loadFolders,
       );
     }
 
-    final int totalNotes =
-    controller.notes.isNotEmpty
+    final int totalNotes = controller.notes.isNotEmpty
         ? controller.notes.length
-        : folderSnapshot.fold<int>(
-      0,
-          (
-          int total,
-          FolderEntity folder,
-          ) {
-        return total +
-            folder.noteCount;
-      },
-    );
+        : folderSnapshot.fold<int>(0, (int total, FolderEntity folder) {
+            return total + folder.noteCount;
+          });
+
+    final ThemeData theme = Theme.of(context);
+
+    final Color primaryColor = theme.colorScheme.primary;
 
     return RefreshIndicator.adaptive(
-      onRefresh:
-      controller.loadFolders,
-      child: ListView(
-        physics:
-        const AlwaysScrollableScrollPhysics(
-          parent:
-          BouncingScrollPhysics(),
+      onRefresh: controller.loadFolders,
+      displacement: 24,
+      child: CustomScrollView(
+        controller: _scrollController,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
         ),
-        padding:
-        const EdgeInsets.fromLTRB(
-          16,
-          4,
-          16,
-          120,
-        ),
-        children: <Widget>[
-          _FolderCard(
-            title: 'All Notes',
-            subtitle:
-            '$totalNotes '
-                '${totalNotes == 1 ? 'note' : 'notes'}',
-            noteCount: totalNotes,
-            color: Theme.of(context)
-                .colorScheme.primary,
-            icon: Icons.notes_rounded,
-            selected: controller
-                .selectedFolderId
-                .value ==
-                null,
-            onTap: () {
-              controller
-                  .selectAllNotes();
+        slivers: <Widget>[
+          const SliverToBoxAdapter(child: SizedBox(height: 4)),
 
-              _openNoteTab();
-            },
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverToBoxAdapter(
+              child: _AllNotesCard(
+                noteCount: totalNotes,
+                selected: selectedFolderId == null,
+                color: primaryColor,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+
+                  controller.selectAllNotes();
+
+                  _openNoteTab();
+                },
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 14)),
+
           if (folderSnapshot.isEmpty)
-            _EmptyFolderState(
-              onCreate:
-              _openCreateFolder,
-              onOpenDeleted:
-              _openRecentlyDeleted,
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _EmptyFolderState(
+                onCreate: _openCreateFolder,
+                onOpenDeleted: _openRecentlyDeleted,
+              ),
             )
           else
-            ...folderSnapshot.map(
-                  (FolderEntity folder) {
-                final Color folderColor =
-                _parseFolderColor(
-                  folder.colorValue,
-                  Theme.of(context)
-                      .colorScheme
-                      .primary,
-                );
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              sliver: SliverList.builder(
+                itemCount: folderSnapshot.length,
+                itemBuilder: (BuildContext context, int index) {
+                  if (index < 0 || index >= folderSnapshot.length) {
+                    return const SizedBox.shrink();
+                  }
 
-                return Padding(
-                  key: ValueKey<int>(
-                    folder.id,
-                  ),
-                  padding:
-                  const EdgeInsets.only(
-                    bottom: 12,
-                  ),
-                  child: _FolderCard(
-                    title:
-                    folder.name
-                        .trim()
-                        .isEmpty
-                        ? 'Unnamed Folder'
-                        : folder.name,
-                    subtitle:
-                    '${folder.noteCount} '
-                        '${folder.noteCount == 1 ? 'note' : 'notes'}',
-                    noteCount:
-                    folder.noteCount,
-                    color: folderColor,
-                    icon: _folderIcon(
-                      folder.iconName,
+                  final FolderEntity folder = folderSnapshot[index];
+
+                  final Color folderColor = _parseFolderColor(
+                    folder.colorValue,
+                    primaryColor,
+                  );
+
+                  final bool selected = selectedFolderId == folder.id;
+
+                  return Padding(
+                    key: ValueKey<int>(folder.id),
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _FolderCard(
+                      title: folder.name.trim().isEmpty
+                          ? 'Unnamed Folder'
+                          : folder.name.trim(),
+                      subtitle:
+                          '${folder.noteCount} '
+                          '${folder.noteCount == 1 ? 'note' : 'notes'}',
+                      noteCount: folder.noteCount,
+                      color: folderColor,
+                      icon: _folderIcon(folder.iconName),
+                      selected: selected,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+
+                        controller.selectFolder(folder.id);
+
+                        _openNoteTab();
+                      },
+                      onMore: () {
+                        _showFolderActions(context, folder);
+                      },
                     ),
-                    selected: controller
-                        .selectedFolderId
-                        .value ==
-                        folder.id,
-                    onTap: () {
-                      controller
-                          .selectFolder(
-                        folder.id,
-                      );
-
-                      _openNoteTab();
-                    },
-                    onMore: () {
-                      _showFolderActions(
-                        context,
-                        folder,
-                      );
-                    },
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 140)),
         ],
       ),
     );
   }
 
-  Future<void>
-  _openRecentlyDeleted() async {
-    await Get.toNamed(
-      AppRoutes
-          .recentlyDeletedFolders,
-    );
+  void _scheduleScrollStateUpdate() {
+    if (_scrollStateUpdateScheduled) {
+      return;
+    }
 
-    await controller.loadFolders();
+    _scrollStateUpdateScheduled = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollStateUpdateScheduled = false;
+
+      if (!mounted) {
+        return;
+      }
+
+      _updateScrollState();
+    });
   }
 
-  Future<void>
-  _openCreateFolder() async {
-    final dynamic result =
-    await Get.toNamed(
-      AppRoutes.createFolder,
+  void _updateScrollState() {
+    if (!_scrollController.hasClients) {
+      if (_canScroll || !_isAtTop || _isAtBottom) {
+        setState(() {
+          _canScroll = false;
+          _isAtTop = true;
+          _isAtBottom = false;
+        });
+      }
+
+      return;
+    }
+
+    final ScrollPosition position = _scrollController.position;
+
+    final bool canScroll =
+        position.maxScrollExtent > position.minScrollExtent + 1;
+
+    final bool atTop = position.pixels <= position.minScrollExtent + 3;
+
+    final bool atBottom = position.pixels >= position.maxScrollExtent - 3;
+
+    if (_canScroll == canScroll &&
+        _isAtTop == atTop &&
+        _isAtBottom == atBottom) {
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _canScroll = canScroll;
+      _isAtTop = atTop;
+      _isAtBottom = atBottom;
+    });
+  }
+
+  Future<void> _scrollToEdge({required bool goToBottom}) async {
+    _stopContinuousScroll();
+
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    final ScrollPosition position = _scrollController.position;
+
+    final double target = goToBottom
+        ? position.maxScrollExtent
+        : position.minScrollExtent;
+
+    final double distance = (target - _scrollController.offset).abs();
+
+    if (distance < 2) {
+      return;
+    }
+
+    HapticFeedback.selectionClick();
+
+    final int durationMilliseconds = (320 + (distance * 0.35))
+        .clamp(320, 850)
+        .round();
+
+    await _scrollController.animateTo(
+      target,
+      duration: Duration(milliseconds: durationMilliseconds),
+      curve: Curves.easeOutCubic,
     );
+  }
+
+  void _onScrollTick(Duration elapsed) {
+    if (!_scrollController.hasClients || _scrollVelocityScale == 0.0) {
+      _stopContinuousScroll();
+      return;
+    }
+
+    final double elapsedSeconds = elapsed.inMicroseconds / 1000000.0;
+    if (_lastTickElapsedSeconds == 0.0) {
+      _lastTickElapsedSeconds = elapsedSeconds;
+      return;
+    }
+
+    final double dt = elapsedSeconds - _lastTickElapsedSeconds;
+    _lastTickElapsedSeconds = elapsedSeconds;
+
+    if (dt <= 0) return;
+
+    final ScrollPosition position = _scrollController.position;
+
+    // Fluid sliding velocity up to 2200 pixels/sec depending on joystick sliding depth
+    final double maxVelocity = 2200.0;
+    final double targetVelocity = _scrollVelocityScale * maxVelocity;
+
+    final double nextOffset = (_scrollController.offset + (targetVelocity * dt))
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+
+    _scrollController.jumpTo(nextOffset);
+
+    final bool reachedEdge = _scrollVelocityScale > 0.0
+        ? nextOffset >= position.maxScrollExtent
+        : nextOffset <= position.minScrollExtent;
+
+    if (reachedEdge) {
+      // Do not kill the ticker immediately while dragging, allowing instant reversal
+      _lastTickElapsedSeconds = elapsedSeconds;
+    }
+  }
+
+  void _startContinuousScroll({required double velocityScale}) {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    _scrollVelocityScale = velocityScale;
+    _lastTickElapsedSeconds = 0.0;
+
+    if (!_scrollTicker.isActive) {
+      _scrollTicker.start();
+    }
+  }
+
+  void _stopContinuousScroll() {
+    if (_scrollTicker.isActive) {
+      _scrollTicker.stop();
+    }
+    _scrollVelocityScale = 0.0;
+    _lastTickElapsedSeconds = 0.0;
+  }
+
+  Future<void> _openRecentlyDeleted() async {
+    _stopContinuousScroll();
+
+    await Get.toNamed(AppRoutes.recentlyDeletedFolders);
+
+    await controller.loadFolders();
+
+    _scheduleScrollStateUpdate();
+  }
+
+  Future<void> _openCreateFolder() async {
+    _stopContinuousScroll();
+
+    final dynamic result = await Get.toNamed(AppRoutes.createFolder);
 
     if (result == true) {
       await controller.loadFolders();
+
+      _scheduleScrollStateUpdate();
     }
   }
 
   void _openNoteTab() {
-    if (Get.isRegistered<
-        MainNavigationController>()) {
-      Get.find<
-          MainNavigationController>()
-          .changeTab(1);
+    if (!Get.isRegistered<MainNavigationController>()) {
+      return;
     }
+
+    Get.find<MainNavigationController>().changeTab(1);
   }
 
   Future<void> _showFolderActions(
-      BuildContext context,
-      FolderEntity folder,
-      ) async {
+    BuildContext context,
+    FolderEntity folder,
+  ) async {
+    HapticFeedback.mediumImpact();
+
     await showCupertinoModalPopup<void>(
       context: context,
-      builder: (
-          BuildContext sheetContext,
-          ) {
+      builder: (BuildContext sheetContext) {
+        final String folderName = folder.name.trim().isEmpty
+            ? 'Unnamed Folder'
+            : folder.name.trim();
+
         return CupertinoActionSheet(
-          title: Text(
-            folder.name
-                .trim()
-                .isEmpty
-                ? 'Unnamed Folder'
-                : folder.name,
-          ),
-          message: const Text(
-            'Choose an action for this folder.',
-          ),
+          title: Text(folderName),
+          message: const Text('Choose an action for this folder.'),
           actions: <Widget>[
             CupertinoActionSheetAction(
               onPressed: () {
-                Navigator.of(
-                  sheetContext,
-                ).pop();
+                Navigator.of(sheetContext).pop();
 
-                _showRenameDialog(
-                  context,
-                  folder,
-                );
+                _showRenameDialog(context, folder);
               },
-              child: const Text(
-                'Rename Folder',
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(CupertinoIcons.pencil, size: 20),
+                  SizedBox(width: 9),
+                  Text('Rename Folder'),
+                ],
               ),
             ),
             CupertinoActionSheetAction(
               isDestructiveAction: true,
               onPressed: () {
-                Navigator.of(
-                  sheetContext,
-                ).pop();
+                Navigator.of(sheetContext).pop();
 
-                _confirmDelete(
-                  context,
-                  folder,
-                );
+                _confirmDelete(context, folder);
               },
-              child: const Text(
-                'Move to Recently Deleted',
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(CupertinoIcons.delete, size: 20),
+                  SizedBox(width: 9),
+                  Text('Move to Recently Deleted'),
+                ],
               ),
             ),
           ],
-          cancelButton:
-          CupertinoActionSheetAction(
+          cancelButton: CupertinoActionSheetAction(
             onPressed: () {
-              Navigator.of(
-                sheetContext,
-              ).pop();
+              Navigator.of(sheetContext).pop();
             },
-            child: const Text(
-              'Cancel',
-            ),
+            child: const Text('Cancel'),
           ),
         );
       },
@@ -335,80 +521,57 @@ class FolderListView
   }
 
   Future<void> _showRenameDialog(
-      BuildContext context,
-      FolderEntity folder,
-      ) async {
-    final TextEditingController
-    textController =
-    TextEditingController(
+    BuildContext context,
+    FolderEntity folder,
+  ) async {
+    final TextEditingController textController = TextEditingController(
       text: folder.name,
     );
 
-    final String? newName =
-    await showCupertinoDialog<
-        String>(
+    final String? newName = await showCupertinoDialog<String>(
       context: context,
-      builder: (
-          BuildContext dialogContext,
-          ) {
+      builder: (BuildContext dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text(
-            'Rename Folder',
-          ),
+          title: const Text('Rename Folder'),
           content: Padding(
-            padding:
-            const EdgeInsets.only(
-              top: 14,
-            ),
+            padding: const EdgeInsets.only(top: 14),
             child: CupertinoTextField(
-              controller:
-              textController,
+              controller: textController,
               autofocus: true,
-              placeholder:
-              'Folder name',
-              textInputAction:
-              TextInputAction.done,
-              onSubmitted: (
-                  String value,
-                  ) {
-                final String name =
-                value.trim();
+              clearButtonMode: OverlayVisibilityMode.editing,
+              placeholder: 'Folder name',
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (String value) {
+                final String name = value.trim();
 
-                if (name.isNotEmpty) {
-                  Navigator.of(
-                    dialogContext,
-                  ).pop(name);
+                if (name.isEmpty) {
+                  return;
                 }
+
+                Navigator.of(dialogContext).pop(name);
               },
             ),
           ),
           actions: <Widget>[
             CupertinoDialogAction(
               onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop();
+                Navigator.of(dialogContext).pop();
               },
-              child: const Text(
-                'Cancel',
-              ),
+              child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () {
-                final String name =
-                textController.text
-                    .trim();
+                final String name = textController.text.trim();
 
-                if (name.isNotEmpty) {
-                  Navigator.of(
-                    dialogContext,
-                  ).pop(name);
+                if (name.isEmpty) {
+                  return;
                 }
+
+                Navigator.of(dialogContext).pop(name);
               },
-              child: const Text(
-                'Save',
-              ),
+              child: const Text('Save'),
             ),
           ],
         );
@@ -417,62 +580,43 @@ class FolderListView
 
     textController.dispose();
 
-    if (newName == null ||
-        newName.trim().isEmpty) {
+    if (newName == null || newName.trim().isEmpty) {
       return;
     }
 
-    await controller.updateFolder(
-      folder: folder,
-      name: newName,
-    );
+    await controller.updateFolder(folder: folder, name: newName.trim());
+
+    _scheduleScrollStateUpdate();
   }
 
-  Future<void> _confirmDelete(
-      BuildContext context,
-      FolderEntity folder,
-      ) async {
-    final String folderName =
-    folder.name.trim().isEmpty
+  Future<void> _confirmDelete(BuildContext context, FolderEntity folder) async {
+    final String folderName = folder.name.trim().isEmpty
         ? 'Unnamed Folder'
         : folder.name.trim();
 
-    final bool? confirmed =
-    await showCupertinoDialog<bool>(
+    final bool? confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (
-          BuildContext dialogContext,
-          ) {
+      builder: (BuildContext dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text(
-            'Delete Folder?',
-          ),
+          title: const Text('Delete Folder?'),
           content: Text(
-            '"$folderName" will be moved '
-                'to Recently Deleted. You can '
-                'restore it later.',
+            '"$folderName" will be moved to '
+            'Recently Deleted. You can restore '
+            'it later.',
           ),
           actions: <Widget>[
             CupertinoDialogAction(
               onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(false);
+                Navigator.of(dialogContext).pop(false);
               },
-              child: const Text(
-                'Cancel',
-              ),
+              child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDestructiveAction: true,
               onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(true);
+                Navigator.of(dialogContext).pop(true);
               },
-              child: const Text(
-                'Delete',
-              ),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -483,16 +627,186 @@ class FolderListView
       return;
     }
 
-    await controller
-        .deleteOrRestoreFolder(
-      folderId: folder.id,
-      isDelete: true,
+    await controller.deleteOrRestoreFolder(folderId: folder.id, isDelete: true);
+
+    _scheduleScrollStateUpdate();
+  }
+}
+
+// =============================================================================
+// REUSABLE LIQUID GLASS CONTAINER
+// =============================================================================
+
+class _GlassContainer extends StatelessWidget {
+  final Widget child;
+  final Color accentColor;
+  final bool selected;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  const _GlassContainer({
+    required this.child,
+    required this.accentColor,
+    required this.selected,
+    this.onTap,
+    this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    final Color baseBgColor = isDark
+        ? const Color(0xFF15181E).withValues(alpha: 0.65)
+        : Colors.white.withValues(alpha: 0.70);
+
+    final Color activeBgColor = selected
+        ? accentColor.withValues(alpha: isDark ? 0.12 : 0.08)
+        : baseBgColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: selected
+                ? accentColor.withValues(alpha: isDark ? 0.22 : 0.15)
+                : Colors.black.withValues(alpha: isDark ? 0.18 : 0.05),
+            blurRadius: selected ? 28 : 20,
+            spreadRadius: selected ? -4 : -8,
+            offset: const Offset(0, 10),
+          ),
+          if (selected)
+            BoxShadow(
+              color: accentColor.withValues(alpha: 0.08),
+              blurRadius: 12,
+              spreadRadius: -2,
+            ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(26),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              borderRadius: BorderRadius.circular(26),
+              splashColor: accentColor.withValues(alpha: 0.08),
+              highlightColor: accentColor.withValues(alpha: 0.04),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.all(17),
+                decoration: BoxDecoration(
+                  color: activeBgColor,
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(
+                    color: selected
+                        ? accentColor.withValues(alpha: 0.55)
+                        : (isDark
+                              ? Colors.white.withValues(alpha: 0.09)
+                              : Colors.black.withValues(alpha: 0.07)),
+                    width: selected ? 1.4 : 1.0,
+                  ),
+                ),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class _FolderCard
-    extends StatelessWidget {
+// =============================================================================
+// ALL NOTES CARD
+// =============================================================================
+
+class _AllNotesCard extends StatelessWidget {
+  final int noteCount;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _AllNotesCard({
+    required this.noteCount,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    return _GlassContainer(
+      accentColor: color,
+      selected: selected,
+      onTap: onTap,
+      child: Row(
+        children: <Widget>[
+          _FolderIconSurface(
+            color: color,
+            icon: CupertinoIcons.doc_text_fill,
+            selected: selected,
+          ),
+
+          const SizedBox(width: 14),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'All Notes',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.25,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$noteCount '
+                  '${noteCount == 1 ? 'note' : 'notes'}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          _CountBadge(count: noteCount, color: color),
+
+          const SizedBox(width: 8),
+
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 18,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// FOLDER CARD
+// =============================================================================
+
+class _FolderCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final int noteCount;
@@ -500,7 +814,7 @@ class _FolderCard
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback? onMore;
+  final VoidCallback onMore;
 
   const _FolderCard({
     required this.title,
@@ -510,179 +824,138 @@ class _FolderCard
     required this.icon,
     required this.selected,
     required this.onTap,
-    this.onMore,
+    required this.onMore,
   });
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    final bool isDark =
-        theme.brightness ==
-            Brightness.dark;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$title, $subtitle',
+      hint: 'Tap to open. Hold for folder actions.',
+      child: _GlassContainer(
+        accentColor: color,
+        selected: selected,
         onTap: onTap,
-        borderRadius:
-        BorderRadius.circular(24),
-        child: Container(
-          padding:
-          const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(
-              0xFF1B1D22,
-            )
-                : Colors.white,
-            borderRadius:
-            BorderRadius.circular(24),
-            border: Border.all(
-              color: selected
-                  ? color.withValues(
-                alpha: 0.55,
-              )
-                  : colorScheme
-                  .outlineVariant
-                  .withValues(
-                alpha: isDark
-                    ? 0.20
-                    : 0.36,
+        onLongPress: onMore,
+        child: Row(
+          children: <Widget>[
+            _FolderIconSurface(color: color, icon: icon, selected: selected),
+
+            const SizedBox(width: 14),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.25,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: Colors.black
-                    .withValues(
-                  alpha: isDark
-                      ? 0.14
-                      : 0.045,
-                ),
-                blurRadius: 22,
-                offset:
-                const Offset(0, 8),
+
+            _CountBadge(count: noteCount, color: color),
+
+            const SizedBox(width: 2),
+
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minSize: 42,
+              pressedOpacity: 0.55,
+              onPressed: onMore,
+              child: Icon(
+                CupertinoIcons.ellipsis,
+                size: 22,
+                color: colorScheme.onSurfaceVariant,
               ),
-            ],
-          ),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: color
-                      .withValues(
-                    alpha: 0.13,
-                  ),
-                  borderRadius:
-                  BorderRadius.circular(
-                    17,
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 27,
-                ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FolderIconSurface extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final bool selected;
+
+  const _FolderIconSurface({
+    required this.color,
+    required this.icon,
+    required this.selected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      width: 54,
+      height: 54,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: selected ? 0.18 : 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: color.withValues(alpha: selected ? 0.30 : 0.14),
+        ),
+      ),
+      child: Icon(icon, color: color, size: selected ? 29 : 27),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  final int count;
+  final Color color;
+
+  const _CountBadge({required this.count, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final String value = count > 999 ? '999+' : count.toString();
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.13)),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 34, minHeight: 28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          child: Center(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w800,
+                height: 1,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment
-                      .start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow:
-                      TextOverflow
-                          .ellipsis,
-                      style: theme
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
-                        fontWeight:
-                        FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      subtitle,
-                      style: theme
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(
-                        color: colorScheme
-                            .onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                constraints:
-                const BoxConstraints(
-                  minWidth: 34,
-                ),
-                padding:
-                const EdgeInsets
-                    .symmetric(
-                  horizontal: 9,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: color
-                      .withValues(
-                    alpha: 0.10,
-                  ),
-                  borderRadius:
-                  BorderRadius.circular(
-                    20,
-                  ),
-                ),
-                child: Text(
-                  noteCount.toString(),
-                  textAlign:
-                  TextAlign.center,
-                  style: theme
-                      .textTheme.labelMedium
-                      ?.copyWith(
-                    color: color,
-                    fontWeight:
-                    FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (onMore != null) ...<
-                  Widget>[
-                const SizedBox(width: 4),
-                CupertinoButton(
-                  padding:
-                  EdgeInsets.zero,
-                  onPressed: onMore,
-                  child: Icon(
-                    Icons
-                        .more_horiz_rounded,
-                    color: colorScheme
-                        .onSurfaceVariant,
-                  ),
-                ),
-              ] else ...<Widget>[
-                const SizedBox(width: 8),
-                Icon(
-                  Icons
-                      .chevron_right_rounded,
-                  color: colorScheme
-                      .onSurfaceVariant,
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -690,8 +963,225 @@ class _FolderCard
   }
 }
 
-class _EmptyFolderState
-    extends StatelessWidget {
+// =============================================================================
+// HOLD-TO-SCROLL CONTROLS (SMOOTH LIQUID JOYSTICK STRIP)
+// =============================================================================
+
+class _ScrollEdgeControls extends StatefulWidget {
+  final bool visible;
+  final bool isAtTop;
+  final bool isAtBottom;
+  final ValueChanged<double> onVelocityChanged;
+  final VoidCallback onTopTap;
+  final VoidCallback onBottomTap;
+
+  const _ScrollEdgeControls({
+    required this.visible,
+    required this.isAtTop,
+    required this.isAtBottom,
+    required this.onVelocityChanged,
+    required this.onTopTap,
+    required this.onBottomTap,
+  });
+
+  @override
+  State<_ScrollEdgeControls> createState() => _ScrollEdgeControlsState();
+}
+
+class _ScrollEdgeControlsState extends State<_ScrollEdgeControls> {
+  double _bubbleAlignY = 0.0; // Alignment -1.0 (Top) to 1.0 (Bottom)
+  bool _isDragging = false;
+
+  final double _barHeight = 170.0;
+  final double _barWidth = 52.0;
+
+  void _handleDragUpdate(Offset localPosition) {
+    final double centerY = _barHeight / 2;
+    // Limit inner slider boundary so it doesn't leave the borders
+    final double maxActiveTravel = (_barHeight / 2) - 30.0;
+
+    final double relativeY = (localPosition.dy - centerY).clamp(
+      -maxActiveTravel,
+      maxActiveTravel,
+    );
+    final double velocityScale = relativeY / maxActiveTravel;
+
+    setState(() {
+      _bubbleAlignY = velocityScale;
+      _isDragging = true;
+    });
+
+    widget.onVelocityChanged(velocityScale);
+  }
+
+  void _handleDragEnd() {
+    setState(() {
+      _bubbleAlignY = 0.0;
+      _isDragging = false;
+    });
+    widget.onVelocityChanged(0.0);
+  }
+
+  void _handleTapUp(Offset localPosition) {
+    // Top third of the bar acts as a fast-jump to top
+    if (localPosition.dy < _barHeight * 0.33) {
+      HapticFeedback.selectionClick();
+      widget.onTopTap();
+    }
+    // Bottom third acts as a fast-jump to bottom
+    else if (localPosition.dy > _barHeight * 0.66) {
+      HapticFeedback.selectionClick();
+      widget.onBottomTap();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color primaryColor = theme.colorScheme.primary;
+
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      offset: widget.visible ? Offset.zero : const Offset(1.4, 0),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: widget.visible ? 1.0 : 0.0,
+        child: IgnorePointer(
+          ignoring: !widget.visible,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: GestureDetector(
+                onVerticalDragStart: (DragStartDetails details) {
+                  _handleDragUpdate(details.localPosition);
+                },
+                onVerticalDragUpdate: (DragUpdateDetails details) {
+                  _handleDragUpdate(details.localPosition);
+                },
+                onVerticalDragEnd: (DragEndDetails details) {
+                  _handleDragEnd();
+                },
+                onVerticalDragCancel: () {
+                  _handleDragEnd();
+                },
+                onTapUp: (TapUpDetails details) {
+                  _handleTapUp(details.localPosition);
+                },
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1B1D22).withValues(alpha: 0.82)
+                        : Colors.white.withValues(alpha: 0.84),
+                    borderRadius: BorderRadius.circular(26),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.06),
+                    ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.22 : 0.06,
+                        ),
+                        blurRadius: 20,
+                        spreadRadius: -6,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    width: _barWidth,
+                    height: _barHeight,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: <Widget>[
+                        // The Liquid Floating Indicator
+                        AnimatedAlign(
+                          alignment: Alignment(0.0, _bubbleAlignY),
+                          duration: Duration(
+                            milliseconds: _isDragging ? 60 : 250,
+                          ),
+                          curve: _isDragging
+                              ? Curves.linear
+                              : Curves.elasticOut,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 140),
+                            width: _isDragging ? 42.0 : 38.0,
+                            // Dynamic stretch depending on speed / drag state
+                            height: _isDragging ? 54.0 : 38.0,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(19),
+                              color: primaryColor.withValues(alpha: 0.16),
+                              border: Border.all(
+                                color: primaryColor.withValues(alpha: 0.40),
+                                width: 1.2,
+                              ),
+                              boxShadow: <BoxShadow>[
+                                BoxShadow(
+                                  color: primaryColor.withValues(alpha: 0.18),
+                                  blurRadius: 10,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Arrows for visual guides
+                        Positioned(
+                          top: 14,
+                          child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 140),
+                              opacity: widget.isAtTop ? 0.25 : 1.0,
+                              child: Icon(
+                                CupertinoIcons.chevron_up,
+                                size: 18,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : Colors.black.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        Positioned(
+                          bottom: 14,
+                          child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 140),
+                              opacity: widget.isAtBottom ? 0.25 : 1.0,
+                              child: Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 18,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.7)
+                                    : Colors.black.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// STATES
+// =============================================================================
+
+class _EmptyFolderState extends StatelessWidget {
   final VoidCallback onCreate;
   final VoidCallback onOpenDeleted;
 
@@ -702,139 +1192,64 @@ class _EmptyFolderState
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    return Padding(
-      padding:
-      const EdgeInsets.symmetric(
-        vertical: 65,
-      ),
-      child: Column(
-        children: <Widget>[
-          Icon(
-            Icons
-                .create_new_folder_outlined,
-            size: 58,
-            color:
-            colorScheme.primary,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No Folders Yet',
-            style: theme
-                .textTheme.titleLarge
-                ?.copyWith(
-              fontWeight:
-              FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create a folder to organize '
-                'your notes.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colorScheme
-                  .onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton.icon(
-            onPressed: onCreate,
-            icon: const Icon(
-              Icons.add_rounded,
-            ),
-            label: const Text(
-              'Create Folder',
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: onOpenDeleted,
-            icon: const Icon(
-              CupertinoIcons.delete,
-            ),
-            label: const Text(
-              'Recently Deleted',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FolderLoadingState
-    extends StatelessWidget {
-  const _FolderLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child:
-      CircularProgressIndicator
-          .adaptive(),
-    );
-  }
-}
-
-class _FolderErrorState
-    extends StatelessWidget {
-  final String message;
-  final Future<void> Function() onRetry;
-
-  const _FolderErrorState({
-    required this.message,
-    required this.onRetry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding:
-        const EdgeInsets.all(30),
+        padding: const EdgeInsets.fromLTRB(30, 40, 30, 100),
         child: Column(
-          mainAxisSize:
-          MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(
-              Icons.cloud_off_outlined,
-              size: 54,
-              color: Theme.of(context)
-                  .colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Folders Are Unavailable',
-              style: Theme.of(context)
-                  .textTheme.titleLarge
-                  ?.copyWith(
-                fontWeight:
-                FontWeight.w700,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.primary.withValues(alpha: 0.10),
+                border: Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.14),
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign:
-              TextAlign.center,
+              child: SizedBox(
+                width: 92,
+                height: 92,
+                child: Icon(
+                  CupertinoIcons.folder_badge_plus,
+                  size: 42,
+                  color: colorScheme.primary,
+                ),
+              ),
             ),
             const SizedBox(height: 20),
-            FilledButton.tonalIcon(
-              onPressed: () {
-                onRetry();
-              },
-              icon: const Icon(
-                Icons.refresh_rounded,
+            Text(
+              'No Folders Yet',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.35,
               ),
-              label: const Text(
-                'Try Again',
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Create folders to keep your '
+              'notes organized.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.45,
               ),
+            ),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(CupertinoIcons.add),
+              label: const Text('Create Folder'),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: onOpenDeleted,
+              icon: const Icon(CupertinoIcons.delete),
+              label: const Text('Recently Deleted'),
             ),
           ],
         ),
@@ -843,48 +1258,125 @@ class _FolderErrorState
   }
 }
 
-IconData _folderIcon(
-    String value,
-    ) {
-  switch (
-  value.trim().toLowerCase()) {
-    case 'work':
-      return Icons.work_rounded;
+class _FolderLoadingState extends StatelessWidget {
+  const _FolderLoadingState();
 
-    case 'school':
-      return Icons.school_rounded;
-
-    case 'personal':
-      return Icons.person_rounded;
-
-    case 'favorite':
-      return Icons.favorite_rounded;
-
-    case 'travel':
-      return Icons.flight_rounded;
-
-    default:
-      return Icons.folder_rounded;
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: CupertinoActivityIndicator(radius: 15));
   }
 }
 
-Color _parseFolderColor(
-    String rawValue,
-    Color fallback,
-    ) {
-  final String value =
-  rawValue.trim();
+class _FolderErrorState extends StatelessWidget {
+  final String message;
+  final Future<void> Function() onRetry;
 
-  if (value.isEmpty ||
-      value.toLowerCase() ==
-          'string') {
+  const _FolderErrorState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    final ColorScheme colorScheme = theme.colorScheme;
+
+    return RefreshIndicator.adaptive(
+      onRefresh: onRetry,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: <Widget>[
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    // Icon(
+                    //   CupertinoIcons
+                    //       .exclamationmark_icloud,
+                    //   size: 56,
+                    //   color:
+                    //       colorScheme.error,
+                    // ),
+                    const SizedBox(height: 17),
+                    Text(
+                      'Folders Are Unavailable',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Text(
+                      message.isEmpty
+                          ? 'Unable to load your folders.'
+                          : message,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        onRetry();
+                      },
+                      icon: const Icon(CupertinoIcons.refresh),
+                      label: const Text('Try Again'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+IconData _folderIcon(String value) {
+  switch (value.trim().toLowerCase()) {
+    case 'work':
+      return CupertinoIcons.briefcase_fill;
+
+    case 'school':
+      return CupertinoIcons.book_fill;
+
+    case 'personal':
+      return CupertinoIcons.person_fill;
+
+    case 'favorite':
+      return CupertinoIcons.heart_fill;
+
+    case 'travel':
+      return CupertinoIcons.airplane;
+
+    default:
+      return CupertinoIcons.folder_fill;
+  }
+}
+
+Color _parseFolderColor(String rawValue, Color fallback) {
+  final String value = rawValue.trim();
+
+  if (value.isEmpty || value.toLowerCase() == 'string') {
     return fallback;
   }
 
   try {
     String hex = value
         .replaceAll('#', '')
-        .replaceAll('0x', '');
+        .replaceAll('0x', '')
+        .replaceAll('0X', '');
 
     if (hex.length == 6) {
       hex = 'FF$hex';
@@ -894,12 +1386,7 @@ Color _parseFolderColor(
       return fallback;
     }
 
-    return Color(
-      int.parse(
-        hex,
-        radix: 16,
-      ),
-    );
+    return Color(int.parse(hex, radix: 16));
   } catch (_) {
     return fallback;
   }

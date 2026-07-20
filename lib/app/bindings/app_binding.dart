@@ -4,23 +4,18 @@ import '../../core/storage/token_storage.dart';
 import '../../feature/auth/data/repositories/auth_repository_impl.dart';
 import '../../feature/auth/domain/repositories/auth_repository.dart';
 import '../../feature/folders/data/repositories/folder_repository_impl.dart';
-import '../../feature/folders/domain/repositories/folder_repository_impl.dart';
+import '../../feature/folders/domain/repositories/folder_repository_impl.dart'
+    hide FolderRepositoryImpl;
 import '../../feature/notes/data/repositories/note_repository_impl.dart';
 import '../../feature/notes/domain/repositories/note_repository.dart';
-
 
 class AppBinding extends Bindings {
   @override
   void dependencies() {
-    Get.put<TokenStorage>(
-      TokenStorage(),
-      permanent: true,
-    );
+    Get.put<TokenStorage>(TokenStorage(), permanent: true);
 
     Get.put<ApiClient>(
-      ApiClient(
-        tokenStorage: Get.find<TokenStorage>(),
-      ),
+      ApiClient(tokenStorage: Get.find<TokenStorage>()),
       permanent: true,
     );
 
@@ -33,16 +28,12 @@ class AppBinding extends Bindings {
     );
 
     Get.put<FolderRepository>(
-      FolderRepositoryImpl(
-        apiClient: Get.find<ApiClient>(),
-      ),
+      FolderRepositoryImpl(apiClient: Get.find<ApiClient>()),
       permanent: true,
     );
 
     Get.put<NoteRepository>(
-      NoteRepositoryImpl(
-        apiClient: Get.find<ApiClient>(),
-      ),
+      NoteRepositoryImpl(apiClient: Get.find<ApiClient>()),
       permanent: true,
     );
   }
