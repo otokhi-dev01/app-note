@@ -18,7 +18,7 @@ Future<void> main() async {
     permanent: true,
   );
 
-  runApp(PiisiitNoteApp(),
+  runApp(PiisiitNoteApp()
   );
 }
 
