@@ -13,25 +13,23 @@ Future<void> main() async {
   // code update at 20.07.26 by nona
   await GetStorage.init();
 
-  Get.put<SettingsController>(
-    SettingsController(),
-    permanent: true,
-  );
+  Get.put<SettingsController>(SettingsController(), permanent: true);
 
+<<<<<<< HEAD
   runApp(PiisiitNoteApp()
   );
+=======
+  runApp(PiisiitNoteApp());
+>>>>>>> origin
 }
 
-class PiisiitNoteApp
-    extends GetView<SettingsController> {
-  const PiisiitNoteApp({
-    super.key,
-  });
+class PiisiitNoteApp extends GetView<SettingsController> {
+  const PiisiitNoteApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Obx(
-          () => GetMaterialApp(
+      () => GetMaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Piisiit Note',
         initialRoute: AppRoutes.splash,
@@ -39,15 +37,10 @@ class PiisiitNoteApp
         initialBinding: AppBinding(),
         translations: AppTranslations(),
         locale: controller.currentLocale,
-        fallbackLocale:
-        Locale('en', 'US'),
+        fallbackLocale: Locale('en', 'US'),
         themeMode: controller.themeMode,
-        theme: AppTheme.light(
-          fontFamily: controller.fontFamily,
-        ),
-        darkTheme: AppTheme.dark(
-          fontFamily: controller.fontFamily,
-        ),
+        theme: AppTheme.light(fontFamily: controller.fontFamily),
+        darkTheme: AppTheme.dark(fontFamily: controller.fontFamily),
       ),
     );
   }

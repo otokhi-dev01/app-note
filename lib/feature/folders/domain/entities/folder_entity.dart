@@ -6,6 +6,11 @@ class FolderEntity {
   final String colorValue;
   final int sortOrder;
   final int noteCount;
+<<<<<<< HEAD
+=======
+  final bool isInTrash;
+
+>>>>>>> nona_feature
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
@@ -18,12 +23,19 @@ class FolderEntity {
     this.colorValue = '#2196F3',
     this.sortOrder = 0,
     this.noteCount = 0,
+    this.isInTrash = false,
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
   });
 
+<<<<<<< HEAD
   bool get isDeleted => deletedAt != null;
+=======
+  bool get isDeleted {
+    return isInTrash || deletedAt != null;
+  }
+>>>>>>> nona_feature
 
   factory FolderEntity.fromJson(
       Map<String, dynamic> json,
@@ -61,6 +73,9 @@ class FolderEntity {
         json['NoteCount'] ??
             json['noteCount'],
       ),
+      isInTrash:
+          _toBool(_readValue(json, const <String>['IsInTrash', 'isInTrash'])) ||
+          _toBool(_readValue(json, const <String>['IsDeleted', 'isDeleted'])),
       createdAt: _toDateTime(
         json['CreatedAt'] ??
             json['createdAt'],
@@ -84,6 +99,7 @@ class FolderEntity {
     String? colorValue,
     int? sortOrder,
     int? noteCount,
+    bool? isInTrash,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -97,6 +113,7 @@ class FolderEntity {
       colorValue: colorValue ?? this.colorValue,
       sortOrder: sortOrder ?? this.sortOrder,
       noteCount: noteCount ?? this.noteCount,
+      isInTrash: isInTrash ?? this.isInTrash,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt:
@@ -120,6 +137,20 @@ class FolderEntity {
     }
 
     return int.tryParse(value.toString()) ?? 0;
+  }
+
+  static bool _toBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+
+    if (value is num) {
+      return value != 0;
+    }
+
+    final String text = value?.toString().trim().toLowerCase() ?? '';
+
+    return text == 'true' || text == '1';
   }
 
   static DateTime? _toDateTime(dynamic value) {

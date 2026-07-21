@@ -54,7 +54,7 @@ class ProfileView
                         folderCount:
                         controller.folders.length,
                         noteCount:
-                        controller.notes.length,
+                        controller.activeNotes.length,
                       ),
                     ),
                     const SizedBox(height: 14),

@@ -68,7 +68,9 @@ class CreateNoteView extends GetView<CreateNoteController> {
                               const _TitleField(),
                               const SizedBox(height: 8),
                               const _BodyField(),
+                              const _ChecklistSection(),
                               const _ErrorMessage(),
+                              const _SelectedDocumentsSection(),
                               _SelectedImagesSection(
                                 onPreview: (NoteDraftImage image) {
                                   _openImagePreview(context, image);
@@ -98,8 +100,9 @@ class CreateNoteView extends GetView<CreateNoteController> {
                   onAddImage: () {
                     _showMediaPicker(context);
                   },
-                  onDismissKeyboard: () {
+                  onChecklist: () {
                     FocusManager.instance.primaryFocus?.unfocus();
+                    controller.addChecklistItem();
                   },
                 ),
               ],
@@ -188,8 +191,10 @@ class CreateNoteView extends GetView<CreateNoteController> {
       context: context,
       builder: (BuildContext sheetContext) {
         return CupertinoActionSheet(
-          title: const Text('Add Image'),
-          message: const Text('Take a picture or choose existing images.'),
+          title: const Text('Add Attachment'),
+          message: const Text(
+            'Take a picture, choose images, or select a document.',
+          ),
           actions: <Widget>[
             CupertinoActionSheetAction(
               onPressed: () async {
@@ -203,6 +208,21 @@ class CreateNoteView extends GetView<CreateNoteController> {
                   Icon(CupertinoIcons.camera, size: 21),
                   SizedBox(width: 9),
                   Text('Take Picture'),
+                ],
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.of(sheetContext).pop();
+
+                await controller.chooseDocument();
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(CupertinoIcons.doc, size: 21),
+                  SizedBox(width: 9),
+                  Text('Choose Document'),
                 ],
               ),
             ),
@@ -269,7 +289,21 @@ class CreateNoteView extends GetView<CreateNoteController> {
                 children: <Widget>[
                   Icon(CupertinoIcons.photo, size: 21),
                   SizedBox(width: 9),
-                  Text('Add Image'),
+                  Text('Add Attachment'),
+                ],
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                controller.addChecklistItem();
+              },
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(Icons.add_task_rounded, size: 21),
+                  SizedBox(width: 9),
+                  Text('Add Checklist Task'),
                 ],
               ),
             ),
@@ -385,7 +419,9 @@ class _FolderStatus extends GetView<CreateNoteController> {
     return Obx(() {
       final String folderName = controller.selectedFolderName.trim();
 
-      final int imageCount = controller.selectedImages.length;
+      final int attachmentCount =
+          controller.selectedImages.length +
+          controller.selectedDocuments.length;
 
       return CupertinoButton(
         padding: EdgeInsets.zero,
@@ -416,16 +452,16 @@ class _FolderStatus extends GetView<CreateNoteController> {
               size: 13,
               color: colorScheme.onSurfaceVariant,
             ),
-            if (imageCount > 0) ...<Widget>[
+            if (attachmentCount > 0) ...<Widget>[
               const SizedBox(width: 14),
               Icon(
-                CupertinoIcons.photo_fill,
+                CupertinoIcons.paperclip,
                 size: 14,
                 color: colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 5),
               Text(
-                imageCount.toString(),
+                attachmentCount.toString(),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -526,6 +562,104 @@ class _BodyField extends GetView<CreateNoteController> {
   }
 }
 
+class _ChecklistSection extends GetView<CreateNoteController> {
+  const _ChecklistSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+
+    return Obx(() {
+      final List<CreateNoteChecklistItem> items =
+          List<CreateNoteChecklistItem>.unmodifiable(
+            controller.checklistItems.toList(),
+          );
+
+      if (items.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 22),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: colors.surface.withValues(alpha: 0.76),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: colors.outlineVariant.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Icon(Icons.checklist_rounded, color: colors.primary),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        'Checklist',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Add task',
+                      onPressed: controller.isSaving.value
+                          ? null
+                          : controller.addChecklistItem,
+                      icon: const Icon(Icons.add_rounded),
+                    ),
+                  ],
+                ),
+                for (final CreateNoteChecklistItem item in items)
+                  Row(
+                    children: <Widget>[
+                      Checkbox.adaptive(
+                        value: item.checked,
+                        onChanged: controller.isSaving.value
+                            ? null
+                            : (bool? value) => controller.toggleChecklistItem(
+                                item.id,
+                                value ?? false,
+                              ),
+                      ),
+                      Expanded(
+                        child: TextFormField(
+                          key: ValueKey<String>(item.id),
+                          initialValue: item.text,
+                          enabled: !controller.isSaving.value,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            hintText: 'Task',
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                          onChanged: (String value) =>
+                              controller.updateChecklistItem(item.id, value),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Remove task',
+                        onPressed: controller.isSaving.value
+                            ? null
+                            : () => controller.removeChecklistItem(item.id),
+                        icon: const Icon(CupertinoIcons.xmark, size: 17),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+}
+
 class _ErrorMessage extends GetView<CreateNoteController> {
   const _ErrorMessage();
 
@@ -574,6 +708,75 @@ class _ErrorMessage extends GetView<CreateNoteController> {
               ],
             ),
           ),
+        ),
+      );
+    });
+  }
+}
+
+class _SelectedDocumentsSection extends GetView<CreateNoteController> {
+  const _SelectedDocumentsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+
+    return Obx(() {
+      final List<NoteDraftDocument> documents =
+          List<NoteDraftDocument>.unmodifiable(
+            controller.selectedDocuments.toList(),
+          );
+
+      if (documents.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Icon(CupertinoIcons.doc_fill, size: 18, color: colors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Documents',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${documents.length} selected',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final NoteDraftDocument document in documents)
+              Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: const Icon(CupertinoIcons.doc),
+                  title: Text(
+                    document.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Remove document',
+                    onPressed: controller.isSaving.value
+                        ? null
+                        : () => controller.removeDocument(document),
+                    icon: const Icon(CupertinoIcons.xmark, size: 18),
+                  ),
+                ),
+              ),
+          ],
         ),
       );
     });
@@ -774,20 +977,19 @@ class _EditorToolbar extends StatelessWidget {
   final VoidCallback onPhotos;
   final VoidCallback onFolder;
   final VoidCallback onAddImage;
-  final VoidCallback onDismissKeyboard;
+  final VoidCallback onChecklist;
 
   const _EditorToolbar({
     required this.onCamera,
     required this.onPhotos,
     required this.onFolder,
     required this.onAddImage,
-    required this.onDismissKeyboard,
+    required this.onChecklist,
   });
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     final bool isDark = theme.brightness == Brightness.dark;
 
@@ -824,11 +1026,10 @@ class _EditorToolbar extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: <Widget>[
-                    _ToolbarTextButton(
-                      text: 'Aa',
-                      tooltip: 'Text',
-                      color: colorScheme.onSurface,
-                      onPressed: onDismissKeyboard,
+                    _ToolbarButton(
+                      icon: Icons.add_task_rounded,
+                      tooltip: 'Add Checklist Task',
+                      onPressed: onChecklist,
                     ),
                     _ToolbarButton(
                       icon: CupertinoIcons.folder,
@@ -847,7 +1048,7 @@ class _EditorToolbar extends StatelessWidget {
                     ),
                     _ToolbarButton(
                       icon: CupertinoIcons.paperclip,
-                      tooltip: 'Add Image',
+                      tooltip: 'Add Attachment',
                       highlighted: true,
                       onPressed: onAddImage,
                     ),
@@ -896,48 +1097,6 @@ class _ToolbarButton extends StatelessWidget {
             icon,
             size: highlighted ? 25 : 23,
             color: highlighted ? colorScheme.primary : colorScheme.onSurface,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ToolbarTextButton extends StatelessWidget {
-  final String text;
-  final String tooltip;
-  final Color color;
-  final VoidCallback onPressed;
-
-  const _ToolbarTextButton({
-    required this.text,
-    required this.tooltip,
-    required this.color,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        pressedOpacity: 0.52,
-        onPressed: onPressed,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: color,
-                fontSize: 24,
-                height: 1,
-                fontWeight: FontWeight.w500,
-                letterSpacing: -1,
-              ),
-            ),
           ),
         ),
       ),

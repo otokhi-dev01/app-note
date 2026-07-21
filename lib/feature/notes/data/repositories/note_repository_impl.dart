@@ -1,19 +1,18 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/api_parser.dart';
 import '../../domain/entities/note_entity.dart';
 import '../../domain/repositories/note_repository.dart';
 
 class NoteRepositoryImpl implements NoteRepository {
   final ApiClient apiClient;
 
-  const NoteRepositoryImpl({
-    required this.apiClient,
-  });
+  const NoteRepositoryImpl({required this.apiClient});
 
   // ===========================================================================
   // GET NOTE LIST
@@ -22,31 +21,28 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<List<NoteEntity>> getNotes() async {
-    final dynamic response = await apiClient.get(
-      ApiEndpoints.notes,
+    final dynamic response = await apiClient.get(ApiEndpoints.notes);
+
+    final dynamic responseBody = _extractResponseBody(response);
+
+    ApiParser.ensureSuccess(
+      responseBody,
+      fallbackMessage: 'Unable to load notes.',
     );
 
-    final dynamic responseBody =
-    _extractResponseBody(response);
+    final List<dynamic> items = _extractList(responseBody);
 
-    final List<dynamic> items =
-    _extractList(responseBody);
+    final Map<int, NoteEntity> notesById = <int, NoteEntity>{};
 
-    return items
-        .whereType<Map>()
-        .map(
-          (Map<dynamic, dynamic> item) {
-        return _noteFromJson(
-          _convertMap(item),
-        );
-      },
-    )
-        .where(
-          (NoteEntity note) => note.id > 0,
-    )
-        .toList(
-      growable: false,
-    );
+    for (final Map<dynamic, dynamic> item in items.whereType<Map>()) {
+      final NoteEntity note = _noteFromJson(_convertMap(item));
+
+      if (note.id > 0) {
+        notesById[note.id] = note;
+      }
+    }
+
+    return notesById.values.toList(growable: false);
   }
 
   // ===========================================================================
@@ -55,9 +51,7 @@ class NoteRepositoryImpl implements NoteRepository {
   // ===========================================================================
 
   @override
-  Future<NoteEntity> getNoteDetail(
-      int noteId,
-      ) async {
+  Future<NoteEntity> getNoteDetail(int noteId) async {
     if (noteId <= 0) {
       throw ArgumentError.value(
         noteId,
@@ -70,18 +64,27 @@ class NoteRepositoryImpl implements NoteRepository {
       ApiEndpoints.noteDetail(noteId),
     );
 
-    final dynamic responseBody =
-    _extractResponseBody(response);
+    final dynamic responseBody = _extractResponseBody(response);
 
-    final Map<String, dynamic> noteJson =
-    _extractObject(responseBody);
+    ApiParser.ensureSuccess(
+      responseBody,
+      fallbackMessage: 'Unable to load the requested note.',
+    );
 
-    final NoteEntity note =
-    _noteFromJson(noteJson);
+    final Map<String, dynamic> noteJson = _extractObject(responseBody);
+
+    final NoteEntity note = _noteFromJson(noteJson);
 
     if (note.id <= 0) {
       throw StateError(
         'The note detail response does not contain a valid note ID.',
+      );
+    }
+
+    if (note.id != noteId) {
+      throw StateError(
+        'The API returned note ${note.id} instead of the requested note '
+        '$noteId.',
       );
     }
 
@@ -91,9 +94,7 @@ class NoteRepositoryImpl implements NoteRepository {
   // Compatibility method for older controller code.
 
   @override
-  Future<NoteEntity> getNote(
-      int noteId,
-      ) {
+  Future<NoteEntity> getNote(int noteId) {
     return getNoteDetail(noteId);
   }
 
@@ -127,12 +128,17 @@ class NoteRepositoryImpl implements NoteRepository {
     final String cleanTitle = title.trim();
 
     if (cleanTitle.isEmpty) {
-      throw ArgumentError.value(
-        title,
-        'title',
-        'Note title is required.',
-      );
+      throw ArgumentError.value(title, 'title', 'Note title is required.');
     }
+
+    /*
+     * The create endpoint can return data: null. Capture matching IDs before
+     * creating so the fallback lookup cannot select an older note that has
+     * the same folder and title.
+     */
+    final Set<int> existingMatchingIds = noteId == 0
+        ? await _findMatchingNoteIds(folderId: folderId, title: cleanTitle)
+        : <int>{};
 
     final dynamic response = await apiClient.post(
       ApiEndpoints.saveNote,
@@ -143,15 +149,20 @@ class NoteRepositoryImpl implements NoteRepository {
       },
     );
 
-    final dynamic responseBody =
-    _extractResponseBody(response);
+    final dynamic responseBody = _extractResponseBody(response);
 
-    debugPrint(
-      'SAVE NOTE RAW RESPONSE: $responseBody',
+    ApiParser.ensureSuccess(
+      responseBody,
+      fallbackMessage: 'Unable to save the note.',
     );
 
-    int savedNoteId =
-    _extractSavedNoteId(responseBody);
+    int savedNoteId = _extractSavedNoteId(responseBody);
+
+    if (savedNoteId <= 0 && noteId == 0) {
+      debugPrint(
+        'SAVE NOTE: The API omitted NoteId; resolving it from the note list.',
+      );
+    }
 
     /*
      * Some APIs return only a success message when an
@@ -174,18 +185,18 @@ class NoteRepositoryImpl implements NoteRepository {
      * the newly created note using folder and title.
      */
     if (savedNoteId <= 0 && noteId == 0) {
-      savedNoteId =
-      await _findCreatedNoteId(
+      savedNoteId = await _findCreatedNoteId(
         folderId: folderId,
         title: cleanTitle,
+        excludedIds: existingMatchingIds,
       );
     }
 
     if (savedNoteId <= 0) {
       throw StateError(
         'The API saved the request but did not return '
-            'a usable note ID.\n\n'
-            'Response: ${_responsePreview(responseBody)}',
+        'a usable note ID.\n\n'
+        'Response: ${_responsePreview(responseBody)}',
       );
     }
 
@@ -194,7 +205,8 @@ class NoteRepositoryImpl implements NoteRepository {
 
   // ===========================================================================
   // SAVE NOTE CONTENT
-  // POST /api/note/save-content
+  // POST /api/note/save with {id, title, content}
+  // Compatibility fallback: POST /api/note/save-content
   // ===========================================================================
 
   @override
@@ -204,32 +216,20 @@ class NoteRepositoryImpl implements NoteRepository {
     required List<Map<String, dynamic>> content,
   }) async {
     if (id <= 0) {
-      throw ArgumentError.value(
-        id,
-        'id',
-        'Note ID must be greater than zero.',
-      );
+      throw ArgumentError.value(id, 'id', 'Note ID must be greater than zero.');
     }
 
     final String cleanTitle = title.trim();
 
     if (cleanTitle.isEmpty) {
-      throw ArgumentError.value(
-        title,
-        'title',
-        'Note title is required.',
-      );
+      throw ArgumentError.value(title, 'title', 'Note title is required.');
     }
 
-    final List<Map<String, dynamic>>
-    contentSnapshot =
-    content.map(
-          (Map<String, dynamic> block) {
-        return _deepCopyMap(block);
-      },
-    ).toList(
-      growable: false,
-    );
+    final List<Map<String, dynamic>> contentSnapshot = content
+        .map((Map<String, dynamic> block) {
+          return _deepCopyMap(block);
+        })
+        .toList(growable: false);
 
     /*
      * Send content as an actual JSON array.
@@ -240,13 +240,34 @@ class NoteRepositoryImpl implements NoteRepository {
      * Incorrect:
      *   "content": "[...]"
      */
-    await apiClient.post(
-      ApiEndpoints.saveContent,
-      body: <String, dynamic>{
-        'id': id,
-        'title': cleanTitle,
-        'content': contentSnapshot,
-      },
+    final Map<String, dynamic> body = <String, dynamic>{
+      'id': id,
+      'title': cleanTitle,
+      'content': contentSnapshot,
+    };
+
+    dynamic response;
+
+    try {
+      response = await apiClient.post(
+        ApiEndpoints.saveContent,
+        body: body,
+      );
+    } on ApiException catch (error) {
+      if (error.statusCode != 404 ||
+          ApiEndpoints.legacySaveContent == ApiEndpoints.saveContent) {
+        rethrow;
+      }
+
+      response = await apiClient.post(
+        ApiEndpoints.legacySaveContent,
+        body: body,
+      );
+    }
+
+    ApiParser.ensureSuccess(
+      _extractResponseBody(response),
+      fallbackMessage: 'Unable to save the note content.',
     );
   }
 
@@ -258,11 +279,7 @@ class NoteRepositoryImpl implements NoteRepository {
     required String title,
     required List<Map<String, dynamic>> content,
   }) {
-    return saveContent(
-      id: id,
-      title: title,
-      content: content,
-    );
+    return saveContent(id: id, title: title, content: content);
   }
 
   // ===========================================================================
@@ -285,8 +302,7 @@ class NoteRepositoryImpl implements NoteRepository {
       );
     }
 
-    final String cleanFilePath =
-    filePath.trim();
+    final String cleanFilePath = filePath.trim();
 
     if (cleanFilePath.isEmpty) {
       throw ArgumentError.value(
@@ -296,15 +312,10 @@ class NoteRepositoryImpl implements NoteRepository {
       );
     }
 
-    final String cleanBlockId =
-    blockId.trim();
+    final String cleanBlockId = blockId.trim();
 
     if (cleanBlockId.isEmpty) {
-      throw ArgumentError.value(
-        blockId,
-        'blockId',
-        'Block ID is required.',
-      );
+      throw ArgumentError.value(blockId, 'blockId', 'Block ID is required.');
     }
 
     if (displayOrder <= 0) {
@@ -315,31 +326,20 @@ class NoteRepositoryImpl implements NoteRepository {
       );
     }
 
-    final MultipartFile attachment =
-    await MultipartFile.fromFile(
-      cleanFilePath,
-      filename: _fileNameFromPath(
-        cleanFilePath,
-      ),
-    );
-
-    final FormData formData =
-    FormData.fromMap(
-      <String, dynamic>{
-        /*
-         * Keep these field names exactly as the API expects.
-         */
+    final dynamic response = await apiClient.uploadFile(
+      ApiEndpoints.noteAttachment,
+      filePath: cleanFilePath,
+      fileName: _fileNameFromPath(cleanFilePath),
+      fields: <String, dynamic>{
         'Id': noteId.toString(),
-        'File': attachment,
         'BlockId': cleanBlockId,
-        'DisplayOrder':
-        displayOrder.toString(),
+        'DisplayOrder': displayOrder.toString(),
       },
     );
 
-    await apiClient.post(
-      ApiEndpoints.noteAttachment,
-      body: formData,
+    ApiParser.ensureSuccess(
+      _extractResponseBody(response),
+      fallbackMessage: 'Unable to upload the attachment.',
     );
   }
 
@@ -363,7 +363,7 @@ class NoteRepositoryImpl implements NoteRepository {
       );
     }
 
-    await apiClient.post(
+    final dynamic response = await apiClient.post(
       ApiEndpoints.updateNoteState,
       body: <String, dynamic>{
         'id': noteId,
@@ -371,6 +371,11 @@ class NoteRepositoryImpl implements NoteRepository {
         'isArchived': isArchived,
         'isLocked': isLocked,
       },
+    );
+
+    ApiParser.ensureSuccess(
+      _extractResponseBody(response),
+      fallbackMessage: 'Unable to update the note state.',
     );
   }
 
@@ -381,62 +386,73 @@ class NoteRepositoryImpl implements NoteRepository {
   Future<int> _findCreatedNoteId({
     required int folderId,
     required String title,
+    required Set<int> excludedIds,
   }) async {
-    try {
-      /*
-       * Give the backend a small amount of time to finish
-       * committing the newly created note.
-       */
-      await Future<void>.delayed(
-        const Duration(
-          milliseconds: 250,
-        ),
-      );
+    const List<Duration> retryDelays = <Duration>[
+      Duration.zero,
+      Duration(milliseconds: 200),
+      Duration(milliseconds: 400),
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1200),
+    ];
 
-      final List<NoteEntity> noteList =
-      await getNotes();
+    Object? lastError;
 
-      final String normalizedTitle =
-      title.trim().toLowerCase();
-
-      final List<NoteEntity>
-      matchingNotes =
-      noteList.where(
-            (NoteEntity note) {
-          return note.id > 0 &&
-              note.folderId == folderId &&
-              note.title
-                  .trim()
-                  .toLowerCase() ==
-                  normalizedTitle;
-        },
-      ).toList();
-
-      if (matchingNotes.isEmpty) {
-        return 0;
+    for (final Duration delay in retryDelays) {
+      if (delay > Duration.zero) {
+        await Future<void>.delayed(delay);
       }
 
-      /*
-       * The newest record normally has the largest ID.
-       */
-      matchingNotes.sort(
-            (
-            NoteEntity first,
-            NoteEntity second,
-            ) {
-          return second.id.compareTo(
-            first.id,
-          );
-        },
-      );
+      try {
+        final Set<int> matchingIds = await _findMatchingNoteIds(
+          folderId: folderId,
+          title: title,
+          rethrowErrors: true,
+        );
 
-      return matchingNotes.first.id;
-    } catch (error) {
-      debugPrint(
-        'FIND CREATED NOTE ERROR: $error',
-      );
+        final List<int> newIds = matchingIds.where((int id) {
+          return !excludedIds.contains(id);
+        }).toList()..sort();
 
-      return 0;
+        if (newIds.isNotEmpty) {
+          return newIds.last;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (lastError != null) {
+      debugPrint('FIND CREATED NOTE ERROR: $lastError');
+    }
+
+    return 0;
+  }
+
+  Future<Set<int>> _findMatchingNoteIds({
+    required int folderId,
+    required String title,
+    bool rethrowErrors = false,
+  }) async {
+    try {
+      final List<NoteEntity> noteList = await getNotes();
+
+      final String normalizedTitle = title.trim().toLowerCase();
+
+      return noteList
+          .where((NoteEntity note) {
+            return note.id > 0 &&
+                note.folderId == folderId &&
+                note.title.trim().toLowerCase() == normalizedTitle;
+          })
+          .map((NoteEntity note) => note.id)
+          .toSet();
+    } catch (_) {
+      if (rethrowErrors) {
+        rethrow;
+      }
+
+      return <int>{};
     }
   }
 
@@ -444,9 +460,7 @@ class NoteRepositoryImpl implements NoteRepository {
   // RESPONSE BODY
   // ===========================================================================
 
-  dynamic _extractResponseBody(
-      dynamic response,
-      ) {
+  dynamic _extractResponseBody(dynamic response) {
     if (response == null) {
       return null;
     }
@@ -467,8 +481,7 @@ class NoteRepositoryImpl implements NoteRepository {
      * the complete Response object.
      */
     try {
-      final dynamic data =
-          (response as dynamic).data;
+      final dynamic data = (response as dynamic).data;
 
       if (data != null) {
         return data;
@@ -484,9 +497,7 @@ class NoteRepositoryImpl implements NoteRepository {
   // EXTRACT NOTE LIST
   // ===========================================================================
 
-  List<dynamic> _extractList(
-      dynamic response,
-      ) {
+  List<dynamic> _extractList(dynamic response) {
     dynamic value = response;
 
     if (value == null) {
@@ -500,58 +511,56 @@ class NoteRepositoryImpl implements NoteRepository {
     }
 
     if (value is! Map) {
-      throw StateError(
-        'The note list response has an invalid format.',
-      );
+      throw StateError('The note list response has an invalid format.');
     }
 
-    final Map<String, dynamic> root =
-    _convertMap(value);
+    final Map<String, dynamic> root = _convertMap(value);
 
-    final dynamic data =
-    _getValueIgnoreCase(
-      root,
-      'data',
-    );
+    final dynamic data = _getValueIgnoreCase(root, 'data');
 
     if (data is List) {
       return data;
     }
 
     if (data is Map) {
-      final Map<String, dynamic> dataMap =
-      _convertMap(data);
+      final Map<String, dynamic> dataMap = _convertMap(data);
 
-      final dynamic nestedList =
-      _firstValueIgnoreCase(
-        dataMap,
-        <String>[
-          'items',
-          'notes',
-          'list',
-          'rows',
-          'records',
-          'result',
-        ],
-      );
+      final List<dynamic>? collectionItems = _extractNoteCollections(dataMap);
+
+      if (collectionItems != null) {
+        return collectionItems;
+      }
+
+      final dynamic nestedList = _firstValueIgnoreCase(dataMap, <String>[
+        'items',
+        'note',
+        'notes',
+        'list',
+        'rows',
+        'records',
+        'result',
+      ]);
 
       if (nestedList is List) {
         return nestedList;
       }
     }
 
-    final dynamic rootList =
-    _firstValueIgnoreCase(
-      root,
-      <String>[
-        'items',
-        'notes',
-        'list',
-        'rows',
-        'records',
-        'result',
-      ],
-    );
+    final List<dynamic>? collectionItems = _extractNoteCollections(root);
+
+    if (collectionItems != null) {
+      return collectionItems;
+    }
+
+    final dynamic rootList = _firstValueIgnoreCase(root, <String>[
+      'items',
+      'note',
+      'notes',
+      'list',
+      'rows',
+      'records',
+      'result',
+    ]);
 
     if (rootList is List) {
       return rootList;
@@ -560,103 +569,141 @@ class NoteRepositoryImpl implements NoteRepository {
     return <dynamic>[];
   }
 
+  List<dynamic>? _extractNoteCollections(Map<String, dynamic> map) {
+    final dynamic activeNotes = _firstValueIgnoreCase(map, <String>[
+      'note',
+      'notes',
+    ]);
+    final dynamic archivedNotes = _firstValueIgnoreCase(map, <String>[
+      'archive',
+      'archived',
+      'archivedNotes',
+    ]);
+    final dynamic trashedNotes = _firstValueIgnoreCase(map, <String>[
+      'trash',
+      'trashed',
+      'deleted',
+      'deletedNotes',
+    ]);
+
+    if (activeNotes is! List &&
+        archivedNotes is! List &&
+        trashedNotes is! List) {
+      return null;
+    }
+
+    return <dynamic>[
+      if (activeNotes is List) ...activeNotes,
+      if (archivedNotes is List)
+        ...archivedNotes.map(
+          (dynamic item) => _markNoteCollectionItem(
+            item,
+            isArchived: true,
+          ),
+        ),
+      if (trashedNotes is List)
+        ...trashedNotes.map(
+          (dynamic item) => _markNoteCollectionItem(
+            item,
+            isInTrash: true,
+          ),
+        ),
+    ];
+  }
+
+  dynamic _markNoteCollectionItem(
+    dynamic item, {
+    bool isArchived = false,
+    bool isInTrash = false,
+  }) {
+    if (item is! Map) {
+      return item;
+    }
+
+    return <String, dynamic>{
+      ..._convertMap(item),
+      if (isArchived) 'IsArchived': true,
+      if (isInTrash) 'IsInTrash': true,
+    };
+  }
+
   // ===========================================================================
   // EXTRACT NOTE DETAIL OBJECT
   // ===========================================================================
 
-  Map<String, dynamic> _extractObject(
-      dynamic response,
-      ) {
+  Map<String, dynamic> _extractObject(dynamic response) {
     dynamic value = response;
 
     if (value == null) {
-      throw StateError(
-        'The note detail response is empty.',
-      );
+      throw StateError('The note detail response is empty.');
     }
 
     value = _decodeJsonString(value);
 
     if (value is List) {
       if (value.isEmpty) {
-        throw StateError(
-          'The requested note was not found.',
-        );
+        throw StateError('The requested note was not found.');
       }
 
       value = value.first;
     }
 
     if (value is! Map) {
-      throw StateError(
-        'The note detail response has an invalid format.',
-      );
+      throw StateError('The note detail response has an invalid format.');
     }
 
-    final Map<String, dynamic> root =
-    _convertMap(value);
+    final Map<String, dynamic> root = _convertMap(value);
 
-    final dynamic data =
-    _getValueIgnoreCase(
-      root,
-      'data',
-    );
+    final dynamic data = _getValueIgnoreCase(root, 'data');
 
     if (data is Map) {
-      final Map<String, dynamic> dataMap =
-      _convertMap(data);
+      final Map<String, dynamic> dataMap = _convertMap(data);
 
-      final dynamic nestedNote =
-      _firstValueIgnoreCase(
-        dataMap,
-        <String>[
-          'note',
-          'item',
-          'record',
-          'result',
-        ],
-      );
+      final dynamic nestedNote = _firstValueIgnoreCase(dataMap, <String>[
+        'note',
+        'item',
+        'record',
+        'result',
+      ]);
 
       if (nestedNote is Map) {
-        return _convertMap(
-          nestedNote,
-        );
+        return _convertMap(nestedNote);
+      }
+
+      if (nestedNote is List) {
+        if (nestedNote.isEmpty) {
+          throw StateError('The requested note was not found.');
+        }
+
+        final dynamic firstNote = nestedNote.first;
+
+        if (firstNote is Map) {
+          return _convertMap(firstNote);
+        }
       }
 
       return dataMap;
     }
 
-    if (data is List &&
-        data.isNotEmpty &&
-        data.first is Map) {
-      return _convertMap(
-        data.first as Map,
-      );
+    if (data is List && data.isNotEmpty && data.first is Map) {
+      return _convertMap(data.first as Map);
     }
 
-    final dynamic nestedNote =
-    _firstValueIgnoreCase(
-      root,
-      <String>[
-        'note',
-        'item',
-        'record',
-        'result',
-      ],
-    );
+    final dynamic nestedNote = _firstValueIgnoreCase(root, <String>[
+      'note',
+      'item',
+      'record',
+      'result',
+    ]);
 
     if (nestedNote is Map) {
-      return _convertMap(
-        nestedNote,
-      );
+      return _convertMap(nestedNote);
     }
 
     if (nestedNote is List &&
         nestedNote.isNotEmpty &&
         nestedNote.first is Map) {
-      return _convertMap(
-        nestedNote.first as Map,
-      );
+      return _convertMap(nestedNote.first as Map);
     }
 
     return root;
@@ -666,12 +713,8 @@ class NoteRepositoryImpl implements NoteRepository {
   // EXTRACT SAVED NOTE ID
   // ===========================================================================
 
-  int _extractSavedNoteId(
-      dynamic value, {
-        int depth = 0,
-      }) {
-    if (value == null ||
-        depth > 12) {
+  int _extractSavedNoteId(dynamic value, {int depth = 0}) {
+    if (value == null || depth > 12) {
       return 0;
     }
 
@@ -680,22 +723,19 @@ class NoteRepositoryImpl implements NoteRepository {
     }
 
     if (value is num) {
-      final int result =
-      value.toInt();
+      final int result = value.toInt();
 
       return result > 0 ? result : 0;
     }
 
     if (value is String) {
-      final String text =
-      value.trim();
+      final String text = value.trim();
 
       if (text.isEmpty) {
         return 0;
       }
 
-      final int directId =
-      _positiveInt(text);
+      final int directId = _positiveInt(text);
 
       if (directId > 0) {
         return directId;
@@ -707,14 +747,9 @@ class NoteRepositoryImpl implements NoteRepository {
        * "{\"data\":{\"id\":25}}"
        */
       try {
-        final dynamic decoded =
-        jsonDecode(text);
+        final dynamic decoded = jsonDecode(text);
 
-        final int decodedId =
-        _extractSavedNoteId(
-          decoded,
-          depth: depth + 1,
-        );
+        final int decodedId = _extractSavedNoteId(decoded, depth: depth + 1);
 
         if (decodedId > 0) {
           return decodedId;
@@ -730,21 +765,17 @@ class NoteRepositoryImpl implements NoteRepository {
        * Id = 25
        * CreatedId: 25
        */
-      final RegExp idPattern =
-      RegExp(
+      final RegExp idPattern = RegExp(
         r'(?:"?(?:note[_\s-]?id|new[_\s-]?id|saved[_\s-]?id|'
         r'inserted[_\s-]?id|created[_\s-]?id|record[_\s-]?id|id)"?)'
         r'\s*[:=]\s*"?(\d+)"?',
         caseSensitive: false,
       );
 
-      final RegExpMatch? match =
-      idPattern.firstMatch(text);
+      final RegExpMatch? match = idPattern.firstMatch(text);
 
       if (match != null) {
-        return _positiveInt(
-          match.group(1),
-        );
+        return _positiveInt(match.group(1));
       }
 
       return 0;
@@ -752,11 +783,7 @@ class NoteRepositoryImpl implements NoteRepository {
 
     if (value is List) {
       for (final dynamic item in value) {
-        final int foundId =
-        _extractSavedNoteId(
-          item,
-          depth: depth + 1,
-        );
+        final int foundId = _extractSavedNoteId(item, depth: depth + 1);
 
         if (foundId > 0) {
           return foundId;
@@ -770,59 +797,42 @@ class NoteRepositoryImpl implements NoteRepository {
       return 0;
     }
 
-    final Map<String, dynamic> map =
-    _convertMap(value);
+    final Map<String, dynamic> map = _convertMap(value);
 
     /*
      * Search explicit ID properties first.
      */
-    for (final MapEntry<String, dynamic> entry
-    in map.entries) {
-      final String normalizedKey =
-      _normalizeKey(entry.key);
+    for (final MapEntry<String, dynamic> entry in map.entries) {
+      final String normalizedKey = _normalizeKey(entry.key);
 
       final bool isIdField =
           normalizedKey == 'id' ||
-              normalizedKey == 'noteid' ||
-              normalizedKey == 'newid' ||
-              normalizedKey == 'newnoteid' ||
-              normalizedKey == 'savedid' ||
-              normalizedKey == 'savednoteid' ||
-              normalizedKey == 'insertid' ||
-              normalizedKey == 'insertedid' ||
-              normalizedKey ==
-                  'insertednoteid' ||
-              normalizedKey ==
-                  'createdid' ||
-              normalizedKey ==
-                  'creatednoteid' ||
-              normalizedKey ==
-                  'recordid' ||
-              normalizedKey ==
-                  'resultid' ||
-              normalizedKey ==
-                  'returnid' ||
-              normalizedKey ==
-                  'outputid';
+          normalizedKey == 'noteid' ||
+          normalizedKey == 'newid' ||
+          normalizedKey == 'newnoteid' ||
+          normalizedKey == 'savedid' ||
+          normalizedKey == 'savednoteid' ||
+          normalizedKey == 'insertid' ||
+          normalizedKey == 'insertedid' ||
+          normalizedKey == 'insertednoteid' ||
+          normalizedKey == 'createdid' ||
+          normalizedKey == 'creatednoteid' ||
+          normalizedKey == 'recordid' ||
+          normalizedKey == 'resultid' ||
+          normalizedKey == 'returnid' ||
+          normalizedKey == 'outputid';
 
       if (!isIdField) {
         continue;
       }
 
-      final int foundId =
-      _positiveInt(
-        entry.value,
-      );
+      final int foundId = _positiveInt(entry.value);
 
       if (foundId > 0) {
         return foundId;
       }
 
-      final int nestedId =
-      _extractSavedNoteId(
-        entry.value,
-        depth: depth + 1,
-      );
+      final int nestedId = _extractSavedNoteId(entry.value, depth: depth + 1);
 
       if (nestedId > 0) {
         return nestedId;
@@ -832,8 +842,7 @@ class NoteRepositoryImpl implements NoteRepository {
     /*
      * Search common response wrappers.
      */
-    const List<String> wrapperKeys =
-    <String>[
+    const List<String> wrapperKeys = <String>[
       'data',
       'result',
       'note',
@@ -846,14 +855,11 @@ class NoteRepositoryImpl implements NoteRepository {
       'returnvalue',
     ];
 
-    for (final String wrapperKey
-    in wrapperKeys) {
+    for (final String wrapperKey in wrapperKeys) {
       dynamic nestedValue;
 
-      for (final MapEntry<String, dynamic> entry
-      in map.entries) {
-        if (_normalizeKey(entry.key) ==
-            wrapperKey) {
+      for (final MapEntry<String, dynamic> entry in map.entries) {
+        if (_normalizeKey(entry.key) == wrapperKey) {
           nestedValue = entry.value;
           break;
         }
@@ -863,11 +869,7 @@ class NoteRepositoryImpl implements NoteRepository {
         continue;
       }
 
-      final int foundId =
-      _extractSavedNoteId(
-        nestedValue,
-        depth: depth + 1,
-      );
+      final int foundId = _extractSavedNoteId(nestedValue, depth: depth + 1);
 
       if (foundId > 0) {
         return foundId;
@@ -879,18 +881,12 @@ class NoteRepositoryImpl implements NoteRepository {
      * Plain numbers under fields such as statusCode
      * are ignored.
      */
-    for (final dynamic nestedValue
-    in map.values) {
-      if (nestedValue is! Map &&
-          nestedValue is! List) {
+    for (final dynamic nestedValue in map.values) {
+      if (nestedValue is! Map && nestedValue is! List) {
         continue;
       }
 
-      final int foundId =
-      _extractSavedNoteId(
-        nestedValue,
-        depth: depth + 1,
-      );
+      final int foundId = _extractSavedNoteId(nestedValue, depth: depth + 1);
 
       if (foundId > 0) {
         return foundId;
@@ -904,72 +900,59 @@ class NoteRepositoryImpl implements NoteRepository {
   // NOTE MAPPER
   // ===========================================================================
 
-  NoteEntity _noteFromJson(
-      Map<String, dynamic> json,
-      ) {
+  NoteEntity _noteFromJson(Map<String, dynamic> json) {
     return NoteEntity(
-      id: _toInt(
-        _firstValueIgnoreCase(
-          json,
-          <String>[
-            'id',
-            'noteId',
-          ],
-        ),
-      ),
-      folderId: _toInt(
-        _firstValueIgnoreCase(
-          json,
-          <String>[
-            'folderId',
-          ],
-        ),
-      ),
-      title: _firstValueIgnoreCase(
-        json,
-        <String>[
-          'title',
-          'noteTitle',
-        ],
-      )
-          ?.toString() ??
+      id: _toInt(_firstValueIgnoreCase(json, <String>['id', 'noteId'])),
+      folderId: _toInt(_firstValueIgnoreCase(json, <String>['folderId'])),
+      folderName:
+          _firstValueIgnoreCase(json, <String>['folderName'])?.toString() ??
+          '',
+      title:
+          _firstValueIgnoreCase(json, <String>[
+            'title',
+            'noteTitle',
+          ])?.toString() ??
           '',
       content: _parseContent(
-        _firstValueIgnoreCase(
-          json,
-          <String>[
-            'content',
-            'contentJson',
-            'blocks',
-          ],
-        ),
+        _firstValueIgnoreCase(json, <String>[
+          'content',
+          'contentJson',
+          'blocks',
+        ]),
       ),
       isPinned: _toBool(
-        _firstValueIgnoreCase(
-          json,
-          <String>[
-            'isPinned',
-            'pinned',
-          ],
-        ),
+        _firstValueIgnoreCase(json, <String>['isPinned', 'pinned']),
       ),
       isArchived: _toBool(
-        _firstValueIgnoreCase(
-          json,
-          <String>[
-            'isArchived',
-            'archived',
-          ],
-        ),
+        _firstValueIgnoreCase(json, <String>['isArchived', 'archived']),
       ),
       isLocked: _toBool(
-        _firstValueIgnoreCase(
-          json,
-          <String>[
-            'isLocked',
-            'locked',
-          ],
-        ),
+        _firstValueIgnoreCase(json, <String>['isLocked', 'locked']),
+      ),
+      isInTrash: _toBool(
+        _firstValueIgnoreCase(json, <String>[
+          'isInTrash',
+          'isDeleted',
+          'deleted',
+        ]),
+      ),
+      sortOrder: _toInt(
+        _firstValueIgnoreCase(json, <String>['sortOrder']),
+      ),
+      attachmentCount: _toInt(
+        _firstValueIgnoreCase(json, <String>['attachmentCount']),
+      ),
+      pinnedAt: _toDateTime(
+        _firstValueIgnoreCase(json, <String>['pinnedAt']),
+      ),
+      createdAt: _toDateTime(
+        _firstValueIgnoreCase(json, <String>['createdAt']),
+      ),
+      updatedAt: _toDateTime(
+        _firstValueIgnoreCase(json, <String>['updatedAt']),
+      ),
+      deletedAt: _toDateTime(
+        _firstValueIgnoreCase(json, <String>['deletedAt']),
       ),
     );
   }
@@ -978,9 +961,7 @@ class NoteRepositoryImpl implements NoteRepository {
   // CONTENT PARSER
   // ===========================================================================
 
-  List<Map<String, dynamic>> _parseContent(
-      dynamic value,
-      ) {
+  List<Map<String, dynamic>> _parseContent(dynamic value) {
     if (value == null) {
       return <Map<String, dynamic>>[];
     }
@@ -988,16 +969,14 @@ class NoteRepositoryImpl implements NoteRepository {
     dynamic parsedValue = value;
 
     if (parsedValue is String) {
-      final String cleanValue =
-      parsedValue.trim();
+      final String cleanValue = parsedValue.trim();
 
       if (cleanValue.isEmpty) {
         return <Map<String, dynamic>>[];
       }
 
       try {
-        parsedValue =
-            jsonDecode(cleanValue);
+        parsedValue = jsonDecode(cleanValue);
       } catch (_) {
         /*
          * Support older content saved as plain text.
@@ -1014,9 +993,7 @@ class NoteRepositoryImpl implements NoteRepository {
     }
 
     if (parsedValue is Map) {
-      return <Map<String, dynamic>>[
-        _convertMap(parsedValue),
-      ];
+      return <Map<String, dynamic>>[_convertMap(parsedValue)];
     }
 
     if (parsedValue is! List) {
@@ -1025,29 +1002,22 @@ class NoteRepositoryImpl implements NoteRepository {
 
     return parsedValue
         .whereType<Map>()
-        .map(
-          (Map<dynamic, dynamic> block) {
-        return _convertMap(block);
-      },
-    )
-        .toList(
-      growable: false,
-    );
+        .map((Map<dynamic, dynamic> block) {
+          return _convertMap(block);
+        })
+        .toList(growable: false);
   }
 
   // ===========================================================================
   // GENERAL HELPERS
   // ===========================================================================
 
-  dynamic _decodeJsonString(
-      dynamic value,
-      ) {
+  dynamic _decodeJsonString(dynamic value) {
     if (value is! String) {
       return value;
     }
 
-    final String text =
-    value.trim();
+    final String text = value.trim();
 
     if (text.isEmpty) {
       return value;
@@ -1060,83 +1030,47 @@ class NoteRepositoryImpl implements NoteRepository {
     }
   }
 
-  Map<String, dynamic> _convertMap(
-      Map<dynamic, dynamic> map,
-      ) {
-    return map.map(
-          (
-          dynamic key,
-          dynamic value,
-          ) {
-        return MapEntry<String, dynamic>(
-          key.toString(),
-          value,
-        );
-      },
-    );
+  Map<String, dynamic> _convertMap(Map<dynamic, dynamic> map) {
+    return map.map((dynamic key, dynamic value) {
+      return MapEntry<String, dynamic>(key.toString(), value);
+    });
   }
 
-  Map<String, dynamic> _deepCopyMap(
-      Map<String, dynamic> source,
-      ) {
-    return source.map(
-          (
-          String key,
-          dynamic value,
-          ) {
-        if (value is Map) {
-          return MapEntry<String, dynamic>(
-            key,
-            _convertMap(value).map(
-                  (
-                  String childKey,
-                  dynamic childValue,
-                  ) {
-                return MapEntry<String, dynamic>(
-                  childKey,
-                  childValue,
-                );
-              },
-            ),
-          );
-        }
+  Map<String, dynamic> _deepCopyMap(Map<String, dynamic> source) {
+    return source.map((String key, dynamic value) {
+      if (value is Map) {
+        return MapEntry<String, dynamic>(
+          key,
+          _convertMap(value).map((String childKey, dynamic childValue) {
+            return MapEntry<String, dynamic>(childKey, childValue);
+          }),
+        );
+      }
 
-        if (value is List) {
-          return MapEntry<String, dynamic>(
-            key,
-            value.map(
-                  (dynamic item) {
+      if (value is List) {
+        return MapEntry<String, dynamic>(
+          key,
+          value
+              .map((dynamic item) {
                 if (item is Map) {
                   return _convertMap(item);
                 }
 
                 return item;
-              },
-            ).toList(
-              growable: false,
-            ),
-          );
-        }
-
-        return MapEntry<String, dynamic>(
-          key,
-          value,
+              })
+              .toList(growable: false),
         );
-      },
-    );
+      }
+
+      return MapEntry<String, dynamic>(key, value);
+    });
   }
 
-  dynamic _getValueIgnoreCase(
-      Map<String, dynamic> map,
-      String wantedKey,
-      ) {
-    final String normalizedWantedKey =
-    _normalizeKey(wantedKey);
+  dynamic _getValueIgnoreCase(Map<String, dynamic> map, String wantedKey) {
+    final String normalizedWantedKey = _normalizeKey(wantedKey);
 
-    for (final MapEntry<String, dynamic> entry
-    in map.entries) {
-      if (_normalizeKey(entry.key) ==
-          normalizedWantedKey) {
+    for (final MapEntry<String, dynamic> entry in map.entries) {
+      if (_normalizeKey(entry.key) == normalizedWantedKey) {
         return entry.value;
       }
     }
@@ -1144,16 +1078,9 @@ class NoteRepositoryImpl implements NoteRepository {
     return null;
   }
 
-  dynamic _firstValueIgnoreCase(
-      Map<String, dynamic> map,
-      List<String> keys,
-      ) {
+  dynamic _firstValueIgnoreCase(Map<String, dynamic> map, List<String> keys) {
     for (final String key in keys) {
-      final dynamic value =
-      _getValueIgnoreCase(
-        map,
-        key,
-      );
+      final dynamic value = _getValueIgnoreCase(map, key);
 
       if (value != null) {
         return value;
@@ -1163,30 +1090,17 @@ class NoteRepositoryImpl implements NoteRepository {
     return null;
   }
 
-  String _normalizeKey(
-      String key,
-      ) {
-    return key
-        .trim()
-        .toLowerCase()
-        .replaceAll(
-      RegExp(r'[^a-z0-9]'),
-      '',
-    );
+  String _normalizeKey(String key) {
+    return key.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
-  int _positiveInt(
-      dynamic value,
-      ) {
-    final int parsed =
-    _toInt(value);
+  int _positiveInt(dynamic value) {
+    final int parsed = _toInt(value);
 
     return parsed > 0 ? parsed : 0;
   }
 
-  int _toInt(
-      dynamic value,
-      ) {
+  int _toInt(dynamic value) {
     if (value is int) {
       return value;
     }
@@ -1195,15 +1109,10 @@ class NoteRepositoryImpl implements NoteRepository {
       return value.toInt();
     }
 
-    return int.tryParse(
-      value?.toString().trim() ?? '',
-    ) ??
-        0;
+    return int.tryParse(value?.toString().trim() ?? '') ?? 0;
   }
 
-  bool _toBool(
-      dynamic value,
-      ) {
+  bool _toBool(dynamic value) {
     if (value is bool) {
       return value;
     }
@@ -1212,35 +1121,31 @@ class NoteRepositoryImpl implements NoteRepository {
       return value != 0;
     }
 
-    final String text =
-        value
-            ?.toString()
-            .trim()
-            .toLowerCase() ??
-            '';
+    final String text = value?.toString().trim().toLowerCase() ?? '';
 
-    return text == 'true' ||
-        text == '1' ||
-        text == 'yes' ||
-        text == 'y';
+    return text == 'true' || text == '1' || text == 'yes' || text == 'y';
   }
 
-  String _fileNameFromPath(
-      String filePath,
-      ) {
-    final String normalizedPath =
-    filePath.replaceAll(
-      '\\',
-      '/',
-    );
+  DateTime? _toDateTime(dynamic value) {
+    if (value is DateTime) {
+      return value;
+    }
 
-    final List<String> parts =
-    normalizedPath.split('/');
+    final String text = value?.toString().trim() ?? '';
 
-    final String filename =
-    parts.isNotEmpty
-        ? parts.last.trim()
-        : '';
+    if (text.isEmpty || text.toLowerCase() == 'null') {
+      return null;
+    }
+
+    return DateTime.tryParse(text);
+  }
+
+  String _fileNameFromPath(String filePath) {
+    final String normalizedPath = filePath.replaceAll('\\', '/');
+
+    final List<String> parts = normalizedPath.split('/');
+
+    final String filename = parts.isNotEmpty ? parts.last.trim() : '';
 
     if (filename.isNotEmpty) {
       return filename;
@@ -1249,16 +1154,13 @@ class NoteRepositoryImpl implements NoteRepository {
     return 'attachment';
   }
 
-  String _responsePreview(
-      dynamic response,
-      ) {
+  String _responsePreview(dynamic response) {
     String text;
 
     try {
       text = jsonEncode(response);
     } catch (_) {
-      text =
-          response?.toString() ?? 'null';
+      text = response?.toString() ?? 'null';
     }
 
     const int maximumLength = 700;

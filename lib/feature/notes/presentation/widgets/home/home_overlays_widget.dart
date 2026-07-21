@@ -21,8 +21,8 @@ abstract final class HomeOverlays {
           heightFactor: 0.78,
           child: Obx(() {
             final int totalNoteCount =
-            controller.notes.isNotEmpty
-                ? controller.notes.length
+            controller.activeNotes.isNotEmpty
+                ? controller.activeNotes.length
                 : controller.folders.fold<int>(
               0,
                   (
