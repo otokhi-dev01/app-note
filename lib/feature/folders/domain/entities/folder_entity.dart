@@ -64,14 +64,9 @@ class FolderEntity {
       noteCount: _toInt(
         _readValue(json, const <String>['NoteCount', 'noteCount']),
       ),
-      isInTrash: _toBool(
-        _readValue(json, const <String>[
-          'IsInTrash',
-          'isInTrash',
-          'IsDeleted',
-          'isDeleted',
-        ]),
-      ),
+      isInTrash:
+          _toBool(_readValue(json, const <String>['IsInTrash', 'isInTrash'])) ||
+          _toBool(_readValue(json, const <String>['IsDeleted', 'isDeleted'])),
       createdAt: _toDateTime(
         _readValue(json, const <String>['CreatedAt', 'createdAt']),
       ),
