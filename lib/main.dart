@@ -15,12 +15,7 @@ Future<void> main() async {
 
   Get.put<SettingsController>(SettingsController(), permanent: true);
 
-<<<<<<< HEAD
-  runApp(PiisiitNoteApp()
-  );
-=======
   runApp(PiisiitNoteApp());
->>>>>>> origin
 }
 
 class PiisiitNoteApp extends GetView<SettingsController> {
