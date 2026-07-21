@@ -6,11 +6,8 @@ class FolderEntity {
   final String colorValue;
   final int sortOrder;
   final int noteCount;
-<<<<<<< HEAD
-=======
   final bool isInTrash;
 
->>>>>>> nona_feature
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
@@ -29,13 +26,9 @@ class FolderEntity {
     this.deletedAt,
   });
 
-<<<<<<< HEAD
-  bool get isDeleted => deletedAt != null;
-=======
   bool get isDeleted {
     return isInTrash || deletedAt != null;
   }
->>>>>>> nona_feature
 
   factory FolderEntity.fromJson(
       Map<String, dynamic> json,
@@ -167,4 +160,6 @@ class FolderEntity {
 
     return DateTime.tryParse(text);
   }
+  
+  static _readValue(Map<String, dynamic> json, List<String> list) {}
 }
