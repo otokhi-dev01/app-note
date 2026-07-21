@@ -23,7 +23,7 @@
   <key>MinimumOSVersion</key>
   <string>13.0</string>
   <key>FlutterEngine</key>
-  <string>83675ed27633283e7fc296c8bca22e841224c096</string>
+  <string>69c8c61792f04cc809dfef0c910414fb9afc06cd</string>
   <key>BuildMode</key>
   <string>debug</string>
   <key>ClangVersion</key>

@@ -5,14 +5,10 @@ abstract class NoteRepository {
   Future<List<NoteEntity>> getNotes();
 
   /// GET /api/note/{id}
-  Future<NoteEntity> getNoteDetail(
-      int noteId,
-      );
+  Future<NoteEntity> getNoteDetail(int noteId);
 
   /// Compatibility method.
-  Future<NoteEntity> getNote(
-      int noteId,
-      );
+  Future<NoteEntity> getNote(int noteId);
 
   /// POST /api/note/save
   Future<int> saveNote({
@@ -21,7 +17,8 @@ abstract class NoteRepository {
     required String title,
   });
 
-  /// POST /api/note/save-content
+  /// POST /api/note/save with `{id, title, content}`.
+  /// Falls back to POST /api/note/save-content on older servers.
   Future<void> saveContent({
     required int id,
     required String title,

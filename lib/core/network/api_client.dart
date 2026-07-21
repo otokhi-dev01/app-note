@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../config/api_config.dart';
 import '../storage/token_storage.dart';
 import 'api_exception.dart';
+import 'api_parser.dart';
 
 class ApiClient {
   final TokenStorage tokenStorage;
@@ -53,6 +54,8 @@ class ApiClient {
         bool requiresAuth = true,
         bool useAuthBaseUrl = false,
       }) async {
+    final dynamic requestBody = body ?? <String, dynamic>{};
+
     return _request(
           () async {
         return _dio.post<dynamic>(
@@ -60,9 +63,11 @@ class ApiClient {
             path,
             useAuthBaseUrl: useAuthBaseUrl,
           ),
-          data: body ?? <String, dynamic>{},
+          data: requestBody,
           options: Options(
-            contentType: Headers.jsonContentType,
+            contentType: requestBody is FormData
+                ? null
+                : Headers.jsonContentType,
             headers: await _createHeaders(
               requiresAuth: requiresAuth,
             ),
@@ -156,7 +161,21 @@ class ApiClient {
       final int statusCode = response.statusCode ?? 0;
 
       if (statusCode >= 200 && statusCode < 300) {
+        try {
+          ApiParser.ensureSuccess(response.data);
+        } on ApiException catch (error) {
+          if (error.isUnauthorized) {
+            await tokenStorage.deleteToken();
+          }
+
+          rethrow;
+        }
+
         return response.data;
+      }
+
+      if (statusCode == 401) {
+        await tokenStorage.deleteToken();
       }
 
       throw ApiException(
@@ -170,6 +189,10 @@ class ApiClient {
       final Response<dynamic>? response = error.response;
 
       if (response != null) {
+        if (response.statusCode == 401) {
+          await tokenStorage.deleteToken();
+        }
+
         throw ApiException(
           message: _extractMessage(response.data),
           statusCode: response.statusCode,
@@ -188,18 +211,9 @@ class ApiClient {
   }
 
   String _extractMessage(dynamic responseData) {
-    if (responseData is Map) {
-      return responseData['message']?.toString() ??
-          responseData['error']?.toString() ??
-          responseData['title']?.toString() ??
-          'Request failed.';
-    }
-
-    if (responseData is String &&
-        responseData.trim().isNotEmpty) {
-      return responseData;
-    }
-
-    return 'Request failed.';
+    return ApiParser.responseMessage(
+      responseData,
+      fallback: 'Request failed.',
+    );
   }
 }

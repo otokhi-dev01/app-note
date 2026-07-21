@@ -1,35 +1,74 @@
-import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
-import '../../domain/entities/folder_entity.dart';
-import 'folder_repository.dart';
+import '../entities/folder_entity.dart';
+
+abstract class FolderRepository {
+  Future<List<FolderEntity>> getFolders();
+
+  Future<void> saveFolder({
+    required int id,
+    required String name,
+    required String iconName,
+    required String colorValue,
+    required int sortOrder,
+  });
+
+  Future<void> deleteOrRestoreFolder({required int id, required bool isDelete});
+}
 
 class FolderRepositoryImpl implements FolderRepository {
   final ApiClient apiClient;
 
-  const FolderRepositoryImpl({
-    required this.apiClient,
-  });
+  const FolderRepositoryImpl({required this.apiClient});
 
   @override
   Future<List<FolderEntity>> getFolders() async {
-    final dynamic response = await apiClient.get(
-      ApiEndpoints.folders,
-    );
+    final dynamic response = await apiClient.get(ApiEndpoints.folders);
 
-    final dynamic responseBody = _extractResponseBody(response);
-    final List<dynamic> items = _extractFolderList(responseBody);
+    final dynamic body = _extractResponseBody(response);
 
-    return items
+    debugPrint('FOLDER API RESPONSE: $body');
+
+    final List<dynamic> folderItems = _extractFolderList(body);
+
+    return folderItems
         .whereType<Map>()
         .map((Map<dynamic, dynamic> item) {
-      return _folderFromJson(
-        Map<String, dynamic>.from(item),
-      );
-    })
-        .where((FolderEntity folder) => folder.id > 0)
+          return FolderEntity.fromJson(_convertMap(item));
+        })
+        .where((FolderEntity folder) {
+          return folder.id > 0;
+        })
         .toList(growable: false);
+  }
+
+  @override
+  Future<void> saveFolder({
+    required int id,
+    required String name,
+    required String iconName,
+    required String colorValue,
+    required int sortOrder,
+  }) async {
+    final String cleanName = name.trim();
+
+    if (cleanName.isEmpty) {
+      throw ArgumentError('Folder name is required.');
+    }
+
+    final dynamic response = await apiClient.post(
+      ApiEndpoints.saveFolder,
+      body: <String, dynamic>{
+        'id': id,
+        'name': cleanName,
+        'iconName': iconName.trim().isEmpty ? 'folder' : iconName.trim(),
+        'colorValue': colorValue.trim().isEmpty ? '#2196F3' : colorValue.trim(),
+        'sortOrder': sortOrder,
+      },
+    );
+
+    _validateApiResponse(_extractResponseBody(response));
   }
 
   @override
@@ -45,18 +84,21 @@ class FolderRepositoryImpl implements FolderRepository {
       );
     }
 
-    await apiClient.post(
-      ApiEndpoints.folderDeleteRestore,
-      body: <String, dynamic>{
-        'id': id,
-        'isDelete': isDelete,
-      },
+    final dynamic response = await apiClient.post(
+      ApiEndpoints.deleteRestoreFolder,
+      body: <String, dynamic>{'id': id, 'isDelete': isDelete},
     );
+
+    final dynamic body = _extractResponseBody(response);
+
+    debugPrint('DELETE/RESTORE FOLDER RESPONSE: $body');
+
+    _validateApiResponse(body);
   }
 
   dynamic _extractResponseBody(dynamic response) {
     if (response == null) {
-      throw StateError('The server returned an empty response.');
+      return null;
     }
 
     if (response is Map ||
@@ -68,157 +110,116 @@ class FolderRepositoryImpl implements FolderRepository {
     }
 
     try {
-      final dynamic data = (response as dynamic).data;
-
-      if (data != null) {
-        return data;
-      }
+      return (response as dynamic).data;
     } catch (_) {
-      // ApiClient may already return response.data.
+      return response;
     }
-
-    return response;
   }
 
   List<dynamic> _extractFolderList(dynamic response) {
-    dynamic value = response;
-
-    if (value is String) {
-      final String text = value.trim();
-
-      if (text.isEmpty) {
-        return <dynamic>[];
-      }
-
-      value = jsonDecode(text);
+    if (response is List) {
+      return response;
     }
 
-    if (value is List) {
-      return value;
+    if (response is! Map) {
+      return <dynamic>[];
     }
 
-    if (value is! Map) {
-      throw StateError(
-        'The folder API returned an invalid response.',
-      );
-    }
+    final Map<String, dynamic> root = _convertMap(response);
 
-    final Map<String, dynamic> root =
-    Map<String, dynamic>.from(value);
-
-    final dynamic data = root['data'];
+    final dynamic data = _readIgnoreCase(root, 'data');
 
     if (data is List) {
       return data;
     }
 
     if (data is Map) {
-      final Map<String, dynamic> dataMap =
-      Map<String, dynamic>.from(data);
+      final Map<String, dynamic> dataMap = _convertMap(data);
 
-      // Important: your API uses data.folder.
-      final dynamic folderList =
-          dataMap['folder'] ??
-              dataMap['folders'] ??
-              dataMap['items'] ??
-              dataMap['list'] ??
-              dataMap['result'];
+      final dynamic folders = _firstValue(dataMap, const <String>[
+        'folder',
+        'folders',
+        'items',
+        'list',
+        'rows',
+      ]);
 
-      if (folderList is List) {
-        return folderList;
+      if (folders is List) {
+        return folders;
       }
     }
 
-    final dynamic rootList =
-        root['folder'] ??
-            root['folders'] ??
-            root['items'] ??
-            root['list'] ??
-            root['result'];
+    final dynamic folders = _firstValue(root, const <String>[
+      'folder',
+      'folders',
+      'items',
+      'list',
+      'rows',
+    ]);
 
-    if (rootList is List) {
-      return rootList;
+    if (folders is List) {
+      return folders;
     }
 
     return <dynamic>[];
-
-
   }
 
-  FolderEntity _folderFromJson(
-      Map<String, dynamic> json,
-      ) {
-    return FolderEntity(
-      id: _toInt(
-        json['FolderId'] ??
-            json['folderId'] ??
-            json['Id'] ??
-            json['id'],
-      ),
-      name:
-      json['FolderName']?.toString() ??
-          json['folderName']?.toString() ??
-          json['Name']?.toString() ??
-          json['name']?.toString() ??
-          '',
-      iconName:
-      json['IconName']?.toString() ??
-          json['iconName']?.toString() ??
-          'folder',
-      colorValue:
-      json['ColorValue']?.toString() ??
-          json['colorValue']?.toString() ??
-          '#2196F3',
-      sortOrder: _toInt(
-        json['SortOrder'] ??
-            json['sortOrder'],
-      ),
-      noteCount: _toInt(
-        json['NoteCount'] ??
-            json['noteCount'],
-      ),
+  void _validateApiResponse(dynamic response) {
+    if (response == null || response is! Map) {
+      return;
+    }
 
-      // This determines whether it goes to the recycle bin.
-      deletedAt: _toDateTime(
-        json['DeletedAt'] ??
-            json['deletedAt'],
-      ),
-    );
+    final Map<String, dynamic> map = _convertMap(response);
+
+    final dynamic codeValue = _readIgnoreCase(map, 'code');
+
+    if (codeValue == null) {
+      return;
+    }
+
+    final int code = int.tryParse(codeValue.toString()) ?? 0;
+
+    final bool success =
+        code == 0 || code == 200 || (code >= 200 && code < 300);
+
+    if (success) {
+      return;
+    }
+
+    final String message =
+        _readIgnoreCase(map, 'message')?.toString() ??
+        'The folder request failed.';
+
+    throw StateError(message);
   }
 
-  int _toInt(dynamic value) {
-    if (value == null) {
-      return 0;
-    }
-
-    if (value is int) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(value.toString()) ?? 0;
+  Map<String, dynamic> _convertMap(Map<dynamic, dynamic> map) {
+    return map.map((dynamic key, dynamic value) {
+      return MapEntry<String, dynamic>(key.toString(), value);
+    });
   }
 
-  DateTime? _toDateTime(dynamic value) {
-    if (value == null) {
-      return null;
+  dynamic _readIgnoreCase(Map<String, dynamic> map, String key) {
+    final String wanted = key.toLowerCase();
+
+    for (final MapEntry<String, dynamic> entry in map.entries) {
+      if (entry.key.toLowerCase() == wanted) {
+        return entry.value;
+      }
     }
 
-    final String text = value.toString().trim();
-
-    if (text.isEmpty || text.toLowerCase() == 'null') {
-      return null;
-    }
-
-    return DateTime.tryParse(text);
+    return null;
   }
 
-  @override
-  Future<void> saveFolder({required int id, required String name, required String iconName, required String colorValue, required int sortOrder}) {
-    // TODO: implement saveFolder
-    throw UnimplementedError();
+  dynamic _firstValue(Map<String, dynamic> map, List<String> keys) {
+    for (final String key in keys) {
+      final dynamic value = _readIgnoreCase(map, key);
+
+      if (value != null) {
+        return value;
+      }
+    }
+
+    return null;
   }
 }

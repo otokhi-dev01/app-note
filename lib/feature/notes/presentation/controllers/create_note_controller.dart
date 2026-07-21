@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,10 +12,35 @@ class NoteDraftImage {
   final XFile file;
   final String blockId;
 
-  const NoteDraftImage({
-    required this.file,
+  const NoteDraftImage({required this.file, required this.blockId});
+}
+
+class NoteDraftDocument {
+  final String filePath;
+  final String displayName;
+  final String blockId;
+
+  const NoteDraftDocument({
+    required this.filePath,
+    required this.displayName,
     required this.blockId,
   });
+}
+
+class CreateNoteChecklistItem {
+  final String id;
+  String text;
+  bool checked;
+
+  CreateNoteChecklistItem({
+    required this.id,
+    required this.text,
+    required this.checked,
+  });
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{'id': id, 'text': text.trim(), 'checked': checked};
+  }
 }
 
 class CreateNoteController extends GetxController {
@@ -26,16 +52,18 @@ class CreateNoteController extends GetxController {
     required this.homeController,
   });
 
-  final TextEditingController titleController =
-  TextEditingController();
+  final TextEditingController titleController = TextEditingController();
 
-  final TextEditingController statementController =
-  TextEditingController();
+  final TextEditingController statementController = TextEditingController();
 
   final RxnInt selectedFolderId = RxnInt();
 
-  final RxList<NoteDraftImage> selectedImages =
-      <NoteDraftImage>[].obs;
+  final RxList<NoteDraftImage> selectedImages = <NoteDraftImage>[].obs;
+
+  final RxList<NoteDraftDocument> selectedDocuments = <NoteDraftDocument>[].obs;
+
+  final RxList<CreateNoteChecklistItem> checklistItems =
+      <CreateNoteChecklistItem>[].obs;
 
   final RxBool isSaving = false.obs;
   final RxBool isLoadingFolders = false.obs;
@@ -56,18 +84,14 @@ class CreateNoteController extends GetxController {
    * Keeps successfully uploaded image IDs so retrying
    * does not upload the same image twice.
    */
-  final Set<String> _uploadedBlockIds =
-  <String>{};
+  final Set<String> _uploadedBlockIds = <String>{};
 
   List<FolderEntity> get folders {
-    return homeController.folders.toList(
-      growable: false,
-    );
+    return homeController.folders.toList(growable: false);
   }
 
   FolderEntity? get selectedFolder {
-    final int? folderId =
-        selectedFolderId.value;
+    final int? folderId = selectedFolderId.value;
 
     if (folderId == null) {
       return null;
@@ -83,8 +107,7 @@ class CreateNoteController extends GetxController {
   }
 
   String get selectedFolderName {
-    final FolderEntity? folder =
-        selectedFolder;
+    final FolderEntity? folder = selectedFolder;
 
     if (folder == null) {
       return 'Choose folder';
@@ -92,9 +115,7 @@ class CreateNoteController extends GetxController {
 
     final String name = folder.name.trim();
 
-    return name.isEmpty
-        ? 'Unnamed Folder'
-        : name;
+    return name.isEmpty ? 'Unnamed Folder' : name;
   }
 
   @override
@@ -114,27 +135,21 @@ class CreateNoteController extends GetxController {
   }
 
   void _selectInitialFolder() {
-    final int? currentFolderId =
-        homeController.selectedFolderId.value;
+    final int? currentFolderId = homeController.selectedFolderId.value;
 
     if (currentFolderId != null) {
-      final bool exists =
-      homeController.folders.any(
-            (FolderEntity folder) {
-          return folder.id == currentFolderId;
-        },
-      );
+      final bool exists = homeController.folders.any((FolderEntity folder) {
+        return folder.id == currentFolderId;
+      });
 
       if (exists) {
-        selectedFolderId.value =
-            currentFolderId;
+        selectedFolderId.value = currentFolderId;
         return;
       }
     }
 
     if (homeController.folders.isNotEmpty) {
-      selectedFolderId.value =
-          homeController.folders.first.id;
+      selectedFolderId.value = homeController.folders.first.id;
     }
   }
 
@@ -145,42 +160,31 @@ class CreateNoteController extends GetxController {
 
       await homeController.loadFolders();
 
-      final int? currentFolderId =
-          selectedFolderId.value;
+      final int? currentFolderId = selectedFolderId.value;
 
       final bool selectedFolderExists =
           currentFolderId != null &&
-              homeController.folders.any(
-                    (FolderEntity folder) {
-                  return folder.id ==
-                      currentFolderId;
-                },
-              );
+          homeController.folders.any((FolderEntity folder) {
+            return folder.id == currentFolderId;
+          });
 
-      if (!selectedFolderExists &&
-          homeController.folders.isNotEmpty) {
-        selectedFolderId.value =
-            homeController.folders.first.id;
+      if (!selectedFolderExists && homeController.folders.isNotEmpty) {
+        selectedFolderId.value = homeController.folders.first.id;
       }
     } catch (error) {
-      errorMessage.value =
-          _cleanError(error);
+      errorMessage.value = _cleanError(error);
     } finally {
       isLoadingFolders.value = false;
     }
   }
 
   void selectFolder(int folderId) {
-    final bool folderExists =
-    homeController.folders.any(
-          (FolderEntity folder) {
-        return folder.id == folderId;
-      },
-    );
+    final bool folderExists = homeController.folders.any((FolderEntity folder) {
+      return folder.id == folderId;
+    });
 
     if (!folderExists) {
-      errorMessage.value =
-      'The selected folder is unavailable.';
+      errorMessage.value = 'The selected folder is unavailable.';
       return;
     }
 
@@ -192,11 +196,9 @@ class CreateNoteController extends GetxController {
     try {
       errorMessage.value = '';
 
-      final XFile? photo =
-      await _imagePicker.pickImage(
+      final XFile? photo = await _imagePicker.pickImage(
         source: ImageSource.camera,
-        preferredCameraDevice:
-        CameraDevice.rear,
+        preferredCameraDevice: CameraDevice.rear,
         imageQuality: 85,
         maxWidth: 2048,
         maxHeight: 2048,
@@ -206,15 +208,10 @@ class CreateNoteController extends GetxController {
         return;
       }
 
-      selectedImages.add(
-        NoteDraftImage(
-          file: photo,
-          blockId: _uuid.v4(),
-        ),
-      );
+      selectedImages.add(NoteDraftImage(file: photo, blockId: _uuid.v4()));
     } catch (error) {
       errorMessage.value =
-      'Could not open the camera. '
+          'Could not open the camera. '
           '${_cleanError(error)}';
     }
   }
@@ -223,8 +220,7 @@ class CreateNoteController extends GetxController {
     try {
       errorMessage.value = '';
 
-      final List<XFile> images =
-      await _imagePicker.pickMultiImage(
+      final List<XFile> images = await _imagePicker.pickMultiImage(
         imageQuality: 85,
         maxWidth: 2048,
         maxHeight: 2048,
@@ -234,39 +230,102 @@ class CreateNoteController extends GetxController {
         return;
       }
 
-      final List<NoteDraftImage> newImages =
-      images.map(
-            (XFile image) {
-          return NoteDraftImage(
-            file: image,
-            blockId: _uuid.v4(),
-          );
-        },
-      ).toList(
-        growable: false,
-      );
+      final List<NoteDraftImage> newImages = images
+          .map((XFile image) {
+            return NoteDraftImage(file: image, blockId: _uuid.v4());
+          })
+          .toList(growable: false);
 
       selectedImages.addAll(newImages);
     } catch (error) {
       errorMessage.value =
-      'Could not open the photo library. '
+          'Could not open the photo library. '
           '${_cleanError(error)}';
     }
   }
 
-  void removeImage(
-      NoteDraftImage image,
-      ) {
-    selectedImages.removeWhere(
-          (NoteDraftImage currentImage) {
-        return currentImage.blockId ==
-            image.blockId;
-      },
-    );
+  void removeImage(NoteDraftImage image) {
+    selectedImages.removeWhere((NoteDraftImage currentImage) {
+      return currentImage.blockId == image.blockId;
+    });
 
-    _uploadedBlockIds.remove(
-      image.blockId,
+    _uploadedBlockIds.remove(image.blockId);
+  }
+
+  Future<void> chooseDocument() async {
+    try {
+      errorMessage.value = '';
+
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        type: FileType.any,
+      );
+      final PlatformFile? file = result?.files.single;
+      final String? path = file?.path;
+
+      if (file == null || path == null || path.trim().isEmpty) {
+        return;
+      }
+
+      selectedDocuments.add(
+        NoteDraftDocument(
+          filePath: path,
+          displayName: file.name,
+          blockId: _uuid.v4(),
+        ),
+      );
+    } catch (error) {
+      errorMessage.value =
+          'Could not open the file picker. ${_cleanError(error)}';
+    }
+  }
+
+  void removeDocument(NoteDraftDocument document) {
+    selectedDocuments.removeWhere(
+      (NoteDraftDocument current) => current.blockId == document.blockId,
     );
+    _uploadedBlockIds.remove(document.blockId);
+  }
+
+  void addChecklistItem() {
+    if (isSaving.value) {
+      return;
+    }
+
+    checklistItems.add(
+      CreateNoteChecklistItem(id: _uuid.v4(), text: '', checked: false),
+    );
+  }
+
+  void updateChecklistItem(String id, String text) {
+    final CreateNoteChecklistItem? item = _findChecklistItem(id);
+
+    if (item != null) {
+      item.text = text;
+    }
+  }
+
+  void toggleChecklistItem(String id, bool checked) {
+    final CreateNoteChecklistItem? item = _findChecklistItem(id);
+
+    if (item != null) {
+      item.checked = checked;
+      checklistItems.refresh();
+    }
+  }
+
+  void removeChecklistItem(String id) {
+    checklistItems.removeWhere((CreateNoteChecklistItem item) => item.id == id);
+  }
+
+  CreateNoteChecklistItem? _findChecklistItem(String id) {
+    for (final CreateNoteChecklistItem item in checklistItems) {
+      if (item.id == id) {
+        return item;
+      }
+    }
+
+    return null;
   }
 
   /*
@@ -280,27 +339,18 @@ class CreateNoteController extends GetxController {
    * 5. Open Note Editor
    */
   Future<void> createNote() async {
-    FocusManager.instance.primaryFocus
-        ?.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
 
-    final String title =
-    titleController.text.trim();
+    final String title = titleController.text.trim();
 
-    final String statement =
-    statementController.text.trim();
+    final String statement = statementController.text.trim();
 
-    final int? folderId =
-        selectedFolderId.value;
+    final int? folderId = selectedFolderId.value;
 
-    final String? validationError =
-    _validate(
-      folderId: folderId,
-      title: title,
-    );
+    final String? validationError = _validate(folderId: folderId, title: title);
 
     if (validationError != null) {
-      errorMessage.value =
-          validationError;
+      errorMessage.value = validationError;
       return;
     }
 
@@ -314,20 +364,18 @@ class CreateNoteController extends GetxController {
        */
       final int noteId =
           _createdNoteId ??
-              await noteRepository.saveNote(
-                noteId: 0,
-                folderId: folderId!,
-                title: title,
-              );
+          await noteRepository.saveNote(
+            noteId: 0,
+            folderId: folderId!,
+            title: title,
+          );
 
       _createdNoteId = noteId;
 
       /*
        * Convert statement and images into content blocks.
        */
-      final List<Map<String, dynamic>>
-      contentBlocks =
-      _buildContentBlocks(
+      final List<Map<String, dynamic>> contentBlocks = _buildContentBlocks(
         statement: statement,
       );
 
@@ -347,120 +395,158 @@ class CreateNoteController extends GetxController {
        * Upload images after the content structure
        * has been saved.
        */
-      final List<NoteDraftImage> imageSnapshot =
-      selectedImages.toList(
+      final List<NoteDraftImage> imageSnapshot = selectedImages.toList(
         growable: false,
       );
 
-      for (
-      int index = 0;
-      index < imageSnapshot.length;
-      index++
-      ) {
-        final NoteDraftImage image =
-        imageSnapshot[index];
+      for (int index = 0; index < imageSnapshot.length; index++) {
+        final NoteDraftImage image = imageSnapshot[index];
 
-        if (_uploadedBlockIds.contains(
-          image.blockId,
-        )) {
+        if (_uploadedBlockIds.contains(image.blockId)) {
           continue;
         }
+
+        final int contentIndex = contentBlocks.indexWhere((
+          Map<String, dynamic> block,
+        ) {
+          return block['blockId']?.toString() == image.blockId;
+        });
 
         await noteRepository.uploadAttachment(
           noteId: noteId,
           filePath: image.file.path,
           blockId: image.blockId,
-          displayOrder: index + 1,
+          displayOrder: contentIndex >= 0 ? contentIndex + 1 : index + 1,
         );
 
-        _uploadedBlockIds.add(
-          image.blockId,
-        );
+        _uploadedBlockIds.add(image.blockId);
       }
 
-      homeController.selectedFolderId.value =
-          folderId;
+      final List<NoteDraftDocument> documentSnapshot = selectedDocuments.toList(
+        growable: false,
+      );
+
+      for (int index = 0; index < documentSnapshot.length; index++) {
+        final NoteDraftDocument document = documentSnapshot[index];
+
+        if (_uploadedBlockIds.contains(document.blockId)) {
+          continue;
+        }
+
+        final int contentIndex = contentBlocks.indexWhere((
+          Map<String, dynamic> block,
+        ) {
+          return block['blockId']?.toString() == document.blockId;
+        });
+
+        await noteRepository.uploadAttachment(
+          noteId: noteId,
+          filePath: document.filePath,
+          blockId: document.blockId,
+          displayOrder: contentIndex >= 0
+              ? contentIndex + 1
+              : selectedImages.length + index + 1,
+        );
+
+        _uploadedBlockIds.add(document.blockId);
+      }
+
+      homeController.selectedFolderId.value = folderId;
 
       await homeController.loadAll();
 
-      Get.offNamed(
-        AppRoutes.noteEditor,
-        arguments: noteId,
-      );
+      Get.offNamed(AppRoutes.noteEditor, arguments: noteId);
 
-      Get.snackbar(
-        'Note created',
-        'Your note was created successfully.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      if (!Get.testMode && Get.context != null) {
+        Get.snackbar(
+          'Note created',
+          'Your note was created successfully.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
     } catch (error) {
-      errorMessage.value =
-          _cleanError(error);
+      errorMessage.value = _cleanError(error);
     } finally {
       isSaving.value = false;
     }
   }
 
-  List<Map<String, dynamic>>
-  _buildContentBlocks({
-    required String statement,
-  }) {
-    final List<Map<String, dynamic>> blocks =
-    <Map<String, dynamic>>[];
+  List<Map<String, dynamic>> _buildContentBlocks({required String statement}) {
+    final List<Map<String, dynamic>> blocks = <Map<String, dynamic>>[];
 
     int displayOrder = 0;
 
     if (statement.isNotEmpty) {
       displayOrder++;
 
-      blocks.add(
-        <String, dynamic>{
-          'id': _uuid.v4(),
-          'blockId': _uuid.v4(),
-          'type': 'text',
-          'text': statement,
-          'displayOrder': displayOrder,
-        },
-      );
+      blocks.add(<String, dynamic>{
+        'id': _uuid.v4(),
+        'blockId': _uuid.v4(),
+        'type': 'text',
+        'text': statement,
+        'displayOrder': displayOrder,
+      });
     }
 
-    final List<NoteDraftImage> imageSnapshot =
-    selectedImages.toList(
+    final List<CreateNoteChecklistItem> taskSnapshot = checklistItems
+        .where((CreateNoteChecklistItem item) => item.text.trim().isNotEmpty)
+        .toList(growable: false);
+
+    if (taskSnapshot.isNotEmpty) {
+      displayOrder++;
+      final String checklistId = _uuid.v4();
+
+      blocks.add(<String, dynamic>{
+        'id': checklistId,
+        'blockId': checklistId,
+        'type': 'checklist',
+        'items': taskSnapshot
+            .map((CreateNoteChecklistItem item) => item.toJson())
+            .toList(growable: false),
+        'displayOrder': displayOrder,
+      });
+    }
+
+    final List<NoteDraftImage> imageSnapshot = selectedImages.toList(
       growable: false,
     );
 
-    for (final NoteDraftImage image
-    in imageSnapshot) {
+    for (final NoteDraftImage image in imageSnapshot) {
       displayOrder++;
 
-      blocks.add(
-        <String, dynamic>{
-          'id': image.blockId,
-          'blockId': image.blockId,
-          'type': 'attachment',
-          'attachmentType': 'image',
-          'displayOrder': displayOrder,
-        },
-      );
+      blocks.add(<String, dynamic>{
+        'id': image.blockId,
+        'blockId': image.blockId,
+        'type': 'attachment',
+        'attachmentType': 'image',
+        'displayOrder': displayOrder,
+      });
+    }
+
+    for (final NoteDraftDocument document in selectedDocuments) {
+      displayOrder++;
+
+      blocks.add(<String, dynamic>{
+        'id': document.blockId,
+        'blockId': document.blockId,
+        'type': 'attachment',
+        'attachmentType': 'document',
+        'displayName': document.displayName,
+        'displayOrder': displayOrder,
+      });
     }
 
     return blocks;
   }
 
-  String? _validate({
-    required int? folderId,
-    required String title,
-  }) {
+  String? _validate({required int? folderId, required String title}) {
     if (folderId == null) {
       return 'Please choose a folder.';
     }
 
-    final bool folderExists =
-    homeController.folders.any(
-          (FolderEntity folder) {
-        return folder.id == folderId;
-      },
-    );
+    final bool folderExists = homeController.folders.any((FolderEntity folder) {
+      return folder.id == folderId;
+    });
 
     if (!folderExists) {
       return 'The selected folder no longer exists.';
@@ -477,19 +563,11 @@ class CreateNoteController extends GetxController {
     return null;
   }
 
-  String _cleanError(
-      Object error,
-      ) {
+  String _cleanError(Object error) {
     return error
         .toString()
-        .replaceFirst(
-      'ApiException: ',
-      '',
-    )
-        .replaceFirst(
-      'Exception: ',
-      '',
-    )
+        .replaceFirst('ApiException: ', '')
+        .replaceFirst('Exception: ', '')
         .trim();
   }
 
@@ -499,6 +577,8 @@ class CreateNoteController extends GetxController {
     statementController.dispose();
 
     selectedImages.clear();
+    selectedDocuments.clear();
+    checklistItems.clear();
     _uploadedBlockIds.clear();
 
     super.onClose();

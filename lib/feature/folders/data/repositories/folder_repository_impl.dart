@@ -7,9 +7,7 @@ import 'package:note_app/feature/folders/domain/repositories/folder_repository.d
 class FolderRepositoryImpl implements FolderRepository {
   final ApiClient apiClient;
 
-  const FolderRepositoryImpl({
-    required this.apiClient,
-  });
+  const FolderRepositoryImpl({required this.apiClient});
 
   @override
   Future<List<FolderEntity>> getFolders() async {
@@ -21,37 +19,31 @@ class FolderRepositoryImpl implements FolderRepository {
 
     _validateResponse(response);
 
-    final List<dynamic> items = _extractFolders(
-      response,
-    );
+    final List<dynamic> items = <dynamic>[..._extractFolders(response)];
 
-    return items
-        .whereType<Map>()
-        .map(
-          (Map<dynamic, dynamic> item) {
-        return FolderEntity.fromJson(
-          item.map(
-                (
-                dynamic key,
-                dynamic value,
-                ) {
-              return MapEntry<String, dynamic>(
-                key.toString(),
-                value,
+    final Map<int, FolderEntity> foldersById = <int, FolderEntity>{};
+
+    for (final FolderEntity folder
+        in items
+            .whereType<Map>()
+            .map((Map<dynamic, dynamic> item) {
+              return FolderEntity.fromJson(
+                item.map((dynamic key, dynamic value) {
+                  return MapEntry<String, dynamic>(key.toString(), value);
+                }),
               );
-            },
-          ),
-        );
-      },
-    )
-        .where(
-          (FolderEntity folder) {
-        return folder.id > 0;
-      },
-    )
-        .toList(
-      growable: false,
-    );
+            })
+            .where((FolderEntity folder) {
+              return folder.id > 0;
+            })) {
+      final FolderEntity? current = foldersById[folder.id];
+
+      if (current == null || folder.isDeleted || !current.isDeleted) {
+        foldersById[folder.id] = folder;
+      }
+    }
+
+    return foldersById.values.toList(growable: false);
   }
 
   @override
@@ -65,9 +57,7 @@ class FolderRepositoryImpl implements FolderRepository {
     final String cleanName = name.trim();
 
     if (cleanName.isEmpty) {
-      throw const ApiException(
-        message: 'Folder name is required.',
-      );
+      throw const ApiException(message: 'Folder name is required.');
     }
 
     final dynamic response = await apiClient.post(
@@ -77,12 +67,8 @@ class FolderRepositoryImpl implements FolderRepository {
       body: <String, dynamic>{
         'id': id,
         'name': cleanName,
-        'iconName': iconName.trim().isEmpty
-            ? 'folder'
-            : iconName.trim(),
-        'colorValue': colorValue.trim().isEmpty
-            ? '#2196F3'
-            : colorValue.trim(),
+        'iconName': iconName.trim().isEmpty ? 'folder' : iconName.trim(),
+        'colorValue': colorValue.trim().isEmpty ? '#2196F3' : colorValue.trim(),
         'sortOrder': sortOrder,
       },
     );
@@ -96,30 +82,124 @@ class FolderRepositoryImpl implements FolderRepository {
     required bool isDelete,
   }) async {
     if (id <= 0) {
-      throw const ApiException(
-        message: 'Invalid folder ID.',
-      );
+      throw const ApiException(message: 'Invalid folder ID.');
     }
 
+    final dynamic response = await _sendFolderOperation(
+      id: id,
+      isDeleteValue: isDelete,
+    );
+
+    if (!_operationWasIgnored(response, requestedDelete: isDelete)) {
+      return;
+    }
+
+    /*
+     * Older deployed API versions use `isDeleted`, `deleted`, `restore`, or
+     * `action` instead of `isDelete`. Retry once with those known aliases
+     * instead of treating this HTTP/code 200 no-op as a successful delete.
+     */
+    final dynamic compatibilityResponse = await _sendFolderOperation(
+      id: id,
+      isDeleteValue: isDelete,
+      includeIsDelete: false,
+      compatibilityDeleteValue: isDelete,
+    );
+
+    if (_operationWasIgnored(
+      compatibilityResponse,
+      requestedDelete: isDelete,
+    )) {
+      throw ApiException(
+        message: _folderOperationFailureMessage(
+          compatibilityResponse,
+          requestedDelete: isDelete,
+        ),
+        responseData: compatibilityResponse,
+      );
+    }
+  }
+
+  Future<dynamic> _sendFolderOperation({
+    required int id,
+    required bool isDeleteValue,
+    bool includeIsDelete = true,
+    bool? compatibilityDeleteValue,
+  }) async {
     final dynamic response = await apiClient.post(
       ApiEndpoints.deleteRestoreFolder,
       requiresAuth: true,
       useAuthBaseUrl: false,
       body: <String, dynamic>{
         'id': id,
-        'isDelete': isDelete,
+        if (includeIsDelete) 'isDelete': isDeleteValue,
+        if (compatibilityDeleteValue != null) ...<String, dynamic>{
+          'folderId': id,
+          'folder_id': id,
+          'isDeleted': compatibilityDeleteValue,
+          'is_deleted': compatibilityDeleteValue,
+          'deleted': compatibilityDeleteValue,
+          'restore': !compatibilityDeleteValue,
+          'action': compatibilityDeleteValue ? 'delete' : 'restore',
+        },
       },
     );
 
     _validateResponse(response);
+
+    return response;
   }
 
-  List<dynamic> _extractFolders(
-      dynamic response,
-      ) {
-    final dynamic body = _unwrapResponse(
-      response,
-    );
+  bool _operationWasIgnored(dynamic response, {required bool requestedDelete}) {
+    final String message = _responseMessage(response).toLowerCase();
+
+    if (message.isEmpty) {
+      return false;
+    }
+
+    if (requestedDelete) {
+      return message.contains('already active') ||
+          message.contains('already restored');
+    }
+
+    return message.contains('already deleted') ||
+        message.contains('already in trash') ||
+        message.contains('already inactive');
+  }
+
+  String _folderOperationFailureMessage(
+    dynamic response, {
+    required bool requestedDelete,
+  }) {
+    final String serverMessage = _responseMessage(response);
+    final String action = requestedDelete ? 'delete' : 'restore';
+
+    if (serverMessage.isEmpty) {
+      return 'The server did not $action the folder.';
+    }
+
+    return 'The server did not $action the folder: $serverMessage';
+  }
+
+  String _responseMessage(dynamic response) {
+    final dynamic body = _unwrapResponse(response);
+
+    if (body is! Map) {
+      return '';
+    }
+
+    final Map<String, dynamic> map = _convertMap(body);
+    final dynamic message = _readValue(map, const <String>[
+      'message',
+      'detail',
+      'status',
+    ]);
+
+    return message?.toString().trim() ?? '';
+  }
+
+  List<dynamic> _extractFolders(dynamic response) {
+    final dynamic body = _unwrapResponse(response);
 
     if (body is List) {
       return body;
@@ -129,78 +209,75 @@ class FolderRepositoryImpl implements FolderRepository {
       return <dynamic>[];
     }
 
-    final Map<String, dynamic> root = body.map(
-          (
-          dynamic key,
-          dynamic value,
-          ) {
-        return MapEntry<String, dynamic>(
-          key.toString(),
-          value,
-        );
-      },
-    );
+    final Map<String, dynamic> root = body.map((dynamic key, dynamic value) {
+      return MapEntry<String, dynamic>(key.toString(), value);
+    });
 
-    final dynamic data = _readValue(
-      root,
-      const <String>['data'],
-    );
+    final dynamic data = _readValue(root, const <String>['data']);
 
     if (data is List) {
       return data;
     }
 
     if (data is Map) {
-      final Map<String, dynamic> dataMap = data.map(
-            (
-            dynamic key,
-            dynamic value,
-            ) {
-          return MapEntry<String, dynamic>(
-            key.toString(),
-            value,
-          );
-        },
+      final List<dynamic>? folders = _extractFolderCollections(
+        _convertMap(data),
       );
 
-      final dynamic folders = _readValue(
-        dataMap,
-        const <String>[
-          'folder',
-          'folders',
-          'items',
-          'rows',
-          'records',
-        ],
-      );
-
-      if (folders is List) {
+      if (folders != null) {
         return folders;
       }
     }
 
-    final dynamic folders = _readValue(
-      root,
-      const <String>[
-        'folder',
-        'folders',
-        'items',
-        'rows',
-        'records',
-      ],
-    );
-
-    return folders is List
-        ? folders
-        : <dynamic>[];
+    return _extractFolderCollections(root) ?? <dynamic>[];
   }
 
-  void _validateResponse(
-      dynamic response,
-      ) {
-    final dynamic body = _unwrapResponse(
-      response,
+  /// Extracts both collections returned by the folder endpoint.
+  ///
+  /// The current API returns active folders in `folder` and deleted folders
+  /// in `trash`. Trash items are marked before parsing so HomeController can
+  /// classify them even when the server leaves `DeletedAt` empty.
+  List<dynamic>? _extractFolderCollections(Map<String, dynamic> map) {
+    final dynamic activeFolders = _readValue(map, const <String>[
+      'folder',
+      'folders',
+      'items',
+      'rows',
+      'records',
+    ]);
+    final dynamic deletedFolders = _readValue(map, const <String>[
+      'trash',
+      'deleted',
+      'deletedFolders',
+    ]);
+
+    if (activeFolders is! List && deletedFolders is! List) {
+      return null;
+    }
+
+    return <dynamic>[
+      if (activeFolders is List) ...activeFolders,
+      if (deletedFolders is List) ...deletedFolders.map(_markAsTrashItem),
+    ];
+  }
+
+  dynamic _markAsTrashItem(dynamic item) {
+    if (item is! Map) {
+      return item;
+    }
+
+    return <String, dynamic>{..._convertMap(item), 'IsInTrash': true};
+  }
+
+  Map<String, dynamic> _convertMap(Map<dynamic, dynamic> map) {
+    return map.map(
+      (dynamic key, dynamic value) =>
+          MapEntry<String, dynamic>(key.toString(), value),
     );
+  }
+
+  void _validateResponse(dynamic response) {
+    final dynamic body = _unwrapResponse(response);
 
     if (body == null) {
       throw const ApiException(
@@ -212,38 +289,16 @@ class FolderRepositoryImpl implements FolderRepository {
       return;
     }
 
-    final Map<String, dynamic> map = body.map(
-          (
-          dynamic key,
-          dynamic value,
-          ) {
-        return MapEntry<String, dynamic>(
-          key.toString(),
-          value,
-        );
-      },
-    );
+    final Map<String, dynamic> map = body.map((dynamic key, dynamic value) {
+      return MapEntry<String, dynamic>(key.toString(), value);
+    });
 
     final int? code = _toInt(
-      _readValue(
-        map,
-        const <String>[
-          'code',
-          'statusCode',
-          'status_code',
-        ],
-      ),
+      _readValue(map, const <String>['code', 'statusCode', 'status_code']),
     );
 
     final bool? success = _toBool(
-      _readValue(
-        map,
-        const <String>[
-          'success',
-          'isSuccess',
-          'succeeded',
-        ],
-      ),
+      _readValue(map, const <String>['success', 'isSuccess', 'succeeded']),
     );
 
     if (success == false) {
@@ -254,9 +309,7 @@ class FolderRepositoryImpl implements FolderRepository {
       );
     }
 
-    if (code != null &&
-        code != 0 &&
-        (code < 200 || code >= 300)) {
+    if (code != null && code != 0 && (code < 200 || code >= 300)) {
       throw ApiException(
         message: _messageFromMap(map),
         statusCode: code,
@@ -265,9 +318,7 @@ class FolderRepositoryImpl implements FolderRepository {
     }
   }
 
-  dynamic _unwrapResponse(
-      dynamic response,
-      ) {
+  dynamic _unwrapResponse(dynamic response) {
     if (response == null ||
         response is Map ||
         response is List ||
@@ -284,15 +335,10 @@ class FolderRepositoryImpl implements FolderRepository {
     }
   }
 
-  dynamic _readValue(
-      Map<String, dynamic> map,
-      List<String> keys,
-      ) {
+  dynamic _readValue(Map<String, dynamic> map, List<String> keys) {
     for (final String key in keys) {
-      for (final MapEntry<String, dynamic> entry
-      in map.entries) {
-        if (entry.key.toLowerCase() ==
-            key.toLowerCase()) {
+      for (final MapEntry<String, dynamic> entry in map.entries) {
+        if (entry.key.toLowerCase() == key.toLowerCase()) {
           return entry.value;
         }
       }
@@ -301,30 +347,20 @@ class FolderRepositoryImpl implements FolderRepository {
     return null;
   }
 
-  String _messageFromMap(
-      Map<String, dynamic> map,
-      ) {
-    final dynamic message = _readValue(
-      map,
-      const <String>[
-        'message',
-        'error',
-        'errorMessage',
-        'detail',
-      ],
-    );
+  String _messageFromMap(Map<String, dynamic> map) {
+    final dynamic message = _readValue(map, const <String>[
+      'message',
+      'error',
+      'errorMessage',
+      'detail',
+    ]);
 
-    final String text =
-        message?.toString().trim() ?? '';
+    final String text = message?.toString().trim() ?? '';
 
-    return text.isEmpty
-        ? 'The folder request failed.'
-        : text;
+    return text.isEmpty ? 'The folder request failed.' : text;
   }
 
-  int? _toInt(
-      dynamic value,
-      ) {
+  int? _toInt(dynamic value) {
     if (value is int) {
       return value;
     }
@@ -333,14 +369,10 @@ class FolderRepositoryImpl implements FolderRepository {
       return value.toInt();
     }
 
-    return int.tryParse(
-      value?.toString() ?? '',
-    );
+    return int.tryParse(value?.toString() ?? '');
   }
 
-  bool? _toBool(
-      dynamic value,
-      ) {
+  bool? _toBool(dynamic value) {
     if (value is bool) {
       return value;
     }
@@ -349,19 +381,13 @@ class FolderRepositoryImpl implements FolderRepository {
       return value != 0;
     }
 
-    final String text =
-        value?.toString().trim().toLowerCase() ??
-            '';
+    final String text = value?.toString().trim().toLowerCase() ?? '';
 
-    if (text == 'true' ||
-        text == '1' ||
-        text == 'success') {
+    if (text == 'true' || text == '1' || text == 'success') {
       return true;
     }
 
-    if (text == 'false' ||
-        text == '0' ||
-        text == 'failed') {
+    if (text == 'false' || text == '0' || text == 'failed') {
       return false;
     }
 

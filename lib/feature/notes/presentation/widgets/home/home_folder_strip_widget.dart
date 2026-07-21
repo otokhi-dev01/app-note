@@ -31,7 +31,7 @@ class HomeFolderStrip
           ),
           scrollDirection: Axis.horizontal,
           itemCount: folders.length + 2,
-          separatorBuilder: (_, __) {
+          separatorBuilder: (_, _) {
             return const SizedBox(width: 8);
           },
           itemBuilder: (

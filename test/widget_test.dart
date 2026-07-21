@@ -1,30 +1,40 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:note_app/app/app.dart';
-
+import 'package:note_app/app/routes/app_pages.dart';
+import 'package:note_app/app/routes/app_routes.dart';
+import 'package:note_app/core/network/api_endpoints.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const PiisiitNoteApp());
+  test('configured app routes are unique', () {
+    final List<String> routeNames = AppPages.pages
+        .map((page) => page.name)
+        .toList(growable: false);
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(routeNames.toSet(), hasLength(routeNames.length));
+    expect(
+      routeNames,
+      containsAll(<String>[
+        AppRoutes.login,
+        AppRoutes.register,
+        AppRoutes.home,
+        AppRoutes.createFolder,
+        AppRoutes.createNote,
+        AppRoutes.noteEditor,
+      ]),
+    );
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('API paths match the integrated endpoint collection', () {
+    expect(ApiEndpoints.login, '/api/auth/login');
+    expect(ApiEndpoints.register, '/api/auth/register');
+    expect(ApiEndpoints.folders, '/api/folder');
+    expect(ApiEndpoints.saveFolder, '/api/folder/save');
+    expect(ApiEndpoints.deleteRestoreFolder, '/api/folder/delete-restore');
+    expect(ApiEndpoints.notes, '/api/note');
+    expect(ApiEndpoints.noteDetail(12), '/api/note/12');
+    expect(ApiEndpoints.saveNote, '/api/note/save');
+    expect(ApiEndpoints.saveContent, '/api/note/save');
+    expect(ApiEndpoints.legacySaveContent, '/api/note/save-content');
+    expect(ApiEndpoints.noteAttachment, '/api/note/attachment');
+    expect(ApiEndpoints.updateNoteState, '/api/note/update-state');
   });
 }

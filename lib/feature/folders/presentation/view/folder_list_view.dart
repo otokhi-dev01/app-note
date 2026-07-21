@@ -89,13 +89,22 @@ class _FolderListContentState extends State<_FolderListContent>
                 child: Obx(() {
                   final int folderCount = controller.folders.length;
 
+                  final int noteCount = controller.folders.fold<int>(
+                    0,
+                    (int total, FolderEntity folder) {
+                      return total + folder.noteCount;
+                    },
+                  );
+
                   final int deletedCount = controller.deletedFolders.length;
 
                   return MainTabHeader(
                     title: 'Folders',
                     subtitle:
                         '$folderCount active '
-                        '${folderCount == 1 ? 'folder' : 'folders'}',
+                        '${folderCount == 1 ? 'folder' : 'folders'}'
+                        ' • $noteCount '
+                        '${noteCount == 1 ? 'note' : 'notes'}',
                     trailing: MainTabHeaderAction(
                       tooltip: 'Recently Deleted',
                       icon: deletedCount > 0
@@ -174,8 +183,8 @@ class _FolderListContentState extends State<_FolderListContent>
       );
     }
 
-    final int totalNotes = controller.notes.isNotEmpty
-        ? controller.notes.length
+    final int totalNotes = controller.activeNotes.isNotEmpty
+        ? controller.activeNotes.length
         : folderSnapshot.fold<int>(0, (int total, FolderEntity folder) {
             return total + folder.noteCount;
           });
@@ -250,9 +259,10 @@ class _FolderListContentState extends State<_FolderListContent>
                       title: folder.name.trim().isEmpty
                           ? 'Unnamed Folder'
                           : folder.name.trim(),
-                      subtitle:
-                          '${folder.noteCount} '
-                          '${folder.noteCount == 1 ? 'note' : 'notes'}',
+                      subtitle: _folderSubtitle(
+                        context,
+                        folder,
+                      ),
                       noteCount: folder.noteCount,
                       color: folderColor,
                       icon: _folderIcon(folder.iconName),
@@ -1342,23 +1352,69 @@ class _FolderErrorState extends StatelessWidget {
 IconData _folderIcon(String value) {
   switch (value.trim().toLowerCase()) {
     case 'work':
-      return CupertinoIcons.briefcase_fill;
+    case 'briefcase':
+    case 'business':
+      return Icons.work_rounded;
 
     case 'school':
-      return CupertinoIcons.book_fill;
+    case 'education':
+      return Icons.school_rounded;
 
     case 'personal':
-      return CupertinoIcons.person_fill;
+    case 'person':
+      return Icons.person_rounded;
 
     case 'favorite':
-      return CupertinoIcons.heart_fill;
+    case 'heart':
+      return Icons.favorite_rounded;
 
     case 'travel':
-      return CupertinoIcons.airplane;
+    case 'flight':
+      return Icons.flight_takeoff_rounded;
+
+    case 'home':
+      return Icons.home_rounded;
+
+    case 'code':
+      return Icons.code_rounded;
+
+    case 'shopping':
+      return Icons.shopping_bag_rounded;
+
+    case 'photo':
+    case 'photos':
+      return Icons.photo_rounded;
+
+    case 'music':
+      return Icons.music_note_rounded;
+
+    case 'idea':
+      return Icons.lightbulb_rounded;
 
     default:
-      return CupertinoIcons.folder_fill;
+      return Icons.folder_rounded;
   }
+}
+
+String _folderSubtitle(
+  BuildContext context,
+  FolderEntity folder,
+) {
+  final int noteCount = folder.noteCount;
+  final String notes =
+      '$noteCount ${noteCount == 1 ? 'note' : 'notes'}';
+
+  final DateTime? activityDate = folder.updatedAt ?? folder.createdAt;
+
+  if (activityDate == null) {
+    return notes;
+  }
+
+  final String formattedDate = MaterialLocalizations.of(
+    context,
+  ).formatShortDate(activityDate.toLocal());
+
+  return '$notes • Updated $formattedDate';
 }
 
 Color _parseFolderColor(String rawValue, Color fallback) {
