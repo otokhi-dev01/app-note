@@ -12,9 +12,7 @@ class MainNavigationController extends GetxController {
   void onInit() {
     super.onInit();
 
-    pageController = PageController(
-      initialPage: selectedIndex.value,
-    );
+    pageController = PageController(initialPage: selectedIndex.value);
   }
 
   double get currentPage {
@@ -22,8 +20,7 @@ class MainNavigationController extends GetxController {
       return selectedIndex.value.toDouble();
     }
 
-    return pageController.page ??
-        selectedIndex.value.toDouble();
+    return pageController.page ?? selectedIndex.value.toDouble();
   }
 
   Future<void> changeTab(int index) async {
@@ -43,9 +40,7 @@ class MainNavigationController extends GetxController {
 
     await pageController.animateToPage(
       index,
-      duration: const Duration(
-        milliseconds: 420,
-      ),
+      duration: const Duration(milliseconds: 420),
       curve: Curves.easeOutCubic,
     );
   }

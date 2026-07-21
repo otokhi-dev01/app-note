@@ -1,0 +1,52 @@
+Running `(cd /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/; TMPDIR=/var/folders/xg/vnfvkg_j07sdlfnkp8hjk8dh0000gn/T/ PATH=/usr/local/Cellar/dart/3.10.0/libexec/bin:/Users/yornnona/development/flutter/bin:/Users/yornnona/Documents/Flutter-App/App/flutter/bin:/usr/local/Cellar/dart/3.10.0/libexec/bin:/Users/yornnona/development/flutter/bin:/Users/yornnona/Documents/Flutter-App/App/flutter/bin:/Users/yornnona/.codex/tmp/arg0/codex-arg0w2pwyL:/Users/yornnona/.npm-global/bin:/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/bin:/Users/yornnona/develop/flutter/bin:/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/usr/local/Cellar/dart/3.10.0/libexec/bin:/Users/yornnona/development/flutter/bin:/Users/yornnona/Documents/Flutter-App/App/flutter/bin:/Users/yornnona/develop/flutter/bin:/Users/yornnona/develop/flutter/bin/cache/dart-sdk/bin:/Users/yornnona/.pub-cache/bin:/Users/yornnona/.vscode/extensions/openai.chatgpt-26.715.31925-darwin-x64/bin/macos-x86_64 HOME=/Users/yornnona /Users/yornnona/develop/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/yornnona/Documents/flutter_app/app-note/.dart_tool/package_config.json /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/objective_c/5f31b8d621/hook.dill --config=/Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/objective_c/5f31b8d621/input.json )`.
+INFO: 2026-07-22 06:07:12.672316: Using compiler /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang from BuildInput.cCompiler.cc.
+
+INFO: 2026-07-22 06:07:12.689143: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/include/dart_api_dl.c -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-07-22 06:07:12.695075: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/objective_c.c -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o
+
+INFO: 2026-07-22 06:07:12.695758: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/input_stream_adapter.m -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-07-22 06:07:12.696357: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/objective_c.m -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o
+
+INFO: 2026-07-22 06:07:12.697392: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/ns_number.m -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o
+
+INFO: 2026-07-22 06:07:12.697876: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/protocol.m -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o
+
+INFO: 2026-07-22 06:07:12.698505: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/objective_c_bindings_generated.m -fpic -gline-tables-only -I src -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-07-22 06:07:13.491219: 
+INFO: 2026-07-22 06:07:13.491539: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o
+
+INFO: 2026-07-22 06:07:13.498277: 
+INFO: 2026-07-22 06:07:13.498339: 
+INFO: 2026-07-22 06:07:13.498371: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o
+
+pi_dl.c.o
+
+INFO: 2026-07-22 06:07:13.499274: 
+INFO: 2026-07-22 06:07:13.499345: 
+INFO: 2026-07-22 06:07:13.499437: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o
+
+INFO: 2026-07-22 06:07:14.473579: 
+INFO: 2026-07-22 06:07:14.473672: 
+INFO: 2026-07-22 06:07:14.473725: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o
+
+INFO: 2026-07-22 06:07:14.507699: 
+INFO: 2026-07-22 06:07:14.507771: 
+INFO: 2026-07-22 06:07:14.507800: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o
+
+INFO: 2026-07-22 06:07:14.511455: 
+INFO: 2026-07-22 06:07:14.511539: 
+INFO: 2026-07-22 06:07:14.511576: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-07-22 06:07:14.560024: 
+INFO: 2026-07-22 06:07:14.560116: 
+INFO: 2026-07-22 06:07:14.560152: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-07-22 06:07:14.560818: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk -target x86_64-apple-darwin -mmacos-version-min=13 /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/include/dart_api_dl.c.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.c.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/input_stream_adapter.m.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c.m.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/observer.m.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/ns_number.m.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/protocol.m.o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/obj/src/objective_c_bindings_generated.m.o -o /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/objective_c.dylib
+
+INFO: 2026-07-22 06:07:14.901907: 
+INFO: 2026-07-22 06:07:14.902092: 
+INFO: 2026-07-22 06:07:14.902130: Generated /Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/5f31b8d621/objective_c.dylib
+

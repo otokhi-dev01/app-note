@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'api_exception.dart';
 
 abstract final class ApiParser {
@@ -5,69 +7,212 @@ abstract final class ApiParser {
     dynamic response, {
     String fallbackMessage = 'The API request failed.',
   }) {
-    if (response is! Map) {
+    final dynamic body = decodeResponse(response);
+
+    if (body is! Map) {
       return;
     }
 
-    final dynamic codeValue = findValue(
-      response,
-      const <String>['code', 'statusCode', 'status_code'],
-      recursive: false,
+    final dynamic statusValue = findValue(body, const <String>[
+      'status',
+    ], recursive: false);
+    final int? numericStatus = _toInt(statusValue);
+    final bool statusIsHttpCode =
+        numericStatus != null && numericStatus >= 100 && numericStatus <= 599;
+
+    final dynamic codeValue = findValue(body, const <String>[
+      'code',
+      'statusCode',
+      'status_code',
+    ], recursive: false);
+    final int? code =
+        _toInt(codeValue) ?? (statusIsHttpCode ? numericStatus : null);
+
+    final bool? explicitSuccess = _toBool(
+      findValue(body, const <String>[
+        'success',
+        'isSuccess',
+        'succeeded',
+        'ok',
+      ], recursive: false),
     );
-    final int? code = _toInt(codeValue);
+    final bool? success =
+        explicitSuccess ?? (statusIsHttpCode ? null : _toBool(statusValue));
 
-    final bool? success = _toBool(
-      findValue(
-        response,
-        const <String>['success', 'isSuccess', 'succeeded'],
-        recursive: false,
-      ),
-    );
+    // Only interpret values in the HTTP error range as failures. Several
+    // versions of this API use application codes such as 0 or 1 for a
+    // successful request, even though the transport already returned 2xx.
+    final bool codeFailed = code != null && (code < 0 || code >= 400);
 
-    final bool codeFailed =
-        code != null && code != 0 && (code < 200 || code >= 300);
+    final dynamic errorValue = findValue(body, const <String>[
+      'error',
+      'errors',
+      'validationErrors',
+      'validation_errors',
+    ], recursive: false);
+    final bool hasUnqualifiedError =
+        success != true && _hasErrorValue(errorValue);
 
-    if (success != false && !codeFailed) {
+    if (success == true && !codeFailed) {
+      return;
+    }
+
+    if (success == null && !codeFailed && !hasUnqualifiedError) {
       return;
     }
 
     throw ApiException(
-      message: responseMessage(
-        response,
-        fallback: fallbackMessage,
-      ),
+      message: responseMessage(body, fallback: fallbackMessage),
       statusCode: code,
-      responseData: response,
+      responseData: body,
     );
+  }
+
+  /// Decodes JSON returned with an incorrect text content type.
+  ///
+  /// Some deployed API versions return a JSON envelope as a string, or even
+  /// as a JSON-encoded string. Decode a few safe layers so every repository
+  /// receives the same map/list representation.
+  static dynamic decodeResponse(dynamic response) {
+    dynamic current = response;
+
+    for (int depth = 0; depth < 3 && current is String; depth++) {
+      final String text = current.trim();
+
+      if (text.isEmpty) {
+        return current;
+      }
+
+      try {
+        current = jsonDecode(text);
+      } on FormatException {
+        return current;
+      }
+    }
+
+    return current;
   }
 
   static String responseMessage(
     dynamic response, {
     String fallback = 'The API request failed.',
   }) {
-    if (response is String && response.trim().isNotEmpty) {
-      return response.trim();
+    final dynamic body = decodeResponse(response);
+
+    if (body is String && body.trim().isNotEmpty) {
+      return body.trim();
     }
 
-    if (response is! Map) {
+    if (body is! Map) {
       return fallback;
     }
 
-    final dynamic message = findValue(
-      response,
-      const <String>[
-        'message',
-        'errorMessage',
-        'error',
-        'detail',
-        'title',
-      ],
-      recursive: false,
-    );
+    final dynamic directMessage = findValue(body, const <String>[
+      'message',
+      'errorMessage',
+      'error',
+      'detail',
+      'title',
+    ], recursive: false);
+    final String? directText = _messageFromValue(directMessage);
 
-    final String text = message?.toString().trim() ?? '';
+    if (directText != null) {
+      return directText;
+    }
 
-    return text.isEmpty ? fallback : text;
+    final dynamic validationErrors = findValue(body, const <String>[
+      'errors',
+      'validationErrors',
+      'validation_errors',
+    ], recursive: true);
+    final String? validationText = _messageFromValue(validationErrors);
+
+    if (validationText != null) {
+      return validationText;
+    }
+
+    final dynamic nestedMessage = findValue(body, const <String>[
+      'message',
+      'errorMessage',
+      'error',
+      'detail',
+      'title',
+    ]);
+    final String? nestedText = _messageFromValue(nestedMessage);
+
+    if (nestedText != null) {
+      return nestedText;
+    }
+
+    // ASP.NET validation APIs sometimes put their field-error map in data.
+    final dynamic data = findValue(body, const <String>[
+      'data',
+    ], recursive: false);
+    final String? dataText = _messageFromValue(data);
+
+    return dataText ?? fallback;
+  }
+
+  static String? _messageFromValue(dynamic value, {int depth = 0}) {
+    if (depth > 8 || value == null) {
+      return null;
+    }
+
+    final dynamic decoded = decodeResponse(value);
+
+    if (decoded is String) {
+      final String text = decoded.trim();
+      return text.isEmpty ? null : text;
+    }
+
+    if (decoded is List) {
+      for (final dynamic item in decoded) {
+        final String? message = _messageFromValue(item, depth: depth + 1);
+
+        if (message != null) {
+          return message;
+        }
+      }
+
+      return null;
+    }
+
+    if (decoded is Map) {
+      for (final dynamic nestedValue in decoded.values) {
+        final String? message = _messageFromValue(
+          nestedValue,
+          depth: depth + 1,
+        );
+
+        if (message != null) {
+          return message;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  static bool _hasErrorValue(dynamic value) {
+    final dynamic decoded = decodeResponse(value);
+
+    if (decoded == null || decoded == false) {
+      return false;
+    }
+
+    if (decoded is String) {
+      return decoded.trim().isNotEmpty;
+    }
+
+    if (decoded is Iterable) {
+      return decoded.isNotEmpty;
+    }
+
+    if (decoded is Map) {
+      return decoded.isNotEmpty;
+    }
+
+    return true;
   }
 
   static dynamic findValue(
@@ -88,16 +233,24 @@ abstract final class ApiParser {
   }
 
   static dynamic unwrapData(dynamic response) {
-    dynamic current = response;
+    dynamic current = decodeResponse(response);
 
     while (current is Map) {
-      if (current.containsKey('data')) {
-        current = current['data'];
+      final dynamic data = findValue(current, const <String>[
+        'data',
+      ], recursive: false);
+
+      if (data != null) {
+        current = decodeResponse(data);
         continue;
       }
 
-      if (current.containsKey('result')) {
-        current = current['result'];
+      final dynamic result = findValue(current, const <String>[
+        'result',
+      ], recursive: false);
+
+      if (result != null) {
+        current = decodeResponse(result);
         continue;
       }
 
@@ -107,34 +260,24 @@ abstract final class ApiParser {
     return current;
   }
 
-  static List<Map<String, dynamic>> asList(
-      dynamic response,
-      ) {
+  static List<Map<String, dynamic>> asList(dynamic response) {
     final List<dynamic>? list = _findList(response);
 
     if (list == null) {
       throw ApiException(
-        message:
-        'The API response does not contain a list.',
+        message: 'The API response does not contain a list.',
         responseData: response,
       );
     }
 
     return list
         .whereType<Map>()
-        .map(
-          (Map<dynamic, dynamic> item) =>
-      Map<String, dynamic>.from(item),
-    )
+        .map((Map<dynamic, dynamic> item) => Map<String, dynamic>.from(item))
         .toList();
   }
 
-  static Map<String, dynamic> asMap(
-      dynamic response, {
-        bool unwrap = true,
-      }) {
-    dynamic value =
-    unwrap ? unwrapData(response) : response;
+  static Map<String, dynamic> asMap(dynamic response, {bool unwrap = true}) {
+    dynamic value = unwrap ? unwrapData(response) : response;
 
     value = _findObject(value);
 
@@ -143,13 +286,14 @@ abstract final class ApiParser {
     }
 
     throw ApiException(
-      message:
-      'The API response does not contain an object.',
+      message: 'The API response does not contain an object.',
       responseData: response,
     );
   }
 
   static List<dynamic>? _findList(dynamic value) {
+    value = decodeResponse(value);
+
     if (value is List) {
       return value;
     }
@@ -174,12 +318,10 @@ abstract final class ApiParser {
     ];
 
     for (final String key in preferredKeys) {
-      if (!value.containsKey(key)) {
-        continue;
-      }
-
-      final List<dynamic>? result =
-      _findList(value[key]);
+      final dynamic nestedValue = findValue(value, <String>[
+        key,
+      ], recursive: false);
+      final List<dynamic>? result = _findList(nestedValue);
 
       if (result != null) {
         return result;
@@ -187,8 +329,7 @@ abstract final class ApiParser {
     }
 
     for (final dynamic nestedValue in value.values) {
-      final List<dynamic>? result =
-      _findList(nestedValue);
+      final List<dynamic>? result = _findList(nestedValue);
 
       if (result != null) {
         return result;
@@ -199,6 +340,8 @@ abstract final class ApiParser {
   }
 
   static dynamic _findObject(dynamic value) {
+    value = decodeResponse(value);
+
     if (value is! Map) {
       return value;
     }
@@ -212,9 +355,9 @@ abstract final class ApiParser {
     ];
 
     for (final String key in objectKeys) {
-      final dynamic nested = value[key];
+      final dynamic nested = findValue(value, <String>[key], recursive: false);
 
-      if (nested is Map) {
+      if (decodeResponse(nested) is Map) {
         return _findObject(nested);
       }
     }
@@ -223,27 +366,23 @@ abstract final class ApiParser {
   }
 
   static int readId(
-      dynamic response, {
-        List<String> keys = const [
-          'Id',
-          'id',
-          'NoteId',
-          'noteId',
-          'FolderId',
-          'folderId',
-          'AttachmentId',
-          'attachmentId',
-        ],
-      }) {
-    final int? id = _findId(
-      response,
-      keys: keys,
-    );
+    dynamic response, {
+    List<String> keys = const [
+      'Id',
+      'id',
+      'NoteId',
+      'noteId',
+      'FolderId',
+      'folderId',
+      'AttachmentId',
+      'attachmentId',
+    ],
+  }) {
+    final int? id = _findId(response, keys: keys);
 
     if (id == null) {
       throw ApiException(
-        message:
-        'The API response does not contain an ID.',
+        message: 'The API response does not contain an ID.',
         responseData: response,
       );
     }
@@ -251,16 +390,21 @@ abstract final class ApiParser {
     return id;
   }
 
-  static int? _findId(
-      dynamic value, {
-        required List<String> keys,
-      }) {
+  static int? _findId(dynamic value, {required List<String> keys}) {
+    value = decodeResponse(value);
+
     if (value is! Map) {
       return null;
     }
 
-    for (final String key in keys) {
-      final dynamic rawValue = value[key];
+    final Set<String> normalizedKeys = keys.map(_normalizeKey).toSet();
+
+    for (final MapEntry<dynamic, dynamic> entry in value.entries) {
+      if (!normalizedKeys.contains(_normalizeKey(entry.key.toString()))) {
+        continue;
+      }
+
+      final dynamic rawValue = entry.value;
 
       if (rawValue is int) {
         return rawValue;
@@ -270,9 +414,7 @@ abstract final class ApiParser {
         return rawValue.toInt();
       }
 
-      final int? parsed = int.tryParse(
-        rawValue?.toString() ?? '',
-      );
+      final int? parsed = int.tryParse(rawValue?.toString() ?? '');
 
       if (parsed != null) {
         return parsed;
@@ -280,10 +422,7 @@ abstract final class ApiParser {
     }
 
     for (final dynamic nestedValue in value.values) {
-      final int? result = _findId(
-        nestedValue,
-        keys: keys,
-      );
+      final int? result = _findId(nestedValue, keys: keys);
 
       if (result != null) {
         return result;
@@ -304,8 +443,10 @@ abstract final class ApiParser {
       return null;
     }
 
-    if (value is Map) {
-      for (final MapEntry<dynamic, dynamic> entry in value.entries) {
+    final dynamic decodedValue = decodeResponse(value);
+
+    if (decodedValue is Map) {
+      for (final MapEntry<dynamic, dynamic> entry in decodedValue.entries) {
         if (normalizedKeys.contains(_normalizeKey(entry.key.toString()))) {
           return entry.value;
         }
@@ -315,7 +456,7 @@ abstract final class ApiParser {
         return null;
       }
 
-      for (final dynamic nestedValue in value.values) {
+      for (final dynamic nestedValue in decodedValue.values) {
         final dynamic result = _findValue(
           nestedValue,
           normalizedKeys,
@@ -328,8 +469,8 @@ abstract final class ApiParser {
           return result;
         }
       }
-    } else if (recursive && value is List) {
-      for (final dynamic nestedValue in value) {
+    } else if (recursive && decodedValue is List) {
+      for (final dynamic nestedValue in decodedValue) {
         final dynamic result = _findValue(
           nestedValue,
           normalizedKeys,
@@ -374,11 +515,23 @@ abstract final class ApiParser {
 
     final String text = value?.toString().trim().toLowerCase() ?? '';
 
-    if (text == 'true' || text == '1' || text == 'success') {
+    if (text == 'true' ||
+        text == '1' ||
+        text == 'yes' ||
+        text == 'y' ||
+        text == 'success' ||
+        text == 'succeeded' ||
+        text == 'ok') {
       return true;
     }
 
-    if (text == 'false' || text == '0' || text == 'failed') {
+    if (text == 'false' ||
+        text == '0' ||
+        text == 'no' ||
+        text == 'n' ||
+        text == 'failed' ||
+        text == 'failure' ||
+        text == 'error') {
       return false;
     }
 

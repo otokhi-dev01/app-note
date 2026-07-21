@@ -11,9 +11,7 @@ class GlassSurface extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = EdgeInsets.zero,
-    this.borderRadius = const BorderRadius.all(
-      Radius.circular(28),
-    ),
+    this.borderRadius = const BorderRadius.all(Radius.circular(28)),
     this.blur = 22,
   });
 
@@ -21,13 +19,10 @@ class GlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
 
-    final bool isDark =
-        theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     final Color glassColor = isDark
-        ? const Color(0xFF1B1D22).withValues(
-      alpha: 0.74,
-    )
+        ? const Color(0xFF1B1D22).withValues(alpha: 0.74)
         : Colors.white.withValues(alpha: 0.72);
 
     final Color borderColor = isDark
@@ -37,24 +32,16 @@ class GlassSurface extends StatelessWidget {
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: blur,
-          sigmaY: blur,
-        ),
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
             color: glassColor,
             borderRadius: borderRadius,
-            border: Border.all(
-              color: borderColor,
-              width: 0.8,
-            ),
+            border: Border.all(color: borderColor, width: 0.8),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: isDark ? 0.20 : 0.07,
-                ),
+                color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.07),
                 blurRadius: 28,
                 offset: const Offset(0, 12),
               ),

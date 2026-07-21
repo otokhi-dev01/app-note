@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/validation/auth_input_validator.dart';
+import '../utils/auth_error_message.dart';
 
 class LoginController extends GetxController {
   final AuthRepository authRepository;
 
-  LoginController({
-    required this.authRepository,
-  });
+  LoginController({required this.authRepository});
 
-  final TextEditingController phoneController =
-  TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
-  final TextEditingController passwordController =
-  TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   final RxBool isLoading = false.obs;
   final RxBool obscurePassword = true.obs;
@@ -32,11 +30,9 @@ class LoginController extends GetxController {
       return;
     }
 
-    final String phone =
-        arguments['phone']?.toString() ?? '';
+    final String phone = arguments['phone']?.toString() ?? '';
 
-    final bool registered =
-        arguments['registered'] == true;
+    final bool registered = arguments['registered'] == true;
 
     if (phone.trim().isNotEmpty) {
       phoneController.text = phone;
@@ -44,28 +40,32 @@ class LoginController extends GetxController {
 
     if (registered) {
       successMessage.value =
-      'Your account was created successfully. Sign in to continue.';
+          'Your account was created successfully. Sign in to continue.';
     }
   }
 
   Future<void> login() async {
-    FocusManager.instance.primaryFocus?.unfocus();
-
-    final String phone =
-    phoneController.text.trim();
-
-    final String password =
-        passwordController.text;
-
-    if (phone.isEmpty) {
-      errorMessage.value =
-      'Please enter your phone number.';
+    if (isLoading.value) {
       return;
     }
 
-    if (password.isEmpty) {
-      errorMessage.value =
-      'Please enter your password.';
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final String phone = AuthInputValidator.normalizePhone(
+      phoneController.text,
+    );
+
+    final String password = passwordController.text;
+
+    final String? phoneError = AuthInputValidator.validatePhone(phone);
+    if (phoneError != null) {
+      errorMessage.value = phoneError;
+      return;
+    }
+
+    final String? passwordError = AuthInputValidator.validatePassword(password);
+    if (passwordError != null) {
+      errorMessage.value = passwordError;
       return;
     }
 
@@ -74,14 +74,11 @@ class LoginController extends GetxController {
       errorMessage.value = '';
       successMessage.value = '';
 
-      await authRepository.login(
-        phone: phone,
-        password: password,
-      );
+      await authRepository.login(phone: phone, password: password);
 
       Get.offAllNamed(AppRoutes.home);
     } catch (error) {
-      errorMessage.value = _cleanError(error);
+      errorMessage.value = authErrorMessage(error);
     } finally {
       isLoading.value = false;
     }
@@ -93,13 +90,6 @@ class LoginController extends GetxController {
 
   void openRegister() {
     Get.toNamed(AppRoutes.register);
-  }
-
-  String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst('ApiException: ', '')
-        .trim();
   }
 
   @override

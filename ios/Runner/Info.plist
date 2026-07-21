@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Piisiit Note uses the camera to attach photos to your notes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Piisiit Note accesses your photo library so you can attach images to your notes.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

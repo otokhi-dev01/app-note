@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
-import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/api_parser.dart';
 import '../../domain/entities/note_entity.dart';
 import '../../domain/repositories/note_repository.dart';
+import '../../domain/repositories/note_state_field.dart';
 
 class NoteRepositoryImpl implements NoteRepository {
   final ApiClient apiClient;
@@ -23,7 +23,7 @@ class NoteRepositoryImpl implements NoteRepository {
   Future<List<NoteEntity>> getNotes() async {
     final dynamic response = await apiClient.get(ApiEndpoints.notes);
 
-    final dynamic responseBody = _extractResponseBody(response);
+    final dynamic responseBody = _decodedResponseBody(response);
 
     ApiParser.ensureSuccess(
       responseBody,
@@ -34,12 +34,18 @@ class NoteRepositoryImpl implements NoteRepository {
 
     final Map<int, NoteEntity> notesById = <int, NoteEntity>{};
 
-    for (final Map<dynamic, dynamic> item in items.whereType<Map>()) {
+    for (final dynamic item in items) {
+      if (item is! Map) {
+        throw StateError('The notes API returned an invalid note record.');
+      }
+
       final NoteEntity note = _noteFromJson(_convertMap(item));
 
-      if (note.id > 0) {
-        notesById[note.id] = note;
+      if (note.id <= 0) {
+        throw StateError('The notes API returned a note without a valid ID.');
       }
+
+      notesById[note.id] = note;
     }
 
     return notesById.values.toList(growable: false);
@@ -64,7 +70,7 @@ class NoteRepositoryImpl implements NoteRepository {
       ApiEndpoints.noteDetail(noteId),
     );
 
-    final dynamic responseBody = _extractResponseBody(response);
+    final dynamic responseBody = _decodedResponseBody(response);
 
     ApiParser.ensureSuccess(
       responseBody,
@@ -89,13 +95,6 @@ class NoteRepositoryImpl implements NoteRepository {
     }
 
     return note;
-  }
-
-  // Compatibility method for older controller code.
-
-  @override
-  Future<NoteEntity> getNote(int noteId) {
-    return getNoteDetail(noteId);
   }
 
   // ===========================================================================
@@ -149,7 +148,7 @@ class NoteRepositoryImpl implements NoteRepository {
       },
     );
 
-    final dynamic responseBody = _extractResponseBody(response);
+    final dynamic responseBody = _decodedResponseBody(response);
 
     ApiParser.ensureSuccess(
       responseBody,
@@ -171,6 +170,12 @@ class NoteRepositoryImpl implements NoteRepository {
      */
     if (savedNoteId <= 0 && noteId > 0) {
       savedNoteId = noteId;
+    }
+
+    if (noteId > 0 && savedNoteId > 0 && savedNoteId != noteId) {
+      throw StateError(
+        'The API returned note $savedNoteId while updating note $noteId.',
+      );
     }
 
     /*
@@ -205,8 +210,7 @@ class NoteRepositoryImpl implements NoteRepository {
 
   // ===========================================================================
   // SAVE NOTE CONTENT
-  // POST /api/note/save with {id, title, content}
-  // Compatibility fallback: POST /api/note/save-content
+  // POST /api/note/save-content with {id, title, content}
   // ===========================================================================
 
   @override
@@ -246,40 +250,17 @@ class NoteRepositoryImpl implements NoteRepository {
       'content': contentSnapshot,
     };
 
-    dynamic response;
-
-    try {
-      response = await apiClient.post(
-        ApiEndpoints.saveContent,
-        body: body,
-      );
-    } on ApiException catch (error) {
-      if (error.statusCode != 404 ||
-          ApiEndpoints.legacySaveContent == ApiEndpoints.saveContent) {
-        rethrow;
-      }
-
-      response = await apiClient.post(
-        ApiEndpoints.legacySaveContent,
-        body: body,
-      );
-    }
+    // A 404 means the target note no longer exists. Do not retry against the
+    // header endpoint because that could recreate a deleted record.
+    final dynamic response = await apiClient.post(
+      ApiEndpoints.saveContent,
+      body: body,
+    );
 
     ApiParser.ensureSuccess(
-      _extractResponseBody(response),
+      _decodedResponseBody(response),
       fallbackMessage: 'Unable to save the note content.',
     );
-  }
-
-  // Compatibility method for older controller code.
-
-  @override
-  Future<void> saveNoteContent({
-    required int id,
-    required String title,
-    required List<Map<String, dynamic>> content,
-  }) {
-    return saveContent(id: id, title: title, content: content);
   }
 
   // ===========================================================================
@@ -338,7 +319,7 @@ class NoteRepositoryImpl implements NoteRepository {
     );
 
     ApiParser.ensureSuccess(
-      _extractResponseBody(response),
+      _decodedResponseBody(response),
       fallbackMessage: 'Unable to upload the attachment.',
     );
   }
@@ -354,6 +335,7 @@ class NoteRepositoryImpl implements NoteRepository {
     required bool isPinned,
     required bool isArchived,
     required bool isLocked,
+    NoteStateField? changedField,
   }) async {
     if (noteId <= 0) {
       throw ArgumentError.value(
@@ -363,18 +345,93 @@ class NoteRepositoryImpl implements NoteRepository {
       );
     }
 
+    final List<NoteStateField> fieldsToUpdate;
+
+    if (changedField != null) {
+      fieldsToUpdate = <NoteStateField>[changedField];
+    } else {
+      final NoteEntity current = await getNoteDetail(noteId);
+
+      fieldsToUpdate = <NoteStateField>[
+        if (current.isPinned != isPinned) NoteStateField.pinned,
+        if (current.isArchived != isArchived) NoteStateField.archived,
+        if (current.isLocked != isLocked) NoteStateField.locked,
+      ];
+    }
+
+    for (final NoteStateField field in fieldsToUpdate) {
+      final bool value = switch (field) {
+        NoteStateField.pinned => isPinned,
+        NoteStateField.archived => isArchived,
+        NoteStateField.locked => isLocked,
+      };
+
+      await _updateSingleState(
+        noteId: noteId,
+        field: field,
+        value: value,
+        isPinned: isPinned,
+        isArchived: isArchived,
+        isLocked: isLocked,
+      );
+    }
+  }
+
+  Future<void> _updateSingleState({
+    required int noteId,
+    required NoteStateField field,
+    required bool value,
+    bool? isPinned,
+    bool? isArchived,
+    bool? isLocked,
+  }) async {
+    final String state = switch (field) {
+      NoteStateField.pinned => 'pinned',
+      NoteStateField.archived => 'archived',
+      NoteStateField.locked => 'locked',
+    };
+    final String action = switch (field) {
+      NoteStateField.pinned => value ? 'pin' : 'unpin',
+      NoteStateField.archived => value ? 'archive' : 'unarchive',
+      NoteStateField.locked => value ? 'lock' : 'unlock',
+    };
+
     final dynamic response = await apiClient.post(
       ApiEndpoints.updateNoteState,
       body: <String, dynamic>{
         'id': noteId,
-        'isPinned': isPinned,
-        'isArchived': isArchived,
-        'isLocked': isLocked,
+        'noteId': noteId,
+        'note_id': noteId,
+        'state': state,
+        'stateName': state,
+        'state_name': state,
+        'field': switch (field) {
+          NoteStateField.pinned => 'isPinned',
+          NoteStateField.archived => 'isArchived',
+          NoteStateField.locked => 'isLocked',
+        },
+        'action': action,
+        'value': value,
+        if (isPinned != null) ...<String, dynamic>{
+          'isPinned': isPinned,
+          'is_pinned': isPinned,
+          'pinned': isPinned,
+        },
+        if (isArchived != null) ...<String, dynamic>{
+          'isArchived': isArchived,
+          'is_archived': isArchived,
+          'archived': isArchived,
+        },
+        if (isLocked != null) ...<String, dynamic>{
+          'isLocked': isLocked,
+          'is_locked': isLocked,
+          'locked': isLocked,
+        },
       },
     );
 
     ApiParser.ensureSuccess(
-      _extractResponseBody(response),
+      _decodedResponseBody(response),
       fallbackMessage: 'Unable to update the note state.',
     );
   }
@@ -460,7 +517,7 @@ class NoteRepositoryImpl implements NoteRepository {
   // RESPONSE BODY
   // ===========================================================================
 
-  dynamic _extractResponseBody(dynamic response) {
+  dynamic _decodedResponseBody(dynamic response) {
     if (response == null) {
       return null;
     }
@@ -473,7 +530,7 @@ class NoteRepositoryImpl implements NoteRepository {
         response is String ||
         response is num ||
         response is bool) {
-      return response;
+      return _decodeJsonString(response);
     }
 
     /*
@@ -483,14 +540,12 @@ class NoteRepositoryImpl implements NoteRepository {
     try {
       final dynamic data = (response as dynamic).data;
 
-      if (data != null) {
-        return data;
-      }
+      return _decodeJsonString(data);
     } catch (_) {
       // Use the original response.
     }
 
-    return response;
+    return _decodeJsonString(response);
   }
 
   // ===========================================================================
@@ -498,93 +553,104 @@ class NoteRepositoryImpl implements NoteRepository {
   // ===========================================================================
 
   List<dynamic> _extractList(dynamic response) {
-    dynamic value = response;
-
-    if (value == null) {
+    if (response == null) {
       return <dynamic>[];
     }
 
-    value = _decodeJsonString(value);
+    final ({bool found, List<dynamic> items}) result = _tryExtractList(
+      response,
+    );
 
-    if (value is List) {
-      return value;
-    }
-
-    if (value is! Map) {
+    if (!result.found) {
       throw StateError('The note list response has an invalid format.');
     }
 
-    final Map<String, dynamic> root = _convertMap(value);
+    return result.items;
+  }
 
-    final dynamic data = _getValueIgnoreCase(root, 'data');
-
-    if (data is List) {
-      return data;
+  ({bool found, List<dynamic> items}) _tryExtractList(
+    dynamic value, {
+    int depth = 0,
+  }) {
+    if (depth > 12) {
+      return (found: false, items: <dynamic>[]);
     }
 
-    if (data is Map) {
-      final Map<String, dynamic> dataMap = _convertMap(data);
+    final dynamic decoded = _decodeJsonValue(value);
 
-      final List<dynamic>? collectionItems = _extractNoteCollections(dataMap);
-
-      if (collectionItems != null) {
-        return collectionItems;
-      }
-
-      final dynamic nestedList = _firstValueIgnoreCase(dataMap, <String>[
-        'items',
-        'note',
-        'notes',
-        'list',
-        'rows',
-        'records',
-        'result',
-      ]);
-
-      if (nestedList is List) {
-        return nestedList;
-      }
+    if (decoded is List) {
+      return (found: true, items: decoded);
     }
 
-    final List<dynamic>? collectionItems = _extractNoteCollections(root);
-
-    if (collectionItems != null) {
-      return collectionItems;
+    if (decoded is! Map) {
+      return (found: false, items: <dynamic>[]);
     }
 
-    final dynamic rootList = _firstValueIgnoreCase(root, <String>[
+    final Map<String, dynamic> map = _convertMap(decoded);
+    final List<dynamic>? collections = _extractNoteCollections(map);
+
+    if (collections != null) {
+      return (found: true, items: collections);
+    }
+
+    if (_looksLikeNote(map)) {
+      return (found: true, items: <dynamic>[map]);
+    }
+
+    for (final String key in <String>[
+      'data',
+      'result',
       'items',
-      'note',
       'notes',
+      'note',
       'list',
       'rows',
       'records',
-      'result',
-    ]);
+      'payload',
+      'value',
+    ]) {
+      if (!_containsKeyIgnoreCase(map, key)) {
+        continue;
+      }
 
-    if (rootList is List) {
-      return rootList;
+      final dynamic nested = _getValueIgnoreCase(map, key);
+
+      if (nested == null) {
+        return (found: true, items: <dynamic>[]);
+      }
+
+      final ({bool found, List<dynamic> items}) result = _tryExtractList(
+        nested,
+        depth: depth + 1,
+      );
+
+      if (result.found) {
+        return result;
+      }
     }
 
-    return <dynamic>[];
+    return (found: false, items: <dynamic>[]);
   }
 
   List<dynamic>? _extractNoteCollections(Map<String, dynamic> map) {
-    final dynamic activeNotes = _firstValueIgnoreCase(map, <String>[
-      'note',
-      'notes',
-    ]);
-    final dynamic archivedNotes = _firstValueIgnoreCase(map, <String>[
-      'archive',
-      'archived',
-      'archivedNotes',
-    ]);
-    final dynamic trashedNotes = _firstValueIgnoreCase(map, <String>[
-      'trash',
-      'trashed',
-      'deleted',
-      'deletedNotes',
-    ]);
+    final dynamic activeNotes = _decodeJsonValue(
+      _firstValueIgnoreCase(map, <String>['note', 'notes']),
+    );
+    final dynamic archivedNotes = _decodeJsonValue(
+      _firstValueIgnoreCase(map, <String>[
+        'archive',
+        'archived',
+        'archivedNotes',
+      ]),
+    );
+    final dynamic trashedNotes = _decodeJsonValue(
+      _firstValueIgnoreCase(map, <String>[
+        'trash',
+        'trashed',
+        'deleted',
+        'deletedNotes',
+      ]),
+    );
 
     if (activeNotes is! List &&
         archivedNotes is! List &&
@@ -596,17 +662,11 @@ class NoteRepositoryImpl implements NoteRepository {
       if (activeNotes is List) ...activeNotes,
       if (archivedNotes is List)
         ...archivedNotes.map(
-          (dynamic item) => _markNoteCollectionItem(
-            item,
-            isArchived: true,
-          ),
+          (dynamic item) => _markNoteCollectionItem(item, isArchived: true),
         ),
       if (trashedNotes is List)
         ...trashedNotes.map(
-          (dynamic item) => _markNoteCollectionItem(
-            item,
-            isInTrash: true,
-          ),
+          (dynamic item) => _markNoteCollectionItem(item, isInTrash: true),
         ),
     ];
   }
@@ -620,11 +680,17 @@ class NoteRepositoryImpl implements NoteRepository {
       return item;
     }
 
-    return <String, dynamic>{
-      ..._convertMap(item),
-      if (isArchived) 'IsArchived': true,
-      if (isInTrash) 'IsInTrash': true,
-    };
+    final Map<String, dynamic> result = _convertMap(item);
+
+    if (isArchived) {
+      _setValueIgnoreCase(result, 'isArchived', true);
+    }
+
+    if (isInTrash) {
+      _setValueIgnoreCase(result, 'isInTrash', true);
+    }
+
+    return result;
   }
 
   // ===========================================================================
@@ -632,81 +698,121 @@ class NoteRepositoryImpl implements NoteRepository {
   // ===========================================================================
 
   Map<String, dynamic> _extractObject(dynamic response) {
-    dynamic value = response;
-
-    if (value == null) {
+    if (response == null) {
       throw StateError('The note detail response is empty.');
     }
 
-    value = _decodeJsonString(value);
+    final Map<String, dynamic>? note = _tryExtractObject(response);
 
-    if (value is List) {
-      if (value.isEmpty) {
+    if (note == null) {
+      final dynamic decoded = _decodeJsonValue(response);
+
+      if (decoded is List && decoded.isEmpty) {
         throw StateError('The requested note was not found.');
       }
 
-      value = value.first;
-    }
+      if (decoded is Map && _hasExplicitEmptyNoteValue(_convertMap(decoded))) {
+        throw StateError('The requested note was not found.');
+      }
 
-    if (value is! Map) {
       throw StateError('The note detail response has an invalid format.');
     }
 
-    final Map<String, dynamic> root = _convertMap(value);
+    return note;
+  }
 
-    final dynamic data = _getValueIgnoreCase(root, 'data');
+  Map<String, dynamic>? _tryExtractObject(dynamic value, {int depth = 0}) {
+    if (depth > 12) {
+      return null;
+    }
 
-    if (data is Map) {
-      final Map<String, dynamic> dataMap = _convertMap(data);
+    final dynamic decoded = _decodeJsonValue(value);
 
-      final dynamic nestedNote = _firstValueIgnoreCase(dataMap, <String>[
-        'note',
-        'item',
-        'record',
-        'result',
-      ]);
+    if (decoded is List) {
+      for (final dynamic item in decoded) {
+        final Map<String, dynamic>? result = _tryExtractObject(
+          item,
+          depth: depth + 1,
+        );
 
-      if (nestedNote is Map) {
-        return _convertMap(nestedNote);
-      }
-
-      if (nestedNote is List) {
-        if (nestedNote.isEmpty) {
-          throw StateError('The requested note was not found.');
-        }
-
-        final dynamic firstNote = nestedNote.first;
-
-        if (firstNote is Map) {
-          return _convertMap(firstNote);
+        if (result != null) {
+          return result;
         }
       }
 
-      return dataMap;
+      return null;
     }
 
-    if (data is List && data.isNotEmpty && data.first is Map) {
-      return _convertMap(data.first as Map);
+    if (decoded is! Map) {
+      return null;
     }
 
-    final dynamic nestedNote = _firstValueIgnoreCase(root, <String>[
-      'note',
-      'item',
-      'record',
+    final Map<String, dynamic> map = _convertMap(decoded);
+
+    if (_looksLikeNote(map)) {
+      return map;
+    }
+
+    for (final String key in <String>[
+      'data',
       'result',
-    ]);
+      'note',
+      'notes',
+      'item',
+      'items',
+      'record',
+      'records',
+      'row',
+      'rows',
+      'payload',
+      'value',
+    ]) {
+      if (!_containsKeyIgnoreCase(map, key)) {
+        continue;
+      }
 
-    if (nestedNote is Map) {
-      return _convertMap(nestedNote);
+      final Map<String, dynamic>? result = _tryExtractObject(
+        _getValueIgnoreCase(map, key),
+        depth: depth + 1,
+      );
+
+      if (result != null) {
+        return result;
+      }
     }
 
-    if (nestedNote is List &&
-        nestedNote.isNotEmpty &&
-        nestedNote.first is Map) {
-      return _convertMap(nestedNote.first as Map);
+    return null;
+  }
+
+  bool _hasExplicitEmptyNoteValue(Map<String, dynamic> map) {
+    for (final String key in <String>[
+      'data',
+      'result',
+      'note',
+      'notes',
+      'item',
+      'items',
+      'record',
+      'records',
+      'row',
+      'rows',
+    ]) {
+      if (!_containsKeyIgnoreCase(map, key)) {
+        continue;
+      }
+
+      final dynamic nested = _decodeJsonValue(_getValueIgnoreCase(map, key));
+
+      if (nested == null || (nested is List && nested.isEmpty)) {
+        return true;
+      }
+
+      if (nested is Map && _hasExplicitEmptyNoteValue(_convertMap(nested))) {
+        return true;
+      }
     }
 
-    return root;
+    return false;
   }
 
   // ===========================================================================
@@ -901,25 +1007,51 @@ class NoteRepositoryImpl implements NoteRepository {
   // ===========================================================================
 
   NoteEntity _noteFromJson(Map<String, dynamic> json) {
+    final dynamic rawFolder = _firstValueIgnoreCase(json, <String>['folder']);
+    final Map<String, dynamic>? folder = rawFolder is Map
+        ? _convertMap(rawFolder)
+        : null;
+    final List<Map<String, dynamic>> content = _parseNoteContent(json);
+    final int responseAttachmentCount = _toInt(
+      _firstValueIgnoreCase(json, <String>[
+        'attachmentCount',
+        'attachmentsCount',
+        'fileCount',
+      ]),
+    );
+    final int parsedAttachmentCount = content.where((
+      Map<String, dynamic> block,
+    ) {
+      return _normalizedBlockType(block) == 'attachment';
+    }).length;
+
     return NoteEntity(
       id: _toInt(_firstValueIgnoreCase(json, <String>['id', 'noteId'])),
-      folderId: _toInt(_firstValueIgnoreCase(json, <String>['folderId'])),
+      folderId: _toInt(
+        _firstValueIgnoreCase(json, <String>['folderId']) ??
+            (folder == null
+                ? null
+                : _firstValueIgnoreCase(folder, <String>['id', 'folderId'])),
+      ),
       folderName:
-          _firstValueIgnoreCase(json, <String>['folderName'])?.toString() ??
+          (_firstValueIgnoreCase(json, <String>['folderName']) ??
+                  (folder == null
+                      ? null
+                      : _firstValueIgnoreCase(folder, <String>[
+                          'name',
+                          'folderName',
+                        ])))
+              ?.toString()
+              .trim() ??
           '',
       title:
           _firstValueIgnoreCase(json, <String>[
             'title',
             'noteTitle',
+            'name',
           ])?.toString() ??
           '',
-      content: _parseContent(
-        _firstValueIgnoreCase(json, <String>[
-          'content',
-          'contentJson',
-          'blocks',
-        ]),
-      ),
+      content: content,
       isPinned: _toBool(
         _firstValueIgnoreCase(json, <String>['isPinned', 'pinned']),
       ),
@@ -936,15 +1068,11 @@ class NoteRepositoryImpl implements NoteRepository {
           'deleted',
         ]),
       ),
-      sortOrder: _toInt(
-        _firstValueIgnoreCase(json, <String>['sortOrder']),
-      ),
-      attachmentCount: _toInt(
-        _firstValueIgnoreCase(json, <String>['attachmentCount']),
-      ),
-      pinnedAt: _toDateTime(
-        _firstValueIgnoreCase(json, <String>['pinnedAt']),
-      ),
+      sortOrder: _toInt(_firstValueIgnoreCase(json, <String>['sortOrder'])),
+      attachmentCount: responseAttachmentCount > 0
+          ? responseAttachmentCount
+          : parsedAttachmentCount,
+      pinnedAt: _toDateTime(_firstValueIgnoreCase(json, <String>['pinnedAt'])),
       createdAt: _toDateTime(
         _firstValueIgnoreCase(json, <String>['createdAt']),
       ),
@@ -961,12 +1089,99 @@ class NoteRepositoryImpl implements NoteRepository {
   // CONTENT PARSER
   // ===========================================================================
 
+  List<Map<String, dynamic>> _parseNoteContent(Map<String, dynamic> json) {
+    final List<Map<String, dynamic>> result = _parseContent(
+      _firstValueIgnoreCase(json, <String>[
+        'content',
+        'contentJson',
+        'blocks',
+        'noteContent',
+        'body',
+      ]),
+    );
+
+    if (!result.any((Map<String, dynamic> block) {
+      return _normalizedBlockType(block) == 'text';
+    })) {
+      final String preview =
+          _firstValueIgnoreCase(json, <String>[
+            'previewText',
+            'plainText',
+            'text',
+          ])?.toString().trim() ??
+          '';
+
+      if (preview.isNotEmpty) {
+        result.insert(0, <String, dynamic>{
+          'id': 'preview-text',
+          'blockId': 'preview-text',
+          'type': 'text',
+          'text': preview,
+          'displayOrder': 1,
+        });
+      }
+    }
+
+    final List<Map<String, dynamic>> attachments = _parseAttachments(
+      _firstValueIgnoreCase(json, <String>[
+        'attachments',
+        'attachment',
+        'files',
+        'images',
+      ]),
+    );
+
+    for (final Map<String, dynamic> attachment in attachments) {
+      final String identity = _blockIdentity(attachment);
+      final int existingIndex = identity.isEmpty
+          ? -1
+          : result.indexWhere((Map<String, dynamic> block) {
+              return _blockIdentity(block) == identity;
+            });
+
+      if (existingIndex >= 0) {
+        result[existingIndex] = <String, dynamic>{
+          ...result[existingIndex],
+          ...attachment,
+          'type': 'attachment',
+        };
+      } else {
+        result.add(attachment);
+      }
+    }
+
+    result.sort((Map<String, dynamic> first, Map<String, dynamic> second) {
+      final int firstOrder = _toInt(first['displayOrder']);
+      final int secondOrder = _toInt(second['displayOrder']);
+
+      if (firstOrder <= 0 && secondOrder <= 0) {
+        return 0;
+      }
+
+      if (firstOrder <= 0) {
+        return 1;
+      }
+
+      if (secondOrder <= 0) {
+        return -1;
+      }
+
+      return firstOrder.compareTo(secondOrder);
+    });
+
+    for (int index = 0; index < result.length; index++) {
+      result[index].putIfAbsent('displayOrder', () => index + 1);
+    }
+
+    return result;
+  }
+
   List<Map<String, dynamic>> _parseContent(dynamic value) {
     if (value == null) {
       return <Map<String, dynamic>>[];
     }
 
-    dynamic parsedValue = value;
+    final dynamic parsedValue = _decodeJsonValue(value);
 
     if (parsedValue is String) {
       final String cleanValue = parsedValue.trim();
@@ -975,25 +1190,40 @@ class NoteRepositoryImpl implements NoteRepository {
         return <Map<String, dynamic>>[];
       }
 
-      try {
-        parsedValue = jsonDecode(cleanValue);
-      } catch (_) {
-        /*
-         * Support older content saved as plain text.
-         */
-        return <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 'legacy-text',
-            'type': 'text',
-            'text': cleanValue,
-            'displayOrder': 1,
-          },
-        ];
-      }
+      return <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 'legacy-text',
+          'blockId': 'legacy-text',
+          'type': 'text',
+          'text': cleanValue,
+          'displayOrder': 1,
+        },
+      ];
     }
 
     if (parsedValue is Map) {
-      return <Map<String, dynamic>>[_convertMap(parsedValue)];
+      final Map<String, dynamic> map = _convertMap(parsedValue);
+
+      if (!_looksLikeContentBlock(map)) {
+        for (final String key in <String>[
+          'blocks',
+          'content',
+          'items',
+          'data',
+        ]) {
+          if (!_containsKeyIgnoreCase(map, key)) {
+            continue;
+          }
+
+          final dynamic nested = _getValueIgnoreCase(map, key);
+
+          if (nested is List || nested is String || nested is Map) {
+            return _parseContent(nested);
+          }
+        }
+      }
+
+      return <Map<String, dynamic>>[_canonicalContentBlock(map)];
     }
 
     if (parsedValue is! List) {
@@ -1003,9 +1233,301 @@ class NoteRepositoryImpl implements NoteRepository {
     return parsedValue
         .whereType<Map>()
         .map((Map<dynamic, dynamic> block) {
-          return _convertMap(block);
+          return _canonicalContentBlock(_convertMap(block));
         })
         .toList(growable: false);
+  }
+
+  List<Map<String, dynamic>> _parseAttachments(dynamic value) {
+    if (value == null) {
+      return <Map<String, dynamic>>[];
+    }
+
+    final dynamic decoded = _decodeJsonValue(value);
+    final List<dynamic> values;
+
+    if (decoded is List) {
+      values = decoded;
+    } else if (decoded is Map) {
+      final Map<String, dynamic> map = _convertMap(decoded);
+      final dynamic nested = _firstValueIgnoreCase(map, <String>[
+        'items',
+        'attachments',
+        'files',
+        'data',
+      ]);
+
+      if (nested != null && !identical(nested, decoded)) {
+        return _parseAttachments(nested);
+      }
+
+      values = <dynamic>[map];
+    } else if (decoded is String && decoded.trim().isNotEmpty) {
+      values = <dynamic>[decoded.trim()];
+    } else {
+      return <Map<String, dynamic>>[];
+    }
+
+    final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
+
+    for (int index = 0; index < values.length; index++) {
+      final dynamic item = values[index];
+
+      if (item is String && item.trim().isNotEmpty) {
+        final String path = item.trim();
+
+        result.add(<String, dynamic>{
+          'id': path,
+          'blockId': path,
+          'type': 'attachment',
+          'url': path,
+          'displayName': _fileNameFromPath(path),
+          'displayOrder': index + 1,
+        });
+        continue;
+      }
+
+      if (item is Map) {
+        final Map<String, dynamic> block = _canonicalContentBlock(
+          _convertMap(item),
+          forcedType: 'attachment',
+        );
+        block.putIfAbsent('displayOrder', () => index + 1);
+        result.add(block);
+      }
+    }
+
+    return result;
+  }
+
+  Map<String, dynamic> _canonicalContentBlock(
+    Map<String, dynamic> source, {
+    String? forcedType,
+  }) {
+    final Map<String, dynamic> block = _deepCopyMap(source);
+    final dynamic rawItems = _firstValueIgnoreCase(block, <String>[
+      'items',
+      'checklistItems',
+      'tasks',
+    ]);
+    final String rawType =
+        _firstValueIgnoreCase(block, <String>[
+          'type',
+          'blockType',
+          'contentType',
+        ])?.toString().trim().toLowerCase() ??
+        '';
+    final String inferredType =
+        forcedType ??
+        (rawType.isNotEmpty
+            ? _canonicalBlockType(rawType)
+            : rawItems is List
+            ? 'checklist'
+            : _firstValueIgnoreCase(block, <String>[
+                    'attachmentId',
+                    'fileName',
+                    'filePath',
+                    'url',
+                  ]) !=
+                  null
+            ? 'attachment'
+            : 'text');
+    final dynamic id = _firstValueIgnoreCase(block, <String>[
+      'id',
+      'blockId',
+      'attachmentId',
+    ]);
+    final dynamic blockId = _firstValueIgnoreCase(block, <String>[
+      'blockId',
+      'id',
+    ]);
+
+    if (id != null) {
+      block['id'] = id.toString();
+    }
+
+    if (blockId != null) {
+      block['blockId'] = blockId.toString();
+    } else if (id != null) {
+      block['blockId'] = id.toString();
+    }
+
+    block['type'] = inferredType;
+
+    final int displayOrder = _toInt(
+      _firstValueIgnoreCase(block, <String>[
+        'displayOrder',
+        'order',
+        'sortOrder',
+      ]),
+    );
+
+    if (displayOrder > 0) {
+      block['displayOrder'] = displayOrder;
+    }
+
+    if (inferredType == 'text') {
+      final dynamic text = _firstValueIgnoreCase(block, <String>[
+        'text',
+        'body',
+        'value',
+        'content',
+      ]);
+
+      block['text'] = text?.toString() ?? '';
+    }
+
+    if (inferredType == 'checklist') {
+      final List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
+
+      if (rawItems is List) {
+        for (final dynamic rawItem in rawItems) {
+          if (rawItem is! Map) {
+            continue;
+          }
+
+          final Map<String, dynamic> item = _deepCopyMap(_convertMap(rawItem));
+          final dynamic itemId = _firstValueIgnoreCase(item, <String>[
+            'id',
+            'itemId',
+            'taskId',
+          ]);
+
+          if (itemId != null) {
+            item['id'] = itemId.toString();
+          }
+
+          item['text'] =
+              _firstValueIgnoreCase(item, <String>[
+                'text',
+                'title',
+                'label',
+                'value',
+              ])?.toString() ??
+              '';
+          item['checked'] = _toBool(
+            _firstValueIgnoreCase(item, <String>[
+              'checked',
+              'isChecked',
+              'completed',
+              'isCompleted',
+            ]),
+          );
+          items.add(item);
+        }
+      }
+
+      block['items'] = items;
+    }
+
+    if (inferredType == 'attachment') {
+      for (final ({String canonical, List<String> aliases}) field
+          in <({String canonical, List<String> aliases})>[
+            (
+              canonical: 'attachmentId',
+              aliases: <String>['attachmentId', 'fileId'],
+            ),
+            (
+              canonical: 'displayName',
+              aliases: <String>['displayName', 'fileName', 'name'],
+            ),
+            (
+              canonical: 'fileName',
+              aliases: <String>['fileName', 'displayName'],
+            ),
+            (
+              canonical: 'url',
+              aliases: <String>['url', 'fileUrl', 'downloadUrl'],
+            ),
+            (canonical: 'filePath', aliases: <String>['filePath', 'path']),
+            (
+              canonical: 'attachmentType',
+              aliases: <String>['attachmentType', 'fileType', 'mimeType'],
+            ),
+          ]) {
+        final dynamic fieldValue = _firstValueIgnoreCase(block, field.aliases);
+
+        if (fieldValue != null) {
+          block[field.canonical] = fieldValue;
+        }
+      }
+    }
+
+    return block;
+  }
+
+  String _normalizedBlockType(Map<String, dynamic> block) {
+    final String value =
+        _firstValueIgnoreCase(block, <String>[
+          'type',
+          'blockType',
+          'contentType',
+        ])?.toString().trim().toLowerCase() ??
+        '';
+
+    return _canonicalBlockType(value);
+  }
+
+  String _canonicalBlockType(String value) {
+    switch (_normalizeKey(value)) {
+      case 'text':
+      case 'paragraph':
+      case 'body':
+      case 'statement':
+        return 'text';
+      case 'checklist':
+      case 'todo':
+      case 'tasklist':
+      case 'tasks':
+        return 'checklist';
+      case 'attachment':
+      case 'file':
+      case 'document':
+      case 'image':
+      case 'photo':
+        return 'attachment';
+      default:
+        return value.trim().toLowerCase();
+    }
+  }
+
+  bool _looksLikeContentBlock(Map<String, dynamic> map) {
+    if (<String>['type', 'blockType', 'contentType'].any((String key) {
+      return _containsKeyIgnoreCase(map, key);
+    })) {
+      return true;
+    }
+
+    final bool hasId = <String>['id', 'blockId', 'attachmentId'].any((
+      String key,
+    ) {
+      return _containsKeyIgnoreCase(map, key);
+    });
+    final bool hasContent =
+        <String>[
+          'text',
+          'items',
+          'checklistItems',
+          'fileName',
+          'filePath',
+          'url',
+        ].any((String key) {
+          return _containsKeyIgnoreCase(map, key);
+        });
+
+    return hasId && hasContent;
+  }
+
+  String _blockIdentity(Map<String, dynamic> block) {
+    final dynamic value = _firstValueIgnoreCase(block, <String>[
+      'blockId',
+      'id',
+      'attachmentId',
+      'url',
+      'filePath',
+    ]);
+
+    return value?.toString().trim() ?? '';
   }
 
   // ===========================================================================
@@ -1030,6 +1552,22 @@ class NoteRepositoryImpl implements NoteRepository {
     }
   }
 
+  dynamic _decodeJsonValue(dynamic value) {
+    dynamic current = value;
+
+    for (int depth = 0; depth < 5 && current is String; depth++) {
+      final dynamic decoded = _decodeJsonString(current);
+
+      if (decoded is String && decoded == current) {
+        break;
+      }
+
+      current = decoded;
+    }
+
+    return current;
+  }
+
   Map<String, dynamic> _convertMap(Map<dynamic, dynamic> map) {
     return map.map((dynamic key, dynamic value) {
       return MapEntry<String, dynamic>(key.toString(), value);
@@ -1038,44 +1576,54 @@ class NoteRepositoryImpl implements NoteRepository {
 
   Map<String, dynamic> _deepCopyMap(Map<String, dynamic> source) {
     return source.map((String key, dynamic value) {
-      if (value is Map) {
-        return MapEntry<String, dynamic>(
-          key,
-          _convertMap(value).map((String childKey, dynamic childValue) {
-            return MapEntry<String, dynamic>(childKey, childValue);
-          }),
-        );
-      }
-
-      if (value is List) {
-        return MapEntry<String, dynamic>(
-          key,
-          value
-              .map((dynamic item) {
-                if (item is Map) {
-                  return _convertMap(item);
-                }
-
-                return item;
-              })
-              .toList(growable: false),
-        );
-      }
-
-      return MapEntry<String, dynamic>(key, value);
+      return MapEntry<String, dynamic>(key, _deepCopyValue(value));
     });
+  }
+
+  dynamic _deepCopyValue(dynamic value) {
+    if (value is Map) {
+      return _deepCopyMap(_convertMap(value));
+    }
+
+    if (value is List) {
+      return value.map<dynamic>(_deepCopyValue).toList(growable: false);
+    }
+
+    return value;
   }
 
   dynamic _getValueIgnoreCase(Map<String, dynamic> map, String wantedKey) {
     final String normalizedWantedKey = _normalizeKey(wantedKey);
+    dynamic result;
 
     for (final MapEntry<String, dynamic> entry in map.entries) {
       if (_normalizeKey(entry.key) == normalizedWantedKey) {
-        return entry.value;
+        result = entry.value;
       }
     }
 
-    return null;
+    return result;
+  }
+
+  bool _containsKeyIgnoreCase(Map<String, dynamic> map, String wantedKey) {
+    final String normalizedWantedKey = _normalizeKey(wantedKey);
+
+    return map.keys.any((String key) {
+      return _normalizeKey(key) == normalizedWantedKey;
+    });
+  }
+
+  void _setValueIgnoreCase(
+    Map<String, dynamic> map,
+    String canonicalKey,
+    dynamic value,
+  ) {
+    final String normalizedKey = _normalizeKey(canonicalKey);
+
+    map.removeWhere((String key, dynamic _) {
+      return _normalizeKey(key) == normalizedKey;
+    });
+    map[canonicalKey] = value;
   }
 
   dynamic _firstValueIgnoreCase(Map<String, dynamic> map, List<String> keys) {
@@ -1092,6 +1640,29 @@ class NoteRepositoryImpl implements NoteRepository {
 
   String _normalizeKey(String key) {
     return key.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  bool _looksLikeNote(Map<String, dynamic> map) {
+    final bool hasId = <String>['id', 'noteId'].any((String key) {
+      return _containsKeyIgnoreCase(map, key);
+    });
+    final bool hasNoteData =
+        <String>[
+          'title',
+          'noteTitle',
+          'content',
+          'contentJson',
+          'blocks',
+          'folderId',
+          'isPinned',
+          'isArchived',
+          'isLocked',
+          'createdAt',
+        ].any((String key) {
+          return _containsKeyIgnoreCase(map, key);
+        });
+
+    return hasId && hasNoteData;
   }
 
   int _positiveInt(dynamic value) {
@@ -1131,10 +1702,28 @@ class NoteRepositoryImpl implements NoteRepository {
       return value;
     }
 
+    if (value is num) {
+      final int numericValue = value.toInt();
+      final int milliseconds = numericValue.abs() < 100000000000
+          ? numericValue * 1000
+          : numericValue;
+
+      return DateTime.fromMillisecondsSinceEpoch(
+        milliseconds,
+        isUtc: true,
+      ).toLocal();
+    }
+
     final String text = value?.toString().trim() ?? '';
 
     if (text.isEmpty || text.toLowerCase() == 'null') {
       return null;
+    }
+
+    final num? numericValue = num.tryParse(text);
+
+    if (numericValue != null) {
+      return _toDateTime(numericValue);
     }
 
     return DateTime.tryParse(text);

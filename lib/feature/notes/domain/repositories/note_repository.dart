@@ -1,4 +1,5 @@
 import '../entities/note_entity.dart';
+import 'note_state_field.dart';
 
 abstract class NoteRepository {
   /// GET /api/note
@@ -7,9 +8,6 @@ abstract class NoteRepository {
   /// GET /api/note/{id}
   Future<NoteEntity> getNoteDetail(int noteId);
 
-  /// Compatibility method.
-  Future<NoteEntity> getNote(int noteId);
-
   /// POST /api/note/save
   Future<int> saveNote({
     required int noteId,
@@ -17,16 +15,8 @@ abstract class NoteRepository {
     required String title,
   });
 
-  /// POST /api/note/save with `{id, title, content}`.
-  /// Falls back to POST /api/note/save-content on older servers.
+  /// POST /api/note/save-content with `{id, title, content}`.
   Future<void> saveContent({
-    required int id,
-    required String title,
-    required List<Map<String, dynamic>> content,
-  });
-
-  /// Compatibility method.
-  Future<void> saveNoteContent({
     required int id,
     required String title,
     required List<Map<String, dynamic>> content,
@@ -46,5 +36,6 @@ abstract class NoteRepository {
     required bool isPinned,
     required bool isArchived,
     required bool isLocked,
+    NoteStateField? changedField,
   });
 }

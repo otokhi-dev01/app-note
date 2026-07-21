@@ -1,29 +1,21 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../app/routes/app_routes.dart';
 import '../../domain/repositories/auth_repository.dart';
-
+import '../../domain/validation/auth_input_validator.dart';
+import '../utils/auth_error_message.dart';
 
 class RegisterController extends GetxController {
   final AuthRepository authRepository;
 
-  RegisterController({
-    required this.authRepository,
-  });
+  RegisterController({required this.authRepository});
 
+  final TextEditingController phoneController = TextEditingController();
 
-  final TextEditingController fullNameController =
-  TextEditingController();
-
-  final TextEditingController phoneController =
-  TextEditingController();
-
-  final TextEditingController passwordController =
-  TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   final TextEditingController confirmPasswordController =
-  TextEditingController();
+      TextEditingController();
 
   final RxBool isLoading = false.obs;
 
@@ -34,22 +26,21 @@ class RegisterController extends GetxController {
   final RxString errorMessage = ''.obs;
 
   Future<void> register() async {
+    if (isLoading.value) {
+      return;
+    }
+
     FocusManager.instance.primaryFocus?.unfocus();
 
-    final String fullName =
-    fullNameController.text.trim();
+    final String phone = AuthInputValidator.normalizePhone(
+      phoneController.text,
+    );
 
-    final String phone =
-    phoneController.text.trim();
+    final String password = passwordController.text;
 
-    final String password =
-        passwordController.text;
-
-    final String confirmPassword =
-        confirmPasswordController.text;
+    final String confirmPassword = confirmPasswordController.text;
 
     final String? validationError = _validate(
-      fullName: fullName,
       phone: phone,
       password: password,
       confirmPassword: confirmPassword,
@@ -64,31 +55,22 @@ class RegisterController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      await authRepository.register(
-        fullName: fullName,
+      final bool isAuthenticated = await authRepository.register(
         phone: phone,
         password: password,
-        deviceName: _deviceName,
-        deviceType: _deviceType,
       );
-
-      final bool isAuthenticated =
-      await authRepository.isLoggedIn();
 
       if (isAuthenticated) {
         Get.offAllNamed(AppRoutes.home);
         return;
       }
 
-      Get.offNamed(
+      Get.offAllNamed(
         AppRoutes.login,
-        arguments: <String, dynamic>{
-          'phone': phone,
-          'registered': true,
-        },
+        arguments: <String, dynamic>{'phone': phone, 'registered': true},
       );
     } catch (error) {
-      errorMessage.value = _cleanError(error);
+      errorMessage.value = authErrorMessage(error);
     } finally {
       isLoading.value = false;
     }
@@ -103,46 +85,22 @@ class RegisterController extends GetxController {
   }
 
   void openLogin() {
-    Get.offNamed(AppRoutes.login);
+    Get.offAllNamed(AppRoutes.login);
   }
 
   String? _validate({
-    required String fullName,
     required String phone,
     required String password,
     required String confirmPassword,
   }) {
-    if (fullName.isEmpty) {
-      return 'Please enter your full name.';
+    final String? phoneError = AuthInputValidator.validatePhone(phone);
+    if (phoneError != null) {
+      return phoneError;
     }
 
-    if (fullName.length < 2) {
-      return 'Full name must contain at least 2 characters.';
-    }
-
-    if (phone.isEmpty) {
-      return 'Please enter your phone number.';
-    }
-
-    final String normalizedPhone =
-    phone.replaceAll(
-      RegExp(r'[\s\-()]'),
-      '',
-    );
-
-    final RegExp phonePattern =
-    RegExp(r'^\+?[0-9]{8,15}$');
-
-    if (!phonePattern.hasMatch(normalizedPhone)) {
-      return 'Please enter a valid phone number.';
-    }
-
-    if (password.isEmpty) {
-      return 'Please enter a password.';
-    }
-
-    if (password.length < 6) {
-      return 'Password must contain at least 6 characters.';
+    final String? passwordError = AuthInputValidator.validatePassword(password);
+    if (passwordError != null) {
+      return passwordError;
     }
 
     if (confirmPassword.isEmpty) {
@@ -156,35 +114,8 @@ class RegisterController extends GetxController {
     return null;
   }
 
-  String get _deviceType {
-    if (kIsWeb) {
-      return 'web';
-    }
-
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.android => 'android',
-      TargetPlatform.iOS => 'ios',
-      TargetPlatform.macOS => 'macos',
-      TargetPlatform.windows => 'windows',
-      TargetPlatform.linux => 'linux',
-      TargetPlatform.fuchsia => 'fuchsia',
-    };
-  }
-
-  String get _deviceName {
-    return 'Piisiit Note ${_deviceType.toUpperCase()}';
-  }
-
-  String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst('ApiException: ', '')
-        .trim();
-  }
-
   @override
   void onClose() {
-    fullNameController.dispose();
     phoneController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();

@@ -9,79 +9,164 @@ class FolderModel extends FolderEntity {
     required super.colorValue,
     required super.sortOrder,
     required super.noteCount,
+    required super.isInTrash,
     super.createdAt,
     super.updatedAt,
     super.deletedAt,
   });
 
-  factory FolderModel.fromJson(
-      Map<String, dynamic> json,
-      ) {
+  factory FolderModel.fromJson(Map<String, dynamic> json) {
     return FolderModel(
       id: _toInt(
-        json['FolderId'] ??
-            json['folderId'] ??
-            json['Id'] ??
-            json['id'],
+        _readValue(json, const <String>[
+          'FolderId',
+          'folderId',
+          'folder_id',
+          'Id',
+          'id',
+        ]),
       ),
-      userId: _toString(
-        json['UserId'] ??
-            json['userId'],
-      ),
-      name: _toString(
-        json['FolderName'] ??
-            json['folderName'] ??
-            json['Name'] ??
-            json['name'],
-      ),
-      iconName: _toString(
-        json['IconName'] ??
-            json['iconName'],
-      ),
-      colorValue: _toString(
-        json['ColorValue'] ??
-            json['colorValue'],
-      ),
+      userId:
+          _readValue(json, const <String>[
+            'UserId',
+            'userId',
+            'user_id',
+          ])?.toString() ??
+          '',
+      name:
+          _readValue(json, const <String>[
+            'FolderName',
+            'folderName',
+            'folder_name',
+            'Name',
+            'name',
+          ])?.toString() ??
+          '',
+      iconName:
+          _readValue(json, const <String>[
+            'IconName',
+            'iconName',
+            'icon_name',
+          ])?.toString() ??
+          'folder',
+      colorValue:
+          _readValue(json, const <String>[
+            'ColorValue',
+            'colorValue',
+            'color_value',
+          ])?.toString() ??
+          '#2196F3',
       sortOrder: _toInt(
-        json['SortOrder'] ??
-            json['sortOrder'],
+        _readValue(json, const <String>[
+          'SortOrder',
+          'sortOrder',
+          'sort_order',
+        ]),
       ),
       noteCount: _toInt(
-        json['NoteCount'] ??
-            json['noteCount'],
+        _readValue(json, const <String>[
+          'NoteCount',
+          'noteCount',
+          'note_count',
+        ]),
       ),
+      isInTrash:
+          _toBool(
+            _readValue(json, const <String>[
+              'IsInTrash',
+              'isInTrash',
+              'is_in_trash',
+              'InTrash',
+              'inTrash',
+              'in_trash',
+            ]),
+          ) ||
+          _toBool(
+            _readValue(json, const <String>[
+              'IsDeleted',
+              'isDeleted',
+              'is_deleted',
+              'Deleted',
+              'deleted',
+            ]),
+          ) ||
+          _isDeletedStatus(
+            _readValue(json, const <String>['Status', 'status', 'state']),
+          ),
       createdAt: _toDateTime(
-        json['CreatedAt'] ??
-            json['createdAt'],
+        _readValue(json, const <String>[
+          'CreatedAt',
+          'createdAt',
+          'created_at',
+        ]),
       ),
       updatedAt: _toDateTime(
-        json['UpdatedAt'] ??
-            json['updatedAt'],
+        _readValue(json, const <String>[
+          'UpdatedAt',
+          'updatedAt',
+          'updated_at',
+        ]),
       ),
       deletedAt: _toDateTime(
-        json['DeletedAt'] ??
-            json['deletedAt'],
+        _readValue(json, const <String>[
+          'DeletedAt',
+          'deletedAt',
+          'deleted_at',
+          'TrashedAt',
+          'trashedAt',
+          'trashed_at',
+        ]),
       ),
     );
+  }
+
+  static dynamic _readValue(Map<String, dynamic> json, List<String> keys) {
+    final Map<String, dynamic> valuesByLowerCaseKey = <String, dynamic>{
+      for (final MapEntry<String, dynamic> entry in json.entries)
+        entry.key.toLowerCase(): entry.value,
+    };
+
+    for (final String key in keys) {
+      final String normalizedKey = key.toLowerCase();
+
+      if (valuesByLowerCaseKey.containsKey(normalizedKey)) {
+        return valuesByLowerCaseKey[normalizedKey];
+      }
+    }
+
+    return null;
   }
 
   static int _toInt(dynamic value) {
     if (value is int) {
       return value;
     }
-
     if (value is num) {
       return value.toInt();
     }
 
-    return int.tryParse(
-      value?.toString() ?? '',
-    ) ??
-        0;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  static String _toString(dynamic value) {
-    return value?.toString() ?? '';
+  static bool _toBool(dynamic value) {
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+
+    final String text = value?.toString().trim().toLowerCase() ?? '';
+    return text == 'true' || text == '1' || text == 'yes';
+  }
+
+  static bool _isDeletedStatus(dynamic value) {
+    final String text = value?.toString().trim().toLowerCase() ?? '';
+
+    return text == 'deleted' ||
+        text == 'trash' ||
+        text == 'trashed' ||
+        text == 'inactive';
   }
 
   static DateTime? _toDateTime(dynamic value) {
@@ -89,12 +174,24 @@ class FolderModel extends FolderEntity {
       return null;
     }
 
-    final String rawValue = value.toString().trim();
+    if (value is DateTime) {
+      return value;
+    }
 
-    if (rawValue.isEmpty) {
+    if (value is num) {
+      final int timestamp = value.toInt();
+      final int milliseconds = timestamp.abs() < 100000000000
+          ? timestamp * 1000
+          : timestamp;
+
+      return DateTime.fromMillisecondsSinceEpoch(milliseconds, isUtc: true);
+    }
+
+    final String text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') {
       return null;
     }
 
-    return DateTime.tryParse(rawValue);
+    return DateTime.tryParse(text);
   }
 }

@@ -1,9 +1,30 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../../../../core/presentation/widgets/app_surface_card.dart';
 import '../controllers/note_editor_controller.dart';
+
+import '../widgets/common/note_action_sheet_row_widget.dart';
+import '../widgets/common/note_navigation_back_button_widget.dart';
+import '../widgets/common/note_navigation_icon_button_widget.dart';
+import '../widgets/common/note_navigation_save_button_widget.dart';
+part '../widgets/note_editor/note_editor_content_widget.dart';
+part '../widgets/note_editor/note_metadata_card_widget.dart';
+part '../widgets/note_editor/locked_note_banner_widget.dart';
+part '../widgets/note_editor/note_text_section_widget.dart';
+part '../widgets/note_editor/inline_error_banner_widget.dart';
+part '../widgets/note_editor/checklist_card_widget.dart';
+part '../widgets/note_editor/checklist_row_widget.dart';
+part '../widgets/note_editor/attachments_card_widget.dart';
+part '../widgets/note_editor/attachment_row_widget.dart';
+part '../widgets/note_editor/section_title_row_widget.dart';
+part '../widgets/note_editor/small_icon_surface_widget.dart';
+part '../widgets/note_editor/bottom_save_button_widget.dart';
+part '../widgets/note_editor/note_loading_state_widget.dart';
+part '../widgets/note_editor/note_editor_error_state_widget.dart';
 
 class NoteEditorView extends GetView<NoteEditorController> {
   const NoteEditorView({super.key});
@@ -11,48 +32,54 @@ class NoteEditorView extends GetView<NoteEditorController> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final Color pageColor = theme.scaffoldBackgroundColor;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: Get.back,
-          child: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
+      backgroundColor: pageColor,
+      appBar: CupertinoNavigationBar(
+        automaticallyImplyLeading: false,
+        transitionBetweenRoutes: false,
+        border: null,
+        backgroundColor: pageColor.withValues(alpha: 0.94),
+        leading: NoteNavigationBackButton(onPressed: Get.back),
+        middle: Text(
+          'Edit Note',
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        title: const Text('Edit Note'),
-        actions: <Widget>[
-          Obx(
-            () => IconButton(
-              tooltip: 'Note options',
-              onPressed:
-                  controller.isSaving.value ||
-                      controller.isLoading.value ||
-                      !controller.hasLoadedNote
-                  ? null
-                  : () => _showStateOptions(context),
-              icon: const Icon(Icons.more_horiz_rounded),
-            ),
-          ),
-          Obx(
-            () => CupertinoButton(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              onPressed: !controller.canEdit || controller.isLoading.value
-                  ? null
-                  : controller.saveChanges,
-              child: controller.isSaving.value
-                  ? const CupertinoActivityIndicator()
-                  : Text(
-                      'Save',
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-            ),
-          ),
-        ],
+        trailing: Obx(() {
+          final bool unavailable =
+              controller.isSaving.value ||
+              controller.isLoading.value ||
+              !controller.hasLoadedNote;
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              NoteNavigationIconButton.editor(
+                label: 'Note options',
+                icon: CupertinoIcons.ellipsis_circle,
+                onPressed: unavailable
+                    ? null
+                    : () {
+                        _showStateOptions(context);
+                      },
+              ),
+              const SizedBox(width: 2),
+              NoteNavigationSaveButton.editor(
+                saving: controller.isSaving.value,
+                enabled:
+                    controller.canEdit &&
+                    !controller.isLoading.value &&
+                    !controller.isSaving.value,
+                onPressed: controller.saveChanges,
+              ),
+            ],
+          );
+        }),
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -66,7 +93,7 @@ class NoteEditorView extends GetView<NoteEditorController> {
 
   Widget _buildBody(BuildContext context) {
     if (controller.isLoading.value) {
-      return const Center(child: CupertinoActivityIndicator(radius: 14));
+      return const _NoteLoadingState();
     }
 
     final String error = controller.errorMessage.value.trim();
@@ -94,9 +121,7 @@ class NoteEditorView extends GetView<NoteEditorController> {
       builder: (BuildContext sheetContext) {
         return CupertinoActionSheet(
           title: const Text('Add Attachment'),
-          message: const Text(
-            'Take a photo, choose an image, or select a document.',
-          ),
+          message: const Text('Choose what you want to attach.'),
           actions: <Widget>[
             CupertinoActionSheetAction(
               onPressed: () {
@@ -104,27 +129,9 @@ class NoteEditorView extends GetView<NoteEditorController> {
 
                 _pickAndUploadImage(source: ImageSource.camera);
               },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(CupertinoIcons.camera, size: 21),
-                  SizedBox(width: 9),
-                  Text('Take Photo'),
-                ],
-              ),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                _pickAndUploadDocument();
-              },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(CupertinoIcons.doc, size: 21),
-                  SizedBox(width: 9),
-                  Text('Choose Document'),
-                ],
+              child: const NoteActionSheetRow(
+                icon: CupertinoIcons.camera,
+                label: 'Take Photo',
               ),
             ),
             CupertinoActionSheetAction(
@@ -133,13 +140,20 @@ class NoteEditorView extends GetView<NoteEditorController> {
 
                 _pickAndUploadImage(source: ImageSource.gallery);
               },
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(CupertinoIcons.photo, size: 21),
-                  SizedBox(width: 9),
-                  Text('Choose Photo'),
-                ],
+              child: const NoteActionSheetRow(
+                icon: CupertinoIcons.photo,
+                label: 'Choose Photo',
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+
+                _pickAndUploadDocument();
+              },
+              child: const NoteActionSheetRow(
+                icon: CupertinoIcons.doc,
+                label: 'Choose Document',
               ),
             ),
           ],
@@ -190,6 +204,7 @@ class NoteEditorView extends GetView<NoteEditorController> {
         allowMultiple: false,
         type: FileType.any,
       );
+
       final String? path = result?.files.single.path;
 
       if (path == null || path.trim().isEmpty) {
@@ -209,29 +224,37 @@ class NoteEditorView extends GetView<NoteEditorController> {
       return;
     }
 
+    FocusManager.instance.primaryFocus?.unfocus();
+
     await showCupertinoModalPopup<void>(
       context: context,
       builder: (BuildContext sheetContext) {
         return CupertinoActionSheet(
           title: const Text('Note Options'),
-          message: const Text(
-            'Pin important notes, move them to Archive, or lock editing.',
-          ),
+          message: const Text('Manage this note.'),
           actions: <Widget>[
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(sheetContext).pop();
                 controller.togglePin();
               },
-              child: Text(currentNote.isPinned ? 'Unpin Note' : 'Pin Note'),
+              child: NoteActionSheetRow(
+                icon: currentNote.isPinned
+                    ? CupertinoIcons.pin_slash
+                    : CupertinoIcons.pin,
+                label: currentNote.isPinned ? 'Unpin Note' : 'Pin Note',
+              ),
             ),
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(sheetContext).pop();
                 controller.toggleArchive();
               },
-              child: Text(
-                currentNote.isArchived ? 'Move to Notes' : 'Move to Archive',
+              child: NoteActionSheetRow(
+                icon: CupertinoIcons.archivebox,
+                label: currentNote.isArchived
+                    ? 'Move to Notes'
+                    : 'Move to Archive',
               ),
             ),
             CupertinoActionSheetAction(
@@ -239,11 +262,18 @@ class NoteEditorView extends GetView<NoteEditorController> {
                 Navigator.of(sheetContext).pop();
                 controller.toggleLock();
               },
-              child: Text(currentNote.isLocked ? 'Unlock Note' : 'Lock Note'),
+              child: NoteActionSheetRow(
+                icon: currentNote.isLocked
+                    ? CupertinoIcons.lock_open
+                    : CupertinoIcons.lock,
+                label: currentNote.isLocked ? 'Unlock Note' : 'Lock Note',
+              ),
             ),
           ],
           cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(sheetContext).pop(),
+            onPressed: () {
+              Navigator.of(sheetContext).pop();
+            },
             child: const Text('Cancel'),
           ),
         );
@@ -260,617 +290,42 @@ class NoteEditorView extends GetView<NoteEditorController> {
   }
 }
 
-class _NoteEditorContent extends StatelessWidget {
-  final NoteEditorController controller;
-  final VoidCallback onAddAttachment;
+String _friendlyDate(DateTime date) {
+  final DateTime now = DateTime.now();
 
-  const _NoteEditorContent({
-    required this.controller,
-    required this.onAddAttachment,
-  });
+  final DateTime today = DateTime(now.year, now.month, now.day);
 
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+  final DateTime target = DateTime(date.year, date.month, date.day);
 
-    final ColorScheme colorScheme = theme.colorScheme;
+  final int difference = today.difference(target).inDays;
 
-    final bool isDark = theme.brightness == Brightness.dark;
-
-    final currentNote = controller.note.value;
-
-    return SingleChildScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 130),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: Column(
-            children: <Widget>[
-              if (currentNote != null) ...<Widget>[
-                _NoteMetadataCard(controller: controller),
-                const SizedBox(height: 14),
-              ],
-              if (controller.isLocked) ...<Widget>[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Icon(
-                        CupertinoIcons.lock_fill,
-                        color: colorScheme.onSecondaryContainer,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'This note is locked. Unlock it from Note Options to edit.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSecondaryContainer,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1B1D22) : Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: colorScheme.outlineVariant.withValues(
-                      alpha: isDark ? 0.18 : 0.35,
-                    ),
-                  ),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.15 : 0.05,
-                      ),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    Text(
-                      'Title',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: controller.titleController,
-                      readOnly: controller.isLocked,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.next,
-                      maxLength: 250,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter note title',
-                        counterText: '',
-                        prefixIcon: Icon(CupertinoIcons.textformat),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    Text(
-                      'Statement',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: controller.statementController,
-                      readOnly: controller.isLocked,
-                      textCapitalization: TextCapitalization.sentences,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline,
-                      minLines: 10,
-                      maxLines: null,
-                      decoration: const InputDecoration(
-                        hintText: 'Write your note...',
-                        alignLabelWithHint: true,
-                        contentPadding: EdgeInsets.all(17),
-                      ),
-                    ),
-                    Obx(() {
-                      final String error = controller.errorMessage.value.trim();
-
-                      if (error.isEmpty) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Container(
-                          padding: const EdgeInsets.all(13),
-                          decoration: BoxDecoration(
-                            color: colorScheme.errorContainer.withValues(
-                              alpha: 0.70,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Icon(
-                                CupertinoIcons.exclamationmark_circle,
-                                color: colorScheme.error,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 9),
-                              Expanded(
-                                child: Text(
-                                  error,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onErrorContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              _ChecklistCard(controller: controller),
-              const SizedBox(height: 14),
-              _AttachmentsCard(
-                controller: controller,
-                onAddAttachment: onAddAttachment,
-              ),
-              const SizedBox(height: 22),
-              Obx(
-                () => FilledButton.icon(
-                  onPressed: !controller.canEdit
-                      ? null
-                      : controller.saveChanges,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(19),
-                    ),
-                  ),
-                  icon: controller.isSaving.value
-                      ? SizedBox(
-                          width: 21,
-                          height: 21,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              colorScheme.onPrimary,
-                            ),
-                          ),
-                        )
-                      : const Icon(CupertinoIcons.checkmark_alt),
-                  label: Text(
-                    controller.isSaving.value ? 'Saving...' : 'Save Changes',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NoteMetadataCard extends StatelessWidget {
-  final NoteEditorController controller;
-
-  const _NoteMetadataCard({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colors = theme.colorScheme;
-    final note = controller.note.value;
-
-    if (note == null) {
-      return const SizedBox.shrink();
-    }
-
-    final DateTime? timestamp = note.updatedAt ?? note.createdAt;
-    final String folder = note.folderName.trim().isNotEmpty
-        ? note.folderName.trim()
-        : 'Folder #${note.folderId}';
-    final int attachmentCount = note.attachmentCount > 0
-        ? note.attachmentCount
-        : controller.attachmentBlocks.length;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(CupertinoIcons.folder, size: 19, color: colors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              folder,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          if (attachmentCount > 0) ...<Widget>[
-            const Icon(Icons.attach_file_rounded, size: 17),
-            const SizedBox(width: 2),
-            Text('$attachmentCount'),
-            const SizedBox(width: 12),
-          ],
-          if (timestamp != null)
-            Text(
-              MaterialLocalizations.of(context).formatShortDate(timestamp),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChecklistCard extends StatelessWidget {
-  final NoteEditorController controller;
-
-  const _ChecklistCard({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colors = theme.colorScheme;
-    final bool isDark = theme.brightness == Brightness.dark;
-    final List<NoteChecklistBlockDraft> blocks = controller.checklistBlocks;
-    final List<({NoteChecklistBlockDraft block, NoteChecklistItemDraft item})>
-    rows = <({NoteChecklistBlockDraft block, NoteChecklistItemDraft item})>[
-      for (final NoteChecklistBlockDraft block in blocks)
-        for (final NoteChecklistItemDraft item in block.items)
-          (block: block, item: item),
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B1D22) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: isDark ? 0.18 : 0.35),
-        ),
-      ),
-      child: Column(
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.11),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.checklist_rounded, color: colors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Checklist',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      rows.isEmpty
-                          ? 'Add tasks to this note'
-                          : '${rows.where((row) => row.item.checked).length} of ${rows.length} completed',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Add task',
-                onPressed: controller.canEdit
-                    ? controller.addChecklistItem
-                    : null,
-                icon: const Icon(Icons.add_task_rounded),
-              ),
-            ],
-          ),
-          if (rows.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            for (final row in rows)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  children: <Widget>[
-                    Checkbox.adaptive(
-                      value: row.item.checked,
-                      onChanged: controller.canEdit
-                          ? (bool? value) => controller.toggleChecklistItem(
-                              row.block.id,
-                              row.item.id,
-                              value ?? false,
-                            )
-                          : null,
-                    ),
-                    Expanded(
-                      child: TextFormField(
-                        key: ValueKey<String>(row.item.id),
-                        initialValue: row.item.text,
-                        readOnly: !controller.canEdit,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Task',
-                          border: InputBorder.none,
-                          isDense: true,
-                        ),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          decoration: row.item.checked
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: row.item.checked
-                              ? colors.onSurfaceVariant
-                              : null,
-                        ),
-                        onChanged: (String value) =>
-                            controller.updateChecklistItem(
-                              row.block.id,
-                              row.item.id,
-                              value,
-                            ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Remove task',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: controller.canEdit
-                          ? () => controller.removeChecklistItem(
-                              row.block.id,
-                              row.item.id,
-                            )
-                          : null,
-                      icon: const Icon(CupertinoIcons.xmark, size: 17),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AttachmentsCard extends StatelessWidget {
-  final NoteEditorController controller;
-  final VoidCallback onAddAttachment;
-
-  const _AttachmentsCard({
-    required this.controller,
-    required this.onAddAttachment,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colors = theme.colorScheme;
-    final bool isDark = theme.brightness == Brightness.dark;
-    final List<Map<String, dynamic>> attachments = controller.attachmentBlocks;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1B1D22) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: colors.outlineVariant.withValues(alpha: isDark ? 0.18 : 0.35),
-        ),
-      ),
-      child: Column(
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.11),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(CupertinoIcons.paperclip, color: colors.primary),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      'Attachments',
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      attachments.isEmpty
-                          ? 'Add a photo or document'
-                          : '${attachments.length} file${attachments.length == 1 ? '' : 's'} attached',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Add attachment',
-                onPressed: controller.canEdit ? onAddAttachment : null,
-                icon: const Icon(Icons.add_rounded),
-              ),
-            ],
-          ),
-          if (attachments.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            for (final Map<String, dynamic> block in attachments)
-              _AttachmentTile(block: block),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AttachmentTile extends StatelessWidget {
-  final Map<String, dynamic> block;
-
-  const _AttachmentTile({required this.block});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colors = theme.colorScheme;
-    final String attachmentId =
-        (block['attachmentId'] ?? block['AttachmentId'] ?? '').toString();
-    final String name = _displayName(attachmentId);
-    final String extension = name.contains('.')
-        ? name.split('.').last.toLowerCase()
-        : '';
-    final IconData icon =
-        <String>{'png', 'jpg', 'jpeg', 'gif', 'webp'}.contains(extension)
-        ? CupertinoIcons.photo
-        : extension == 'pdf'
-        ? CupertinoIcons.doc_text
-        : CupertinoIcons.doc;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: colors.secondaryContainer,
-        foregroundColor: colors.onSecondaryContainer,
-        child: Icon(icon, size: 20),
-      ),
-      title: Text(
-        name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: attachmentId.trim().isEmpty
-          ? null
-          : Text('Attachment #$attachmentId'),
-    );
+  if (difference == 0) {
+    return 'Today';
   }
 
-  String _displayName(String attachmentId) {
-    for (final String key in <String>[
-      'displayName',
-      'DisplayName',
-      'fileName',
-      'FileName',
-      'name',
-      'Name',
-    ]) {
-      final String value = block[key]?.toString().trim() ?? '';
-
-      if (value.isNotEmpty) {
-        return value;
-      }
-    }
-
-    return attachmentId.trim().isEmpty
-        ? 'Attached file'
-        : 'Attachment $attachmentId';
+  if (difference == 1) {
+    return 'Yesterday';
   }
-}
 
-class _NoteEditorErrorState extends StatelessWidget {
-  final String message;
-  final Future<void> Function() onRetry;
-
-  const _NoteEditorErrorState({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    final ColorScheme colorScheme = theme.colorScheme;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Container(
-              width: 84,
-              height: 84,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: colorScheme.error.withValues(alpha: 0.10),
-              ),
-              child: Icon(
-                Icons.cloud_off_outlined,
-                size: 39,
-                color: colorScheme.error,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Unable to load note',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.tonalIcon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
+  if (difference > 1 && difference < 7) {
+    return '${difference}d ago';
   }
+
+  const List<String> months = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  return '${months[date.month - 1]} '
+      '${date.day}';
 }

@@ -1,75 +1,68 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:note_app/feature/main/presentation/widgets/app_liquid_background_widget.dart';
-import '../../main/presentation/widgets/main_tab_header_widget.dart';
+
 import '../presentation/controllers/settings_controller.dart';
 import '../presentation/widgets/languages_selector_widget.dart';
+import '../presentation/widgets/settings_intro_card_widget.dart';
 import '../presentation/widgets/settings_section_card_widget.dart';
 import '../presentation/widgets/theme_mode_selector_widget.dart';
 
-class SettingsView
-    extends GetView<SettingsController> {
-  const SettingsView({
-    super.key,
-  });
+class SettingsView extends GetView<SettingsController> {
+  const SettingsView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        const Positioned.fill(
-          child: AppLiquidBackgroundWidget(),
+    final ThemeData theme = Theme.of(context);
+    final Color pageColor = theme.scaffoldBackgroundColor;
+
+    return ColoredBox(
+      color: pageColor,
+      child: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
         ),
-        SafeArea(
-          bottom: false,
-          child: Column(
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  16,
-                  10,
-                  16,
-                  0,
-                ),
-                child: MainTabHeader(
-                  title: 'settings'.tr,
-                  subtitle: 'app_settings'.tr,
-                ),
+        slivers: <Widget>[
+          CupertinoSliverNavigationBar(
+            automaticallyImplyLeading: false,
+            stretch: true,
+            border: null,
+            backgroundColor: pageColor.withValues(alpha: 0.94),
+            largeTitle: Text(
+              'settings'.tr,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.7,
               ),
-              const SizedBox(height: 14),
-              Expanded(
-                child: ListView(
-                  physics:
-                  const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(
-                    16,
-                    0,
-                    16,
-                    120,
-                  ),
-                  children: <Widget>[
-                    SettingsSectionCardWidget(
-                      title: 'appearance'.tr,
-                      subtitle:
-                      'appearance_description'.tr,
-                      child:
-                      const ThemeModeSelector(),
-                    ),
-                    const SizedBox(height: 14),
-                    SettingsSectionCardWidget(
-                      title: 'language'.tr,
-                      subtitle:
-                      'language_description'.tr,
-                      child:
-                      const LanguageSelector(),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+          SliverToBoxAdapter(
+            child: SettingsIntroCardWidget(title: 'app_settings'.tr),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+            sliver: SliverList.list(
+              children: <Widget>[
+                SettingsSectionCardWidget(
+                  icon: CupertinoIcons.circle_lefthalf_fill,
+                  title: 'appearance'.tr,
+                  subtitle: 'appearance_description'.tr,
+                  child: const ThemeModeSelector(),
+                ),
+                const SizedBox(height: 12),
+                SettingsSectionCardWidget(
+                  icon: CupertinoIcons.globe,
+                  title: 'language'.tr,
+                  subtitle: 'language_description'.tr,
+                  child: const LanguageSelector(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../../folders/domain/entities/folder_entity.dart';
 import '../../../domain/entities/note_entity.dart';
 import '../../controllers/home_controller.dart';
-import 'home_states_widget.dart';
+import 'home_server_error_state_widget.dart';
 import 'liquid_note_card_widget.dart';
 
 class HomeContent extends GetView<HomeController> {
@@ -23,12 +23,10 @@ class HomeContent extends GetView<HomeController> {
         return const HomeLoadingState();
       }
 
-      if (controller.hasFolderError &&
-          controller.folders.isEmpty) {
+      if (controller.hasFolderError && controller.folders.isEmpty) {
         return _errorScrollView(
           title: 'Folders are unavailable',
-          message:
-          controller.folderErrorMessage.value,
+          message: controller.folderErrorMessage.value,
           onRetry: controller.loadFolders,
         );
       }
@@ -36,30 +34,24 @@ class HomeContent extends GetView<HomeController> {
       if (controller.hasNoteError) {
         return _errorScrollView(
           title: 'Notes are unavailable',
-          message: _cleanNoteServerMessage(
-            controller.noteErrorMessage.value,
-          ),
+          message: _cleanNoteServerMessage(controller.noteErrorMessage.value),
           onRetry: controller.loadNotes,
         );
       }
 
-      final List<NoteEntity> notes =
-          controller.visibleNotes;
+      final List<NoteEntity> notes = controller.visibleNotes;
 
       if (notes.isEmpty) {
         return RefreshIndicator.adaptive(
           onRefresh: controller.loadAll,
           child: CustomScrollView(
-            physics:
-            const AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: HomeEmptyNotesState(
-                  hasFolders:
-                  controller.folders.isNotEmpty,
-                  onCreateFolder:
-                  onCreateFolder,
+                  hasFolders: controller.folders.isNotEmpty,
+                  onCreateFolder: onCreateFolder,
                   onCreateNote: onCreateNote,
                 ),
               ),
@@ -71,58 +63,37 @@ class HomeContent extends GetView<HomeController> {
       return RefreshIndicator.adaptive(
         onRefresh: controller.loadAll,
         child: CustomScrollView(
-          physics:
-          const AlwaysScrollableScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                8,
-                16,
-                130,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
               sliver: SliverList(
-                delegate:
-                SliverChildBuilderDelegate(
-                      (
-                      BuildContext context,
-                      int index,
-                      ) {
-                    final NoteEntity note =
-                    notes[index];
+                delegate: SliverChildBuilderDelegate((
+                  BuildContext context,
+                  int index,
+                ) {
+                  final NoteEntity note = notes[index];
 
-                    return Padding(
-                      padding:
-                      const EdgeInsets.only(
-                        bottom: 12,
-                      ),
-                      child: LiquidNoteCard(
-                        note: note,
-                        folderName:
-                        _folderNameFor(
-                          note,
-                        ),
-                        onTap: () {
-                          controller
-                              .openNote(note.id);
-                        },
-                        onTogglePin: () {
-                          controller
-                              .togglePin(note);
-                        },
-                        onArchive: () {
-                          controller
-                              .archiveNote(note);
-                        },
-                        onLock: () {
-                          controller
-                              .lockNote(note);
-                        },
-                      ),
-                    );
-                  },
-                  childCount: notes.length,
-                ),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: LiquidNoteCard(
+                      note: note,
+                      folderName: _folderNameFor(note),
+                      onTap: () {
+                        controller.openNote(note.id);
+                      },
+                      onTogglePin: () {
+                        controller.togglePin(note);
+                      },
+                      onArchive: () {
+                        controller.archiveNote(note);
+                      },
+                      onLock: () {
+                        controller.lockNote(note);
+                      },
+                    ),
+                  );
+                }, childCount: notes.length),
               ),
             ),
           ],
@@ -139,18 +110,12 @@ class HomeContent extends GetView<HomeController> {
     return RefreshIndicator.adaptive(
       onRefresh: onRetry,
       child: CustomScrollView(
-        physics:
-        const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverFillRemaining(
             hasScrollBody: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                20,
-                30,
-                20,
-                130,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 130),
               child: HomeServerErrorState(
                 title: title,
                 message: message,
@@ -164,31 +129,21 @@ class HomeContent extends GetView<HomeController> {
   }
 
   String _folderNameFor(NoteEntity note) {
-    for (final FolderEntity folder
-    in controller.folders) {
+    for (final FolderEntity folder in controller.folders) {
       if (folder.id == note.folderId) {
-        final String name =
-        folder.name.trim();
+        final String name = folder.name.trim();
 
-        return name.isEmpty
-            ? 'Unnamed Folder'
-            : name;
+        return name.isEmpty ? 'Unnamed Folder' : name;
       }
     }
 
-    final String responseFolderName =
-    note.folderName.trim();
+    final String responseFolderName = note.folderName.trim();
 
-    return responseFolderName.isEmpty
-        ? 'Notes'
-        : responseFolderName;
+    return responseFolderName.isEmpty ? 'Notes' : responseFolderName;
   }
 
-  String _cleanNoteServerMessage(
-      String message,
-      ) {
-    if (message.contains('PlainText') ||
-        message.contains('PreviewText')) {
+  String _cleanNoteServerMessage(String message) {
+    if (message.contains('PlainText') || message.contains('PreviewText')) {
       return 'The backend note database is '
           'missing required PlainText and '
           'PreviewText columns. The backend '

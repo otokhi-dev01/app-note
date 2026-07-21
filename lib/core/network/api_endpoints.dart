@@ -1,45 +1,22 @@
 abstract final class ApiEndpoints {
-  // ===========================================================================
-  // AUTHENTICATION
-  // ===========================================================================
-
+  // Authentication
   static const String login = '/api/auth/login';
-
   static const String register = '/api/auth/register';
 
-  // ===========================================================================
-  // FOLDERS
-  // ===========================================================================
-
+  // Folders
   static const String folders = '/api/folder';
-
   static const String saveFolder = '/api/folder/save';
-
   static const String deleteRestoreFolder = '/api/folder/delete-restore';
 
-  static const String deletedFolders = '/api/folder/deleted';
-
-  // ===========================================================================
-  // NOTES
-  // ===========================================================================
-
+  // Notes
   static const String notes = '/api/note';
-
   static const String saveNote = '/api/note/save';
 
-  /// The current API saves `{id, title, content}` through `/api/note/save`.
-  static const String saveContent = '/api/note/save';
-
-  /// Compatibility path used by earlier Postman collections.
-  static const String legacySaveContent = '/api/note/save-content';
+  /// Saves a note's ordered content blocks after the note header exists.
+  static const String saveContent = '/api/note/save-content';
 
   static const String noteAttachment = '/api/note/attachment';
-
   static const String updateNoteState = '/api/note/update-state';
 
-  static String get folderDeleteRestore => 'api/folder/delete-restore';
-
-  static String noteDetail(int noteId) {
-    return '/api/note/$noteId';
-  }
+  static String noteDetail(int noteId) => '/api/note/$noteId';
 }

@@ -1,8 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-class AuthMessageBoxWidget
-    extends StatelessWidget {
+class AuthMessageBoxWidget extends StatelessWidget {
   final String message;
   final bool isError;
 
@@ -15,12 +14,9 @@ class AuthMessageBoxWidget
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    final Color mainColor = isError
-        ? colorScheme.error
-        : colorScheme.primary;
+    final Color mainColor = isError ? colorScheme.error : colorScheme.primary;
 
     final Color backgroundColor = isError
         ? colorScheme.errorContainer
@@ -32,31 +28,19 @@ class AuthMessageBoxWidget
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: backgroundColor.withValues(
-          alpha: 0.74,
-        ),
+        color: backgroundColor.withValues(alpha: 0.74),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: mainColor.withValues(
-            alpha: 0.20,
-          ),
-        ),
+        border: Border.all(color: mainColor.withValues(alpha: 0.20)),
       ),
       child: Row(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Icon(
             isError
-                ? CupertinoIcons
-                .exclamationmark_circle
-                : CupertinoIcons
-                .checkmark_circle,
+                ? CupertinoIcons.exclamationmark_circle
+                : CupertinoIcons.checkmark_circle,
             size: 20,
             color: mainColor,
           ),
@@ -64,8 +48,7 @@ class AuthMessageBoxWidget
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: foregroundColor,
                 height: 1.35,
               ),

@@ -3,29 +3,22 @@ import 'package:get/get.dart';
 
 import '../../../notes/presentation/controllers/home_controller.dart';
 
-class CreateFolderController
-    extends GetxController {
+class CreateFolderController extends GetxController {
   final HomeController homeController;
 
-  CreateFolderController({
-    required this.homeController,
-  });
+  CreateFolderController({required this.homeController});
 
-  final TextEditingController nameController =
-  TextEditingController();
+  final TextEditingController nameController = TextEditingController();
 
-  final RxString selectedIcon =
-      'folder'.obs;
+  final RxString selectedIcon = 'folder'.obs;
 
-  final RxString selectedColor =
-      '#5B7CFA'.obs;
+  final RxString selectedColor = '#5B7CFA'.obs;
 
   final RxBool isSaving = false.obs;
 
   final RxString errorMessage = ''.obs;
 
-  final List<String> availableIcons =
-  <String>[
+  final List<String> availableIcons = <String>[
     'folder',
     'work',
     'school',
@@ -34,8 +27,7 @@ class CreateFolderController
     'travel',
   ];
 
-  final List<String> availableColors =
-  <String>[
+  final List<String> availableColors = <String>[
     '#5B7CFA',
     '#7C4DFF',
     '#EC407A',
@@ -47,15 +39,16 @@ class CreateFolderController
   ];
 
   Future<void> saveFolder() async {
-    FocusManager.instance.primaryFocus
-        ?.unfocus();
+    if (isSaving.value) {
+      return;
+    }
 
-    final String name =
-    nameController.text.trim();
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    final String name = nameController.text.trim();
 
     if (name.isEmpty) {
-      errorMessage.value =
-      'Please enter a folder name.';
+      errorMessage.value = 'Please enter a folder name.';
       return;
     }
 
@@ -63,8 +56,7 @@ class CreateFolderController
       isSaving.value = true;
       errorMessage.value = '';
 
-      final bool success =
-      await homeController.createFolder(
+      final bool success = await homeController.createFolder(
         name: name,
         iconName: selectedIcon.value,
         colorValue: selectedColor.value,
@@ -72,7 +64,14 @@ class CreateFolderController
 
       if (success) {
         Get.back<bool>(result: true);
+      } else {
+        final String apiError = homeController.folderErrorMessage.value.trim();
+        errorMessage.value = apiError.isEmpty
+            ? 'The folder could not be created. Please try again.'
+            : apiError;
       }
+    } catch (error) {
+      errorMessage.value = _cleanError(error);
     } finally {
       isSaving.value = false;
     }
@@ -116,12 +115,20 @@ class CreateFolderController
         hex = 'FF$hex';
       }
 
-      return Color(
-        int.parse(hex, radix: 16),
-      );
+      return Color(int.parse(hex, radix: 16));
     } catch (_) {
       return const Color(0xFF5B7CFA);
     }
+  }
+
+  String _cleanError(Object error) {
+    final String message = error
+        .toString()
+        .replaceFirst('ApiException: ', '')
+        .replaceFirst('Exception: ', '')
+        .trim();
+
+    return message.isEmpty ? 'The folder could not be created.' : message;
   }
 
   @override

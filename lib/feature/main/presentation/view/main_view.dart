@@ -11,13 +11,10 @@ import '../../../profile/presentation/views/profile_view.dart';
 import '../../../settings/view/settings_view.dart';
 import '../controller/main_navigation_controller.dart';
 
-
 import '../widgets/liquid_bottom_navigation_widget.dart';
 
 class MainView extends GetView<MainNavigationController> {
-  const MainView({
-    super.key,
-  });
+  const MainView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,65 +27,49 @@ class MainView extends GetView<MainNavigationController> {
 
     return Scaffold(
       extendBody: true,
-      backgroundColor:
-      Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: PageView(
         controller: controller.pageController,
         onPageChanged: controller.onPageChanged,
-        physics: const PageScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
+        physics: const PageScrollPhysics(parent: BouncingScrollPhysics()),
         children: screens,
       ),
-      bottomNavigationBar: Obx(
-            () {
-          /*
+      bottomNavigationBar: Obx(() {
+        /*
            * Read the observable directly inside Obx.
            * This fixes the GetX improper-use exception.
            */
-          final int selectedIndex =
-              controller.selectedIndex.value;
+        final int selectedIndex = controller.selectedIndex.value;
 
-          return AnimatedBuilder(
-            animation: controller.pageController,
-            builder: (
-                BuildContext context,
-                Widget? child,
-                ) {
-              return LiquidBottomNavigation(
-                page: controller.currentPage,
-                selectedIndex: selectedIndex,
-                onChanged: (
-                    int index,
-                    ) {
-                  controller.changeTab(index);
-                },
-                onCreateNote: () async {
-                  final dynamic result =
-                  await Get.toNamed(
-                    AppRoutes.createNote,
-                  );
+        return AnimatedBuilder(
+          animation: controller.pageController,
+          builder: (BuildContext context, Widget? child) {
+            return LiquidBottomNavigation(
+              page: controller.currentPage,
+              selectedIndex: selectedIndex,
+              onChanged: (int index) {
+                controller.changeTab(index);
+              },
+              onCreateNote: () async {
+                final dynamic result = await Get.toNamed(AppRoutes.createNote);
 
-                  if (result != true) {
-                    return;
-                  }
+                if (result != true) {
+                  return;
+                }
 
-                  if (Get.isRegistered<
-                      HomeController>()) {
-                    final HomeController
-                    homeController =
-                    Get.find<HomeController>();
+                if (Get.isRegistered<HomeController>()) {
+                  final HomeController homeController =
+                      Get.find<HomeController>();
 
-                    await homeController.loadAll();
-                  }
+                  await homeController.loadAll();
+                }
 
-                  await controller.changeTab(1);
-                },
-              );
-            },
-          );
-        },
-      ),
+                await controller.changeTab(1);
+              },
+            );
+          },
+        );
+      }),
     );
   }
 }

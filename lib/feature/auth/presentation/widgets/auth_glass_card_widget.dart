@@ -4,25 +4,17 @@ import 'package:flutter/material.dart';
 class AuthGlassCardWidget extends StatelessWidget {
   final Widget child;
 
-
-  const AuthGlassCardWidget({
-    super.key,
-    required this.child,
-  });
+  const AuthGlassCardWidget({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    final bool isDark =
-        theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     final Color cardColor = isDark
-        ? const Color(0xFF1B1D22).withValues(
-      alpha: 0.82,
-    )
+        ? const Color(0xFF1B1D22).withValues(alpha: 0.82)
         : Colors.white.withValues(alpha: 0.77);
 
     final Color borderColor = isDark
@@ -32,29 +24,16 @@ class AuthGlassCardWidget extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(34),
       child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: 28,
-          sigmaY: 28,
-        ),
+        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(
-            24,
-            28,
-            24,
-            24,
-          ),
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(34),
-            border: Border.all(
-              color: borderColor,
-              width: 0.9,
-            ),
+            border: Border.all(color: borderColor, width: 0.9),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: isDark ? 0.30 : 0.08,
-                ),
+                color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.08),
                 blurRadius: 40,
                 offset: const Offset(0, 22),
               ),

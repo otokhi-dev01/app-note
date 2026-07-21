@@ -1,17 +1,34 @@
-# note_app
+# Piisiit Note
 
-A new Flutter project.
+A Flutter note application with folders, rich note editing, authentication,
+recycle-bin recovery, themes, and English/Khmer localization.
 
-## Getting Started
+## Project structure
 
-This project is a starting point for a Flutter application.
+- `lib/app`: application setup, routes, theme, translations, and splash flow.
+- `lib/core`: shared networking, configuration, storage, and UI primitives.
+- `lib/feature`: feature-first data, domain, and presentation code.
+- `test`: behavior tests plus architecture guards.
 
-A few resources to get you started if this is your first Flutter project:
+Each named widget class lives in its own Dart file. Feature-local private
+widgets use `part` files, while widgets shared by multiple screens live in a
+feature's `widgets/common` directory or in `core/presentation/widgets`.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Configuration
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The default backend is `https://note.piisiit.com`. Override it at build time
+when needed:
+
+```sh
+flutter run \
+  --dart-define=API_BASE_URL=https://example.com \
+  --dart-define=AUTH_BASE_URL=https://example.com
+```
+
+## Quality checks
+
+```sh
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze
+flutter test
+```

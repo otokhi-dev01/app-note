@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
-enum AppLanguage {
-  english,
-  khmer,
-}
+enum AppLanguage { english, khmer }
 
 class SettingsController extends GetxController {
   static const String _themeKey = 'app_theme_mode';
@@ -13,11 +10,9 @@ class SettingsController extends GetxController {
 
   final GetStorage _storage = GetStorage();
 
-  final Rx<ThemeMode> selectedThemeMode =
-      ThemeMode.system.obs;
+  final Rx<ThemeMode> selectedThemeMode = ThemeMode.system.obs;
 
-  final Rx<AppLanguage> selectedLanguage =
-      AppLanguage.english.obs;
+  final Rx<AppLanguage> selectedLanguage = AppLanguage.english.obs;
 
   ThemeMode get themeMode {
     return selectedThemeMode.value;
@@ -40,8 +35,8 @@ class SettingsController extends GetxController {
   String? get fontFamily {
     switch (selectedLanguage.value) {
       case AppLanguage.english:
-      // Uses the system font:
-      // SF Pro on iOS and Roboto on Android.
+        // Uses the system font:
+        // SF Pro on iOS and Roboto on Android.
         return null;
 
       case AppLanguage.khmer:
@@ -50,13 +45,11 @@ class SettingsController extends GetxController {
   }
 
   bool get isEnglish {
-    return selectedLanguage.value ==
-        AppLanguage.english;
+    return selectedLanguage.value == AppLanguage.english;
   }
 
   bool get isKhmer {
-    return selectedLanguage.value ==
-        AppLanguage.khmer;
+    return selectedLanguage.value == AppLanguage.khmer;
   }
 
   @override
@@ -68,73 +61,55 @@ class SettingsController extends GetxController {
   }
 
   void _loadSavedTheme() {
-    final String? savedTheme =
-    _storage.read<String>(_themeKey);
+    final String? savedTheme = _storage.read<String>(_themeKey);
 
     switch (savedTheme) {
       case 'light':
-        selectedThemeMode.value =
-            ThemeMode.light;
+        selectedThemeMode.value = ThemeMode.light;
         break;
 
       case 'dark':
-        selectedThemeMode.value =
-            ThemeMode.dark;
+        selectedThemeMode.value = ThemeMode.dark;
         break;
 
       default:
-        selectedThemeMode.value =
-            ThemeMode.system;
+        selectedThemeMode.value = ThemeMode.system;
     }
   }
 
   void _loadSavedLanguage() {
-    final String? savedLanguage =
-    _storage.read<String>(_languageKey);
+    final String? savedLanguage = _storage.read<String>(_languageKey);
 
     switch (savedLanguage) {
       case 'khmer':
-        selectedLanguage.value =
-            AppLanguage.khmer;
+        selectedLanguage.value = AppLanguage.khmer;
         break;
 
       default:
-        selectedLanguage.value =
-            AppLanguage.english;
+        selectedLanguage.value = AppLanguage.english;
     }
   }
 
-  Future<void> changeThemeMode(
-      ThemeMode mode,
-      ) async {
+  Future<void> changeThemeMode(ThemeMode mode) async {
     selectedThemeMode.value = mode;
 
-    await _storage.write(
-      _themeKey,
-      _themeModeToStorageValue(mode),
-    );
+    await _storage.write(_themeKey, _themeModeToStorageValue(mode));
 
     Get.changeThemeMode(mode);
   }
 
-  Future<void> changeLanguage(
-      AppLanguage language,
-      ) async {
+  Future<void> changeLanguage(AppLanguage language) async {
     selectedLanguage.value = language;
 
     await _storage.write(
       _languageKey,
-      language == AppLanguage.khmer
-          ? 'khmer'
-          : 'english',
+      language == AppLanguage.khmer ? 'khmer' : 'english',
     );
 
     await Get.updateLocale(currentLocale);
   }
 
-  String _themeModeToStorageValue(
-      ThemeMode mode,
-      ) {
+  String _themeModeToStorageValue(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.light:
         return 'light';

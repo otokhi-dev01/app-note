@@ -7,11 +7,9 @@ class NoteEditorBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut<NoteEditorController>(
-          () => NoteEditorController(
-        noteRepository:
-        Get.find<NoteRepository>(),
-        homeController:
-        Get.isRegistered<HomeController>()
+      () => NoteEditorController(
+        noteRepository: Get.find<NoteRepository>(),
+        homeController: Get.isRegistered<HomeController>()
             ? Get.find<HomeController>()
             : null,
       ),
