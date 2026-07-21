@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/presentation/widgets/app_ambient_orb.dart';
+
 class AuthBackgroundWidget extends StatelessWidget {
   const AuthBackgroundWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    final bool isDark =
-        theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -20,15 +20,11 @@ class AuthBackgroundWidget extends StatelessWidget {
           colors: <Color>[
             theme.scaffoldBackgroundColor,
             Color.alphaBlend(
-              colorScheme.primary.withValues(
-                alpha: isDark ? 0.14 : 0.07,
-              ),
+              colorScheme.primary.withValues(alpha: isDark ? 0.14 : 0.07),
               theme.scaffoldBackgroundColor,
             ),
             Color.alphaBlend(
-              colorScheme.secondary.withValues(
-                alpha: isDark ? 0.10 : 0.045,
-              ),
+              colorScheme.secondary.withValues(alpha: isDark ? 0.10 : 0.045),
               theme.scaffoldBackgroundColor,
             ),
           ],
@@ -39,7 +35,7 @@ class AuthBackgroundWidget extends StatelessWidget {
           Positioned(
             top: -130,
             right: -100,
-            child: _AmbientOrb(
+            child: AppAmbientOrb(
               size: 330,
               color: colorScheme.primary.withValues(
                 alpha: isDark ? 0.18 : 0.11,
@@ -49,7 +45,7 @@ class AuthBackgroundWidget extends StatelessWidget {
           Positioned(
             top: 300,
             left: -140,
-            child: _AmbientOrb(
+            child: AppAmbientOrb(
               size: 300,
               color: colorScheme.secondary.withValues(
                 alpha: isDark ? 0.14 : 0.075,
@@ -59,7 +55,7 @@ class AuthBackgroundWidget extends StatelessWidget {
           Positioned(
             bottom: -160,
             right: -110,
-            child: _AmbientOrb(
+            child: AppAmbientOrb(
               size: 360,
               color: colorScheme.tertiary.withValues(
                 alpha: isDark ? 0.13 : 0.065,
@@ -67,35 +63,6 @@ class AuthBackgroundWidget extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AmbientOrb extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _AmbientOrb({
-    required this.size,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[
-              color,
-              color.withValues(alpha: 0),
-            ],
-          ),
-        ),
       ),
     );
   }

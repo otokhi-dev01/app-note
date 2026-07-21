@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/entities/note_entity.dart';
 
+part 'note_menu_button_widget.dart';
+part 'state_badge_widget.dart';
+
 class LiquidNoteCard extends StatelessWidget {
   final NoteEntity note;
   final String folderName;
@@ -222,111 +225,5 @@ class LiquidNoteCard extends StatelessWidget {
     }
 
     return 'Tap to start writing.';
-  }
-}
-
-class _NoteMenuButton extends StatelessWidget {
-  final NoteEntity note;
-  final VoidCallback onTogglePin;
-  final VoidCallback onArchive;
-  final VoidCallback onLock;
-
-  const _NoteMenuButton({
-    required this.note,
-    required this.onTogglePin,
-    required this.onArchive,
-    required this.onLock,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: () {
-        showCupertinoModalPopup<void>(
-          context: context,
-          builder: (BuildContext sheetContext) {
-            return CupertinoActionSheet(
-              title: Text(
-                note.title.trim().isEmpty ? 'Untitled Note' : note.title,
-              ),
-              actions: [
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    onTogglePin();
-                  },
-                  child: Text(note.isPinned ? 'Unpin Note' : 'Pin Note'),
-                ),
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    onArchive();
-                  },
-                  child: Text(
-                    note.isArchived ? 'Remove from Archive' : 'Archive Note',
-                  ),
-                ),
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.of(sheetContext).pop();
-                    onLock();
-                  },
-                  child: Text(note.isLocked ? 'Unlock Note' : 'Lock Note'),
-                ),
-              ],
-              cancelButton: CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(sheetContext).pop();
-                },
-                child: const Text('Cancel'),
-              ),
-            );
-          },
-        );
-      },
-      child: Icon(
-        Icons.more_horiz_rounded,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-    );
-  }
-}
-
-class _StateBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _StateBadge({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

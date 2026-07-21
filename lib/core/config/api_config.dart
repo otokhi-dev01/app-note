@@ -11,7 +11,7 @@ abstract final class ApiConfig {
   /// and note APIs run on the same backend.
   static const String authBaseUrl = String.fromEnvironment(
     'AUTH_BASE_URL',
-    defaultValue: 'https://note.piisiit.com',
+    defaultValue: apiBaseUrl,
   );
 
   static const Duration connectTimeout = Duration(seconds: 20);

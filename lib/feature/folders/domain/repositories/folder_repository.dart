@@ -11,8 +11,5 @@ abstract class FolderRepository {
     required int sortOrder,
   });
 
-  Future<void> deleteOrRestoreFolder({
-    required int id,
-    required bool isDelete,
-  });
+  Future<void> deleteOrRestoreFolder({required int id, required bool isDelete});
 }

@@ -85,15 +85,29 @@ class RecentlyDeletedFoldersController extends GetxController {
       return false;
     }
 
+    if (folder.id <= 0) {
+      errorMessage.value = 'The folder ID is invalid.';
+      return false;
+    }
+
     try {
       restoringFolderId.value = folder.id;
 
       errorMessage.value = '';
 
-      return await homeController.deleteOrRestoreFolder(
+      final bool restored = await homeController.deleteOrRestoreFolder(
         folderId: folder.id,
         isDelete: false,
       );
+
+      if (!restored) {
+        final String apiError = homeController.folderErrorMessage.value.trim();
+        errorMessage.value = apiError.isEmpty
+            ? 'The folder could not be restored. Please try again.'
+            : apiError;
+      }
+
+      return restored;
     } catch (error) {
       errorMessage.value = _cleanError(error);
 

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/entities/note_entity.dart';
 import '../../domain/repositories/note_repository.dart';
+import '../../domain/repositories/note_state_field.dart';
 import 'home_controller.dart';
 
 class NoteChecklistItemDraft {
@@ -41,9 +42,15 @@ class NoteChecklistBlockDraft {
   });
 
   Map<String, dynamic> toJson() {
+    final String blockId =
+        original['blockId']?.toString().trim().isNotEmpty == true
+        ? original['blockId'].toString()
+        : id;
+
     return <String, dynamic>{
       ...original,
       'id': id,
+      'blockId': blockId,
       'type': 'checklist',
       'items': items
           .where((NoteChecklistItemDraft item) {
@@ -83,6 +90,7 @@ class NoteEditorController extends GetxController {
   final Uuid _uuid = const Uuid();
 
   int? _noteId;
+  int _detailLoadGeneration = 0;
 
   int get noteId {
     final int? value = _noteId;
@@ -109,7 +117,8 @@ class NoteEditorController extends GetxController {
   }
 
   List<Map<String, dynamic>> get attachmentBlocks {
-    return note.value?.content
+    final List<Map<String, dynamic>> result =
+        note.value?.content
             .where((Map<String, dynamic> block) {
               return _blockType(block) == 'attachment';
             })
@@ -118,6 +127,14 @@ class NoteEditorController extends GetxController {
             })
             .toList(growable: false) ??
         <Map<String, dynamic>>[];
+
+    result.sort((Map<String, dynamic> first, Map<String, dynamic> second) {
+      return _toInt(
+        first['displayOrder'],
+      ).compareTo(_toInt(second['displayOrder']));
+    });
+
+    return result;
   }
 
   @override
@@ -200,12 +217,18 @@ class NoteEditorController extends GetxController {
    * GET /api/note/{id}
    */
   Future<void> getNoteDetail() async {
+    await _loadNoteDetail();
+  }
+
+  Future<bool> _loadNoteDetail() async {
     final int? requestedNoteId = _noteId;
 
     if (requestedNoteId == null) {
       errorMessage.value = 'A valid note ID was not provided.';
-      return;
+      return false;
     }
+
+    final int loadGeneration = ++_detailLoadGeneration;
 
     try {
       isLoading.value = true;
@@ -214,6 +237,10 @@ class NoteEditorController extends GetxController {
       final NoteEntity result = await noteRepository.getNoteDetail(
         requestedNoteId,
       );
+
+      if (loadGeneration != _detailLoadGeneration) {
+        return false;
+      }
 
       if (result.id != requestedNoteId) {
         throw StateError(
@@ -229,10 +256,18 @@ class NoteEditorController extends GetxController {
       statementController.text = _extractTextContent(result.content);
 
       _loadChecklistBlocks(result.content);
+
+      return true;
     } catch (error) {
-      errorMessage.value = _cleanError(error);
+      if (loadGeneration == _detailLoadGeneration) {
+        errorMessage.value = _cleanError(error);
+      }
+
+      return false;
     } finally {
-      isLoading.value = false;
+      if (loadGeneration == _detailLoadGeneration) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -291,10 +326,20 @@ class NoteEditorController extends GetxController {
         content: updatedContent,
       );
 
+      final NoteEntity current = note.value!;
+      note.value = current.copyWith(
+        title: title,
+        content: updatedContent,
+        attachmentCount: updatedContent.where((Map<String, dynamic> block) {
+          return _blockType(block) == 'attachment';
+        }).length,
+        updatedAt: DateTime.now(),
+      );
+
       /*
        * Reload from the server after saving.
        */
-      await getNoteDetail();
+      await _loadNoteDetail();
 
       if (homeController != null) {
         await homeController!.loadAll();
@@ -418,6 +463,10 @@ class NoteEditorController extends GetxController {
   }
 
   void updateChecklistItem(String blockId, String itemId, String text) {
+    if (!canEdit) {
+      return;
+    }
+
     final NoteChecklistItemDraft? item = _findChecklistItem(blockId, itemId);
 
     if (item != null) {
@@ -488,14 +537,43 @@ class NoteEditorController extends GetxController {
         content: content,
       );
 
+      final NoteEntity current = note.value!;
+      note.value = current.copyWith(
+        title: title,
+        content: content,
+        updatedAt: DateTime.now(),
+      );
+
+      final String blockId = _uuid.v4();
+
       await noteRepository.uploadAttachment(
         noteId: noteId,
         filePath: filePath.trim(),
-        blockId: _uuid.v4(),
+        blockId: blockId,
         displayOrder: content.length + 1,
       );
 
-      await getNoteDetail();
+      final List<Map<String, dynamic>> optimisticContent =
+          <Map<String, dynamic>>[
+            ...content.map(Map<String, dynamic>.from),
+            <String, dynamic>{
+              'id': blockId,
+              'blockId': blockId,
+              'type': 'attachment',
+              'displayName': _fileNameFromPath(filePath.trim()),
+              'filePath': filePath.trim(),
+              'displayOrder': content.length + 1,
+            },
+          ];
+      note.value = note.value!.copyWith(
+        content: optimisticContent,
+        attachmentCount: optimisticContent.where((Map<String, dynamic> block) {
+          return _blockType(block) == 'attachment';
+        }).length,
+        updatedAt: DateTime.now(),
+      );
+
+      await _loadNoteDetail();
 
       if (homeController != null) {
         await homeController!.loadAll();
@@ -525,6 +603,7 @@ class NoteEditorController extends GetxController {
       isPinned: !(current?.isPinned ?? false),
       isArchived: current?.isArchived ?? false,
       isLocked: current?.isLocked ?? false,
+      changedField: NoteStateField.pinned,
     );
   }
 
@@ -535,6 +614,7 @@ class NoteEditorController extends GetxController {
       isPinned: current?.isPinned ?? false,
       isArchived: !(current?.isArchived ?? false),
       isLocked: current?.isLocked ?? false,
+      changedField: NoteStateField.archived,
     );
   }
 
@@ -545,6 +625,7 @@ class NoteEditorController extends GetxController {
       isPinned: current?.isPinned ?? false,
       isArchived: current?.isArchived ?? false,
       isLocked: !(current?.isLocked ?? false),
+      changedField: NoteStateField.locked,
     );
   }
 
@@ -552,6 +633,7 @@ class NoteEditorController extends GetxController {
     required bool isPinned,
     required bool isArchived,
     required bool isLocked,
+    required NoteStateField changedField,
   }) async {
     if (!hasLoadedNote || isSaving.value) {
       return;
@@ -566,9 +648,20 @@ class NoteEditorController extends GetxController {
         isPinned: isPinned,
         isArchived: isArchived,
         isLocked: isLocked,
+        changedField: changedField,
       );
 
-      await getNoteDetail();
+      final NoteEntity current = note.value!;
+      note.value = current.copyWith(
+        isPinned: isPinned,
+        isArchived: isArchived,
+        isLocked: isLocked,
+        pinnedAt: isPinned ? current.pinnedAt ?? DateTime.now() : null,
+        clearPinnedAt: !isPinned,
+        updatedAt: DateTime.now(),
+      );
+
+      await _loadNoteDetail();
 
       if (homeController != null) {
         await homeController!.loadAll();
@@ -588,8 +681,9 @@ class NoteEditorController extends GetxController {
         continue;
       }
 
-      final String blockId = block['id']?.toString().trim().isNotEmpty == true
-          ? block['id'].toString()
+      final dynamic rawBlockId = block['id'] ?? block['blockId'];
+      final String blockId = rawBlockId?.toString().trim().isNotEmpty == true
+          ? rawBlockId.toString()
           : _uuid.v4();
       final List<NoteChecklistItemDraft> items = <NoteChecklistItemDraft>[];
       final dynamic rawItems = block['items'];
@@ -606,8 +700,9 @@ class NoteEditorController extends GetxController {
           ) {
             return MapEntry<String, dynamic>(key.toString(), value);
           });
-          final String itemId = item['id']?.toString().trim().isNotEmpty == true
-              ? item['id'].toString()
+          final dynamic rawItemId = item['id'] ?? item['itemId'];
+          final String itemId = rawItemId?.toString().trim().isNotEmpty == true
+              ? rawItemId.toString()
               : _uuid.v4();
 
           items.add(
@@ -668,15 +763,36 @@ class NoteEditorController extends GetxController {
   }
 
   String _extractTextContent(List<Map<String, dynamic>> content) {
+    final List<String> paragraphs = <String>[];
+
     for (final Map<String, dynamic> block in content) {
       final String type = block['type']?.toString().trim().toLowerCase() ?? '';
 
       if (type == 'text') {
-        return block['text']?.toString() ?? '';
+        final String text = block['text']?.toString().trim() ?? '';
+
+        if (text.isNotEmpty) {
+          paragraphs.add(text);
+        }
       }
     }
 
-    return '';
+    return paragraphs.join('\n\n');
+  }
+
+  int _toInt(dynamic value) {
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(value?.toString().trim() ?? '') ?? 0;
+  }
+
+  String _fileNameFromPath(String filePath) {
+    final List<String> parts = filePath.replaceAll('\\', '/').split('/');
+    final String name = parts.isEmpty ? '' : parts.last.trim();
+
+    return name.isEmpty ? 'Attached file' : name;
   }
 
   String _cleanError(Object error) {

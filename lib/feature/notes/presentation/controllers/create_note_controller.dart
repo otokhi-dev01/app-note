@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -72,6 +74,10 @@ class CreateNoteController extends GetxController {
 
   final ImagePicker _imagePicker = ImagePicker();
   final Uuid _uuid = const Uuid();
+
+  String? _textBlockId;
+  String? _checklistBlockId;
+  String? _lastSavedContentFingerprint;
 
   /*
    * Keep the created ID when an upload fails.
@@ -245,6 +251,13 @@ class CreateNoteController extends GetxController {
   }
 
   void removeImage(NoteDraftImage image) {
+    if (_uploadedBlockIds.contains(image.blockId)) {
+      errorMessage.value =
+          'This image is already attached to the saved note and cannot be '
+          'removed from the draft.';
+      return;
+    }
+
     selectedImages.removeWhere((NoteDraftImage currentImage) {
       return currentImage.blockId == image.blockId;
     });
@@ -281,6 +294,13 @@ class CreateNoteController extends GetxController {
   }
 
   void removeDocument(NoteDraftDocument document) {
+    if (_uploadedBlockIds.contains(document.blockId)) {
+      errorMessage.value =
+          'This file is already attached to the saved note and cannot be '
+          'removed from the draft.';
+      return;
+    }
+
     selectedDocuments.removeWhere(
       (NoteDraftDocument current) => current.blockId == document.blockId,
     );
@@ -362,13 +382,11 @@ class CreateNoteController extends GetxController {
        * Create the note header first and receive
        * the newly created note ID.
        */
-      final int noteId =
-          _createdNoteId ??
-          await noteRepository.saveNote(
-            noteId: 0,
-            folderId: folderId!,
-            title: title,
-          );
+      final int noteId = await noteRepository.saveNote(
+        noteId: _createdNoteId ?? 0,
+        folderId: folderId!,
+        title: title,
+      );
 
       _createdNoteId = noteId;
 
@@ -385,11 +403,19 @@ class CreateNoteController extends GetxController {
        * Send contentBlocks directly as a List.
        * Do not use jsonEncode(contentBlocks).
        */
-      await noteRepository.saveContent(
-        id: noteId,
-        title: title,
-        content: contentBlocks,
-      );
+      final String contentFingerprint = jsonEncode(<String, dynamic>{
+        'title': title,
+        'content': contentBlocks,
+      });
+
+      if (_lastSavedContentFingerprint != contentFingerprint) {
+        await noteRepository.saveContent(
+          id: noteId,
+          title: title,
+          content: contentBlocks,
+        );
+        _lastSavedContentFingerprint = contentFingerprint;
+      }
 
       /*
        * Upload images after the content structure
@@ -455,7 +481,9 @@ class CreateNoteController extends GetxController {
 
       await homeController.loadAll();
 
-      Get.offNamed(AppRoutes.noteEditor, arguments: noteId);
+      if (!Get.testMode) {
+        Get.offNamed(AppRoutes.noteEditor, arguments: noteId);
+      }
 
       if (!Get.testMode && Get.context != null) {
         Get.snackbar(
@@ -479,9 +507,11 @@ class CreateNoteController extends GetxController {
     if (statement.isNotEmpty) {
       displayOrder++;
 
+      final String textBlockId = _textBlockId ??= _uuid.v4();
+
       blocks.add(<String, dynamic>{
-        'id': _uuid.v4(),
-        'blockId': _uuid.v4(),
+        'id': textBlockId,
+        'blockId': textBlockId,
         'type': 'text',
         'text': statement,
         'displayOrder': displayOrder,
@@ -494,7 +524,7 @@ class CreateNoteController extends GetxController {
 
     if (taskSnapshot.isNotEmpty) {
       displayOrder++;
-      final String checklistId = _uuid.v4();
+      final String checklistId = _checklistBlockId ??= _uuid.v4();
 
       blocks.add(<String, dynamic>{
         'id': checklistId,
@@ -580,6 +610,7 @@ class CreateNoteController extends GetxController {
     selectedDocuments.clear();
     checklistItems.clear();
     _uploadedBlockIds.clear();
+    _lastSavedContentFingerprint = null;
 
     super.onClose();
   }
