@@ -100,7 +100,7 @@ class HomeContent extends GetView<HomeController> {
                         note: note,
                         folderName:
                         _folderNameFor(
-                          note.folderId,
+                          note,
                         ),
                         onTap: () {
                           controller
@@ -163,10 +163,10 @@ class HomeContent extends GetView<HomeController> {
     );
   }
 
-  String _folderNameFor(int folderId) {
+  String _folderNameFor(NoteEntity note) {
     for (final FolderEntity folder
     in controller.folders) {
-      if (folder.id == folderId) {
+      if (folder.id == note.folderId) {
         final String name =
         folder.name.trim();
 
@@ -176,7 +176,12 @@ class HomeContent extends GetView<HomeController> {
       }
     }
 
-    return 'Notes';
+    final String responseFolderName =
+    note.folderName.trim();
+
+    return responseFolderName.isEmpty
+        ? 'Notes'
+        : responseFolderName;
   }
 
   String _cleanNoteServerMessage(

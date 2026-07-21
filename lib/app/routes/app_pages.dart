@@ -1,9 +1,8 @@
-import 'package:get/get.dart';
 import '../../feature/auth/presentation/binding/login_binding.dart';
 import '../../feature/auth/presentation/binding/register_binding.dart';
 import '../../feature/auth/presentation/view/login_view.dart';
 import '../../feature/auth/presentation/view/register_view.dart';
-import '../../feature/folders/presentation/binding/create _folder_binding.dart';
+import '../../feature/folders/presentation/binding/create_folder_binding.dart';
 import '../../feature/folders/presentation/binding/recently_deleted_folders_binding.dart';
 import '../../feature/folders/presentation/view/create_folder_view.dart';
 import '../../feature/folders/presentation/view/recently_deleted_folders_view.dart';
@@ -17,24 +16,18 @@ import '../../feature/recycle_bin/presentation/bindings/recycle_bin_binding.dart
 import '../../feature/recycle_bin/presentation/views/recycle_bin_view.dart';
 import '../controllers/splash_controllers.dart';
 import '../views/splash_views.dart';
+import 'package:get/get.dart';
 import 'app_routes.dart';
 
 abstract final class AppPages {
-  static final List<GetPage<dynamic>> pages =
-  <GetPage<dynamic>>[
+  static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
     // Splash
     GetPage<dynamic>(
       name: AppRoutes.splash,
       page: () => const SplashView(),
-      binding: BindingsBuilder(
-            () {
-          Get.put<SplashController>(
-            SplashController(
-              authRepository: Get.find(),
-            ),
-          );
-        },
-      ),
+      binding: BindingsBuilder(() {
+        Get.put<SplashController>(SplashController(authRepository: Get.find()));
+      }),
     ),
 
     // Login
@@ -68,8 +61,7 @@ abstract final class AppPages {
     // Recently deleted folders
     GetPage<dynamic>(
       name: AppRoutes.recentlyDeletedFolders,
-      page: () =>
-      const RecentlyDeletedFoldersView(),
+      page: () => const RecentlyDeletedFoldersView(),
       binding: RecentlyDeletedFoldersBinding(),
     ),
 
@@ -86,21 +78,11 @@ abstract final class AppPages {
       page: () => const NoteEditorView(),
       binding: NoteEditorBinding(),
     ),
-    GetPage<dynamic>(
-      name: AppRoutes.register,
-      page: () => const RegisterView(),
-      binding: RegisterBinding(),
-    ),
     // Recycle bin
     GetPage<dynamic>(
       name: AppRoutes.recycleBin,
       page: () => const RecycleBinView(),
       binding: RecycleBinBinding(),
-    ),
-    GetPage<dynamic>(
-      name: AppRoutes.register,
-      page: () => const RegisterView(),
-      binding: RegisterBinding(),
     ),
   ];
 }

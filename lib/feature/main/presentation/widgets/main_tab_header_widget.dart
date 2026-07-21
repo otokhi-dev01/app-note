@@ -581,7 +581,7 @@ class _LiquidHeaderButtonState
         _updatePressed(false);
       },
       child: CupertinoButton(
-        minSize: size,
+        minimumSize: Size.square(size),
         padding: EdgeInsets.zero,
         pressedOpacity: 1,
         onPressed: _handleTap,

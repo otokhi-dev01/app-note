@@ -72,6 +72,14 @@ class RegisterController extends GetxController {
         deviceType: _deviceType,
       );
 
+      final bool isAuthenticated =
+      await authRepository.isLoggedIn();
+
+      if (isAuthenticated) {
+        Get.offAllNamed(AppRoutes.home);
+        return;
+      }
+
       Get.offNamed(
         AppRoutes.login,
         arguments: <String, dynamic>{

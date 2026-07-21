@@ -31,6 +31,18 @@ class HomeController extends GetxController {
   final RxList<NoteEntity> notes =
       <NoteEntity>[].obs;
 
+  /*
+   * A successful delete/restore POST can be followed by a stale GET response.
+   * Keep the confirmed local operation until the read API acknowledges it.
+   */
+  final Map<int, FolderEntity> _pendingDeletedFolders =
+  <int, FolderEntity>{};
+
+  final Map<int, FolderEntity> _pendingRestoredFolders =
+  <int, FolderEntity>{};
+
+  int _folderLoadGeneration = 0;
+
   /// Null means that all notes are selected.
   final RxnInt selectedFolderId = RxnInt();
 
@@ -80,7 +92,15 @@ class HomeController extends GetxController {
   }
 
   bool get hasNotes {
-    return notes.isNotEmpty;
+    return activeNotes.isNotEmpty;
+  }
+
+  List<NoteEntity> get activeNotes {
+    return notes.where(
+      (NoteEntity note) {
+        return !note.isArchived && !note.isDeleted;
+      },
+    ).toList(growable: false);
   }
 
   FolderEntity? get selectedFolder {
@@ -121,8 +141,10 @@ class HomeController extends GetxController {
       return folder.noteCount;
     }
 
-    if (notes.isNotEmpty) {
-      return notes.length;
+    final List<NoteEntity> activeNoteSnapshot = activeNotes;
+
+    if (activeNoteSnapshot.isNotEmpty) {
+      return activeNoteSnapshot.length;
     }
 
     return folders.fold<int>(
@@ -143,9 +165,9 @@ class HomeController extends GetxController {
     final List<NoteEntity> result;
 
     if (folderId == null) {
-      result = notes.toList();
+      result = activeNotes;
     } else {
-      result = notes.where(
+      result = activeNotes.where(
             (NoteEntity note) {
           return note.folderId == folderId;
         },
@@ -159,6 +181,27 @@ class HomeController extends GetxController {
           ) {
         if (first.isPinned != second.isPinned) {
           return first.isPinned ? -1 : 1;
+        }
+
+        final int orderComparison = first.sortOrder.compareTo(
+          second.sortOrder,
+        );
+
+        if (orderComparison != 0) {
+          return orderComparison;
+        }
+
+        final DateTime firstUpdatedAt =
+            first.updatedAt ?? first.createdAt ?? DateTime(1970);
+        final DateTime secondUpdatedAt =
+            second.updatedAt ?? second.createdAt ?? DateTime(1970);
+
+        final int updatedComparison = secondUpdatedAt.compareTo(
+          firstUpdatedAt,
+        );
+
+        if (updatedComparison != 0) {
+          return updatedComparison;
         }
 
         return second.id.compareTo(first.id);
@@ -194,26 +237,40 @@ class HomeController extends GetxController {
 
   /// Loads active and deleted folders from the folder API.
   ///
-  /// A folder is considered deleted when its DeletedAt value is not null.
+  /// A folder is considered deleted when the API puts it in `trash` or its
+  /// DeletedAt value is not null.
   Future<void> loadFolders() async {
+    final int loadGeneration =
+    ++_folderLoadGeneration;
+
     try {
       isFoldersLoading.value = true;
       folderErrorMessage.value = '';
 
-      final List<FolderEntity> result =
+      final List<FolderEntity> apiResult =
       await folderRepository.getFolders();
+
+      if (loadGeneration !=
+          _folderLoadGeneration) {
+        return;
+      }
+
+      final List<FolderEntity> result =
+      _applyPendingFolderOperations(
+        apiResult,
+      );
 
       final List<FolderEntity> activeFolders =
       result.where(
             (FolderEntity folder) {
-          return folder.deletedAt == null;
+          return !folder.isDeleted;
         },
       ).toList();
 
       final List<FolderEntity> apiDeletedFolders =
       result.where(
             (FolderEntity folder) {
-          return folder.deletedAt != null;
+          return folder.isDeleted;
         },
       ).toList();
 
@@ -300,10 +357,16 @@ class HomeController extends GetxController {
 
       _validateSelectedFolder();
     } catch (error) {
-      folderErrorMessage.value =
-          _cleanError(error);
+      if (loadGeneration ==
+          _folderLoadGeneration) {
+        folderErrorMessage.value =
+            _cleanError(error);
+      }
     } finally {
-      isFoldersLoading.value = false;
+      if (loadGeneration ==
+          _folderLoadGeneration) {
+        isFoldersLoading.value = false;
+      }
     }
   }
 
@@ -552,6 +615,19 @@ class HomeController extends GetxController {
        * API confirms the operation succeeded.
        */
       if (isDelete) {
+        final FolderEntity deletedFolder =
+        targetFolder.copyWith(
+          deletedAt: DateTime.now(),
+          isInTrash: true,
+        );
+
+        _pendingRestoredFolders.remove(
+          folderId,
+        );
+
+        _pendingDeletedFolders[folderId] =
+            deletedFolder;
+
         folders.removeWhere(
               (FolderEntity folder) {
             return folder.id == folderId;
@@ -566,9 +642,7 @@ class HomeController extends GetxController {
 
         deletedFolders.insert(
           0,
-          targetFolder.copyWith(
-            deletedAt: DateTime.now(),
-          ),
+          deletedFolder,
         );
 
         if (selectedFolderId.value ==
@@ -576,6 +650,19 @@ class HomeController extends GetxController {
           selectedFolderId.value = null;
         }
       } else {
+        final FolderEntity restoredFolder =
+        targetFolder.copyWith(
+          clearDeletedAt: true,
+          isInTrash: false,
+        );
+
+        _pendingDeletedFolders.remove(
+          folderId,
+        );
+
+        _pendingRestoredFolders[folderId] =
+            restoredFolder;
+
         deletedFolders.removeWhere(
               (FolderEntity folder) {
             return folder.id == folderId;
@@ -589,9 +676,7 @@ class HomeController extends GetxController {
         );
 
         folders.add(
-          targetFolder.copyWith(
-            clearDeletedAt: true,
-          ),
+          restoredFolder,
         );
 
         _sortActiveFolders();
@@ -822,6 +907,9 @@ class HomeController extends GetxController {
       deletedFolders.clear();
       notes.clear();
 
+      _pendingDeletedFolders.clear();
+      _pendingRestoredFolders.clear();
+
       selectedFolderId.value = null;
 
       Get.offAllNamed(
@@ -833,6 +921,84 @@ class HomeController extends GetxController {
   // ===========================================================================
   // HELPERS
   // ===========================================================================
+
+  List<FolderEntity> _applyPendingFolderOperations(
+      List<FolderEntity> apiFolders,
+      ) {
+    final List<FolderEntity> reconciledFolders =
+    <FolderEntity>[];
+
+    final Set<int> seenFolderIds =
+    <int>{};
+
+    for (final FolderEntity apiFolder
+    in apiFolders) {
+      seenFolderIds.add(apiFolder.id);
+
+      final FolderEntity? pendingDeleted =
+      _pendingDeletedFolders[apiFolder.id];
+
+      if (pendingDeleted != null) {
+        if (apiFolder.isDeleted) {
+          _pendingDeletedFolders.remove(
+            apiFolder.id,
+          );
+
+          reconciledFolders.add(apiFolder);
+        } else {
+          /*
+           * The delete POST succeeded but this GET is stale. Do not move the
+           * folder back into the active list.
+           */
+          reconciledFolders.add(
+            pendingDeleted,
+          );
+        }
+
+        continue;
+      }
+
+      final FolderEntity? pendingRestored =
+      _pendingRestoredFolders[apiFolder.id];
+
+      if (pendingRestored != null) {
+        if (!apiFolder.isDeleted) {
+          _pendingRestoredFolders.remove(
+            apiFolder.id,
+          );
+
+          reconciledFolders.add(apiFolder);
+        } else {
+          /*
+           * The restore POST succeeded but trash has not caught up yet.
+           */
+          reconciledFolders.add(
+            pendingRestored,
+          );
+        }
+
+        continue;
+      }
+
+      reconciledFolders.add(apiFolder);
+    }
+
+    for (final FolderEntity folder
+    in _pendingDeletedFolders.values) {
+      if (seenFolderIds.add(folder.id)) {
+        reconciledFolders.add(folder);
+      }
+    }
+
+    for (final FolderEntity folder
+    in _pendingRestoredFolders.values) {
+      if (seenFolderIds.add(folder.id)) {
+        reconciledFolders.add(folder);
+      }
+    }
+
+    return reconciledFolders;
+  }
 
   FolderEntity? _findFolderById(
       Iterable<FolderEntity> source,

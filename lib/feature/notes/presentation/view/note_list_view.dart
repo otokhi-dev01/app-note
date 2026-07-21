@@ -9,46 +9,33 @@ import '../../domain/entities/note_entity.dart';
 import '../controllers/home_controller.dart';
 
 class NoteListView extends GetView<HomeController> {
-  const NoteListView({
-    super.key,
-  });
+  const NoteListView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
-        const Positioned.fill(
-          child: AppLiquidBackgroundWidget(),
-        ),
+        const Positioned.fill(child: AppLiquidBackgroundWidget()),
         SafeArea(
           bottom: false,
           child: Column(
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  16,
-                  10,
-                  16,
-                  0,
-                ),
-                child: Obx(
-                      () {
-                    final int noteCount =
-                        controller.visibleNotes.length;
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: Obx(() {
+                  final int noteCount = controller.visibleNotes.length;
 
-                    return MainTabHeader(
-                      title: controller.selectedFolderName,
-                      subtitle:
-                      '$noteCount ${noteCount == 1 ? 'note' : 'notes'}',
-                      onRefresh: () {
-                        controller.loadAll();
-                      },
-                      onAdd: () {
-                        _openCreateNoteScreen();
-                      },
-                    );
-                  },
-                ),
+                  return MainTabHeader(
+                    title: controller.selectedFolderName,
+                    subtitle: '$noteCount ${noteCount == 1 ? 'note' : 'notes'}',
+                    onRefresh: () {
+                      controller.loadAll();
+                    },
+                    onAdd: () {
+                      _openCreateNoteScreen();
+                    },
+                  );
+                }),
               ),
               const SizedBox(height: 12),
 
@@ -59,32 +46,23 @@ class NoteListView extends GetView<HomeController> {
                * ListView because it is an RxList and can change while
                * Flutter is building its children.
                */
-              Obx(
-                    () {
-                  final List<FolderEntity> folderSnapshot =
-                  List<FolderEntity>.unmodifiable(
-                    controller.folders.toList(),
-                  );
+              Obx(() {
+                final List<FolderEntity> folderSnapshot =
+                    List<FolderEntity>.unmodifiable(
+                      controller.folders.toList(),
+                    );
 
-                  return _FolderFilterStrip(
-                    folders: folderSnapshot,
-                    selectedFolderId:
-                    controller.selectedFolderId.value,
-                    onSelectAll:
-                    controller.selectAllNotes,
-                    onSelectFolder:
-                    controller.selectFolder,
-                  );
-                },
-              ),
+                return _FolderFilterStrip(
+                  folders: folderSnapshot,
+                  selectedFolderId: controller.selectedFolderId.value,
+                  onSelectAll: controller.selectAllNotes,
+                  onSelectFolder: controller.selectFolder,
+                );
+              }),
 
               const SizedBox(height: 8),
 
-              Expanded(
-                child: Obx(
-                      () => _buildContent(context),
-                ),
-              ),
+              Expanded(child: Obx(() => _buildContent(context))),
             ],
           ),
         ),
@@ -93,16 +71,13 @@ class NoteListView extends GetView<HomeController> {
   }
 
   Widget _buildContent(BuildContext context) {
-    if (controller.isNotesLoading.value &&
-        controller.notes.isEmpty) {
+    if (controller.isNotesLoading.value && controller.notes.isEmpty) {
       return const _NoteLoadingState();
     }
 
     if (controller.hasNoteError) {
       return _NoteErrorState(
-        message: _cleanServerMessage(
-          controller.noteErrorMessage.value,
-        ),
+        message: _cleanServerMessage(controller.noteErrorMessage.value),
         onRetry: controller.loadNotes,
       );
     }
@@ -112,8 +87,7 @@ class NoteListView extends GetView<HomeController> {
      * unmodifiable so ListView itemCount and indexing always use
      * the same fixed collection during this build.
      */
-    final List<NoteEntity> noteSnapshot =
-    List<NoteEntity>.unmodifiable(
+    final List<NoteEntity> noteSnapshot = List<NoteEntity>.unmodifiable(
       controller.visibleNotes,
     );
 
@@ -124,59 +98,38 @@ class NoteListView extends GetView<HomeController> {
       );
     }
 
-    final List<FolderEntity> folderSnapshot =
-    List<FolderEntity>.unmodifiable(
+    final List<FolderEntity> folderSnapshot = List<FolderEntity>.unmodifiable(
       controller.folders.toList(),
     );
 
     return RefreshIndicator.adaptive(
       onRefresh: controller.loadAll,
       child: ListView.separated(
-        physics:
-        const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          4,
-          16,
-          120,
-        ),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
         itemCount: noteSnapshot.length,
-        separatorBuilder: (
-            BuildContext context,
-            int index,
-            ) {
+        separatorBuilder: (BuildContext context, int index) {
           return const SizedBox(height: 12);
         },
-        itemBuilder: (
-            BuildContext context,
-            int index,
-            ) {
+        itemBuilder: (BuildContext context, int index) {
           /*
            * Extra defensive check. It should never be reached
            * because noteSnapshot is immutable.
            */
-          if (index < 0 ||
-              index >= noteSnapshot.length) {
+          if (index < 0 || index >= noteSnapshot.length) {
             return const SizedBox.shrink();
           }
 
-          final NoteEntity note =
-          noteSnapshot[index];
+          final NoteEntity note = noteSnapshot[index];
 
           return _NoteCard(
             note: note,
-            folderName: _folderNameFor(
-              folderId: note.folderId,
-              folders: folderSnapshot,
-            ),
+            folderName: _folderNameFor(note: note, folders: folderSnapshot),
             onTap: () {
               controller.openNote(note.id);
             },
             onMore: () {
-              _showNoteActions(
-                context,
-                note,
-              );
+              _showNoteActions(context, note);
             },
           );
         },
@@ -195,49 +148,35 @@ class NoteListView extends GetView<HomeController> {
       return;
     }
 
-    await Get.toNamed(
-      AppRoutes.createNote,
-    );
+    await Get.toNamed(AppRoutes.createNote);
 
     await controller.loadAll();
   }
 
   String _folderNameFor({
-    required int folderId,
+    required NoteEntity note,
     required List<FolderEntity> folders,
   }) {
     for (final FolderEntity folder in folders) {
-      if (folder.id == folderId) {
-        final String folderName =
-        folder.name.trim();
+      if (folder.id == note.folderId) {
+        final String folderName = folder.name.trim();
 
-        return folderName.isEmpty
-            ? 'Unnamed Folder'
-            : folderName;
+        return folderName.isEmpty ? 'Unnamed Folder' : folderName;
       }
     }
 
-    return 'Notes';
+    final String responseFolderName = note.folderName.trim();
+
+    return responseFolderName.isEmpty ? 'Notes' : responseFolderName;
   }
 
-  Future<void> _showNoteActions(
-      BuildContext context,
-      NoteEntity note,
-      ) async {
+  Future<void> _showNoteActions(BuildContext context, NoteEntity note) async {
     await showCupertinoModalPopup<void>(
       context: context,
-      builder: (
-          BuildContext sheetContext,
-          ) {
+      builder: (BuildContext sheetContext) {
         return CupertinoActionSheet(
-          title: Text(
-            note.title.trim().isEmpty
-                ? 'Untitled Note'
-                : note.title,
-          ),
-          message: const Text(
-            'Choose an action for this note.',
-          ),
+          title: Text(note.title.trim().isEmpty ? 'Untitled Note' : note.title),
+          message: const Text('Choose an action for this note.'),
           actions: <Widget>[
             CupertinoActionSheetAction(
               onPressed: () {
@@ -245,11 +184,7 @@ class NoteListView extends GetView<HomeController> {
 
                 controller.togglePin(note);
               },
-              child: Text(
-                note.isPinned
-                    ? 'Unpin Note'
-                    : 'Pin Note',
-              ),
+              child: Text(note.isPinned ? 'Unpin Note' : 'Pin Note'),
             ),
             CupertinoActionSheetAction(
               onPressed: () {
@@ -257,29 +192,19 @@ class NoteListView extends GetView<HomeController> {
 
                 controller.lockNote(note);
               },
-              child: Text(
-                note.isLocked
-                    ? 'Unlock Note'
-                    : 'Lock Note',
-              ),
+              child: Text(note.isLocked ? 'Unlock Note' : 'Lock Note'),
             ),
             CupertinoActionSheetAction(
               isDestructiveAction: true,
               onPressed: () {
                 Navigator.of(sheetContext).pop();
 
-                _confirmArchiveNote(
-                  context,
-                  note,
-                );
+                _confirmArchiveNote(context, note);
               },
-              child: const Text(
-                'Move to Recycle Bin',
-              ),
+              child: const Text('Move to Recycle Bin'),
             ),
           ],
-          cancelButton:
-          CupertinoActionSheetAction(
+          cancelButton: CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(sheetContext).pop();
             },
@@ -291,37 +216,30 @@ class NoteListView extends GetView<HomeController> {
   }
 
   Future<void> _confirmArchiveNote(
-      BuildContext context,
-      NoteEntity note,
-      ) async {
-    final bool? confirmed =
-    await showCupertinoDialog<bool>(
+    BuildContext context,
+    NoteEntity note,
+  ) async {
+    final bool? confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (
-          BuildContext dialogContext,
-          ) {
+      builder: (BuildContext dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text(
-            'Move note to recycle bin?',
-          ),
+          title: const Text('Move note to recycle bin?'),
           content: Text(
             '"${note.title.trim().isEmpty ? 'Untitled Note' : note.title}" '
-                'will be removed from your active notes. '
-                'You can restore it later.',
+            'will be removed from your active notes. '
+            'You can restore it later.',
           ),
           actions: <Widget>[
             CupertinoDialogAction(
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(false);
+                Navigator.of(dialogContext).pop(false);
               },
               child: const Text('Cancel'),
             ),
             CupertinoDialogAction(
               isDestructiveAction: true,
               onPressed: () {
-                Navigator.of(dialogContext)
-                    .pop(true);
+                Navigator.of(dialogContext).pop(true);
               },
               child: const Text('Move'),
             ),
@@ -337,11 +255,8 @@ class NoteListView extends GetView<HomeController> {
     await controller.archiveNote(note);
   }
 
-  String _cleanServerMessage(
-      String message,
-      ) {
-    if (message.contains('PlainText') ||
-        message.contains('PreviewText')) {
+  String _cleanServerMessage(String message) {
+    if (message.contains('PlainText') || message.contains('PreviewText')) {
       return 'The backend note database is missing '
           'the PlainText and PreviewText columns. '
           'The database migration or note query must '
@@ -373,32 +288,21 @@ class _FolderFilterStrip extends StatelessWidget {
      *
      * RangeError: Invalid value: Not in inclusive range
      */
-    final List<FolderEntity> folderSnapshot =
-    List<FolderEntity>.unmodifiable(
+    final List<FolderEntity> folderSnapshot = List<FolderEntity>.unmodifiable(
       folders,
     );
 
     return SizedBox(
       height: 44,
       child: ListView.separated(
-        key: ValueKey<String>(
-          'folder-filter-${folderSnapshot.length}',
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ),
+        key: ValueKey<String>('folder-filter-${folderSnapshot.length}'),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: folderSnapshot.length + 1,
-        separatorBuilder: (
-            BuildContext context,
-            int index,
-            ) {
+        separatorBuilder: (BuildContext context, int index) {
           return const SizedBox(width: 8);
         },
-        itemBuilder: (
-            BuildContext context,
-            int index,
-            ) {
+        itemBuilder: (BuildContext context, int index) {
           if (index == 0) {
             return _FolderFilterChip(
               label: 'All',
@@ -409,27 +313,18 @@ class _FolderFilterStrip extends StatelessWidget {
 
           final int folderIndex = index - 1;
 
-          if (folderIndex < 0 ||
-              folderIndex >=
-                  folderSnapshot.length) {
+          if (folderIndex < 0 || folderIndex >= folderSnapshot.length) {
             return const SizedBox.shrink();
           }
 
-          final FolderEntity folder =
-          folderSnapshot[folderIndex];
+          final FolderEntity folder = folderSnapshot[folderIndex];
 
-          final String folderName =
-          folder.name.trim();
+          final String folderName = folder.name.trim();
 
           return _FolderFilterChip(
-            key: ValueKey<int>(
-              folder.id,
-            ),
-            label: folderName.isEmpty
-                ? 'Unnamed'
-                : folderName,
-            selected:
-            selectedFolderId == folder.id,
+            key: ValueKey<int>(folder.id),
+            label: folderName.isEmpty ? 'Unnamed' : folderName,
+            selected: selectedFolderId == folder.id,
             onTap: () {
               onSelectFolder(folder.id);
             },
@@ -440,8 +335,7 @@ class _FolderFilterStrip extends StatelessWidget {
   }
 }
 
-class _FolderFilterChip
-    extends StatelessWidget {
+class _FolderFilterChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -455,56 +349,40 @@ class _FolderFilterChip
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    final bool isDark =
-        theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-        BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22),
         child: AnimatedContainer(
-          duration:
-          const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          constraints: const BoxConstraints(
-            maxWidth: 170,
-          ),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 9,
-          ),
+          constraints: const BoxConstraints(maxWidth: 170),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
           decoration: BoxDecoration(
             color: selected
                 ? colorScheme.primary
                 : isDark
                 ? const Color(0xFF1B1D22)
                 : Colors.white,
-            borderRadius:
-            BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
               color: selected
                   ? colorScheme.primary
-                  : colorScheme.outlineVariant
-                  .withValues(
-                alpha:
-                isDark ? 0.22 : 0.38,
-              ),
+                  : colorScheme.outlineVariant.withValues(
+                      alpha: isDark ? 0.22 : 0.38,
+                    ),
             ),
             boxShadow: <BoxShadow>[
               if (!selected)
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha:
-                    isDark ? 0.08 : 0.025,
-                  ),
+                  color: Colors.black.withValues(alpha: isDark ? 0.08 : 0.025),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -514,14 +392,9 @@ class _FolderFilterChip
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style:
-            theme.textTheme.labelLarge?.copyWith(
-              color: selected
-                  ? colorScheme.onPrimary
-                  : colorScheme.onSurface,
-              fontWeight: selected
-                  ? FontWeight.w700
-                  : FontWeight.w600,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: selected ? colorScheme.onPrimary : colorScheme.onSurface,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
             ),
           ),
         ),
@@ -545,55 +418,48 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
-    final bool isDark =
-        theme.brightness == Brightness.dark;
+    final bool isDark = theme.brightness == Brightness.dark;
 
-    final Color cardColor = isDark
-        ? const Color(0xFF1B1D22)
-        : Colors.white;
+    final Color cardColor = isDark ? const Color(0xFF1B1D22) : Colors.white;
+
+    final int attachmentCount = note.attachmentCount > 0
+        ? note.attachmentCount
+        : note.content.where((Map<String, dynamic> block) {
+            return block['type']?.toString().toLowerCase() == 'attachment';
+          }).length;
+    final DateTime? timestamp = note.updatedAt ?? note.createdAt;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius:
-        BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24),
         child: Container(
           padding: const EdgeInsets.all(17),
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius:
-            BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: note.isPinned
-                  ? colorScheme.primary
-                  .withValues(alpha: 0.48)
-                  : colorScheme.outlineVariant
-                  .withValues(
-                alpha:
-                isDark ? 0.20 : 0.38,
-              ),
+                  ? colorScheme.primary.withValues(alpha: 0.48)
+                  : colorScheme.outlineVariant.withValues(
+                      alpha: isDark ? 0.20 : 0.38,
+                    ),
             ),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: Colors.black.withValues(
-                  alpha:
-                  isDark ? 0.15 : 0.045,
-                ),
+                color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.045),
                 blurRadius: 22,
                 offset: const Offset(0, 9),
               ),
             ],
           ),
           child: Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Row(
                 children: <Widget>[
@@ -601,45 +467,33 @@ class _NoteCard extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: colorScheme
-                          .primaryContainer
-                          .withValues(
+                      color: colorScheme.primaryContainer.withValues(
                         alpha: 0.75,
                       ),
-                      borderRadius:
-                      BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       note.isLocked
-                          ? Icons
-                          .lock_outline_rounded
-                          : Icons
-                          .description_outlined,
+                          ? Icons.lock_outline_rounded
+                          : Icons.description_outlined,
                       size: 21,
-                      color: colorScheme
-                          .onPrimaryContainer,
+                      color: colorScheme.onPrimaryContainer,
                     ),
                   ),
                   const SizedBox(width: 13),
                   Expanded(
                     child: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
                           note.title.trim().isEmpty
                               ? 'Untitled Note'
                               : note.title,
                           maxLines: 1,
-                          overflow:
-                          TextOverflow.ellipsis,
-                          style: theme
-                              .textTheme.titleMedium
-                              ?.copyWith(
-                            color:
-                            colorScheme.onSurface,
-                            fontWeight:
-                            FontWeight.w700,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -648,21 +502,16 @@ class _NoteCard extends StatelessWidget {
                             Icon(
                               Icons.folder_outlined,
                               size: 14,
-                              color: colorScheme
-                                  .onSurfaceVariant,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
                                 folderName,
                                 maxLines: 1,
-                                overflow: TextOverflow
-                                    .ellipsis,
-                                style: theme
-                                    .textTheme.bodySmall
-                                    ?.copyWith(
-                                  color: colorScheme
-                                      .onSurfaceVariant,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ),
@@ -676,8 +525,7 @@ class _NoteCard extends StatelessWidget {
                     onPressed: onMore,
                     child: Icon(
                       Icons.more_horiz_rounded,
-                      color: colorScheme
-                          .onSurfaceVariant,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -687,15 +535,15 @@ class _NoteCard extends StatelessWidget {
                 _notePreview(note),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(
-                  color:
-                  colorScheme.onSurfaceVariant,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
                   height: 1.45,
                 ),
               ),
               if (note.isPinned ||
-                  note.isLocked) ...<Widget>[
+                  note.isLocked ||
+                  attachmentCount > 0 ||
+                  timestamp != null) ...<Widget>[
                 const SizedBox(height: 13),
                 Wrap(
                   spacing: 7,
@@ -703,19 +551,29 @@ class _NoteCard extends StatelessWidget {
                   children: <Widget>[
                     if (note.isPinned)
                       _NoteBadge(
-                        icon:
-                        Icons.push_pin_outlined,
+                        icon: Icons.push_pin_outlined,
                         label: 'Pinned',
-                        color:
-                        colorScheme.primary,
+                        color: colorScheme.primary,
                       ),
                     if (note.isLocked)
                       _NoteBadge(
-                        icon:
-                        Icons.lock_outline_rounded,
+                        icon: Icons.lock_outline_rounded,
                         label: 'Locked',
-                        color:
-                        colorScheme.tertiary,
+                        color: colorScheme.tertiary,
+                      ),
+                    if (attachmentCount > 0)
+                      _NoteBadge(
+                        icon: Icons.attach_file_rounded,
+                        label: '$attachmentCount',
+                        color: colorScheme.secondary,
+                      ),
+                    if (timestamp != null)
+                      _NoteBadge(
+                        icon: Icons.schedule_rounded,
+                        label: MaterialLocalizations.of(
+                          context,
+                        ).formatShortDate(timestamp),
+                        color: colorScheme.onSurfaceVariant,
                       ),
                   ],
                 ),
@@ -727,22 +585,16 @@ class _NoteCard extends StatelessWidget {
     );
   }
 
-  String _notePreview(
-      NoteEntity note,
-      ) {
+  String _notePreview(NoteEntity note) {
     if (note.isLocked) {
       return 'This note is locked.';
     }
 
-    for (final Map<String, dynamic> block
-    in note.content) {
-      final String blockType =
-          block['type']?.toString() ?? '';
+    for (final Map<String, dynamic> block in note.content) {
+      final String blockType = block['type']?.toString() ?? '';
 
       if (blockType == 'text') {
-        final String text =
-            block['text']?.toString().trim() ??
-                '';
+        final String text = block['text']?.toString().trim() ?? '';
 
         if (text.isNotEmpty) {
           return text;
@@ -750,12 +602,27 @@ class _NoteCard extends StatelessWidget {
       }
 
       if (blockType == 'checklist') {
-        return 'Checklist content';
+        final dynamic rawItems = block['items'];
+
+        if (rawItems is List) {
+          final int complete = rawItems.where((dynamic item) {
+            return item is Map && item['checked'] == true;
+          }).length;
+
+          return '$complete of ${rawItems.length} checklist tasks completed';
+        }
+
+        return 'Checklist';
       }
 
       if (blockType == 'attachment') {
         return 'Attachment';
       }
+    }
+
+    if (note.attachmentCount > 0) {
+      return '${note.attachmentCount} '
+          '${note.attachmentCount == 1 ? 'attachment' : 'attachments'}';
     }
 
     return 'Tap to start writing.';
@@ -775,39 +642,23 @@ class _NoteBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: 0.10,
-        ),
-        borderRadius:
-        BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(
-            alpha: 0.20,
-          ),
-        ),
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(
-            icon,
-            size: 13,
-            color: color,
-          ),
+          Icon(icon, size: 13, color: color),
           const SizedBox(width: 5),
           Text(
             label,
-            style:
-            theme.textTheme.labelSmall?.copyWith(
+            style: theme.textTheme.labelSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w700,
             ),
@@ -822,82 +673,55 @@ class _EmptyNoteState extends StatelessWidget {
   final bool hasFolders;
   final VoidCallback onCreate;
 
-  const _EmptyNoteState({
-    required this.hasFolders,
-    required this.onCreate,
-  });
+  const _EmptyNoteState({required this.hasFolders, required this.onCreate});
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
     return RefreshIndicator.adaptive(
       onRefresh: () async {
-        final HomeController controller =
-        Get.find<HomeController>();
+        final HomeController controller = Get.find<HomeController>();
 
         await controller.loadAll();
       },
       child: CustomScrollView(
-        physics:
-        const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  30,
-                  30,
-                  30,
-                  100,
-                ),
+                padding: const EdgeInsets.fromLTRB(30, 30, 30, 100),
                 child: Column(
-                  mainAxisSize:
-                  MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Container(
                       width: 88,
                       height: 88,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: colorScheme.primary
-                            .withValues(
-                          alpha: 0.10,
-                        ),
+                        color: colorScheme.primary.withValues(alpha: 0.10),
                         border: Border.all(
-                          color: colorScheme.primary
-                              .withValues(
-                            alpha: 0.15,
-                          ),
+                          color: colorScheme.primary.withValues(alpha: 0.15),
                         ),
                       ),
                       child: Icon(
                         hasFolders
-                            ? Icons
-                            .note_add_outlined
-                            : Icons
-                            .create_new_folder_outlined,
+                            ? Icons.note_add_outlined
+                            : Icons.create_new_folder_outlined,
                         size: 41,
-                        color:
-                        colorScheme.primary,
+                        color: colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      hasFolders
-                          ? 'No notes yet'
-                          : 'Create a folder first',
+                      hasFolders ? 'No notes yet' : 'Create a folder first',
                       textAlign: TextAlign.center,
-                      style: theme
-                          .textTheme.titleLarge
-                          ?.copyWith(
-                        fontWeight:
-                        FontWeight.w800,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -906,11 +730,8 @@ class _EmptyNoteState extends StatelessWidget {
                           ? 'Create your first note in this folder.'
                           : 'A folder is required before creating a note.',
                       textAlign: TextAlign.center,
-                      style: theme
-                          .textTheme.bodyMedium
-                          ?.copyWith(
-                        color: colorScheme
-                            .onSurfaceVariant,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                         height: 1.45,
                       ),
                     ),
@@ -918,12 +739,8 @@ class _EmptyNoteState extends StatelessWidget {
                       const SizedBox(height: 21),
                       FilledButton.icon(
                         onPressed: onCreate,
-                        icon: const Icon(
-                          Icons.add_rounded,
-                        ),
-                        label: const Text(
-                          'Create Note',
-                        ),
+                        icon: const Icon(Icons.add_rounded),
+                        label: const Text('Create Note'),
                       ),
                     ],
                   ],
@@ -942,26 +759,19 @@ class _NoteLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme =
-        Theme.of(context).colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           CircularProgressIndicator.adaptive(
-            valueColor:
-            AlwaysStoppedAnimation<Color>(
-              colorScheme.primary,
-            ),
+            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
           ),
           const SizedBox(height: 16),
           Text(
             'Loading notes...',
-            style: TextStyle(
-              color:
-              colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -973,48 +783,33 @@ class _NoteErrorState extends StatelessWidget {
   final String message;
   final Future<void> Function() onRetry;
 
-  const _NoteErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _NoteErrorState({required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme =
-    Theme.of(context);
+    final ThemeData theme = Theme.of(context);
 
-    final ColorScheme colorScheme =
-        theme.colorScheme;
+    final ColorScheme colorScheme = theme.colorScheme;
 
     return RefreshIndicator.adaptive(
       onRefresh: onRetry,
       child: CustomScrollView(
-        physics:
-        const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  30,
-                  20,
-                  30,
-                  100,
-                ),
+                padding: const EdgeInsets.fromLTRB(30, 20, 30, 100),
                 child: Column(
-                  mainAxisSize:
-                  MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Container(
                       width: 84,
                       height: 84,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: colorScheme.error
-                            .withValues(
-                          alpha: 0.11,
-                        ),
+                        color: colorScheme.error.withValues(alpha: 0.11),
                       ),
                       child: Icon(
                         Icons.cloud_off_outlined,
@@ -1026,22 +821,16 @@ class _NoteErrorState extends StatelessWidget {
                     Text(
                       'Notes are unavailable',
                       textAlign: TextAlign.center,
-                      style: theme
-                          .textTheme.titleLarge
-                          ?.copyWith(
-                        fontWeight:
-                        FontWeight.w800,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       message,
                       textAlign: TextAlign.center,
-                      style: theme
-                          .textTheme.bodyMedium
-                          ?.copyWith(
-                        color: colorScheme
-                            .onSurfaceVariant,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                         height: 1.45,
                       ),
                     ),
@@ -1050,12 +839,8 @@ class _NoteErrorState extends StatelessWidget {
                       onPressed: () {
                         onRetry();
                       },
-                      icon: const Icon(
-                        Icons.refresh_rounded,
-                      ),
-                      label: const Text(
-                        'Try Again',
-                      ),
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Try Again'),
                     ),
                   ],
                 ),
