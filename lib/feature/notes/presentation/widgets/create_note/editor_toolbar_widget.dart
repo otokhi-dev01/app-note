@@ -1,6 +1,6 @@
 part of '../../view/create_note_view.dart';
 
-class _EditorToolbar extends StatelessWidget {
+class _EditorToolbar extends GetView<CreateNoteController> {
   final VoidCallback onChecklist;
   final VoidCallback onFolder;
   final VoidCallback onCamera;
@@ -19,53 +19,84 @@ class _EditorToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
-
     final bool isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
       child: SafeArea(
         top: false,
         child: AppGlassSurface(
-          borderRadius: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          tintColor: colors.surface.withValues(alpha: isDark ? 0.65 : 0.75),
+          borderRadius: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          tintColor: colors.surface.withValues(alpha: isDark ? 0.75 : 0.85),
           blur: 28,
           child: SizedBox(
-            height: 56,
+            height: 48,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                _ToolbarButton(
-                  icon: CupertinoIcons.checkmark_square,
-                  label: 'Checklist',
+                _ToolbarIcon(
+                  icon: CupertinoIcons.bold,
+                  onPressed: () => controller.insertToStatement('**Text**'),
+                ),
+                _ToolbarIcon(
+                  icon: CupertinoIcons.italic,
+                  onPressed: () => controller.insertToStatement('_Text_'),
+                ),
+                _ToolbarIcon(
+                  icon: CupertinoIcons.underline,
+                  onPressed: () => controller.insertToStatement('<u>Text</u>'),
+                ),
+                VerticalDivider(
+                  width: 24,
+                  thickness: 1,
+                  indent: 10,
+                  endIndent: 10,
+                  color: colors.outlineVariant.withValues(alpha: 0.2),
+                ),
+                _ToolbarIcon(
+                  icon: CupertinoIcons.list_bullet,
                   onPressed: onChecklist,
                 ),
-                _ToolbarButton(
-                  icon: CupertinoIcons.folder,
-                  label: 'Folder',
-                  onPressed: onFolder,
+                _ToolbarIcon(
+                  icon: CupertinoIcons.list_number,
+                  onPressed: () => controller.insertToStatement('\n1. '),
                 ),
-                _ToolbarButton(
-                  icon: CupertinoIcons.camera,
-                  label: 'Camera',
-                  onPressed: onCamera,
-                ),
-                _ToolbarButton(
-                  icon: CupertinoIcons.photo_on_rectangle,
-                  label: 'Photos',
+                _ToolbarIcon(
+                  icon: CupertinoIcons.photo,
                   onPressed: onPhotos,
                 ),
-                _ToolbarButton(
-                  icon: CupertinoIcons.paperclip,
-                  label: 'Attachment',
-                  highlighted: true,
+                _ToolbarIcon(
+                  icon: CupertinoIcons.link,
                   onPressed: onAttachment,
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ToolbarIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _ToolbarIcon({required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onPressed,
+      child: Icon(
+        icon,
+        size: 20,
+        color: colors.onSurface.withValues(alpha: 0.8),
       ),
     );
   }

@@ -9,78 +9,116 @@ class _ImagePreviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: <Widget>[
           Positioned.fill(
             child: InteractiveViewer(
-              minScale: 0.8,
-              maxScale: 5,
-              boundaryMargin: const EdgeInsets.all(80),
+              minScale: 1.0,
+              maxScale: 4.0,
               child: Center(
-                child: Image.file(
-                  File(image.file.path),
-                  fit: BoxFit.contain,
-                  filterQuality: FilterQuality.high,
-                  errorBuilder:
-                      (
-                        BuildContext context,
-                        Object error,
-                        StackTrace? stackTrace,
-                      ) {
-                        return const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            Icon(
-                              CupertinoIcons.photo_on_rectangle,
-                              color: Colors.white70,
-                              size: 50,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              'Unable to display image',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        );
-                      },
+                child: Hero(
+                  tag: image.file.path,
+                  child: Image.file(
+                    File(image.file.path),
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.height,
+                  ),
                 ),
               ),
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+          
+          // Immersive Top Bar
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 20,
+                right: 20,
+              ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   _PreviewCloseButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Text(
-                      'Pinch to zoom',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  _PreviewActionIcon(
+                    icon: CupertinoIcons.share,
+                    onPressed: () {},
                   ),
                 ],
               ),
             ),
           ),
+          
+          // Bottom Status
+          Positioned(
+            bottom: 40,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: const Text(
+                  'Full Screen Preview',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _PreviewActionIcon extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _PreviewActionIcon({required this.icon, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: onPressed,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 22),
       ),
     );
   }

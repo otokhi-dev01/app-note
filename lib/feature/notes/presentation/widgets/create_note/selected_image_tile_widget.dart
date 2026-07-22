@@ -27,24 +27,27 @@ class _SelectedImageTile extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: InkWell(
               onTap: onPreview,
-              child: Image.file(
-                File(image.file.path),
-                fit: BoxFit.cover,
-                filterQuality: FilterQuality.medium,
-                errorBuilder:
-                    (
-                      BuildContext context,
-                      Object error,
-                      StackTrace? stackTrace,
-                    ) {
-                      return Center(
-                        child: Icon(
-                          CupertinoIcons.photo_on_rectangle,
-                          color: colors.onSurfaceVariant,
-                          size: 30,
-                        ),
-                      );
-                    },
+              child: Hero(
+                tag: image.file.path,
+                child: Image.file(
+                  File(image.file.path),
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder:
+                      (
+                        BuildContext context,
+                        Object error,
+                        StackTrace? stackTrace,
+                      ) {
+                        return Center(
+                          child: Icon(
+                            CupertinoIcons.photo_on_rectangle,
+                            color: colors.onSurfaceVariant,
+                            size: 30,
+                          ),
+                        );
+                      },
+                ),
               ),
             ),
           ),

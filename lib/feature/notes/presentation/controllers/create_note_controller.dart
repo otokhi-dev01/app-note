@@ -338,6 +338,23 @@ class CreateNoteController extends GetxController {
     checklistItems.removeWhere((CreateNoteChecklistItem item) => item.id == id);
   }
 
+  void insertToStatement(String text) {
+    final String currentText = statementController.text;
+    final int selectionStart = statementController.selection.start;
+    final int selectionEnd = statementController.selection.end;
+
+    if (selectionStart < 0) {
+      statementController.text = currentText + text;
+      return;
+    }
+
+    final String newText = currentText.replaceRange(selectionStart, selectionEnd, text);
+    statementController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: selectionStart + text.length),
+    );
+  }
+
   CreateNoteChecklistItem? _findChecklistItem(String id) {
     for (final CreateNoteChecklistItem item in checklistItems) {
       if (item.id == id) {
