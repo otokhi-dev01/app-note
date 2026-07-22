@@ -12,11 +12,8 @@ import '../../../main/presentation/widgets/app_liquid_background_widget.dart';
 import '../controllers/create_note_controller.dart';
 
 import '../widgets/common/note_action_sheet_row_widget.dart';
-import '../widgets/common/note_navigation_back_button_widget.dart';
-import '../widgets/common/note_navigation_icon_button_widget.dart';
-import '../widgets/common/note_navigation_save_button_widget.dart';
+
 part '../widgets/create_note/folder_status_widget.dart';
-part '../widgets/create_note/main_editor_card_widget.dart';
 part '../widgets/create_note/title_field_widget.dart';
 part '../widgets/create_note/body_field_widget.dart';
 part '../widgets/create_note/checklist_section_widget.dart';
@@ -28,7 +25,6 @@ part '../widgets/create_note/selected_images_section_widget.dart';
 part '../widgets/create_note/selected_image_tile_widget.dart';
 part '../widgets/create_note/section_header_widget.dart';
 part '../widgets/create_note/editor_toolbar_widget.dart';
-part '../widgets/create_note/toolbar_button_widget.dart';
 part '../widgets/create_note/image_preview_page_widget.dart';
 part '../widgets/create_note/preview_close_button_widget.dart';
 
@@ -49,47 +45,47 @@ class CreateNoteView extends GetView<CreateNoteController> {
         transitionBetweenRoutes: false,
         border: null,
         backgroundColor: Colors.transparent,
-        leading: NoteNavigationBackButton(
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: Icon(
+            CupertinoIcons.xmark,
+            color: theme.colorScheme.onSurface,
+            size: 22,
+          ),
           onPressed: () {
             FocusManager.instance.primaryFocus?.unfocus();
             Get.back<void>();
           },
         ),
-        middle: Text(
-          'New Note',
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+        middle: Opacity(
+          opacity: 0.6,
+          child: Text(
+            'Draft saved 2m ago',
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
           ),
         ),
-        trailing: Obx(() {
-          final bool saving = controller.isSaving.value;
-
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              NoteNavigationIconButton(
-                icon: CupertinoIcons.ellipsis_circle,
-                label: 'More options',
-                onPressed: saving
-                    ? null
-                    : () {
-                        _showMoreActions(context);
-                      },
-              ),
-              NoteNavigationSaveButton(
-                saving: saving,
-                onPressed: saving
-                    ? null
-                    : () {
-                        HapticFeedback.mediumImpact();
-                        controller.createNote();
-                      },
-              ),
-            ],
-          );
-        }),
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          minimumSize: Size.zero,
+          color: theme.colorScheme.primary,
+          borderRadius: BorderRadius.circular(20),
+          onPressed: () {
+            HapticFeedback.mediumImpact();
+            controller.createNote();
+          },
+          child: const Text(
+            'Done',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: <Widget>[
@@ -104,38 +100,39 @@ class CreateNoteView extends GetView<CreateNoteController> {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(16, 110, 16, 120),
+              padding: const EdgeInsets.fromLTRB(20, 110, 20, 120),
               children: <Widget>[
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        _FolderStatus(
-                          onPressed: () {
-                            _showFolderPicker(context);
-                          },
-                        ),
-    
-                        const SizedBox(height: 12),
-    
-                        const _MainEditorCard(),
-    
-                        const _ErrorMessage(),
-    
-                        const _ChecklistSection(),
-    
-                        const _SelectedDocumentsSection(),
-    
-                        _SelectedImagesSection(
-                          onPreview: (NoteDraftImage image) {
-                            _openImagePreview(context, image);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                const _FolderStatus(),
+
+                const SizedBox(height: 24),
+
+                const _TitleField(),
+
+                const SizedBox(height: 12),
+
+                const _MetadataRow(),
+
+                const SizedBox(height: 16),
+
+                Divider(
+                  height: 1,
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.15),
+                ),
+
+                const SizedBox(height: 32),
+
+                const _BodyField(),
+
+                const _ErrorMessage(),
+
+                const _ChecklistSection(),
+
+                const _SelectedDocumentsSection(),
+
+                _SelectedImagesSection(
+                  onPreview: (NoteDraftImage image) {
+                    _openImagePreview(context, image);
+                  },
                 ),
               ],
             ),
@@ -290,58 +287,6 @@ class CreateNoteView extends GetView<CreateNoteController> {
     );
   }
 
-  Future<void> _showMoreActions(BuildContext context) async {
-    FocusManager.instance.primaryFocus?.unfocus();
-
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (BuildContext sheetContext) {
-        return CupertinoActionSheet(
-          title: const Text('New Note'),
-          message: const Text('Choose an action.'),
-          actions: <Widget>[
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                _showFolderPicker(context);
-              },
-              child: const NoteActionSheetRow(
-                icon: CupertinoIcons.folder,
-                label: 'Choose Folder',
-              ),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                controller.addChecklistItem();
-              },
-              child: const NoteActionSheetRow(
-                icon: CupertinoIcons.checkmark_square,
-                label: 'Add Checklist Task',
-              ),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                _showMediaPicker(context);
-              },
-              child: const NoteActionSheetRow(
-                icon: CupertinoIcons.paperclip,
-                label: 'Add Attachment',
-              ),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(sheetContext).pop();
-            },
-            child: const Text('Cancel'),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _openImagePreview(
     BuildContext context,
     NoteDraftImage image,
@@ -355,6 +300,76 @@ class CreateNoteView extends GetView<CreateNoteController> {
           return _ImagePreviewPage(image: image);
         },
       ),
+    );
+  }
+}
+
+class _MetadataRow extends StatelessWidget {
+  const _MetadataRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final DateTime now = DateTime.now();
+
+    return Row(
+      children: <Widget>[
+        _MetadataItem(
+          icon: CupertinoIcons.calendar,
+          text: _formatDate(now),
+        ),
+        const SizedBox(width: 20),
+        _MetadataItem(
+          icon: CupertinoIcons.clock,
+          text: _formatTime(now),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    const List<String> months = <String>[
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  String _formatTime(DateTime date) {
+    final int hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    final String minute = date.minute.toString().padLeft(2, '0');
+    final String amPm = date.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $amPm';
+  }
+}
+
+class _MetadataItem extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _MetadataItem({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(
+          icon,
+          size: 16,
+          color: colors.onSurface.withValues(alpha: 0.4),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: colors.onSurface.withValues(alpha: 0.5),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

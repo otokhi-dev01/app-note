@@ -1,105 +1,130 @@
 part of '../../view/create_note_view.dart';
 
 class _FolderStatus extends GetView<CreateNoteController> {
-  final VoidCallback onPressed;
+  const _FolderStatus();
 
-  const _FolderStatus({required this.onPressed});
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final List<FolderEntity> folders = controller.folders;
+      final int? selectedId = controller.selectedFolderId.value;
+
+      return SizedBox(
+        height: 38,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: folders.length + 1,
+          itemBuilder: (BuildContext context, int index) {
+            if (index == folders.length) {
+              return _AddFolderChip(onTap: () => _openCreateFolder(context));
+            }
+
+            final FolderEntity folder = folders[index];
+            return _FolderChip(
+              folder: folder,
+              isSelected: selectedId == folder.id,
+              onTap: () {
+                HapticFeedback.selectionClick();
+                controller.selectFolder(folder.id);
+              },
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  Future<void> _openCreateFolder(BuildContext context) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final dynamic result = await Get.toNamed(AppRoutes.createFolder);
+    if (result == true) {
+      await controller.loadFolders();
+    }
+  }
+}
+
+class _FolderChip extends StatelessWidget {
+  final FolderEntity folder;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FolderChip({
+    required this.folder,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
+    final bool isDark = theme.brightness == Brightness.dark;
 
-    return Obx(() {
-      final String folderName = controller.selectedFolderName.trim();
+    final String name = folder.name.trim().isEmpty ? 'Unnamed' : folder.name.trim();
 
-      final int attachmentCount =
-          controller.selectedImages.length +
-          controller.selectedDocuments.length;
-
-      return AppGlassSurface(
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: AppGlassSurface(
+        borderRadius: 19,
         padding: EdgeInsets.zero,
-        borderRadius: 22,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(22),
-            splashColor: colors.primary.withValues(alpha: 0.08),
-            highlightColor: colors.primary.withValues(alpha: 0.04),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: colors.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      CupertinoIcons.folder_fill,
-                      size: 19,
-                      color: colors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          folderName.isEmpty ? 'Choose Folder' : folderName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colors.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          folderName.isEmpty
-                              ? 'Select where this note will be saved'
-                              : 'Tap to change folder',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (attachmentCount > 0) ...<Widget>[
-                    Icon(
-                      CupertinoIcons.paperclip,
-                      size: 14,
-                      color: colors.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      attachmentCount.toString(),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                  ],
-                  Icon(
-                    CupertinoIcons.chevron_forward,
-                    size: 16,
-                    color: colors.onSurfaceVariant.withValues(alpha: 0.65),
-                  ),
-                ],
+        blur: 16,
+        tintColor: isSelected
+            ? colors.primary.withValues(alpha: 0.85)
+            : colors.surface.withValues(alpha: isDark ? 0.35 : 0.65),
+        borderColor: isSelected
+            ? colors.primary
+            : colors.outlineVariant.withValues(alpha: 0.2),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(19),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              name,
+              style: TextStyle(
+                color: isSelected ? Colors.white : colors.onSurface.withValues(alpha: 0.7),
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                fontSize: 13,
               ),
             ),
           ),
         ),
-      );
-    });
+      ),
+    );
+  }
+}
+
+class _AddFolderChip extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _AddFolderChip({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AppGlassSurface(
+      borderRadius: 19,
+      padding: EdgeInsets.zero,
+      blur: 16,
+      tintColor: colors.surface.withValues(alpha: isDark ? 0.25 : 0.45),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(19),
+        child: Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          child: Icon(
+            CupertinoIcons.add,
+            size: 18,
+            color: colors.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+      ),
+    );
   }
 }

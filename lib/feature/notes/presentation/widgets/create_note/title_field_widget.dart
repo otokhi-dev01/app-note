@@ -19,16 +19,16 @@ class _TitleField extends GetView<CreateNoteController> {
       maxLines: 3,
       padding: EdgeInsets.zero,
       decoration: null,
-      placeholder: 'Title',
-      placeholderStyle: theme.textTheme.headlineSmall?.copyWith(
-        color: colors.onSurfaceVariant.withValues(alpha: 0.50),
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.45,
+      placeholder: 'Note Title',
+      placeholderStyle: theme.textTheme.headlineMedium?.copyWith(
+        color: colors.onSurface.withValues(alpha: 0.3),
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.0,
       ),
-      style: theme.textTheme.headlineSmall?.copyWith(
+      style: theme.textTheme.headlineMedium?.copyWith(
         color: colors.onSurface,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -0.45,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.0,
       ),
       onSubmitted: (_) {
         FocusScope.of(context).nextFocus();

@@ -1,26 +1,33 @@
-# Fix "TextEditingController used after being disposed" Bug
+# Immersive Full-Screen Image Preview & Dynamic Statement Redesign
 
-I will fix the crash occurring during authentication transitions. This error happens because GetX disposes of the `LoginController` and its `TextEditingController`s immediately when navigating away using `Get.offAllNamed`, but the `TextField` widgets might still be active during the exit transition.
+I will update the "Create Note" screen to allow adding multiple text "statements" (blocks) and upgrade the image preview to a truly immersive full-screen experience.
 
 ## User Review Required
 
-> [!NOTE]
-> I will be removing the explicit `dispose()` calls for `TextEditingController` in the `onClose()` method of `LoginController` and `RegisterController`. This is a known workaround for GetX race conditions during route transitions. Standard garbage collection will still reclaim the memory once the views are fully unmounted.
+> [!IMPORTANT]
+> - **Full-Screen Image Preview**: The image will now fill the entire screen (`BoxFit.cover` by default with zoom capability) and the UI controls will float elegantly on top without a solid background.
+> - **Dynamic Statements**: I will update the `CreateNoteController` to support a more flexible content structure if the user wants to add multiple text sections, or I will focus on making the current "Start writing..." area feel like a premium dynamic statement block.
+> - **Rich Text Formatting**: Since we are using standard text fields, I will implement basic "Append" functionality for the toolbar icons (e.g., adding Markdown-like symbols) or ensure the focus remains on a premium, single-statement experience as per the design.
 
 ## Proposed Changes
 
-### Auth Controllers
+### Create Note Feature
 
-#### [MODIFY] [login_controller.dart](file:///Users/yornnona/Documents/flutter_app/app-note/lib/feature/auth/presentation/controller/login_controller.dart)
-- Remove `phoneController.dispose()` and `passwordController.dispose()` from `onClose()`.
+#### [MODIFY] [image_preview_page_widget.dart](file:///Users/yornnona/Documents/flutter_app/app-note/lib/feature/notes/presentation/widgets/create_note/image_preview_page_widget.dart)
+- Change `BoxFit.contain` to a more immersive fit logic.
+- Remove `boundaryMargin` from `InteractiveViewer` for a cleaner "full screen" feel.
+- Make the top bar (close button) fully translucent.
 
-#### [MODIFY] [register_controller.dart](file:///Users/yornnona/Documents/flutter_app/app-note/lib/feature/auth/presentation/controller/register_controller.dart)
-- Remove `phoneController.dispose()`, `passwordController.dispose()`, and `confirmPasswordController.dispose()` from `onClose()`.
+#### [MODIFY] [body_field_widget.dart](file:///Users/yornnona/Documents/flutter_app/app-note/lib/feature/notes/presentation/widgets/create_note/body_field_widget.dart)
+- Update the styling to feel more like a "Statement" block.
+- Add support for inserting text templates or formatting placeholders from the toolbar.
+
+#### [MODIFY] [create_note_controller.dart](file:///Users/yornnona/Documents/flutter_app/app-note/lib/feature/notes/presentation/controllers/create_note_controller.dart)
+- Add a helper method `insertToStatement(String text)` to allow the toolbar to interact with the body text.
 
 ## Verification Plan
 
 ### Manual Verification
-- Navigate between Login and Register screens.
-- Perform a successful login to trigger `Get.offAllNamed(AppRoutes.home)`.
-- Perform a successful registration to trigger `Get.offAllNamed(AppRoutes.login)`.
-- Verify that the "used after being disposed" exception no longer appears in the logs.
+- **Full Screen**: Open an image preview and verify it uses the entire screen area.
+- **Statement**: Verify that typing in the body area remains fluid and the toolbar icons can interact with it (if formatting is implemented).
+- **Transitions**: Ensure the liquid background remains visible and smooth.

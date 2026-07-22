@@ -1,13 +1,7 @@
-# Tasks - Fix Disposal Bug & Modernize Note List
+# Tasks - Full Screen Preview & Dynamic Statement
 
-- [x] Remove explicit disposal in `LoginController`
-- [x] Remove explicit disposal in `RegisterController`
-- [x] Remove explicit disposal in `CreateFolderController`
-- [x] Remove explicit disposal in `CreateNoteController`
-- [x] Remove explicit disposal in `NoteEditorController`
-- [x] Wrap `NoteListView` in `AppLiquidBackgroundWidget`
-- [x] Redesign `_NoteRow` with glass surface and squishy animation
-- [x] Update `_NoteSearchField` to floating glass pill style
-- [x] Update `_FolderFilterChip` with glass effects
-- [x] Refine `_NoteListContent` layout and navigation bar
-- [x] Verify scrolling and selection performance
+- [x] Redesign `_ImagePreviewPage` as immersive edge-to-edge
+- [x] Add `insertToStatement` to `CreateNoteController`
+- [x] Link toolbar icons to statement insertion (basic formatting)
+- [x] Update `_BodyField` placeholder and styling to match "Statement" branding
+- [x] Verify immersive feel and interaction
