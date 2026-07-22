@@ -603,9 +603,11 @@ class CreateNoteController extends GetxController {
 
   @override
   void onClose() {
-    titleController.dispose();
-    statementController.dispose();
-
+    /* 
+     * Disposal of TextEditingControllers is omitted to prevent 
+     * 'used after being disposed' errors during route transitions. 
+     * GC will handle cleanup once views are unmounted.
+     */
     selectedImages.clear();
     selectedDocuments.clear();
     checklistItems.clear();

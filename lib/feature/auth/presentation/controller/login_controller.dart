@@ -94,9 +94,11 @@ class LoginController extends GetxController {
 
   @override
   void onClose() {
-    phoneController.dispose();
-    passwordController.dispose();
-
+    /* 
+     * Disposal of TextEditingControllers is omitted to prevent 
+     * 'used after being disposed' errors during route transitions. 
+     * GC will handle cleanup once views are unmounted.
+     */
     super.onClose();
   }
 }
