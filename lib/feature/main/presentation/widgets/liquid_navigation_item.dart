@@ -1,71 +1,78 @@
 part of 'liquid_bottom_navigation_widget.dart';
 
 class _NavigationItem extends StatelessWidget {
-  final int pageIndex;
-  final double page;
-  final bool selected;
+  final int index;
+  final int selectedIndex;
   final String label;
   final IconData icon;
   final IconData selectedIcon;
-  final VoidCallback onAccessibilityTap;
+  final VoidCallback onTap;
 
   const _NavigationItem({
-    required this.pageIndex,
-    required this.page,
-    required this.selected,
+    required this.index,
+    required this.selectedIndex,
     required this.label,
     required this.icon,
     required this.selectedIcon,
-    required this.onAccessibilityTap,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-    final double distance = (page - pageIndex).abs();
-    final double rawProgress = (1.0 - distance).clamp(0.0, 1.0).toDouble();
-    final double progress = Curves.easeOutCubic.transform(rawProgress);
-    final Color inactiveColor = colors.onSurfaceVariant.withValues(alpha: 0.78);
-    final Color foregroundColor =
-        Color.lerp(inactiveColor, colors.primary, progress) ?? inactiveColor;
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+    final bool isSelected = index == selectedIndex;
 
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: label,
-      onTap: onAccessibilityTap,
-      child: ExcludeSemantics(
-        child: Center(
-          child: SizedBox(
-            width: 54,
-            height: 52,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Transform.translate(
-                  offset: Offset(0, -1.5 * progress),
-                  child: Transform.scale(
-                    scale: 0.96 + (progress * 0.08),
-                    child: Icon(
-                      progress >= 0.5 ? selectedIcon : icon,
-                      size: 24,
-                      color: foregroundColor,
-                    ),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.fastOutSlowIn,
+          padding: EdgeInsets.symmetric(
+            horizontal: isSelected ? 14 : 0,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? colors.primary.withValues(alpha: 0.14) 
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                isSelected ? selectedIcon : icon,
+                color: isSelected ? colors.primary : colors.onSurfaceVariant.withValues(alpha: 0.65),
+                size: 24,
+              ),
+              Flexible(
+                child: ClipRect(
+                  child: AnimatedSize(
+                    duration: const Duration(milliseconds: 400),
+                    curve: Curves.easeOutCubic,
+                    child: isSelected 
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: Text(
+                              label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ),
-                const SizedBox(height: 6),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  curve: Curves.easeOutCubic,
-                  width: 10 + (progress * 10),
-                  height: 2.5,
-                  decoration: BoxDecoration(
-                    color: colors.primary.withValues(alpha: progress),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

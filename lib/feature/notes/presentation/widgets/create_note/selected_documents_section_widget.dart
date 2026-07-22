@@ -20,7 +20,7 @@ class _SelectedDocumentsSection extends GetView<CreateNoteController> {
 
       return Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: AppSurfaceCard(
+        child: AppGlassSurface(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: <Widget>[
@@ -36,7 +36,7 @@ class _SelectedDocumentsSection extends GetView<CreateNoteController> {
               Divider(
                 height: 1,
                 color: colors.outlineVariant.withValues(
-                  alpha: theme.brightness == Brightness.dark ? 0.18 : 0.35,
+                  alpha: theme.brightness == Brightness.dark ? 0.25 : 0.40,
                 ),
               ),
 

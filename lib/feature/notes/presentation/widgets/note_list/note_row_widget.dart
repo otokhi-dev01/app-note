@@ -1,6 +1,6 @@
 part of '../../view/note_list_view.dart';
 
-class _NoteRow extends StatelessWidget {
+class _NoteRow extends StatefulWidget {
   final NoteEntity note;
   final String folderName;
   final Color folderColor;
@@ -16,125 +16,173 @@ class _NoteRow extends StatelessWidget {
   });
 
   @override
+  State<_NoteRow> createState() => _NoteRowState();
+}
+
+class _NoteRowState extends State<_NoteRow> with SingleTickerProviderStateMixin {
+  late AnimationController _pressController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(PointerDownEvent event) => _pressController.forward();
+  void _onTapUp(PointerUpEvent event) => _pressController.reverse();
+  void _onTapCancel(PointerCancelEvent event) => _pressController.reverse();
+
+  @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-
     final ColorScheme colors = theme.colorScheme;
-
     final bool isDark = theme.brightness == Brightness.dark;
 
-    final Color cardColor = isDark ? const Color(0xFF1B1D22) : Colors.white;
-
-    final String title = note.title.trim().isEmpty
+    final String title = widget.note.title.trim().isEmpty
         ? 'Untitled Note'
-        : note.title.trim();
+        : widget.note.title.trim();
 
-    final DateTime? timestamp = note.updatedAt ?? note.createdAt;
+    final DateTime? timestamp = widget.note.updatedAt ?? widget.note.createdAt;
+    final int attachmentCount = _attachmentCount(widget.note);
 
-    final int attachmentCount = _attachmentCount(note);
+    final Color cardColor = widget.note.isPinned
+        ? colors.primaryContainer.withValues(alpha: isDark ? 0.45 : 0.65)
+        : colors.surface.withValues(alpha: isDark ? 0.70 : 0.60);
 
-    final Color borderColor = note.isPinned
-        ? colors.primary.withValues(alpha: isDark ? 0.40 : 0.28)
-        : colors.outlineVariant.withValues(alpha: isDark ? 0.18 : 0.35);
+    final Color borderColor = widget.note.isPinned
+        ? colors.primary.withValues(alpha: 0.45)
+        : colors.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.45);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onMore,
-        borderRadius: BorderRadius.circular(20),
-        splashColor: colors.primary.withValues(alpha: 0.08),
-        highlightColor: colors.primary.withValues(alpha: 0.04),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: borderColor,
-              width: note.isPinned ? 1.2 : 1,
-            ),
-            boxShadow: isDark
-                ? const <BoxShadow>[]
-                : <BoxShadow>[
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.035),
-                      blurRadius: 16,
-                      spreadRadius: -8,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _NoteIcon(color: folderColor, locked: note.isLocked),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+    return Listener(
+      onPointerDown: _onTapDown,
+      onPointerUp: _onTapUp,
+      onPointerCancel: _onTapCancel,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: AppGlassSurface(
+          borderRadius: 24,
+          padding: EdgeInsets.zero,
+          tintColor: cardColor,
+          borderColor: borderColor,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap,
+              onLongPress: widget.onMore,
+              borderRadius: BorderRadius.circular(24),
+              splashColor: colors.primary.withValues(alpha: 0.12),
+              highlightColor: Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 10, 16),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: colors.onSurface,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        if (note.isPinned)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 7),
-                            child: Icon(
-                              CupertinoIcons.pin_fill,
-                              size: 14,
-                              color: colors.primary,
-                            ),
-                          ),
-                      ],
+                    _NoteIcon(
+                      color: widget.folderColor,
+                      locked: widget.note.isLocked,
                     ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _notePreview(note),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.onSurfaceVariant,
-                        height: 1.35,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: colors.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                              ),
+                              if (widget.note.isPinned)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: Icon(
+                                    CupertinoIcons.pin_fill,
+                                    size: 14,
+                                    color: colors.primary,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            _notePreview(widget.note),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant.withValues(
+                                alpha: 0.85,
+                              ),
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _NoteMetadata(
+                            folderName: widget.folderName,
+                            folderColor: widget.folderColor,
+                            locked: widget.note.isLocked,
+                            attachmentCount: attachmentCount,
+                            timestamp: timestamp,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    _NoteMetadata(
-                      folderName: folderName,
-                      folderColor: folderColor,
-                      locked: note.isLocked,
-                      attachmentCount: attachmentCount,
-                      timestamp: timestamp,
-                    ),
+                    _MoreButton(onPressed: widget.onMore),
                   ],
                 ),
               ),
-              SizedBox(
-                width: 38,
-                height: 38,
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  pressedOpacity: 0.45,
-                  onPressed: onMore,
-                  child: Icon(
-                    CupertinoIcons.ellipsis_circle,
-                    size: 21,
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _MoreButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onPressed,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: colors.onSurface.withValues(alpha: 0.06),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          CupertinoIcons.ellipsis,
+          size: 18,
+          color: colors.onSurfaceVariant,
         ),
       ),
     );

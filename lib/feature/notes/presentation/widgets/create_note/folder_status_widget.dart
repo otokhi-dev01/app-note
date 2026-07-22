@@ -17,13 +17,14 @@ class _FolderStatus extends GetView<CreateNoteController> {
           controller.selectedImages.length +
           controller.selectedDocuments.length;
 
-      return AppSurfaceCard(
+      return AppGlassSurface(
         padding: EdgeInsets.zero,
+        borderRadius: 22,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onPressed,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(22),
             splashColor: colors.primary.withValues(alpha: 0.08),
             highlightColor: colors.primary.withValues(alpha: 0.04),
             child: Padding(

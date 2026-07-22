@@ -67,13 +67,13 @@ class _FolderListContentState extends State<_FolderListContent> {
                     transitionBetweenRoutes: false,
                     stretch: true,
                     border: null,
-                    backgroundColor: pageColor.withValues(alpha: 0.72),
+                    backgroundColor: Colors.transparent,
                     largeTitle: Text(
                       'Folders',
                       style: TextStyle(
                         color: colors.onSurface,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.8,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.2,
                       ),
                     ),
                     trailing: _NavigationActions(
@@ -139,7 +139,7 @@ class _FolderListContentState extends State<_FolderListContent> {
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
                         sliver: SliverGrid(
                           delegate: SliverChildBuilderDelegate((
                             BuildContext context,
@@ -161,10 +161,10 @@ class _FolderListContentState extends State<_FolderListContent> {
                           }, childCount: visibleFolders.length),
                           gridDelegate:
                               const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 270,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: 1.13,
+                                maxCrossAxisExtent: 220,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 1.05,
                               ),
                         ),
                       ),
@@ -175,7 +175,7 @@ class _FolderListContentState extends State<_FolderListContent> {
                       ),
                     ),
                   ],
-                  const SliverToBoxAdapter(child: SizedBox(height: 145)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               );
             }),

@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../../app/routes/app_routes.dart';
+import '../../../../core/presentation/widgets/app_glass_surface.dart';
 import '../../../folders/domain/entities/folder_entity.dart';
+import '../../../main/presentation/widgets/app_liquid_background_widget.dart';
 import '../../domain/entities/note_entity.dart';
 import '../controllers/home_controller.dart';
 

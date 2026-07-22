@@ -17,59 +17,56 @@ class _FolderFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-
     final ColorScheme colors = theme.colorScheme;
-
     final bool isDark = theme.brightness == Brightness.dark;
 
     final Color backgroundColor = selected
-        ? colors.primary
-        : isDark
-        ? const Color(0xFF1B1D22)
-        : Colors.white;
+        ? colors.primary.withValues(alpha: isDark ? 0.22 : 0.14)
+        : colors.surface.withValues(alpha: isDark ? 0.65 : 0.55);
 
     final Color foregroundColor = selected
-        ? colors.onPrimary
-        : colors.onSurface;
+        ? colors.primary
+        : colors.onSurfaceVariant;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          constraints: const BoxConstraints(maxWidth: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: selected
-                  ? colors.primary
-                  : colors.outlineVariant.withValues(
-                      alpha: isDark ? 0.18 : 0.35,
-                    ),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 15, color: foregroundColor),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: AppGlassSurface(
+        borderRadius: 22,
+        padding: EdgeInsets.zero,
+        blur: 20,
+        tintColor: backgroundColor,
+        borderColor: selected ? colors.primary.withValues(alpha: 0.45) : null,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(22),
+            splashColor: colors.primary.withValues(alpha: 0.12),
+            highlightColor: Colors.transparent,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    icon,
+                    size: 18,
                     color: foregroundColor,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: foregroundColor,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

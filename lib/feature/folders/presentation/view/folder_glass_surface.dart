@@ -27,30 +27,29 @@ class _GlassSurface extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: colors.shadow.withValues(alpha: isDark ? 0.14 : 0.07),
-              blurRadius: 24,
-              spreadRadius: -10,
-              offset: const Offset(0, 10),
+              color: colors.shadow.withValues(alpha: isDark ? 0.12 : 0.05),
+              blurRadius: 32,
+              spreadRadius: -8,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
             child: Container(
               padding: padding,
               decoration: BoxDecoration(
-                color:
-                    tintColor ??
-                    colors.surface.withValues(alpha: isDark ? 0.76 : 0.68),
+                color: tintColor ??
+                    colors.surface.withValues(alpha: isDark ? 0.72 : 0.64),
                 borderRadius: BorderRadius.circular(borderRadius),
                 border: Border.all(
-                  color:
-                      borderColor ??
+                  color: borderColor ??
                       colors.outlineVariant.withValues(
-                        alpha: isDark ? 0.58 : 0.72,
+                        alpha: isDark ? 0.45 : 0.55,
                       ),
+                  width: 1.2,
                 ),
               ),
               child: child,

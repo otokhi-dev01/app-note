@@ -6,8 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../../../app/routes/app_routes.dart';
-import '../../../../core/presentation/widgets/app_surface_card.dart';
+import '../../../../core/presentation/widgets/app_glass_surface.dart';
 import '../../../folders/domain/entities/folder_entity.dart';
+import '../../../main/presentation/widgets/app_liquid_background_widget.dart';
 import '../controllers/create_note_controller.dart';
 
 import '../widgets/common/note_action_sheet_row_widget.dart';
@@ -37,23 +38,17 @@ class CreateNoteView extends GetView<CreateNoteController> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color pageColor = theme.scaffoldBackgroundColor;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: pageColor,
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      backgroundColor: Colors.transparent,
       appBar: CupertinoNavigationBar(
         automaticallyImplyLeading: false,
         transitionBetweenRoutes: false,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.14 : 0.28,
-            ),
-            width: 0.5,
-          ),
-        ),
-        backgroundColor: pageColor.withValues(alpha: 0.96),
+        border: null,
+        backgroundColor: Colors.transparent,
         leading: NoteNavigationBackButton(
           onPressed: () {
             FocusManager.instance.primaryFocus?.unfocus();
@@ -64,7 +59,8 @@ class CreateNoteView extends GetView<CreateNoteController> {
           'New Note',
           style: TextStyle(
             color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
           ),
         ),
         trailing: Obx(() {
@@ -95,49 +91,56 @@ class CreateNoteView extends GetView<CreateNoteController> {
           );
         }),
       ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-        },
-        child: ListView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-          children: <Widget>[
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    _FolderStatus(
-                      onPressed: () {
-                        _showFolderPicker(context);
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    const _MainEditorCard(),
-
-                    const _ErrorMessage(),
-
-                    const _ChecklistSection(),
-
-                    const _SelectedDocumentsSection(),
-
-                    _SelectedImagesSection(
-                      onPreview: (NoteDraftImage image) {
-                        _openImagePreview(context, image);
-                      },
-                    ),
-                  ],
-                ),
+      body: Stack(
+        children: <Widget>[
+          const Positioned.fill(child: AppLiquidBackgroundWidget()),
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
+              padding: const EdgeInsets.fromLTRB(16, 110, 16, 120),
+              children: <Widget>[
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        _FolderStatus(
+                          onPressed: () {
+                            _showFolderPicker(context);
+                          },
+                        ),
+    
+                        const SizedBox(height: 12),
+    
+                        const _MainEditorCard(),
+    
+                        const _ErrorMessage(),
+    
+                        const _ChecklistSection(),
+    
+                        const _SelectedDocumentsSection(),
+    
+                        _SelectedImagesSection(
+                          onPreview: (NoteDraftImage image) {
+                            _openImagePreview(context, image);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: _EditorToolbar(
         onChecklist: () {

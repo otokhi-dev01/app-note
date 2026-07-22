@@ -20,15 +20,12 @@ class _FolderFilterStrip extends StatelessWidget {
     );
 
     return SizedBox(
-      height: 42,
-      child: ListView.separated(
+      height: 48,
+      child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: snapshot.length + 1,
-        separatorBuilder: (BuildContext context, int index) {
-          return const SizedBox(width: 8);
-        },
         itemBuilder: (BuildContext context, int index) {
           if (index == 0) {
             return _FolderFilterChip(

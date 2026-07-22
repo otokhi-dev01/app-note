@@ -15,28 +15,35 @@ class _GlassNavigationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return Semantics(
       button: true,
       label: label,
       child: CupertinoButton(
         padding: EdgeInsets.zero,
-        pressedOpacity: 0.55,
+        pressedOpacity: 0.65,
         onPressed: () {
           HapticFeedback.selectionClick();
           onPressed();
         },
         child: _GlassSurface(
-          borderRadius: 18,
+          borderRadius: 22,
           padding: EdgeInsets.zero,
           tintColor: primary
-              ? colors.primary.withValues(alpha: 0.14)
-              : colors.surface.withValues(alpha: 0.74),
-          child: SizedBox(
-            width: 38,
-            height: 38,
-            child: Icon(icon, size: 19, color: colors.primary),
+              ? colors.primary.withValues(alpha: isDark ? 0.22 : 0.14)
+              : colors.surface.withValues(alpha: isDark ? 0.72 : 0.62),
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 22,
+              color: primary ? colors.primary : colors.onSurfaceVariant,
+            ),
           ),
         ),
       ),
