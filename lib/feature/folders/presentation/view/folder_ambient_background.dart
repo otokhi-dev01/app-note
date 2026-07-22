@@ -8,6 +8,7 @@ class _AmbientBackground extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
     final Color pageColor = theme.scaffoldBackgroundColor;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return IgnorePointer(
       child: Stack(
@@ -16,16 +17,16 @@ class _AmbientBackground extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: <Color>[
-                    Color.alphaBlend(
-                      colors.primary.withValues(alpha: 0.025),
-                      pageColor,
-                    ),
                     pageColor,
                     Color.alphaBlend(
-                      colors.tertiary.withValues(alpha: 0.018),
+                      colors.primary.withValues(alpha: isDark ? 0.08 : 0.04),
+                      pageColor,
+                    ),
+                    Color.alphaBlend(
+                      colors.secondary.withValues(alpha: isDark ? 0.06 : 0.03),
                       pageColor,
                     ),
                   ],
@@ -34,19 +35,27 @@ class _AmbientBackground extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: -80,
-            right: -75,
-            child: AppAmbientOrb.blurred(
-              size: 230,
-              color: colors.primary.withValues(alpha: 0.08),
+            top: -100,
+            right: -80,
+            child: AppAmbientOrb(
+              size: 280,
+              color: colors.primary.withValues(alpha: isDark ? 0.12 : 0.07),
             ),
           ),
           Positioned(
-            top: 300,
-            left: -110,
-            child: AppAmbientOrb.blurred(
-              size: 260,
-              color: colors.tertiary.withValues(alpha: 0.055),
+            top: 350,
+            left: -120,
+            child: AppAmbientOrb(
+              size: 320,
+              color: colors.secondary.withValues(alpha: isDark ? 0.08 : 0.05),
+            ),
+          ),
+          Positioned(
+            bottom: 50,
+            right: -90,
+            child: AppAmbientOrb(
+              size: 240,
+              color: colors.tertiary.withValues(alpha: isDark ? 0.06 : 0.04),
             ),
           ),
         ],

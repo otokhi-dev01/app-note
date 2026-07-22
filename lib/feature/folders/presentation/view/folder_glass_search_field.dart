@@ -13,22 +13,31 @@ class _GlassSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       child: _GlassSurface(
-        borderRadius: 18,
-        padding: EdgeInsets.zero,
+        borderRadius: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        tintColor: colors.surface.withValues(alpha: isDark ? 0.65 : 0.55),
         child: CupertinoSearchTextField(
           controller: controller,
-          placeholder: 'Search folders',
-          borderRadius: BorderRadius.circular(18),
+          placeholder: 'Search folders...',
+          borderRadius: BorderRadius.circular(30),
           backgroundColor: Colors.transparent,
-          style: TextStyle(color: colors.onSurface),
-          placeholderStyle: TextStyle(color: colors.onSurfaceVariant),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: colors.onSurface,
+            letterSpacing: -0.2,
+          ),
+          placeholderStyle: theme.textTheme.bodyLarge?.copyWith(
+            color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
           itemColor: colors.onSurfaceVariant,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          itemSize: 20,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           onChanged: onChanged,
           onSuffixTap: onClear,
         ),

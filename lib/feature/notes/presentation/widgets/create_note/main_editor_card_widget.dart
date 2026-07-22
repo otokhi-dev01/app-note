@@ -8,7 +8,7 @@ class _MainEditorCard extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
 
-    return AppSurfaceCard(
+    return AppGlassSurface(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -20,7 +20,7 @@ class _MainEditorCard extends StatelessWidget {
           Divider(
             height: 1,
             color: colors.outlineVariant.withValues(
-              alpha: theme.brightness == Brightness.dark ? 0.18 : 0.35,
+              alpha: theme.brightness == Brightness.dark ? 0.25 : 0.40,
             ),
           ),
 

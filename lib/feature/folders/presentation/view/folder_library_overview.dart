@@ -21,18 +21,19 @@ class _LibraryOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
+    final bool isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 26),
       child: _GlassSurface(
-        borderRadius: 26,
-        padding: const EdgeInsets.all(14),
-        tintColor: colors.surface.withValues(alpha: 0.66),
+        borderRadius: 28,
+        padding: const EdgeInsets.all(16),
+        tintColor: colors.surface.withValues(alpha: isDark ? 0.68 : 0.58),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 2, 4, 13),
+              padding: const EdgeInsets.fromLTRB(4, 2, 4, 16),
               child: Row(
                 children: <Widget>[
                   Expanded(
@@ -43,8 +44,8 @@ class _LibraryOverview extends StatelessWidget {
                           'Your Library',
                           style: theme.textTheme.titleLarge?.copyWith(
                             color: colors.onSurface,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.4,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.6,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -54,24 +55,25 @@ class _LibraryOverview extends StatelessWidget {
                           ' • $noteCount '
                           '${noteCount == 1 ? 'note' : 'notes'}',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
+                            color: colors.onSurfaceVariant.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: colors.primaryContainer,
-                      borderRadius: BorderRadius.circular(14),
+                      color: colors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     alignment: Alignment.center,
                     child: Icon(
                       CupertinoIcons.rectangle_3_offgrid_fill,
                       size: 20,
-                      color: colors.onPrimaryContainer,
+                      color: colors.primary,
                     ),
                   ),
                 ],
@@ -88,10 +90,10 @@ class _LibraryOverview extends StatelessWidget {
                     onPressed: onAllNotesPressed,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _LibraryActionTile(
-                    icon: CupertinoIcons.delete,
+                    icon: CupertinoIcons.trash_fill,
                     title: 'Deleted',
                     value: deletedCount.toString(),
                     destructive: true,

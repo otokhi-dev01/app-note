@@ -1,0 +1,5 @@
+
+module flutter_secure_storage_darwin.Swift {
+  header "flutter_secure_storage_darwin-Swift.h"
+  requires objc
+}

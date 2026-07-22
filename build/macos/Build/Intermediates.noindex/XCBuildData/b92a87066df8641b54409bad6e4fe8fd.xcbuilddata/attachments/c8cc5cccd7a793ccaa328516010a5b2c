@@ -1,0 +1,29 @@
+{
+  "" : {
+    "diagnostics" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/flutter_secure_storage_darwin-primary.dia",
+    "emit-module-dependencies" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/flutter_secure_storage_darwin-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/flutter_secure_storage_darwin-primary-emit-module.dia",
+    "pch" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/flutter_secure_storage_darwin-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/flutter_secure_storage_darwin-primary.swiftdeps"
+  },
+  "/Users/yornnona/.pub-cache/hosted/pub.dev/flutter_secure_storage_darwin-0.3.2/darwin/flutter_secure_storage_darwin/Sources/flutter_secure_storage_darwin/FlutterSecureStorage.swift" : {
+    "const-values" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.swiftconstvalues",
+    "dependencies" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.d",
+    "diagnostics" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.dia",
+    "index-unit-output-path" : "/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.o",
+    "llvm-bc" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.bc",
+    "object" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.o",
+    "swift-dependencies" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage.swiftdeps",
+    "swiftmodule" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorage~partial.swiftmodule"
+  },
+  "/Users/yornnona/.pub-cache/hosted/pub.dev/flutter_secure_storage_darwin-0.3.2/darwin/flutter_secure_storage_darwin/Sources/flutter_secure_storage_darwin/FlutterSecureStorageDarwinPlugin.swift" : {
+    "const-values" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.swiftconstvalues",
+    "dependencies" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.d",
+    "diagnostics" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.dia",
+    "index-unit-output-path" : "/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.o",
+    "llvm-bc" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.bc",
+    "object" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.o",
+    "swift-dependencies" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin.swiftdeps",
+    "swiftmodule" : "/Users/yornnona/Documents/flutter_app/app-note/build/macos/Build/Intermediates.noindex/Pods.build/Debug/flutter_secure_storage_darwin.build/Objects-normal/x86_64/FlutterSecureStorageDarwinPlugin~partial.swiftmodule"
+  }
+}

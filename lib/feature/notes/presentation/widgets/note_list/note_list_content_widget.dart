@@ -27,91 +27,92 @@ class _NoteListContentState extends State<_NoteListContent> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final Color pageColor = theme.scaffoldBackgroundColor;
+    final ColorScheme colors = theme.colorScheme;
 
-    return ColoredBox(
-      color: pageColor,
-      child: Obx(() {
-        final List<FolderEntity> folders = List<FolderEntity>.unmodifiable(
-          controller.folders.toList(),
-        );
+    return Stack(
+      children: <Widget>[
+        const Positioned.fill(child: AppLiquidBackgroundWidget()),
+        Obx(() {
+          final List<FolderEntity> folders = List<FolderEntity>.unmodifiable(
+            controller.folders.toList(),
+          );
 
-        final List<NoteEntity> notes = List<NoteEntity>.unmodifiable(
-          controller.visibleNotes,
-        );
+          final List<NoteEntity> notes = List<NoteEntity>.unmodifiable(
+            controller.visibleNotes,
+          );
 
-        final List<NoteEntity> visibleNotes = _filterNotes(
-          notes: notes,
-          folders: folders,
-        );
+          final List<NoteEntity> visibleNotes = _filterNotes(
+            notes: notes,
+            folders: folders,
+          );
 
-        final List<NoteEntity> pinnedNotes = visibleNotes
-            .where((NoteEntity note) => note.isPinned)
-            .toList(growable: false);
+          final List<NoteEntity> pinnedNotes = visibleNotes
+              .where((NoteEntity note) => note.isPinned)
+              .toList(growable: false);
 
-        final List<NoteEntity> regularNotes = visibleNotes
-            .where((NoteEntity note) => !note.isPinned)
-            .toList(growable: false);
+          final List<NoteEntity> regularNotes = visibleNotes
+              .where((NoteEntity note) => !note.isPinned)
+              .toList(growable: false);
 
-        final bool isInitialLoading =
-            controller.isNotesLoading.value && controller.notes.isEmpty;
+          final bool isInitialLoading =
+              controller.isNotesLoading.value && controller.notes.isEmpty;
 
-        final String errorMessage = _cleanServerMessage(
-          controller.noteErrorMessage.value,
-        );
+          final String errorMessage = _cleanServerMessage(
+            controller.noteErrorMessage.value,
+          );
 
-        return CustomScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          slivers: <Widget>[
-            CupertinoSliverNavigationBar(
-              automaticallyImplyLeading: false,
-              stretch: true,
-              border: null,
-              backgroundColor: pageColor.withValues(alpha: 0.94),
-              largeTitle: Text(
-                controller.selectedFolderName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.7,
+          return CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: <Widget>[
+              CupertinoSliverNavigationBar(
+                automaticallyImplyLeading: false,
+                stretch: true,
+                border: null,
+                backgroundColor: Colors.transparent,
+                largeTitle: Text(
+                  controller.selectedFolderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.2,
+                  ),
+                ),
+                trailing: _CreateNoteButton(onPressed: _openCreateNoteScreen),
+              ),
+
+              CupertinoSliverRefreshControl(onRefresh: controller.loadAll),
+
+              SliverToBoxAdapter(
+                child: _NoteSearchField(
+                  controller: _searchController,
+                  onChanged: (String value) {
+                    setState(() {
+                      _searchQuery = value.trim().toLowerCase();
+                    });
+                  },
+                  onClear: _clearSearch,
                 ),
               ),
-              trailing: _CreateNoteButton(onPressed: _openCreateNoteScreen),
-            ),
 
-            CupertinoSliverRefreshControl(onRefresh: controller.loadAll),
-
-            SliverToBoxAdapter(
-              child: _NoteSearchField(
-                controller: _searchController,
-                onChanged: (String value) {
-                  setState(() {
-                    _searchQuery = value.trim().toLowerCase();
-                  });
-                },
-                onClear: _clearSearch,
+              SliverToBoxAdapter(
+                child: _FolderFilterStrip(
+                  folders: folders,
+                  selectedFolderId: controller.selectedFolderId.value,
+                  onSelectAll: () {
+                    HapticFeedback.selectionClick();
+                    controller.selectAllNotes();
+                  },
+                  onSelectFolder: (int folderId) {
+                    HapticFeedback.selectionClick();
+                    controller.selectFolder(folderId);
+                  },
+                ),
               ),
-            ),
-
-            SliverToBoxAdapter(
-              child: _FolderFilterStrip(
-                folders: folders,
-                selectedFolderId: controller.selectedFolderId.value,
-                onSelectAll: () {
-                  HapticFeedback.selectionClick();
-                  controller.selectAllNotes();
-                },
-                onSelectFolder: (int folderId) {
-                  HapticFeedback.selectionClick();
-                  controller.selectFolder(folderId);
-                },
-              ),
-            ),
 
             if (isInitialLoading)
               const SliverFillRemaining(
@@ -183,12 +184,13 @@ class _NoteListContentState extends State<_NoteListContent> {
               ),
             ],
 
-            const SliverToBoxAdapter(child: SizedBox(height: 130)),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
           ],
         );
       }),
-    );
-  }
+    ],
+  );
+}
 
   Widget _buildNoteSection({
     required BuildContext context,

@@ -18,7 +18,7 @@ class _SelectedImagesSection extends GetView<CreateNoteController> {
 
       return Padding(
         padding: const EdgeInsets.only(top: 12),
-        child: AppSurfaceCard(
+        child: AppGlassSurface(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: <Widget>[
