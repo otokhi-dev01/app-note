@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../feature/settings/presentation/controllers/settings_controller.dart';
 import 'bindings/app_binding.dart';
 import 'routes/app_pages.dart';
@@ -13,6 +12,7 @@ class PiisiitNoteApp extends GetView<SettingsController> {
 
   @override
   Widget build(BuildContext context) {
+    // code wase update at 22.07.2026 by nona.dev
     return Obx(
       () => GetMaterialApp(
         title: 'Piisiit Note',
