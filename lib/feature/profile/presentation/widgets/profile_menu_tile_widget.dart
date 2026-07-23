@@ -6,7 +6,8 @@ class ProfileMenuTileWidget extends StatelessWidget {
     super.key,
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.value,
+    this.subtitle,
     required this.onTap,
     this.isDestructive = false,
     this.showChevron = true,
@@ -14,7 +15,8 @@ class ProfileMenuTileWidget extends StatelessWidget {
 
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? value;
+  final String? subtitle;
   final VoidCallback onTap;
   final bool isDestructive;
   final bool showChevron;
@@ -33,48 +35,50 @@ class ProfileMenuTileWidget extends StatelessWidget {
         splashColor: accentColor.withValues(alpha: 0.08),
         highlightColor: accentColor.withValues(alpha: 0.04),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: <Widget>[
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, size: 20, color: accentColor),
+              Icon(
+                icon,
+                size: 22,
+                color: colors.onSurface.withValues(alpha: 0.7),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: titleColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
               ),
+              if (value != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    value!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
               if (showChevron)
                 Icon(
                   CupertinoIcons.chevron_forward,
-                  size: 17,
-                  color: colors.onSurfaceVariant.withValues(alpha: 0.65),
+                  size: 16,
+                  color: colors.onSurfaceVariant.withValues(alpha: 0.4),
                 ),
             ],
           ),

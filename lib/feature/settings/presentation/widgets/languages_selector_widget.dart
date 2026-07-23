@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../controllers/settings_controller.dart';
 import 'settings_flag_widget.dart';
 import 'settings_selection_tile_widget.dart';
@@ -14,7 +13,7 @@ class LanguageSelector extends GetView<SettingsController> {
       () => Column(
         children: <Widget>[
           SettingsSelectionTileWidget(
-            leading: const SettingsFlagWidget(
+            leading: SettingsFlagWidget(
               assetPath: 'assets/images/flags/usa.png',
               fallbackFlag: '🇺🇸',
             ),
@@ -25,9 +24,9 @@ class LanguageSelector extends GetView<SettingsController> {
               controller.changeLanguage(AppLanguage.english);
             },
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           SettingsSelectionTileWidget(
-            leading: const SettingsFlagWidget(
+            leading: SettingsFlagWidget(
               assetPath: 'assets/images/flags/cambodia.png',
               fallbackFlag: '🇰🇭',
             ),

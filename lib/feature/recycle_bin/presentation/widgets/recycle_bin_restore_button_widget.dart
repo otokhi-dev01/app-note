@@ -12,7 +12,7 @@ class RecycleBinRestoreButtonWidget extends StatelessWidget {
     final ColorScheme colors = theme.colorScheme;
 
     return CupertinoButton(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       pressedOpacity: 0.5,
       borderRadius: BorderRadius.circular(11),
       color: colors.primaryContainer,

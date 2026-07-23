@@ -56,13 +56,7 @@ class _FolderGlassCardState extends State<_FolderGlassCard>
         : widget.folder.name.trim();
     final DateTime? timestamp = widget.folder.updatedAt ?? widget.folder.createdAt;
 
-    final Color cardColor = widget.selected
-        ? colors.primaryContainer.withValues(alpha: isDark ? 0.45 : 0.65)
-        : colors.surface.withValues(alpha: isDark ? 0.70 : 0.60);
-
-    final Color borderColor = widget.selected
-        ? colors.primary.withValues(alpha: 0.45)
-        : colors.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.45);
+    final Color accentColor = _parseFolderColor(widget.folder.colorValue, colors.primary);
 
     return Listener(
       onPointerDown: _onTapDown,
@@ -70,94 +64,119 @@ class _FolderGlassCardState extends State<_FolderGlassCard>
       onPointerCancel: _onTapCancel,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: _GlassSurface(
-          borderRadius: 26,
-          padding: EdgeInsets.zero,
-          tintColor: cardColor,
-          borderColor: borderColor,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(26),
-              onTap: widget.onTap,
-              onLongPress: widget.onMore,
-              splashColor: colors.primary.withValues(alpha: 0.12),
-              highlightColor: Colors.transparent,
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: widget.selected
-                                ? colors.primary
-                                : colors.primary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: widget.selected
-                                ? <BoxShadow>[
-                                    BoxShadow(
-                                      color: colors.primary.withValues(alpha: 0.35),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            _folderIcon(widget.folder.iconName),
-                            size: 24,
-                            color: widget.selected
-                                ? colors.onPrimary
-                                : colors.primary,
-                          ),
-                        ),
-                        const Spacer(),
-                        _MoreButton(onPressed: widget.onMore),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: colors.onSurface,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        fontSize: 17,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.onTap,
+                onLongPress: widget.onMore,
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: <Widget>[
+                      Container(
+                        width: 6,
+                        color: accentColor,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Text(
-                            '${widget.folder.noteCount} '
-                            '${widget.folder.noteCount == 1 ? 'note' : 'notes'}',
-                            maxLines: 1,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.onSurfaceVariant.withValues(alpha: 0.8),
-                              fontWeight: FontWeight.w600,
-                            ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                children: <Widget>[
+                                  Container(
+                                    width: 54,
+                                    height: 54,
+                                    decoration: BoxDecoration(
+                                      color: accentColor.withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      _folderIcon(widget.folder.iconName),
+                                      size: 26,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Icon(
+                                    CupertinoIcons.chevron_forward,
+                                    size: 16,
+                                    color: colors.onSurfaceVariant.withValues(alpha: 0.3),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  _MoreButton(onPressed: widget.onMore),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                name,
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  color: colors.onSurface,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.8,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Projects, meeting notes, planning.', // Placeholder as per plan
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colors.onSurfaceVariant.withValues(alpha: 0.7),
+                                  height: 1.4,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: <Widget>[
+                                  if (timestamp != null)
+                                    Text(
+                                      'Updated ${_timeAgo(timestamp)}',
+                                      style: theme.textTheme.labelLarge?.copyWith(
+                                        color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colors.onSurface.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      '${widget.folder.noteCount}',
+                                      style: theme.textTheme.labelLarge?.copyWith(
+                                        color: colors.onSurfaceVariant,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        if (timestamp != null)
-                          Text(
-                            _friendlyDate(timestamp.toLocal()),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colors.onSurfaceVariant.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -166,6 +185,15 @@ class _FolderGlassCardState extends State<_FolderGlassCard>
       ),
     );
   }
+}
+
+String _timeAgo(DateTime dateTime) {
+  final Duration diff = DateTime.now().difference(dateTime);
+  if (diff.inDays >= 7) return '${(diff.inDays / 7).floor()}w ago';
+  if (diff.inDays >= 1) return '${diff.inDays}d ago';
+  if (diff.inHours >= 1) return '${diff.inHours}h ago';
+  if (diff.inMinutes >= 1) return '${diff.inMinutes}m ago';
+  return 'just now';
 }
 
 class _MoreButton extends StatelessWidget {
@@ -265,4 +293,31 @@ String _friendlyDate(DateTime date) {
   ];
 
   return '${months[date.month - 1]} ${date.day}';
+}
+
+Color _parseFolderColor(String rawValue, Color fallback) {
+  final String value = rawValue.trim();
+
+  if (value.isEmpty || value.toLowerCase() == 'string') {
+    return fallback;
+  }
+
+  try {
+    String hex = value
+        .replaceAll('#', '')
+        .replaceAll('0x', '')
+        .replaceAll('0X', '');
+
+    if (hex.length == 6) {
+      hex = 'FF$hex';
+    }
+
+    if (hex.length != 8) {
+      return fallback;
+    }
+
+    return Color(int.parse(hex, radix: 16));
+  } catch (_) {
+    return fallback;
+  }
 }

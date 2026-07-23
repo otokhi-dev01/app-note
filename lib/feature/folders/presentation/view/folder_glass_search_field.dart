@@ -19,28 +19,23 @@ class _GlassSearchField extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      child: _GlassSurface(
-        borderRadius: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        tintColor: colors.surface.withValues(alpha: isDark ? 0.65 : 0.55),
-        child: CupertinoSearchTextField(
-          controller: controller,
-          placeholder: 'Search folders...',
-          borderRadius: BorderRadius.circular(30),
-          backgroundColor: Colors.transparent,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: colors.onSurface,
-            letterSpacing: -0.2,
-          ),
-          placeholderStyle: theme.textTheme.bodyLarge?.copyWith(
-            color: colors.onSurfaceVariant.withValues(alpha: 0.6),
-          ),
-          itemColor: colors.onSurfaceVariant,
-          itemSize: 20,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          onChanged: onChanged,
-          onSuffixTap: onClear,
+      child: CupertinoSearchTextField(
+        controller: controller,
+        placeholder: 'Search folders...',
+        borderRadius: BorderRadius.circular(14),
+        backgroundColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: colors.onSurface,
+          letterSpacing: -0.2,
         ),
+        placeholderStyle: theme.textTheme.bodyLarge?.copyWith(
+          color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+        ),
+        itemColor: colors.onSurfaceVariant,
+        itemSize: 20,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        onChanged: onChanged,
+        onSuffixTap: onClear,
       ),
     );
   }

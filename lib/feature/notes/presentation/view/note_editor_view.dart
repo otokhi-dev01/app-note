@@ -1,16 +1,13 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-
 import '../../../../core/presentation/widgets/app_surface_card.dart';
 import '../controllers/note_editor_controller.dart';
-
+import '../controllers/home_controller.dart';
 import '../widgets/common/note_action_sheet_row_widget.dart';
-import '../widgets/common/note_navigation_back_button_widget.dart';
-import '../widgets/common/note_navigation_icon_button_widget.dart';
-import '../widgets/common/note_navigation_save_button_widget.dart';
 part '../widgets/note_editor/note_editor_content_widget.dart';
 part '../widgets/note_editor/note_metadata_card_widget.dart';
 part '../widgets/note_editor/locked_note_banner_widget.dart';
@@ -42,12 +39,12 @@ class NoteEditorView extends GetView<NoteEditorController> {
         transitionBetweenRoutes: false,
         border: null,
         backgroundColor: pageColor.withValues(alpha: 0.94),
-        leading: NoteNavigationBackButton(onPressed: Get.back),
-        middle: Text(
-          'Edit Note',
-          style: TextStyle(
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: Get.back,
+          child: Icon(
+            CupertinoIcons.chevron_back,
             color: theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
           ),
         ),
         trailing: Obx(() {
@@ -56,26 +53,38 @@ class NoteEditorView extends GetView<NoteEditorController> {
               controller.isLoading.value ||
               !controller.hasLoadedNote;
 
+          final currentNote = controller.note.value;
+
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              NoteNavigationIconButton.editor(
-                label: 'Note options',
-                icon: CupertinoIcons.ellipsis_circle,
-                onPressed: unavailable
-                    ? null
-                    : () {
-                        _showStateOptions(context);
-                      },
+              if (currentNote != null)
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  onPressed: () => Get.find<HomeController>().togglePin(currentNote),
+                  child: Icon(
+                    currentNote.isPinned ? CupertinoIcons.pin_fill : CupertinoIcons.pin,
+                    size: 20,
+                    color: currentNote.isPinned ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: () {}, // Reminders
+                child: Icon(
+                  CupertinoIcons.bell,
+                  size: 20,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
               ),
-              const SizedBox(width: 2),
-              NoteNavigationSaveButton.editor(
-                saving: controller.isSaving.value,
-                enabled:
-                    controller.canEdit &&
-                    !controller.isLoading.value &&
-                    !controller.isSaving.value,
-                onPressed: controller.saveChanges,
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                onPressed: unavailable ? null : () => _showStateOptions(context),
+                child: Icon(
+                  CupertinoIcons.ellipsis_circle,
+                  size: 22,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ],
           );
@@ -85,6 +94,12 @@ class NoteEditorView extends GetView<NoteEditorController> {
         behavior: HitTestBehavior.translucent,
         onTap: () {
           FocusManager.instance.primaryFocus?.unfocus();
+        },
+        onLongPress: () {
+          if (controller.canEdit) {
+            HapticFeedback.mediumImpact();
+            _showEditorImageSourceDialog(context);
+          }
         },
         child: Obx(() => _buildBody(context)),
       ),
@@ -126,7 +141,6 @@ class NoteEditorView extends GetView<NoteEditorController> {
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(sheetContext).pop();
-
                 _pickAndUploadImage(source: ImageSource.camera);
               },
               child: const NoteActionSheetRow(
@@ -137,7 +151,6 @@ class NoteEditorView extends GetView<NoteEditorController> {
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(sheetContext).pop();
-
                 _pickAndUploadImage(source: ImageSource.gallery);
               },
               child: const NoteActionSheetRow(
@@ -148,7 +161,6 @@ class NoteEditorView extends GetView<NoteEditorController> {
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(sheetContext).pop();
-
                 _pickAndUploadDocument();
               },
               child: const NoteActionSheetRow(
@@ -163,6 +175,42 @@ class NoteEditorView extends GetView<NoteEditorController> {
             },
             child: const Text('Cancel'),
           ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showEditorImageSourceDialog(BuildContext context) async {
+    await showCupertinoDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext dialogContext) {
+        return CupertinoAlertDialog(
+          title: const Text('Add Image'),
+          content: const Text('Take a photo or choose from your library.'),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _pickAndUploadImage(source: ImageSource.camera);
+              },
+              child: const Text('Take Photo'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _pickAndUploadImage(source: ImageSource.gallery);
+              },
+              child: const Text('Photo Library'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+          ],
         );
       },
     );

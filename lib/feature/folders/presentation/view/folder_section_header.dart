@@ -1,14 +1,12 @@
 part of 'folder_list_view.dart';
 
 class _FolderSectionHeader extends StatelessWidget {
-  final int count;
-  final String sortLabel;
-  final VoidCallback onSortPressed;
+  final String title;
+  final Widget? trailing;
 
   const _FolderSectionHeader({
-    required this.count,
-    required this.sortLabel,
-    required this.onSortPressed,
+    required this.title,
+    this.trailing,
   });
 
   @override
@@ -17,49 +15,21 @@ class _FolderSectionHeader extends StatelessWidget {
     final ColorScheme colors = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 0, 12, 10),
+      padding: const EdgeInsets.fromLTRB(18, 24, 12, 12),
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Row(
-              children: <Widget>[
-                Text(
-                  'Folders',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: colors.onSurface,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _CountBadge(count: count),
-              ],
+            child: Text(
+              title.toUpperCase(),
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colors.onSurfaceVariant.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+                fontSize: 12,
+              ),
             ),
           ),
-          CupertinoButton(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            pressedOpacity: 0.5,
-            onPressed: onSortPressed,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  sortLabel,
-                  style: TextStyle(
-                    color: colors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  CupertinoIcons.chevron_down,
-                  size: 13,
-                  color: colors.primary,
-                ),
-              ],
-            ),
-          ),
+          if (trailing != null) trailing!,
         ],
       ),
     );

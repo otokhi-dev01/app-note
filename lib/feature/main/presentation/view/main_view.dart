@@ -7,6 +7,7 @@ import '../../../notes/presentation/controllers/home_controller.dart';
 import '../../../notes/presentation/view/note_list_view.dart';
 
 import '../../../profile/presentation/views/profile_view.dart';
+import '../../../search/presentation/view/search_view.dart';
 
 import '../../../settings/view/settings_view.dart';
 import '../controller/main_navigation_controller.dart';
@@ -19,9 +20,9 @@ class MainView extends GetView<MainNavigationController> {
   @override
   Widget build(BuildContext context) {
     const List<Widget> screens = <Widget>[
-      FolderListView(),
       NoteListView(),
-      SettingsView(),
+      FolderListView(),
+      SearchView(),
       ProfileView(),
     ];
 

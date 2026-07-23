@@ -1,18 +1,14 @@
 import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/presentation/widgets/app_glass_surface.dart';
 import '../../../folders/domain/entities/folder_entity.dart';
 import '../../../main/presentation/widgets/app_liquid_background_widget.dart';
 import '../controllers/create_note_controller.dart';
-
 import '../widgets/common/note_action_sheet_row_widget.dart';
-
 part '../widgets/create_note/folder_status_widget.dart';
 part '../widgets/create_note/title_field_widget.dart';
 part '../widgets/create_note/body_field_widget.dart';
@@ -95,6 +91,10 @@ class CreateNoteView extends GetView<CreateNoteController> {
             onTap: () {
               FocusManager.instance.primaryFocus?.unfocus();
             },
+            onLongPress: () {
+              HapticFeedback.mediumImpact();
+              _showImageSourceDialog(context, controller);
+            },
             child: ListView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               physics: const AlwaysScrollableScrollPhysics(
@@ -103,22 +103,15 @@ class CreateNoteView extends GetView<CreateNoteController> {
               padding: const EdgeInsets.fromLTRB(20, 110, 20, 120),
               children: <Widget>[
                 const _FolderStatus(),
-
                 const SizedBox(height: 24),
-
                 const _TitleField(),
-
                 const SizedBox(height: 12),
-
                 const _MetadataRow(),
-
                 const SizedBox(height: 16),
-
                 Divider(
                   height: 1,
                   color: theme.colorScheme.outlineVariant.withValues(alpha: 0.15),
                 ),
-
                 const SizedBox(height: 32),
 
                 const _BodyField(),
@@ -302,6 +295,45 @@ class CreateNoteView extends GetView<CreateNoteController> {
       ),
     );
   }
+}
+
+Future<void> _showImageSourceDialog(
+  BuildContext context,
+  CreateNoteController controller,
+) async {
+  await showCupertinoDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (BuildContext dialogContext) {
+      return CupertinoAlertDialog(
+        title: const Text('Add Image'),
+        content: const Text('Take a photo or choose from your library.'),
+        actions: <Widget>[
+          CupertinoDialogAction(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              await controller.takePhoto();
+            },
+            child: const Text('Take Photo'),
+          ),
+          CupertinoDialogAction(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              await controller.choosePhotos();
+            },
+            child: const Text('Photo Library'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class _MetadataRow extends StatelessWidget {

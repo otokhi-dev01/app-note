@@ -73,16 +73,36 @@ class _NoteListContentState extends State<_NoteListContent> {
                 border: null,
                 backgroundColor: Colors.transparent,
                 largeTitle: Text(
-                  controller.selectedFolderName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  'Notes',
                   style: TextStyle(
                     color: colors.onSurface,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -1.2,
                   ),
                 ),
-                trailing: _CreateNoteButton(onPressed: _openCreateNoteScreen),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        FilterBottomSheet.show(context);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: colors.onSurface.withValues(alpha: 0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          CupertinoIcons.slider_horizontal_3,
+                          size: 18,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               CupertinoSliverRefreshControl(onRefresh: controller.loadAll),
@@ -152,8 +172,6 @@ class _NoteListContentState extends State<_NoteListContent> {
                 SliverToBoxAdapter(
                   child: _SectionHeader(
                     title: 'Pinned',
-                    count: pinnedNotes.length,
-                    icon: CupertinoIcons.pin_fill,
                   ),
                 ),
                 _buildNoteSection(
@@ -161,15 +179,50 @@ class _NoteListContentState extends State<_NoteListContent> {
                   notes: pinnedNotes,
                   folders: folders,
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
 
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _SectionHeader(
+                          title: 'Recent',
+                        ),
+                      ),
+                      CupertinoButton(
+                        padding: const EdgeInsets.only(right: 18, top: 12),
+                        onPressed: () {},
+                        child: Text(
+                          'See All',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colors.primary.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 20),
+                  child: _RecentNotesList(
+                    notes: visibleNotes.take(5).toList(),
+                    folders: folders,
+                  ),
+                ),
+              ),
+
               if (regularNotes.isNotEmpty) ...[
+                const SliverToBoxAdapter(child: SizedBox(height: 12)),
                 SliverToBoxAdapter(
                   child: _SectionHeader(
-                    title: pinnedNotes.isEmpty ? 'Notes' : 'Other Notes',
-                    count: regularNotes.length,
-                    icon: CupertinoIcons.doc_text_fill,
+                    title: 'Other Notes',
                   ),
                 ),
                 _buildNoteSection(

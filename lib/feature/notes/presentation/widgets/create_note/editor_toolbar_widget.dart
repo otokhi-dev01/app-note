@@ -36,31 +36,16 @@ class _EditorToolbar extends GetView<CreateNoteController> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
                 _ToolbarIcon(
-                  icon: CupertinoIcons.bold,
+                  icon: CupertinoIcons.textformat,
                   onPressed: () => controller.insertToStatement('**Text**'),
                 ),
                 _ToolbarIcon(
-                  icon: CupertinoIcons.italic,
-                  onPressed: () => controller.insertToStatement('_Text_'),
-                ),
-                _ToolbarIcon(
-                  icon: CupertinoIcons.underline,
-                  onPressed: () => controller.insertToStatement('<u>Text</u>'),
-                ),
-                VerticalDivider(
-                  width: 24,
-                  thickness: 1,
-                  indent: 10,
-                  endIndent: 10,
-                  color: colors.outlineVariant.withValues(alpha: 0.2),
-                ),
-                _ToolbarIcon(
-                  icon: CupertinoIcons.list_bullet,
-                  onPressed: onChecklist,
-                ),
-                _ToolbarIcon(
-                  icon: CupertinoIcons.list_number,
+                  icon: CupertinoIcons.list_bullet_indent,
                   onPressed: () => controller.insertToStatement('\n1. '),
+                ),
+                _ToolbarIcon(
+                  icon: CupertinoIcons.checkmark_square,
+                  onPressed: onChecklist,
                 ),
                 _ToolbarIcon(
                   icon: CupertinoIcons.photo,

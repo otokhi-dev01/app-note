@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import '../../../notes/presentation/controllers/home_controller.dart';
 import '../controllers/recycle_bin_controller.dart';
 

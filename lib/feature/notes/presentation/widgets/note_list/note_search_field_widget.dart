@@ -19,28 +19,47 @@ class _NoteSearchField extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: AppGlassSurface(
-        borderRadius: 30,
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        tintColor: colors.surface.withValues(alpha: isDark ? 0.65 : 0.55),
-        child: CupertinoSearchTextField(
-          controller: controller,
-          placeholder: 'Search notes...',
-          borderRadius: BorderRadius.circular(30),
-          backgroundColor: Colors.transparent,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: colors.onSurface,
-            letterSpacing: -0.2,
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoSearchTextField(
+              controller: controller,
+              placeholder: 'Search notes...',
+              borderRadius: BorderRadius.circular(14),
+              backgroundColor: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: colors.onSurface,
+                letterSpacing: -0.2,
+              ),
+              placeholderStyle: theme.textTheme.bodyLarge?.copyWith(
+                color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+              itemColor: colors.onSurfaceVariant,
+              itemSize: 20,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              onChanged: onChanged,
+              onSuffixTap: onClear,
+            ),
           ),
-          placeholderStyle: theme.textTheme.bodyLarge?.copyWith(
-            color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+          const SizedBox(width: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: CupertinoButton(
+              padding: const EdgeInsets.all(10),
+              onPressed: () {
+                // Voice search or other
+              },
+              child: Icon(
+                CupertinoIcons.mic_fill,
+                size: 20,
+                color: colors.onSurfaceVariant,
+              ),
+            ),
           ),
-          itemColor: colors.onSurfaceVariant,
-          itemSize: 20,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          onChanged: onChanged,
-          onSuffixTap: onClear,
-        ),
+        ],
       ),
     );
   }

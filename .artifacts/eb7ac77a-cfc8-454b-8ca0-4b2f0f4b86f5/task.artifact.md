@@ -1,0 +1,13 @@
+- `[x]` Refine `RecycleBinView` for Archive vs Trash differentiation
+    - `[x]` Hide folders in Archive mode
+    - `[x]` Update top-right action icon (Filter for Archive, Trash for Trash)
+    - `[x]` Hide "Empty Trash" footer in Archive mode
+- `[x]` Refine `TrashNoteCardWidget`
+    - `[x]` Conditional chevron and trash icon display
+- `[x]` Refine `SearchView`
+    - `[x]` Enhance mock suggestions with varied colors and data
+- `[x]` Refine Notes Screen
+    - `[x]` Ensure "Recent" section cards match mockup spacing and typography
+- `[x]` Refine Folder Screen
+    - `[x]` Ensure list items have perfect alignment and chevrons
+- `[x]` Final visual audit and build verification

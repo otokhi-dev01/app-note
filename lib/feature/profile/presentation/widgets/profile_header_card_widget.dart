@@ -21,56 +21,50 @@ class ProfileHeaderCardWidget extends StatelessWidget {
     final ColorScheme colors = theme.colorScheme;
 
     return AppSurfaceCard(
-      borderRadius: 20,
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-      child: Column(
+      borderRadius: 24,
+      padding: const EdgeInsets.all(16),
+      child: Row(
         children: <Widget>[
-          ClipOval(
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
             child: Container(
-              width: 82,
-              height: 82,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                color: colors.primary.withValues(alpha: 0.11),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colors.primary.withValues(alpha: 0.18),
-                ),
+                color: colors.onSurface.withValues(alpha: 0.05),
               ),
               alignment: Alignment.center,
               child: _avatar(colors),
             ),
           ),
-          const SizedBox(height: 15),
-          Text(
-            displayName.trim().isEmpty ? 'Piisiit Note User' : displayName,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: colors.onSurface,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  displayName.trim().isEmpty ? 'User Name' : displayName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  statusText.trim().isEmpty ? 'user@email.com' : statusText,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                statusText.trim().isEmpty ? 'Signed in' : statusText,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 18,
+            color: colors.onSurfaceVariant.withValues(alpha: 0.4),
           ),
         ],
       ),
@@ -86,19 +80,19 @@ class ProfileHeaderCardWidget extends StatelessWidget {
         (uri.scheme == 'https' || uri.scheme == 'http');
 
     if (!canLoad) {
-      return Icon(CupertinoIcons.person_fill, size: 37, color: colors.primary);
+      return Icon(CupertinoIcons.person_solid, size: 30, color: colors.onSurface.withValues(alpha: 0.4));
     }
 
     return Image.network(
       url,
-      width: 82,
-      height: 82,
+      width: 60,
+      height: 60,
       fit: BoxFit.cover,
       errorBuilder: (_, _, _) {
         return Icon(
-          CupertinoIcons.person_fill,
-          size: 37,
-          color: colors.primary,
+          CupertinoIcons.person_solid,
+          size: 30,
+          color: colors.onSurface.withValues(alpha: 0.4),
         );
       },
     );
