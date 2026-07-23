@@ -3,15 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../../app/routes/app_routes.dart';
-import '../../../../core/presentation/widgets/app_refresh_button.dart';
 import '../../../main/presentation/controller/main_navigation_controller.dart';
 import '../../../notes/presentation/controllers/home_controller.dart';
 import '../widgets/profile_header_card_widget.dart';
 import '../widgets/profile_menu_card_widget.dart';
 import '../widgets/profile_menu_divider_widget.dart';
 import '../widgets/profile_menu_tile_widget.dart';
-import '../widgets/profile_section_label_widget.dart';
-import '../widgets/profile_statistics_section_widget.dart';
 
 class ProfileView extends GetView<HomeController> {
   const ProfileView({super.key});
@@ -19,6 +16,7 @@ class ProfileView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
     final Color pageColor = theme.scaffoldBackgroundColor;
 
     return ColoredBox(
@@ -34,21 +32,17 @@ class ProfileView extends GetView<HomeController> {
             border: null,
             backgroundColor: pageColor.withValues(alpha: 0.94),
             largeTitle: Text(
-              'Profile'.tr,
+              'Settings',
               style: TextStyle(
                 color: theme.colorScheme.onSurface,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.7,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.2,
               ),
-            ),
-            trailing: AppRefreshButton(
-              semanticsLabel: 'Refresh profile data',
-              onPressed: controller.loadAll,
             ),
           ),
           CupertinoSliverRefreshControl(onRefresh: controller.loadAll),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
             sliver: SliverList.list(
               children: <Widget>[
                 Obx(
@@ -58,79 +52,91 @@ class ProfileView extends GetView<HomeController> {
                     avatarUrl: controller.profileAvatarUrl,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Obx(
-                  () => ProfileStatisticsSectionWidget(
-                    folderCount: controller.folders.length,
-                    noteCount: controller.activeNotes.length,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const ProfileSectionLabelWidget(title: 'Content'),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 ProfileMenuCardWidget(
                   children: <Widget>[
                     ProfileMenuTileWidget(
-                      icon: CupertinoIcons.folder_fill,
-                      title: 'My Folders',
-                      subtitle: 'View and manage your folders',
-                      onTap: () {
-                        _changeTab(0);
-                      },
+                      icon: CupertinoIcons.sun_max,
+                      title: 'Appearance',
+                      value: 'Light',
+                      onTap: () {},
                     ),
                     const ProfileMenuDividerWidget(),
                     ProfileMenuTileWidget(
-                      icon: CupertinoIcons.doc_text_fill,
-                      title: 'My Notes',
-                      subtitle: 'View all of your notes',
-                      onTap: () {
-                        controller.selectAllNotes();
-                        _changeTab(1);
-                      },
+                      icon: CupertinoIcons.drop,
+                      title: 'Theme Color',
+                      value: 'Blue',
+                      onTap: () {},
                     ),
                     const ProfileMenuDividerWidget(),
                     ProfileMenuTileWidget(
-                      icon: CupertinoIcons.trash_fill,
-                      title: 'Recycle Bin',
-                      subtitle: 'Restore deleted folders and archived notes',
-                      onTap: () {
-                        Get.toNamed(AppRoutes.recycleBin);
-                      },
+                      icon: CupertinoIcons.textformat,
+                      title: 'Font Size',
+                      value: 'Medium',
+                      onTap: () {},
                     ),
                     const ProfileMenuDividerWidget(),
                     ProfileMenuTileWidget(
-                      icon: CupertinoIcons.refresh,
-                      title: 'Refresh Data',
-                      subtitle: 'Reload folders and notes',
-                      onTap: controller.loadAll,
+                      icon: CupertinoIcons.lock,
+                      title: 'Security',
+                      value: 'Locked',
+                      onTap: () {},
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                const ProfileSectionLabelWidget(title: 'Application'),
-                const SizedBox(height: 8),
-                ProfileMenuCardWidget(
-                  children: <Widget>[
+                    const ProfileMenuDividerWidget(),
                     ProfileMenuTileWidget(
-                      icon: CupertinoIcons.info_circle_fill,
-                      title: 'About Piisiit Note',
-                      subtitle: 'Version and application information',
+                      icon: CupertinoIcons.bell,
+                      title: 'Reminders',
+                      onTap: () {},
+                    ),
+                    const ProfileMenuDividerWidget(),
+                    ProfileMenuTileWidget(
+                      icon: CupertinoIcons.tray_arrow_up,
+                      title: 'Backup & Export',
+                      onTap: () {},
+                    ),
+                    const ProfileMenuDividerWidget(),
+                    ProfileMenuTileWidget(
+                      icon: CupertinoIcons.info,
+                      title: 'About',
+                      value: 'v1.0.0',
                       onTap: () {
                         _showAboutDialog(context);
                       },
                     ),
-                    const ProfileMenuDividerWidget(),
-                    ProfileMenuTileWidget(
-                      icon: CupertinoIcons.square_arrow_right,
-                      title: 'Sign Out',
-                      subtitle: 'Sign out from this device',
-                      isDestructive: true,
-                      showChevron: false,
-                      onTap: () {
-                        _confirmLogout(context);
-                      },
-                    ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _confirmLogout(context),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(18),
+                        child: Center(
+                          child: Text(
+                            'Log Out',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: colors.error,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -140,20 +146,12 @@ class ProfileView extends GetView<HomeController> {
     );
   }
 
-  void _changeTab(int index) {
-    if (!Get.isRegistered<MainNavigationController>()) {
-      return;
-    }
-
-    Get.find<MainNavigationController>().changeTab(index);
-  }
-
   Future<void> _confirmLogout(BuildContext context) async {
     final bool? confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
         return CupertinoAlertDialog(
-          title: const Text('Sign Out?'),
+          title: const Text('Log Out?'),
           content: const Text(
             'You will need to sign in again to access your notes.',
           ),
@@ -169,7 +167,7 @@ class ProfileView extends GetView<HomeController> {
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
-              child: const Text('Sign Out'),
+              child: const Text('Log Out'),
             ),
           ],
         );

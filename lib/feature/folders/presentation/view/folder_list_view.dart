@@ -27,6 +27,8 @@ part 'folder_navigation_actions.dart';
 part 'folder_section_header.dart';
 part 'folder_sort_action.dart';
 part 'folder_status_view.dart';
+part 'folder_system_section.dart';
+part 'folder_tags_section.dart';
 
 enum _FolderSort { newest, oldest, name, noteCount }
 

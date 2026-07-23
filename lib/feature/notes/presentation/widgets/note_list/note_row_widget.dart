@@ -72,84 +72,152 @@ class _NoteRowState extends State<_NoteRow> with SingleTickerProviderStateMixin 
       onPointerCancel: _onTapCancel,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: AppGlassSurface(
-          borderRadius: 24,
-          padding: EdgeInsets.zero,
-          tintColor: cardColor,
-          borderColor: borderColor,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: widget.onTap,
-              onLongPress: widget.onMore,
-              borderRadius: BorderRadius.circular(24),
-              splashColor: colors.primary.withValues(alpha: 0.12),
-              highlightColor: Colors.transparent,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 10, 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _NoteIcon(
-                      color: widget.folderColor,
-                      locked: widget.note.isLocked,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: widget.onTap,
+                onLongPress: widget.onMore,
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: <Widget>[
+                      Container(
+                        width: 6,
+                        color: widget.folderColor,
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 18, 10, 18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    color: colors.onSurface,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.4,
+                              Row(
+                                children: <Widget>[
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: widget.folderColor.withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      widget.note.isLocked 
+                                          ? CupertinoIcons.lock_fill 
+                                          : CupertinoIcons.doc_text_fill,
+                                      size: 20,
+                                      color: widget.folderColor,
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme.textTheme.titleMedium?.copyWith(
+                                                  color: colors.onSurface,
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: -0.4,
+                                                ),
+                                              ),
+                                            ),
+                                            if (widget.note.isPinned)
+                                              Padding(
+                                                padding: const EdgeInsets.only(left: 8),
+                                                child: Icon(
+                                                  CupertinoIcons.pin_fill,
+                                                  size: 14,
+                                                  color: colors.primary,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _notePreview(widget.note),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  _MoreButton(onPressed: widget.onMore),
+                                ],
                               ),
-                              if (widget.note.isPinned)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 8),
-                                  child: Icon(
-                                    CupertinoIcons.pin_fill,
-                                    size: 14,
-                                    color: colors.primary,
-                                  ),
-                                ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: <Widget>[
+                                  if (timestamp != null)
+                                    Text(
+                                      'Updated ${_timeAgo(timestamp)}',
+                                      style: theme.textTheme.labelLarge?.copyWith(
+                                        color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  const Spacer(),
+                                  if (attachmentCount > 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colors.onSurface.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            CupertinoIcons.paperclip,
+                                            size: 12,
+                                            color: colors.onSurfaceVariant.withValues(alpha: 0.7),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '$attachmentCount',
+                                            style: theme.textTheme.labelLarge?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 5),
-                          Text(
-                            _notePreview(widget.note),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.onSurfaceVariant.withValues(
-                                alpha: 0.85,
-                              ),
-                              height: 1.4,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _NoteMetadata(
-                            folderName: widget.folderName,
-                            folderColor: widget.folderColor,
-                            locked: widget.note.isLocked,
-                            attachmentCount: attachmentCount,
-                            timestamp: timestamp,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    _MoreButton(onPressed: widget.onMore),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -158,6 +226,15 @@ class _NoteRowState extends State<_NoteRow> with SingleTickerProviderStateMixin 
       ),
     );
   }
+}
+
+String _timeAgo(DateTime dateTime) {
+  final Duration diff = DateTime.now().difference(dateTime);
+  if (diff.inDays >= 7) return '${(diff.inDays / 7).floor()}w ago';
+  if (diff.inDays >= 1) return '${diff.inDays}d ago';
+  if (diff.inHours >= 1) return '${diff.inHours}h ago';
+  if (diff.inMinutes >= 1) return '${diff.inMinutes}m ago';
+  return 'just now';
 }
 
 class _MoreButton extends StatelessWidget {

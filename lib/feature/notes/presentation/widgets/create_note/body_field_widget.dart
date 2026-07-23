@@ -11,7 +11,7 @@ class _BodyField extends GetView<CreateNoteController> {
     return GestureDetector(
       onLongPress: () {
         HapticFeedback.mediumImpact();
-        _showiOSStyleImagePicker(context, controller);
+        _showImageSourceDialog(context, controller);
       },
       child: CupertinoTextField(
         controller: controller.statementController,
@@ -36,47 +36,4 @@ class _BodyField extends GetView<CreateNoteController> {
       ),
     );
   }
-}
-
-void _showiOSStyleImagePicker(
-  BuildContext context,
-  CreateNoteController controller,
-) {
-  showCupertinoModalPopup<void>(
-    context: context,
-    builder: (BuildContext sheetContext) {
-      return CupertinoActionSheet(
-        title: const Text('Add Image'),
-        message: const Text('Take a photo or choose from your library.'),
-        actions: <Widget>[
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              Navigator.of(sheetContext).pop();
-              await controller.takePhoto();
-            },
-            child: const NoteActionSheetRow(
-              icon: CupertinoIcons.camera_fill,
-              label: 'Take Photo',
-            ),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              Navigator.of(sheetContext).pop();
-              await controller.choosePhotos();
-            },
-            child: const NoteActionSheetRow(
-              icon: CupertinoIcons.photo_fill,
-              label: 'Photo Library',
-            ),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () {
-            Navigator.of(sheetContext).pop();
-          },
-          child: const Text('Cancel'),
-        ),
-      );
-    },
-  );
 }

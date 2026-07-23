@@ -76,11 +76,21 @@ class _FolderListContentState extends State<_FolderListContent> {
                         letterSpacing: -1.2,
                       ),
                     ),
-                    trailing: _NavigationActions(
-                      onSortPressed: () {
-                        _showSortOptions(context);
-                      },
-                      onCreatePressed: _openCreateFolder,
+                    trailing: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: _openCreateFolder,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          CupertinoIcons.add,
+                          size: 18,
+                          color: colors.primary,
+                        ),
+                      ),
                     ),
                   ),
                   CupertinoSliverRefreshControl(
@@ -113,61 +123,65 @@ class _FolderListContentState extends State<_FolderListContent> {
                       child: _buildEmptyState(colors),
                     )
                   else ...<Widget>[
-                    SliverToBoxAdapter(
-                      child: _LibraryOverview(
-                        folderCount: folders.length,
-                        noteCount: totalNotes,
-                        deletedCount: recentlyDeletedCount,
-                        allNotesSelected: selectedFolderId == null,
-                        onAllNotesPressed: _openAllNotes,
-                        onDeletedPressed: _openRecentlyDeleted,
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: _FolderSectionHeader(
-                        count: visibleFolders.length,
-                        sortLabel: _sortLabel,
-                        onSortPressed: () {
-                          _showSortOptions(context);
-                        },
-                      ),
-                    ),
-                    if (_searchQuery.isNotEmpty && visibleFolders.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _buildNoResultsState(colors),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        sliver: SliverGrid(
-                          delegate: SliverChildBuilderDelegate((
-                            BuildContext context,
-                            int index,
-                          ) {
-                            final FolderEntity folder = visibleFolders[index];
-
-                            return _FolderGlassCard(
-                              key: ValueKey<int>(folder.id),
-                              folder: folder,
-                              selected: selectedFolderId == folder.id,
-                              onTap: () {
-                                _openFolder(folder);
-                              },
-                              onMore: () {
-                                _showFolderActions(context, folder);
-                              },
-                            );
-                          }, childCount: visibleFolders.length),
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                                childAspectRatio: 1.05,
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              _SystemItem(
+                                icon: CupertinoIcons.doc_fill,
+                                iconColor: Colors.blue,
+                                title: 'All Notes',
+                                count: totalNotes,
+                                onTap: _openAllNotes,
+                                isFirst: true,
+                              ),
+                              for (int i = 0; i < visibleFolders.length; i++)
+                                _SystemItem(
+                                  icon: _folderIcon(visibleFolders[i].iconName),
+                                  iconColor: _parseFolderColor(visibleFolders[i].colorValue, colors.primary),
+                                  title: visibleFolders[i].name,
+                                  count: visibleFolders[i].noteCount,
+                                  onTap: () => _openFolder(visibleFolders[i]),
+                                ),
+                              _SystemItem(
+                                icon: CupertinoIcons.archivebox_fill,
+                                iconColor: Colors.blueGrey,
+                                title: 'Archive',
+                                count: 302, // Mock
+                                onTap: () => Get.toNamed(AppRoutes.archive),
+                              ),
+                              _SystemItem(
+                                icon: CupertinoIcons.trash_fill,
+                                iconColor: Colors.redAccent,
+                                title: 'Trash',
+                                count: recentlyDeletedCount,
+                                onTap: _openRecentlyDeleted,
+                                isLast: true,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: _FolderSectionHeader(title: 'Tags'),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: _TagsSection(),
+                    ),
                     SliverToBoxAdapter(
                       child: _FolderFooter(
                         folderCount: folders.length,
@@ -328,7 +342,7 @@ class _FolderListContentState extends State<_FolderListContent> {
 
   Future<void> _openRecentlyDeleted() async {
     FocusManager.instance.primaryFocus?.unfocus();
-    await Get.toNamed(AppRoutes.recentlyDeletedFolders);
+    await Get.toNamed(AppRoutes.recycleBin);
     await controller.loadFolders();
   }
 

@@ -47,16 +47,16 @@ class _PillNavigationBar extends StatelessWidget {
             children: <Widget>[
               _buildItem(
                 index: 0,
-                label: 'folders'.tr,
-                icon: CupertinoIcons.folder,
-                selectedIcon: CupertinoIcons.folder_fill,
+                label: 'notes'.tr,
+                icon: CupertinoIcons.doc_text,
+                selectedIcon: CupertinoIcons.doc_text_fill,
                 colors: colors,
               ),
               _buildItem(
                 index: 1,
-                label: 'notes'.tr,
-                icon: CupertinoIcons.doc_text,
-                selectedIcon: CupertinoIcons.doc_text_fill,
+                label: 'folders'.tr,
+                icon: CupertinoIcons.folder,
+                selectedIcon: CupertinoIcons.folder_fill,
                 colors: colors,
               ),
               _buildActionItem(
@@ -66,16 +66,16 @@ class _PillNavigationBar extends StatelessWidget {
               ),
               _buildItem(
                 index: 3,
-                label: 'settings'.tr,
-                icon: CupertinoIcons.gear,
-                selectedIcon: CupertinoIcons.gear_solid,
+                label: 'search'.tr,
+                icon: CupertinoIcons.search,
+                selectedIcon: CupertinoIcons.search,
                 colors: colors,
               ),
               _buildItem(
                 index: 4,
-                label: 'profile'.tr,
-                icon: CupertinoIcons.person,
-                selectedIcon: CupertinoIcons.person_fill,
+                label: 'settings'.tr,
+                icon: CupertinoIcons.gear,
+                selectedIcon: CupertinoIcons.gear_solid,
                 colors: colors,
               ),
             ],
@@ -122,10 +122,17 @@ class _PillNavigationBar extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: 0.12),
+              color: colors.primary,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: colors.primary.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(icon, color: colors.primary, size: 24),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
         ),
       ),

@@ -19,7 +19,9 @@ class _PreviewCloseButton extends StatelessWidget {
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
-        child: const Icon(CupertinoIcons.xmark, size: 20, color: Colors.white),
+        child: const Icon(CupertinoIcons.xmark_circle,
+            size: 20, color: Colors.white,
+            fontWeight: FontWeight.bold,),
       ),
     );
   }

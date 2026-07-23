@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import '../controller/login_controller.dart';
 import '../widgets/auth_background_widget.dart';
 import '../widgets/auth_brand_header_widget.dart';

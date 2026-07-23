@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import '../../../notes/domain/entities/note_entity.dart';
 import '../utils/recycle_bin_date_formatter.dart';
 import 'recycle_bin_item_row_widget.dart';

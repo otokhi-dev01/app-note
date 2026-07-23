@@ -24,7 +24,7 @@ class RecycleBinSummaryCountWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(icon, size: 16, color: colors.primary),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               count.toString(),
               style: theme.textTheme.titleSmall?.copyWith(
@@ -34,7 +34,7 @@ class RecycleBinSummaryCountWidget extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(

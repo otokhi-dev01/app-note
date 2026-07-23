@@ -2,14 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import '../../../../app/routes/app_routes.dart';
 import '../../../../core/presentation/widgets/app_glass_surface.dart';
 import '../../../folders/domain/entities/folder_entity.dart';
 import '../../../main/presentation/widgets/app_liquid_background_widget.dart';
 import '../../domain/entities/note_entity.dart';
 import '../controllers/home_controller.dart';
-
+import '../widgets/note_list/filter_bottom_sheet.dart';
 part '../widgets/note_list/note_list_content_widget.dart';
 part '../widgets/note_list/note_search_field_widget.dart';
 part '../widgets/note_list/create_note_button_widget.dart';
@@ -27,6 +26,7 @@ part '../widgets/note_list/note_error_state_widget.dart';
 part '../widgets/note_list/state_icon_widget.dart';
 part '../widgets/note_list/note_footer_widget.dart';
 part '../widgets/note_list/action_sheet_label_widget.dart';
+part '../widgets/note_list/recent_notes_list_widget.dart';
 
 class NoteListView extends GetView<HomeController> {
   const NoteListView({super.key});

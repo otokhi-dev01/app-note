@@ -2,24 +2,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
-import '../../../../core/presentation/widgets/app_refresh_button.dart';
 import '../../../folders/domain/entities/folder_entity.dart';
 import '../../../notes/domain/entities/note_entity.dart';
 import '../controllers/recycle_bin_controller.dart';
-import '../widgets/archived_note_row_widget.dart';
-import '../widgets/deleted_folder_row_widget.dart';
 import '../widgets/empty_recycle_bin_state_widget.dart';
 import '../widgets/recycle_bin_error_state_widget.dart';
 import '../widgets/recycle_bin_footer_widget.dart';
-import '../widgets/recycle_bin_grouped_divider_widget.dart';
-import '../widgets/recycle_bin_grouped_section_widget.dart';
 import '../widgets/recycle_bin_loading_state_widget.dart';
-import '../widgets/recycle_bin_section_header_widget.dart';
-import '../widgets/recycle_bin_summary_widget.dart';
+import '../widgets/trash_note_card_widget.dart';
 
 class RecycleBinView extends GetView<RecycleBinController> {
-  const RecycleBinView({super.key});
+  final bool isArchiveMode;
+  const RecycleBinView({super.key, this.isArchiveMode = false});
 
   @override
   Widget build(BuildContext context) {
@@ -38,36 +32,60 @@ class RecycleBinView extends GetView<RecycleBinController> {
         final bool isEmpty = deletedFolders.isEmpty && archivedNotes.isEmpty;
         final bool isInitialLoading = controller.isRefreshing.value && isEmpty;
         final String errorMessage = controller.errorMessage.value.trim();
-
         return CustomScrollView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
+
           slivers: <Widget>[
             CupertinoSliverNavigationBar(
               stretch: true,
               previousPageTitle: 'Back',
               backgroundColor: pageColor.withValues(alpha: 0.96),
-              border: Border(
-                bottom: BorderSide(
-                  color: colors.outlineVariant.withValues(alpha: 0.35),
-                  width: 0.5,
-                ),
+              border: null,
+              largeTitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isArchiveMode ? 'Archive' : 'Trash',
+                    style: TextStyle(
+                      color: colors.onSurface,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.2,
+                    ),
+                  ),
+                  Text(
+                    '${isArchiveMode ? archivedNotes.length : archivedNotes.length + deletedFolders.length} ${isArchiveMode ? 'notes' : 'items'}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: colors.onSurfaceVariant.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              largeTitle: Text(
-                'Recycle Bin',
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.7,
+              trailing: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () {
+                  if (isArchiveMode) {
+                    // Show filter options for archive
+                  } else {
+                    _confirmEmptyTrash(context);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colors.onSurface.withValues(alpha: 0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isArchiveMode ? CupertinoIcons.slider_horizontal_3 : CupertinoIcons.trash,
+                    size: 20,
+                    color: colors.onSurface,
+                  ),
                 ),
-              ),
-              trailing: AppRefreshButton(
-                semanticsLabel: 'Refresh recycle bin',
-                isLoading: controller.isRefreshing.value,
-                enableHaptics: true,
-                onPressed: controller.refreshData,
               ),
             ),
             CupertinoSliverRefreshControl(onRefresh: controller.refreshData),
@@ -92,91 +110,99 @@ class RecycleBinView extends GetView<RecycleBinController> {
                 ),
               )
             else ...<Widget>[
-              SliverToBoxAdapter(
-                child: RecycleBinSummaryWidget(
-                  folderCount: deletedFolders.length,
-                  noteCount: archivedNotes.length,
-                ),
-              ),
-              if (deletedFolders.isNotEmpty) ...<Widget>[
-                SliverToBoxAdapter(
-                  child: RecycleBinSectionHeaderWidget(
-                    title: 'Deleted Folders',
-                    count: deletedFolders.length,
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: RecycleBinGroupedSectionWidget(
-                      children: <Widget>[
-                        for (
-                          int index = 0;
-                          index < deletedFolders.length;
-                          index++
-                        ) ...<Widget>[
-                          DeletedFolderRowWidget(
-                            folder: deletedFolders[index],
-                            onRestore: () {
-                              _confirmRestoreFolder(
-                                context,
-                                deletedFolders[index],
-                              );
-                            },
-                          ),
-                          if (index < deletedFolders.length - 1)
-                            const RecycleBinGroupedDividerWidget(),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              if (archivedNotes.isNotEmpty) ...<Widget>[
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                SliverToBoxAdapter(
-                  child: RecycleBinSectionHeaderWidget(
-                    title: 'Archived Notes',
-                    count: archivedNotes.length,
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: RecycleBinGroupedSectionWidget(
-                      children: <Widget>[
-                        for (
-                          int index = 0;
-                          index < archivedNotes.length;
-                          index++
-                        ) ...<Widget>[
-                          ArchivedNoteRowWidget(
-                            note: archivedNotes[index],
-                            onRestore: () {
+              if (isArchiveMode ? archivedNotes.isNotEmpty : (deletedFolders.isNotEmpty || archivedNotes.isNotEmpty))
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        if (isArchiveMode) {
+                          final note = archivedNotes[index];
+                          return TrashNoteCardWidget(
+                            title: note.title.isEmpty ? 'Untitled Note' : note.title,
+                            subtitle: 'This note is in archive',
+                            timestamp: note.deletedAt ?? note.updatedAt,
+                            onTap: () {
                               HapticFeedback.selectionClick();
-                              controller.restoreNote(archivedNotes[index]);
+                              controller.restoreNote(note);
                             },
-                          ),
-                          if (index < archivedNotes.length - 1)
-                            const RecycleBinGroupedDividerWidget(),
-                        ],
-                      ],
+                            isArchive: true,
+                          );
+                        }
+
+                        if (index < deletedFolders.length) {
+                          final folder = deletedFolders[index];
+                          return TrashNoteCardWidget(
+                            title: folder.name.isEmpty ? 'Unnamed Folder' : folder.name,
+                            subtitle: 'This folder was deleted',
+                            timestamp: folder.deletedAt ?? folder.updatedAt,
+                            onTap: () => _confirmRestoreFolder(context, folder),
+                          );
+                        } else {
+                          final noteIndex = index - deletedFolders.length;
+                          final note = archivedNotes[noteIndex];
+                          return TrashNoteCardWidget(
+                            title: note.title.isEmpty ? 'Untitled Note' : note.title,
+                            subtitle: 'This note was deleted',
+                            timestamp: note.deletedAt ?? note.updatedAt,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              controller.restoreNote(note);
+                            },
+                          );
+                        }
+                      },
+                      childCount: isArchiveMode ? archivedNotes.length : (deletedFolders.length + archivedNotes.length),
                     ),
                   ),
                 ),
-              ],
-              SliverToBoxAdapter(
-                child: RecycleBinFooterWidget(
-                  folderCount: deletedFolders.length,
-                  noteCount: archivedNotes.length,
+              if (!isArchiveMode)
+                SliverToBoxAdapter(
+                  child: RecycleBinFooterWidget(
+                    onEmptyTrash: () => _confirmEmptyTrash(context),
+                  ),
                 ),
-              ),
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
           ],
         );
       }),
     );
+  }
+
+  Future<void> _confirmEmptyTrash(BuildContext context) async {
+    HapticFeedback.heavyImpact();
+
+    final bool? confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return CupertinoAlertDialog(
+          title: const Text('Empty Trash?'),
+          content: const Text(
+            'All notes and folders in trash will be permanently deleted. This action cannot be undone.',
+          ),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Empty Trash'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      await controller.emptyTrash();
+    }
   }
 
   Future<void> _confirmRestoreFolder(
