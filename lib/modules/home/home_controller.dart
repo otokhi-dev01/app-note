@@ -41,8 +41,15 @@ class HomeController extends GetxController {
       final allNotes = await _noteRepository.getAllNotes();
       final notes = allNotes['note'] ?? [];
       
-      pinnedNotes.value = notes.where((n) => n.isPinned).toList();
-      recentNotes.value = notes.where((n) => !n.isPinned).toList();
+      // Sort pinned notes by pinnedAt or createdAt (descending)
+      pinnedNotes.value = notes.where((n) => n.isPinned).toList()
+        ..sort((a, b) => (b.pinnedAt ?? b.createdAt ?? DateTime.now())
+            .compareTo(a.pinnedAt ?? a.createdAt ?? DateTime.now()));
+
+      // Recent notes (not pinned) sorted by updatedAt
+      recentNotes.value = notes.where((n) => !n.isPinned).toList()
+        ..sort((a, b) => (b.updatedAt ?? b.createdAt ?? DateTime.now())
+            .compareTo(a.updatedAt ?? a.createdAt ?? DateTime.now()));
     } catch (e) {
       AppLogger.error('Home data fetch error', error: e);
       Get.snackbar('Error', 'Failed to load data: $e');
