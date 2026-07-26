@@ -5,6 +5,7 @@ import '../../app/theme/colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../data/models/content_block_model.dart';
 import '../folder/folder_controller.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 import 'attachment_list_view.dart';
 import 'dart:io';
 
@@ -255,12 +256,9 @@ class NoteEditorView extends GetView<NoteController> {
 
   void _showFolderPicker(BuildContext context, FolderController folderController) {
     Get.bottomSheet(
-      Container(
+      LiquidGlassContainer(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -295,12 +293,9 @@ class NoteEditorView extends GetView<NoteController> {
 
   void _showMoreActions(BuildContext context) {
     Get.bottomSheet(
-      Container(
+      LiquidGlassContainer(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

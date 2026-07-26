@@ -5,6 +5,7 @@ import '../../app/theme/colors.dart';
 import '../../core/widgets/folder_card.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 import '../../data/models/folder_model.dart';
 
 class FolderListView extends GetView<FolderController> {
@@ -69,8 +70,9 @@ class FolderListView extends GetView<FolderController> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (context) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (context) => LiquidGlassContainer(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,

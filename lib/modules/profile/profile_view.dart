@@ -12,9 +12,9 @@ class ProfileView extends StatelessWidget {
     final authService = Get.find<AuthService>();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      // backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        // backgroundColor: Colors.transparent,
         title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: DecorativeBackground(
@@ -71,26 +71,23 @@ class ProfileView extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 40),
-              
               _buildSectionTitle('ACCOUNT SETTINGS'),
               const SizedBox(height: 12),
               _buildMenuItem(Icons.person_outline_rounded, 'Edit Profile', 'Update name, avatar, and contact info'),
               _buildMenuItem(Icons.lock_outline_rounded, 'Security', 'Password, 2FA, and active sessions'),
-              
               const SizedBox(height: 24),
               _buildSectionTitle('PREFERENCES'),
               const SizedBox(height: 12),
               _buildMenuItem(Icons.storage_outlined, 'Data & Storage', 'Manage backups and local storage', trailing: '1.2 GB'),
               _buildMenuItem(Icons.help_outline_rounded, 'Help & Support', 'FAQs, contact support, guides'),
-              
               const SizedBox(height: 40),
-              OutlinedButton(
+              ElevatedButton(
                 onPressed: () => authService.logout(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: Color(0xFFFFEBEE)),
-                  backgroundColor: const Color(0xFFFFEBEE).withValues(alpha: 0.5),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 56),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: const Row(
@@ -98,7 +95,7 @@ class ProfileView extends StatelessWidget {
                   children: [
                     Icon(Icons.logout_rounded),
                     SizedBox(width: 8),
-                    Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text('Logout', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   ],
                 ),
               ),
