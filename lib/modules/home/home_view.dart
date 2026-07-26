@@ -42,7 +42,7 @@ class HomeView extends GetView<HomeController> {
       floatingActionButton: FloatingActionButton(
         heroTag: 'home_fab',
         onPressed: () => Get.toNamed(AppRoutes.noteEditor),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
@@ -90,7 +90,7 @@ class _DashboardView extends GetView<HomeController> {
             children: [
               const Text('Good morning,', style: TextStyle(color: AppColors.textSecondary)),
               Text(
-                user?.fullName ?? 'Hello 👋',
+                user?.fullName ?? 'Welcome',
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
               ),
             ],
@@ -153,7 +153,7 @@ class _DashboardView extends GetView<HomeController> {
           ),
           child: IconButton(
             onPressed: () => Get.bottomSheet(const FilterSheet()),
-            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+            icon: const Icon(Icons.tune_rounded, color: AppColors.accent),
           ),
         ),
       ],
