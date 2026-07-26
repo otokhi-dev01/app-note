@@ -80,28 +80,38 @@ class _DashboardView extends GetView<HomeController> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('Good morning,', style: TextStyle(color: AppColors.textSecondary)),
-            Text(
-              'Hello 👋',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
-            ),
-          ],
-        ),
-        const Hero(
-          tag: 'profile_avatar',
-          child: CircleAvatar(
-            radius: 24,
-            backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a042581f4e29026704d'),
+    return Obx(() {
+      final user = controller.user.value;
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Good morning,', style: TextStyle(color: AppColors.textSecondary)),
+              Text(
+                user?.fullName ?? 'Hello 👋',
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
+              ),
+            ],
           ),
-        ),
-      ],
-    );
+          GestureDetector(
+            onTap: () => Get.toNamed(AppRoutes.profile),
+            child: Hero(
+              tag: 'profile_avatar',
+              child: CircleAvatar(
+                radius: 24,
+                backgroundImage: NetworkImage(
+                  (user?.avatar != null && user!.avatar!.isNotEmpty)
+                      ? user.avatar!
+                      : 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _buildSearchBar() {

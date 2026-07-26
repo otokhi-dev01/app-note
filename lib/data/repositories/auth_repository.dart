@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart' as dio;
 import '../providers/api_provider.dart';
+import '../models/user_model.dart';
 
 class AuthRepository extends ApiProvider {
   Future<dio.Response> login(String phone, String password) async {
@@ -23,5 +24,18 @@ class AuthRepository extends ApiProvider {
       'deviceName': deviceName,
       'deviceType': deviceType,
     });
+  }
+
+  Future<UserModel?> getProfile() async {
+    try {
+      final response = await get('/auth/me');
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        return UserModel.fromJson(data);
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
   }
 }
