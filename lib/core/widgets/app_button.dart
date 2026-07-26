@@ -24,7 +24,7 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(double.infinity, 56),
-          side: const BorderSide(color: AppColors.border),
+          side: const BorderSide(color: AppColors.accent),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: _buildChild(),
@@ -35,9 +35,13 @@ class AppButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(double.infinity, 56),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.bold, // Applied to all text in the button
+          fontSize: 18,
+        ),
       ),
       child: _buildChild(),
     );
