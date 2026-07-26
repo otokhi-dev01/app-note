@@ -91,11 +91,14 @@ class ArchiveView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton.icon(
-                onPressed: () {},
+                onPressed: () => Get.find<NoteListController>().archiveNote(note, false),
                 icon: const Icon(Icons.restore, size: 18),
                 label: const Text('Restore'),
               ),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.delete_outline, color: AppColors.error)),
+              IconButton(
+                onPressed: () => Get.find<NoteListController>().deleteNoteForever(note.id!), 
+                icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              ),
             ],
           ),
         ],

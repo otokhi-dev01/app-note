@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/note_model.dart';
+import '../../data/models/content_block_model.dart';
 
 class NoteCard extends StatelessWidget {
   final NoteModel note;
@@ -59,11 +60,11 @@ class NoteCard extends StatelessWidget {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Key objectives for the upcoming quarter including resource allocatio...',
+                Text(
+                  note.content?.firstWhere((b) => b.type == 'text', orElse: () => ContentBlockModel(id: '', type: 'text', text: '')).text ?? 'No content',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const Spacer(),
                 Row(
@@ -111,7 +112,12 @@ class NoteCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(note.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    const Text('Discussion on current sprint ...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    Text(
+                      note.content?.firstWhere((b) => b.type == 'text', orElse: () => ContentBlockModel(id: '', type: 'text', text: '')).text ?? 'No description available', 
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
                   ],
                 ),
               ),

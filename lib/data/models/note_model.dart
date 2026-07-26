@@ -58,9 +58,50 @@ class NoteModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'noteId': id,
+      'id': id,
       'folderId': folderId,
       'title': title,
+      'isPinned': isPinned,
+      'isArchived': isArchived,
+      'isLocked': isLocked,
+      'sortOrder': sortOrder,
+      'content': content?.map((e) => e.toJson()).toList(),
     };
+  }
+
+  NoteModel copyWith({
+    int? id,
+    int? folderId,
+    String? folderName,
+    String? title,
+    bool? isPinned,
+    bool? isArchived,
+    bool? isLocked,
+    int? sortOrder,
+    DateTime? pinnedAt,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? attachmentCount,
+    List<ContentBlockModel>? content,
+    List<AttachmentModel>? attachments,
+  }) {
+    return NoteModel(
+      id: id ?? this.id,
+      folderId: folderId ?? this.folderId,
+      folderName: folderName ?? this.folderName,
+      title: title ?? this.title,
+      isPinned: isPinned ?? this.isPinned,
+      isArchived: isArchived ?? this.isArchived,
+      isLocked: isLocked ?? this.isLocked,
+      sortOrder: sortOrder ?? this.sortOrder,
+      pinnedAt: pinnedAt ?? this.pinnedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      attachmentCount: attachmentCount ?? this.attachmentCount,
+      content: content ?? this.content,
+      attachments: attachments ?? this.attachments,
+    );
   }
 }

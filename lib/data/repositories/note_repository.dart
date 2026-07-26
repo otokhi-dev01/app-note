@@ -57,9 +57,9 @@ class NoteRepository extends ApiProvider {
   }) async {
     return await post('/note/update-state', data: {
       'id': id,
-      'isPinned': ?isPinned,
-      'isArchived': ?isArchived,
-      'isLocked': ?isLocked,
+      'isPinned': isPinned,
+      'isArchived': isArchived,
+      'isLocked': isLocked,
     });
   }
 

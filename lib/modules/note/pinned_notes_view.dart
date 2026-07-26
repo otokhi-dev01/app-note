@@ -25,12 +25,12 @@ class PinnedNotesView extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         itemCount: controller.notes.length,
         separatorBuilder: (context, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) => _buildPinnedCard(controller.notes[index]),
+        itemBuilder: (context, index) => _buildPinnedCard(controller, controller.notes[index]),
       )),
     );
   }
 
-  Widget _buildPinnedCard(NoteModel note) {
+  Widget _buildPinnedCard(NoteListController controller, NoteModel note) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -45,7 +45,10 @@ class PinnedNotesView extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(note.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Icon(Icons.push_pin, size: 20, color: AppColors.primary),
+              IconButton(
+                onPressed: () => controller.togglePin(note),
+                icon: const Icon(Icons.push_pin, size: 20, color: AppColors.primary),
+              ),
             ],
           ),
           const SizedBox(height: 8),

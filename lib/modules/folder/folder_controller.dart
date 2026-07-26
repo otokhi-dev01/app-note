@@ -35,12 +35,14 @@ class FolderController extends GetxController {
     }
   }
 
-  void selectFolder(FolderModel folder) async {
+  void selectFolder(FolderModel folder, {bool navigate = true}) async {
     selectedFolder.value = folder;
-    Get.toNamed('/folder-detail', arguments: {
-      'folder': folder,
-      'heroTag': 'list_folder_${folder.id}',
-    });
+    if (navigate) {
+      Get.toNamed('/folder-detail', arguments: {
+        'folder': folder,
+        'heroTag': 'list_folder_${folder.id}',
+      });
+    }
     
     // Fetch notes for this folder
     isLoading.value = true;

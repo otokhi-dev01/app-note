@@ -16,8 +16,8 @@ class FolderDetailView extends GetView<FolderController> {
     final folder = args?['folder'] as FolderModel?;
     final heroTag = args?['heroTag'] as String?;
 
-    if (folder != null && controller.selectedFolder.value != folder) {
-      controller.selectFolder(folder);
+    if (folder != null && controller.selectedFolder.value?.id != folder.id) {
+      controller.selectFolder(folder, navigate: false);
     }
 
     return Scaffold(

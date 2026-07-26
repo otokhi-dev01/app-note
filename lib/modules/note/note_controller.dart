@@ -8,15 +8,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/utils/ui_helpers.dart';
 import '../../core/widgets/pin_dialog.dart';
+import '../home/home_controller.dart';
 
 class NoteController extends GetxController {
   final NoteRepository _repository = NoteRepository();
   final _uuid = const Uuid();
   final _picker = ImagePicker();
-
   final note = Rxn<NoteModel>();
   final isLoading = false.obs;
-  
   final titleController = TextEditingController();
   final blocks = <ContentBlockModel>[].obs;
 
@@ -66,7 +65,6 @@ class NoteController extends GetxController {
   void addTextBlock() {
     blocks.add(ContentBlockModel(id: _uuid.v4(), type: 'text', text: ''));
   }
-
   void addChecklistBlock() {
     blocks.add(ContentBlockModel(
       id: _uuid.v4(), 
@@ -85,7 +83,6 @@ class NoteController extends GetxController {
         displayName: image.name,
         text: image.path,
       ));
-      
       // If note exists, upload immediately
       if (note.value?.id != null) {
         await _repository.uploadAttachment(
@@ -131,7 +128,6 @@ class NoteController extends GetxController {
   void toggleChecklistItem(int blockIndex, int itemIndex) {
     final block = blocks[blockIndex];
     if (block.items == null) return;
-    
     final items = List<ChecklistItemModel>.from(block.items!);
     final oldItem = items[itemIndex];
     items[itemIndex] = ChecklistItemModel(
@@ -139,7 +135,6 @@ class NoteController extends GetxController {
       text: oldItem.text,
       checked: !oldItem.checked,
     );
-
     blocks[blockIndex] = ContentBlockModel(
       id: block.id,
       type: 'checklist',
@@ -149,12 +144,12 @@ class NoteController extends GetxController {
 
   Future<void> saveNote() async {
     if (titleController.text.isEmpty) return;
-    
     isLoading.value = true;
     try {
       final noteId = note.value?.id ?? 0;
-      final savedId = await _repository.saveNote(noteId, 2, titleController.text);
-      
+      // Default folderId is 2 if not set (based on existing logic, but should be dynamic)
+      final folderId = note.value?.folderId ?? 2;
+      final savedId = await _repository.saveNote(noteId, folderId, titleController.text);
       final idToSave = note.value?.id ?? savedId ?? 0;
       if (idToSave != 0) {
         await _repository.saveContent(
@@ -162,8 +157,18 @@ class NoteController extends GetxController {
           titleController.text, 
           blocks.map((e) => e.toJson()).toList()
         );
+        // Refresh local note state
+        if (note.value == null && savedId != null) {
+          initNote(savedId);
+        }
+        // Refresh Home if it exists
+        if (Get.isRegistered<HomeController>()) {
+          Get.find<HomeController>().fetchData();
+        }
         UIHelpers.showSnackBar('Success', 'Note saved');
       }
+    } catch (e) {
+      UIHelpers.showSnackBar('Error', 'Failed to save note: $e', isError: true);
     } finally {
       isLoading.value = false;
     }
@@ -172,10 +177,16 @@ class NoteController extends GetxController {
   Future<void> togglePin() async {
     if (note.value == null) return;
     final newState = !note.value!.isPinned;
-    await _repository.updateNoteState(id: note.value!.id!, isPinned: newState);
-    note.value = NoteModel.fromJson({
-      ...note.value!.toJson(),
-      'IsPinned': newState,
-    });
+    try {
+      await _repository.updateNoteState(id: note.value!.id!, isPinned: newState);
+      note.value = note.value!.copyWith(isPinned: newState);
+      // Refresh Home if it exists
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchData();
+      }
+      UIHelpers.showSnackBar('Success', newState ? 'Note pinned' : 'Note unpinned');
+    } catch (e) {
+      UIHelpers.showSnackBar('Error', 'Failed to update pin status', isError: true);
+    }
   }
 }
