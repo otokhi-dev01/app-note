@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/services/auth_service.dart';
 import '../../app/theme/colors.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -105,12 +106,13 @@ class _SettingsViewState extends State<SettingsView> {
             Center(
               child: SizedBox(
                 width: double.infinity,
-                child: TextButton(
+                child: ElevatedButton(
                   onPressed: () => Get.find<AuthService>().logout(),
-                  style: TextButton.styleFrom(
-                    backgroundColor: AppColors.error.withValues(alpha: 0.1), // Soft red background
-                    foregroundColor: AppColors.error,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -167,19 +169,10 @@ class _SettingsViewState extends State<SettingsView> {
             ],
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+        LiquidGlassContainer(
+          borderRadius: BorderRadius.circular(16),
+          opacity: 0.7,
+          blur: 10,
           child: Column(children: itemsWithDividers),
         ),
       ],

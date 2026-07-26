@@ -6,6 +6,7 @@ import '../../app/routes/app_routes.dart';
 import '../../core/widgets/folder_card.dart';
 import '../../core/widgets/note_card.dart';
 import '../../core/widgets/sort_filter_sheets.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 import '../folder/folder_list_view.dart';
 import '../note/pinned_notes_view.dart';
 import '../settings/settings_view.dart';
@@ -145,12 +146,8 @@ class _DashboardView extends GetView<HomeController> {
           ),
         ),
         const SizedBox(width: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
+        LiquidGlassContainer(
+          borderRadius: BorderRadius.circular(16),
           child: IconButton(
             onPressed: () => Get.bottomSheet(const FilterSheet()),
             icon: const Icon(Icons.tune_rounded, color: AppColors.accent),
@@ -251,13 +248,8 @@ class _DashboardView extends GetView<HomeController> {
   Widget _buildNewFolderCard() {
     return InkWell(
       onTap: () => Get.toNamed(AppRoutes.folderList),
-      child: Container(
+      child: LiquidGlassContainer(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
