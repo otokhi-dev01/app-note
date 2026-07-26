@@ -12,6 +12,7 @@ void main() async {
     - code update : 26,07.2026
     - fix bug
     - update new feature and logic
+    - fix dark mod and light mod
    */
   WidgetsFlutterBinding.ensureInitialized();
   

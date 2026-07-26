@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/routes/app_routes.dart';
@@ -16,22 +17,62 @@ class OnboardingView extends StatefulWidget {
 class _OnboardingViewState extends State<OnboardingView> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (_currentPage < _items.length - 1) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 700),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        // Loop back to the first page when reaching the end
+        _pageController.animateToPage(
+          0,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
+
+  void _resetTimer() {
+    _timer?.cancel();
+    _startAutoScroll();
+  }
 
   final List<OnboardingItem> _items = [
     OnboardingItem(
       title: 'Organize with Folders',
       description: 'Group your notes seamlessly and keep your workspace clutter-free.',
       icon: Icons.folder_copy_rounded,
+      color: AppColors.accent
     ),
     OnboardingItem(
       title: 'Quick Search',
       description: 'Find what you need in seconds with powerful search and filters.',
       icon: Icons.search_rounded,
+      color: AppColors.accent
     ),
     OnboardingItem(
       title: 'Secure & Synced',
       description: 'Your notes are encrypted and available on all your devices.',
       icon: Icons.security_rounded,
+      color: AppColors.accent
     ),
   ];
 
@@ -41,6 +82,7 @@ class _OnboardingViewState extends State<OnboardingView> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+      _resetTimer();
     } else {
       Get.find<StorageService>().isFirstTime = false;
       Get.offAllNamed(AppRoutes.login);
@@ -58,17 +100,26 @@ class _OnboardingViewState extends State<OnboardingView> {
               Align(
                 alignment: Alignment.topRight,
                 child: TextButton(
-                  onPressed: () {
-                    Get.find<StorageService>().isFirstTime = false;
-                    Get.offAllNamed(AppRoutes.login);
-                  },
-                  child: const Text('Skip'),
-                ),
+              onPressed: () {
+        Get.find<StorageService>().isFirstTime = false;
+        Get.offAllNamed(AppRoutes.login);
+        },
+          child: const Text(
+            'Skip',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold, // Makes the text bold
+            ),
+          ),
+        ),
               ),
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  onPageChanged: (index) => setState(() => _currentPage = index),
+                  onPageChanged: (index) {
+                    setState(() => _currentPage = index);
+                    _resetTimer();
+                  },
                   itemCount: _items.length,
                   itemBuilder: (context, index) {
                     return Padding(
@@ -175,10 +226,12 @@ class OnboardingItem {
   final String title;
   final String description;
   final IconData icon;
+  final Color color;
 
   OnboardingItem({
     required this.title,
     required this.description,
     required this.icon,
+    required this.color
   });
 }
