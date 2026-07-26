@@ -11,6 +11,7 @@ void main() async {
     branch nona_developer
     - code update : 26,07.2026
     - fix bug
+    - update new feature and logic
    */
   WidgetsFlutterBinding.ensureInitialized();
   
