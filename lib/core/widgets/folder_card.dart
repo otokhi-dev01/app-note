@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/folder_model.dart';
 
+import 'liquid_glass_container.dart';
+
 class FolderCard extends StatelessWidget {
   final FolderModel folder;
   final VoidCallback onTap;
@@ -23,21 +25,16 @@ class FolderCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
+          borderRadius: BorderRadius.circular(24),
+          child: LiquidGlassContainer(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
-            ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Icon(Icons.work_outline, color: color),
                 ),
@@ -63,28 +60,24 @@ class FolderCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
+        borderRadius: BorderRadius.circular(24),
+        child: LiquidGlassContainer(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
-          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.folder, color: color),
+                child: Icon(Icons.folder, color: color, size: 28),
               ),
-              const SizedBox(height: 8),
-              Text(folder.name, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-              Text('${folder.noteCount ?? 0} Notes', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(height: 12),
+              Text(folder.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 4),
+              Text('${folder.noteCount ?? 0} Notes', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
             ],
           ),
         ),

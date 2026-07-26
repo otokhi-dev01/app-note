@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/note_model.dart';
 import '../../data/models/content_block_model.dart';
+import 'liquid_glass_container.dart';
 
 class NoteCard extends StatelessWidget {
   final NoteModel note;
@@ -23,15 +24,9 @@ class NoteCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            width: 240,
+          borderRadius: BorderRadius.circular(24),
+          child: LiquidGlassContainer(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -39,41 +34,41 @@ class NoteCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         note.folderName ?? 'General',
-                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const Icon(Icons.push_pin, size: 16, color: AppColors.primary),
+                    const Icon(Icons.push_pin, size: 18, color: AppColors.primary),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
                   note.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   note.content?.firstWhere((b) => b.type == 'text', orElse: () => ContentBlockModel(id: '', type: 'text', text: '')).text ?? 'No content',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                 ),
                 const Spacer(),
                 Row(
                   children: [
                     const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textPlaceholder),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 6),
                     Text(
                       DateFormat('MMM dd, yyyy').format(note.createdAt ?? DateTime.now()),
-                      style: const TextStyle(fontSize: 10, color: AppColors.textPlaceholder),
+                      style: const TextStyle(fontSize: 11, color: AppColors.textPlaceholder),
                     ),
                   ],
                 ),
@@ -88,42 +83,38 @@ class NoteCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
+        borderRadius: BorderRadius.circular(24),
+        child: LiquidGlassContainer(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border),
-          ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.description_outlined, color: AppColors.primary),
+                child: const Icon(Icons.description_outlined, color: AppColors.primary, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(note.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(note.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
                     Text(
                       note.content?.firstWhere((b) => b.type == 'text', orElse: () => ContentBlockModel(id: '', type: 'text', text: '')).text ?? 'No description available', 
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
               ),
               Text(
                 DateFormat('h a').format(note.updatedAt ?? DateTime.now()),
-                style: const TextStyle(fontSize: 12, color: AppColors.textPlaceholder),
+                style: const TextStyle(fontSize: 12, color: AppColors.textPlaceholder, fontWeight: FontWeight.w500),
               ),
             ],
           ),
