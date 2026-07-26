@@ -22,11 +22,17 @@ class _SettingsViewState extends State<SettingsView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      // backgroundColor: AppColors.transparent,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        // backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        flexibleSpace: const LiquidGlassContainer(
+          borderRadius: BorderRadius.zero,
+          blur: 10,
+          opacity: 0.6,
+          child: SizedBox.expand(),
+        ),
         title: const Text(
           'Settings',
           style: TextStyle(
@@ -44,7 +50,7 @@ class _SettingsViewState extends State<SettingsView> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

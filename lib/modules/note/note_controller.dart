@@ -18,6 +18,7 @@ class NoteController extends GetxController {
   final isLoading = false.obs;
   final titleController = TextEditingController();
   final blocks = <ContentBlockModel>[].obs;
+  final selectedFolderId = 2.obs; // Default to general/marketing team as per current UI
 
   void initNote(int? id) async {
     if (id == null) {
@@ -46,6 +47,7 @@ class NoteController extends GetxController {
   void _loadNoteData(NoteModel detail) {
     note.value = detail;
     titleController.text = detail.title;
+    selectedFolderId.value = detail.folderId ?? 2;
     blocks.value = detail.content ?? [
       ContentBlockModel(id: _uuid.v4(), type: 'text', text: '')
     ];
@@ -142,13 +144,31 @@ class NoteController extends GetxController {
     );
   }
 
+  void updateChecklistItemText(int blockIndex, int itemIndex, String text) {
+    final block = blocks[blockIndex];
+    if (block.items == null) return;
+    
+    final items = List<ChecklistItemModel>.from(block.items!);
+    final oldItem = items[itemIndex];
+    items[itemIndex] = ChecklistItemModel(
+      id: oldItem.id,
+      text: text,
+      checked: oldItem.checked,
+    );
+
+    blocks[blockIndex] = ContentBlockModel(
+      id: block.id,
+      type: 'checklist',
+      items: items,
+    );
+  }
+
   Future<void> saveNote() async {
     if (titleController.text.isEmpty) return;
     isLoading.value = true;
     try {
       final noteId = note.value?.id ?? 0;
-      // Default folderId is 2 if not set (based on existing logic, but should be dynamic)
-      final folderId = note.value?.folderId ?? 2;
+      final folderId = selectedFolderId.value;
       final savedId = await _repository.saveNote(noteId, folderId, titleController.text);
       final idToSave = note.value?.id ?? savedId ?? 0;
       if (idToSave != 0) {
@@ -188,5 +208,39 @@ class NoteController extends GetxController {
     } catch (e) {
       UIHelpers.showSnackBar('Error', 'Failed to update pin status', isError: true);
     }
+  }
+
+  Future<void> archiveNote() async {
+    if (note.value == null) return;
+    final newState = !note.value!.isArchived;
+    try {
+      await _repository.updateNoteState(id: note.value!.id!, isArchived: newState);
+      note.value = note.value!.copyWith(isArchived: newState);
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchData();
+      }
+      UIHelpers.showSnackBar('Success', newState ? 'Note archived' : 'Note restored');
+      Get.back(); // Return to list
+    } catch (e) {
+      UIHelpers.showSnackBar('Error', 'Failed to update archive status', isError: true);
+    }
+  }
+
+  Future<void> deleteNote() async {
+    if (note.value == null) return;
+    try {
+      await _repository.deleteRestoreNote(note.value!.id!, true);
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchData();
+      }
+      UIHelpers.showSnackBar('Success', 'Note moved to trash');
+      Get.back();
+    } catch (e) {
+      UIHelpers.showSnackBar('Error', 'Failed to delete note', isError: true);
+    }
+  }
+
+  void changeFolder(int folderId) {
+    selectedFolderId.value = folderId;
   }
 }

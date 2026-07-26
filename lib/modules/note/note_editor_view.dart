@@ -4,6 +4,7 @@ import 'note_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../data/models/content_block_model.dart';
+import '../folder/folder_controller.dart';
 import 'attachment_list_view.dart';
 import 'dart:io';
 
@@ -27,7 +28,10 @@ class NoteEditorView extends GetView<NoteController> {
             icon: Icon(controller.note.value?.isPinned ?? false ? Icons.push_pin : Icons.push_pin_outlined),
             onPressed: controller.togglePin,
           )),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_horiz)),
+          IconButton(
+            onPressed: () => _showMoreActions(context), 
+            icon: const Icon(Icons.more_horiz),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
             child: SizedBox(
@@ -53,7 +57,7 @@ class NoteEditorView extends GetView<NoteController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildTagsHeader(),
+                    _buildTagsHeader(context),
                     const SizedBox(height: 24),
                     TextField(
                       controller: controller.titleController,
@@ -88,24 +92,32 @@ class NoteEditorView extends GetView<NoteController> {
     );
   }
 
-  Widget _buildTagsHeader() {
+  Widget _buildTagsHeader(BuildContext context) {
+    final folderController = Get.find<FolderController>();
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.folder_outlined, size: 14),
-              const SizedBox(width: 4),
-              Text(
-                controller.note.value?.folderName ?? 'Marketing Team', 
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
-              ),
-            ],
+        GestureDetector(
+          onTap: () => _showFolderPicker(context, folderController),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.folder_outlined, size: 14),
+                const SizedBox(width: 4),
+                Obx(() {
+                  final folderId = controller.selectedFolderId.value;
+                  final folder = folderController.folders.firstWhereOrNull((f) => f.id == folderId);
+                  return Text(
+                    folder?.name ?? 'Select Folder', 
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
+                  );
+                }),
+              ],
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -152,13 +164,14 @@ class NoteEditorView extends GetView<NoteController> {
               ),
               Expanded(
                 child: TextField(
+                  onChanged: (val) => controller.updateChecklistItemText(index, itemIndex, val),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     fillColor: Colors.transparent,
                   ),
-                  controller: TextEditingController(text: item.text),
+                  controller: TextEditingController(text: item.text)..selection = TextSelection.collapsed(offset: item.text.length),
                   style: TextStyle(
                     decoration: item.checked ? TextDecoration.lineThrough : null,
                     color: item.checked ? AppColors.textPlaceholder : AppColors.textPrimary,
@@ -233,6 +246,84 @@ class NoteEditorView extends GetView<NoteController> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.more_vert, color: AppColors.accent),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFolderPicker(BuildContext context, FolderController folderController) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Move to Folder', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: folderController.folders.length,
+                itemBuilder: (context, index) {
+                  final folder = folderController.folders[index];
+                  return ListTile(
+                    leading: const Icon(Icons.folder_outlined),
+                    title: Text(folder.name),
+                    trailing: Obx(() => controller.selectedFolderId.value == folder.id 
+                      ? const Icon(Icons.check_circle, color: AppColors.accent) 
+                      : const SizedBox()),
+                    onTap: () {
+                      controller.changeFolder(folder.id!);
+                      Get.back();
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMoreActions(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.archive_outlined),
+              title: const Text('Archive Note'),
+              onTap: () {
+                Get.back();
+                controller.archiveNote();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: AppColors.error),
+              title: const Text('Delete Note', style: TextStyle(color: AppColors.error)),
+              onTap: () {
+                Get.back();
+                controller.deleteNote();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Lock Note'),
+              onTap: () => Get.back(),
             ),
           ],
         ),

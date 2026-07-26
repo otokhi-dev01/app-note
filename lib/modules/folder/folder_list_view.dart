@@ -20,7 +20,7 @@ class FolderListView extends GetView<FolderController> {
         ],
       ),
       body: Obx(() => ListView.separated(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
         itemCount: controller.folders.length,
         separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
@@ -58,9 +58,12 @@ class FolderListView extends GetView<FolderController> {
 
   void _showCreateFolderSheet(BuildContext context, {FolderModel? editFolder}) {
     if (editFolder != null) {
-      controller.nameController.text = editFolder.name;
+      controller.openEditFolder(editFolder);
     } else {
+      controller.selectedFolder.value = null;
       controller.nameController.clear();
+      controller.selectedColorIndex.value = 0;
+      controller.selectedIconIndex.value = 0;
     }
 
     showModalBottomSheet(
