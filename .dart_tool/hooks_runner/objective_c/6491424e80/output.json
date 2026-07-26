@@ -2,7 +2,7 @@
   "assets": [
     {
       "encoding": {
-        "file": "/Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/objective_c.dylib",
+        "file": "/Users/yornnona/Documents/flutter_app/app-note/app-note/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/objective_c.dylib",
         "id": "package:objective_c/objective_c.dylib",
         "link_mode": {
           "type": "dynamic_loading_bundle"
@@ -42,5 +42,5 @@
     "/Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/ffi.h"
   ],
   "status": "success",
-  "timestamp": "2026-07-21 18:08:45.000"
+  "timestamp": "2026-07-26 10:34:46.000"
 }
