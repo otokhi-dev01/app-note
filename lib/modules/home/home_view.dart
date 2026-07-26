@@ -17,6 +17,7 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: Obx(() => IndexedStack(
         index: controller.currentIndex.value,
         children: const [
@@ -26,20 +27,32 @@ class HomeView extends GetView<HomeController> {
           SettingsView(),
         ],
       )),
-      bottomNavigationBar: Obx(() => BottomNavigationBar(
-        currentIndex: controller.currentIndex.value,
-        onTap: controller.changePage,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.accent,
-        unselectedItemColor: AppColors.textSecondary,
-        showUnselectedLabels: true,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Notes', activeIcon: Icon(Icons.description)),
-          BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), label: 'Folders', activeIcon: Icon(Icons.folder)),
-          BottomNavigationBarItem(icon: Icon(Icons.push_pin_outlined), label: 'Pinned', activeIcon: Icon(Icons.push_pin)),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings', activeIcon: Icon(Icons.settings)),
-        ],
-      )),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+        child: LiquidGlassContainer(
+          borderRadius: BorderRadius.circular(30),
+          blur: 20,
+          opacity: 0.6,
+          child: Obx(() => BottomNavigationBar(
+            currentIndex: controller.currentIndex.value,
+            onTap: controller.changePage,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            selectedItemColor: AppColors.accent,
+            unselectedItemColor: AppColors.textSecondary.withValues(alpha: 0.5),
+            showUnselectedLabels: true,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Notes', activeIcon: Icon(Icons.description)),
+              BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), label: 'Folders', activeIcon: Icon(Icons.folder)),
+              BottomNavigationBarItem(icon: Icon(Icons.push_pin_outlined), label: 'Pinned', activeIcon: Icon(Icons.push_pin)),
+              BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings', activeIcon: Icon(Icons.settings)),
+            ],
+          )),
+        ),
+      ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'home_fab',
         onPressed: () => Get.toNamed(AppRoutes.noteEditor),
@@ -57,10 +70,11 @@ class _DashboardView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      bottom: false,
       child: RefreshIndicator(
         onRefresh: controller.fetchData,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 120.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

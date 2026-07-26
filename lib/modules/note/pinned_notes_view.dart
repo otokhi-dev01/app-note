@@ -22,7 +22,7 @@ class PinnedNotesView extends StatelessWidget {
         ],
       ),
       body: Obx(() => ListView.separated(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
         itemCount: controller.notes.length,
         separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, index) => _buildPinnedCard(controller, controller.notes[index]),

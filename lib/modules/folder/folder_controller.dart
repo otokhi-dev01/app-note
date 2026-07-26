@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart' as dio;
 import '../../data/repositories/folder_repository.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../data/models/folder_model.dart';
 import '../../data/models/note_model.dart';
 import '../../app/theme/colors.dart';
+import '../../core/utils/app_logger.dart';
 
 class FolderController extends GetxController {
   final FolderRepository _folderRepository = FolderRepository();
@@ -62,7 +64,7 @@ class FolderController extends GetxController {
   }
 
   void _showFolderSheet({bool isEdit = false, int? folderId}) {
-    // This logic is called from the View. 
+    // This logic is called from the View.
     // I'll provide a helper method to be used in FolderListView.
   }
 
@@ -81,6 +83,14 @@ class FolderController extends GetxController {
       nameController.clear();
       Get.back();
       fetchFolders();
+    } catch (e) {
+      if (e is dio.DioException) {
+        AppLogger.error('Folder creation failed', error: e.response?.data);
+        Get.snackbar('Error', 'Failed to create folder: ${e.response?.data?['message'] ?? e.message}');
+      } else {
+        AppLogger.error('Folder creation error', error: e);
+        Get.snackbar('Error', 'An unexpected error occurred');
+      }
     } finally {
       isLoading.value = false;
     }
