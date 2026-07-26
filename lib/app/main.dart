@@ -7,6 +7,11 @@ import 'services/auth_service.dart';
 import 'services/api_service.dart';
 
 void main() async {
+  /*
+    branch nona_developer
+    - code update : 26,07.2026
+    - fix bug
+   */
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize services
