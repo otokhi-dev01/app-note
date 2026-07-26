@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'auth_controller.dart';
 import '../../app/theme/colors.dart';
+import '../../core/widgets/app_button.dart';
+import '../../core/widgets/decorative_background.dart';
 
 class RegisterView extends StatelessWidget {
   const RegisterView({super.key});
@@ -11,160 +13,252 @@ class RegisterView extends StatelessWidget {
     final controller = Get.find<AuthController>();
 
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.transparent),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE2E8F0),
-                  shape: BoxShape.circle,
+      backgroundColor: AppColors.background,
+      body: DecorativeBackground(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                 ),
-                child: const Icon(Icons.edit_note_rounded, size: 32, color: AppColors.primary),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Create Account',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Join Modern Notes for seamless organization.',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 40),
-              
-              // Full Name
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Full Name', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller.fullNameController,
-                decoration: const InputDecoration(
-                  hintText: 'John Doe',
-                  prefixIcon: Icon(Icons.person_outline_rounded),
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Phone
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Phone Number', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
+                const SizedBox(height: 20),
+                
+                // Logo Section with Animation
+                TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 800),
+                  tween: Tween(begin: 0, end: 1),
+                  builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 30 * (1 - value)),
+                      child: child,
                     ),
-                    child: Row(
-                      children: const [
-                        Text('+1 (US)'),
-                        Icon(Icons.keyboard_arrow_down_rounded),
+                  ),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(100),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: controller.phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        hintText: '555-0123',
-                        prefixIcon: Icon(Icons.phone_iphone_rounded),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Welcome Text with Animation
+                _buildAnimatedSlide(
+                  delay: 200,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Create Account',
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              // Password
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Password', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 8),
-              Obx(() => TextField(
-                controller: controller.passwordController,
-                obscureText: controller.obscurePassword.value,
-                decoration: InputDecoration(
-                  hintText: '••••••••',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      controller.obscurePassword.value 
-                        ? Icons.visibility_off_outlined 
-                        : Icons.visibility_outlined,
-                    ),
-                    onPressed: controller.togglePasswordVisibility,
+                      const SizedBox(height: 8),
+                      Text(
+                        'Join us and start capturing clarity today.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textSecondary.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              )),
-              const SizedBox(height: 20),
-              
-              // Device Name
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Device Name', style: TextStyle(fontWeight: FontWeight.w600)),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller.deviceNameController,
-                decoration: const InputDecoration(
-                  hintText: 'e.g., Work Laptop',
-                  prefixIcon: Icon(Icons.devices_rounded),
-                ),
-              ),
-              
-              const SizedBox(height: 40),
-              Obx(() => ElevatedButton(
-                onPressed: controller.isLoading.value ? null : controller.register,
-                child: controller.isLoading.value 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Text('Register'),
-                        SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_rounded, size: 20),
-                      ],
-                    ),
-              )),
-              
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Already have an account?"),
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: const Text('Login', style: TextStyle(fontWeight: FontWeight.bold)),
+
+                const SizedBox(height: 32),
+
+                // Form Section
+                _buildAnimatedSlide(
+                  delay: 400,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel('Full Name'),
+                      const SizedBox(height: 10),
+                      _buildTextField(
+                        controller: controller.fullNameController,
+                        hint: 'Enter your full name',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      _buildLabel('Phone Number'),
+                      const SizedBox(height: 10),
+                      _buildTextField(
+                        controller: controller.phoneController,
+                        hint: 'Enter your phone',
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      _buildLabel('Password'),
+                      const SizedBox(height: 10),
+                      Obx(() => _buildTextField(
+                        controller: controller.passwordController,
+                        hint: 'Create a password',
+                        icon: Icons.lock_outline_rounded,
+                        obscureText: controller.obscurePassword.value,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            controller.obscurePassword.value 
+                              ? Icons.visibility_off_outlined 
+                              : Icons.visibility_outlined,
+                            size: 20,
+                            color: AppColors.textPlaceholder,
+                          ),
+                          onPressed: controller.togglePasswordVisibility,
+                        ),
+                      )),
+                      const SizedBox(height: 20),
+                      
+                      _buildLabel('Device Name'),
+                      const SizedBox(height: 10),
+                      _buildTextField(
+                        controller: controller.deviceNameController,
+                        hint: 'e.g., iPhone 15 Pro',
+                        icon: Icons.devices_rounded,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ],
+                ),
+
+                const SizedBox(height: 40),
+
+                // Action Buttons
+                _buildAnimatedSlide(
+                  delay: 600,
+                  child: Column(
+                    children: [
+                      Obx(() => AppButton(
+                        text: 'Register',
+                        isLoading: controller.isLoading.value,
+                        onPressed: controller.register,
+                        icon: Icons.person_add_alt_1_rounded,
+                      )),
+                      const SizedBox(height: 32),
+                      
+                      // Footer
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Already have an account? ",
+                            style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8)),
+                          ),
+                          GestureDetector(
+                            onTap: () => Get.back(),
+                            child: const Text(
+                              'Sign In',
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+        color: AppColors.primary,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+    Widget? suffixIcon,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 20),
+        suffixIcon: suffixIcon,
+        fillColor: Colors.white,
+        filled: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedSlide({required int delay, required Widget child}) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 600),
+      tween: Tween(begin: 0, end: 1),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 20 * (1 - value)),
+          child: child,
+        ),
+      ),
+      child: child,
     );
   }
 }
