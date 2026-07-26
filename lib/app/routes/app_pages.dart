@@ -1,85 +1,92 @@
 import 'package:get/get.dart';
-
-import '../../feature/auth/presentation/binding/login_binding.dart';
-import '../../feature/auth/presentation/binding/register_binding.dart';
-import '../../feature/auth/presentation/view/login_view.dart';
-import '../../feature/auth/presentation/view/register_view.dart';
-import '../../feature/folders/presentation/binding/create_folder_binding.dart';
-import '../../feature/folders/presentation/binding/recently_deleted_folders_binding.dart';
-import '../../feature/folders/presentation/view/create_folder_view.dart';
-import '../../feature/folders/presentation/view/recently_deleted_folders_view.dart';
-import '../../feature/main/presentation/view/main_view.dart';
-import '../../feature/notes/presentation/bindings/create_note_binding.dart';
-import '../../feature/notes/presentation/bindings/home_binding.dart';
-import '../../feature/notes/presentation/bindings/note_editor_binding.dart';
-import '../../feature/notes/presentation/view/create_note_view.dart';
-import '../../feature/notes/presentation/view/note_editor_view.dart';
-import '../../feature/recycle_bin/presentation/bindings/recycle_bin_binding.dart';
-import '../../feature/recycle_bin/presentation/views/recycle_bin_view.dart';
-import '../controllers/splash_controller.dart';
-import '../views/splash_view.dart';
 import 'app_routes.dart';
+import '../../modules/splash/splash_view.dart';
+import '../../modules/splash/splash_binding.dart';
+import '../../modules/onboarding/onboarding_view.dart';
+import '../../modules/auth/login_view.dart';
+import '../../modules/auth/register_view.dart';
+import '../../modules/home/home_view.dart';
+import '../../modules/home/home_binding.dart';
+import '../../modules/folder/folder_list_view.dart';
+import '../../modules/folder/folder_detail_view.dart';
+import '../../modules/folder/folder_controller.dart';
+import '../../modules/note/note_editor_view.dart';
+import '../../modules/note/note_binding.dart';
+import '../../modules/note/pinned_notes_view.dart';
+import '../../modules/note/locked_notes_view.dart';
+import '../../modules/archive/archive_view.dart';
+import '../../modules/trash/trash_view.dart';
+import '../../modules/search/search_view.dart';
+import '../../modules/profile/profile_view.dart';
+import '../../modules/settings/settings_view.dart';
 
-abstract final class AppPages {
-  static final List<GetPage<dynamic>> pages = <GetPage<dynamic>>[
-    GetPage<dynamic>(
+class AppPages {
+  static const initial = AppRoutes.splash;
+
+  static final routes = [
+    GetPage(
       name: AppRoutes.splash,
       page: () => const SplashView(),
-      binding: BindingsBuilder(() {
-        Get.put<SplashController>(SplashController(authRepository: Get.find()));
-      }),
+      binding: SplashBinding(),
     ),
-
-    GetPage<dynamic>(
+    GetPage(
+      name: AppRoutes.onboarding,
+      page: () => const OnboardingView(),
+    ),
+    GetPage(
       name: AppRoutes.login,
       page: () => const LoginView(),
-      binding: LoginBinding(),
     ),
-
-    GetPage<dynamic>(
+    GetPage(
       name: AppRoutes.register,
       page: () => const RegisterView(),
-      binding: RegisterBinding(),
     ),
-
-    GetPage<dynamic>(
+    GetPage(
       name: AppRoutes.home,
-      page: () => const MainView(),
+      page: () => const HomeView(),
       binding: HomeBinding(),
     ),
-
-    GetPage<dynamic>(
-      name: AppRoutes.createFolder,
-      page: () => const CreateFolderView(),
-      binding: CreateFolderBinding(),
+    GetPage(
+      name: AppRoutes.folderList,
+      page: () => const FolderListView(),
+      binding: BindingsBuilder(() => Get.lazyPut(() => FolderController())),
     ),
-
-    GetPage<dynamic>(
-      name: AppRoutes.recentlyDeletedFolders,
-      page: () => const RecentlyDeletedFoldersView(),
-      binding: RecentlyDeletedFoldersBinding(),
+    GetPage(
+      name: AppRoutes.folderDetail,
+      page: () => const FolderDetailView(),
     ),
-
-    GetPage<dynamic>(
-      name: AppRoutes.createNote,
-      page: () => const CreateNoteView(),
-      binding: CreateNoteBinding(),
-    ),
-    GetPage<dynamic>(
-      name: AppRoutes.archive,
-      page: () => const RecycleBinView(isArchiveMode: true),
-      binding: RecycleBinBinding(),
-    ),
-
-    GetPage<dynamic>(
+    GetPage(
       name: AppRoutes.noteEditor,
       page: () => const NoteEditorView(),
-      binding: NoteEditorBinding(),
+      binding: NoteBinding(),
     ),
-    GetPage<dynamic>(
-      name: AppRoutes.recycleBin,
-      page: () => const RecycleBinView(),
-      binding: RecycleBinBinding(),
+    GetPage(
+      name: AppRoutes.pinned,
+      page: () => const PinnedNotesView(),
+    ),
+    GetPage(
+      name: '/locked-notes',
+      page: () => const LockedNotesView(),
+    ),
+    GetPage(
+      name: AppRoutes.archive,
+      page: () => const ArchiveView(),
+    ),
+    GetPage(
+      name: AppRoutes.trash,
+      page: () => const TrashView(),
+    ),
+    GetPage(
+      name: AppRoutes.search,
+      page: () => const SearchView(),
+    ),
+    GetPage(
+      name: AppRoutes.profile,
+      page: () => const ProfileView(),
+    ),
+    GetPage(
+      name: AppRoutes.settings,
+      page: () => const SettingsView(),
     ),
   ];
 }
