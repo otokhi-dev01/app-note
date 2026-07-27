@@ -11,7 +11,7 @@ class SettingsView extends StatefulWidget {
   State<SettingsView> createState() => _SettingsViewState();
 }
 
-class _SettingsViewState extends State<SettingsView> {
+class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClientMixin {
   // State variables for the toggles
   bool _pushNotifications = true;
   bool _emailSummaries = false;
@@ -20,7 +20,11 @@ class _SettingsViewState extends State<SettingsView> {
   bool _syncWifiOnly = true;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       // backgroundColor: AppColors.transparent,
       appBar: AppBar(
