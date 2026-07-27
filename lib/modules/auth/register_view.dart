@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'auth_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/decorative_background.dart';
 
 class RegisterView extends StatelessWidget {
@@ -69,9 +70,7 @@ class RegisterView extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
                 // Welcome Text with Animation
                 _buildAnimatedSlide(
                   delay: 200,
@@ -97,40 +96,33 @@ class RegisterView extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
                 // Form Section
                 _buildAnimatedSlide(
                   delay: 400,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Full Name'),
-                      const SizedBox(height: 10),
-                      _buildTextField(
+                      CustomTextField(
+                        label: 'Full Name',
                         controller: controller.fullNameController,
                         hint: 'Enter your full name',
-                        icon: Icons.person_outline_rounded,
+                        prefixIcon: Icons.person_outline_rounded,
                       ),
                       const SizedBox(height: 20),
-                      
-                      _buildLabel('Phone Number'),
-                      const SizedBox(height: 10),
-                      _buildTextField(
+                      CustomTextField(
+                        label: 'Phone Number',
                         controller: controller.phoneController,
                         hint: 'Enter your phone',
-                        icon: Icons.phone_outlined,
+                        prefixIcon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 20),
-                      
-                      _buildLabel('Password'),
-                      const SizedBox(height: 10),
-                      Obx(() => _buildTextField(
+                      Obx(() => CustomTextField(
+                        label: 'Password',
                         controller: controller.passwordController,
                         hint: 'Create a password',
-                        icon: Icons.lock_outline_rounded,
+                        prefixIcon: Icons.lock_outline_rounded,
                         obscureText: controller.obscurePassword.value,
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -144,14 +136,6 @@ class RegisterView extends StatelessWidget {
                         ),
                       )),
                       const SizedBox(height: 20),
-                      
-                      _buildLabel('Device Name'),
-                      const SizedBox(height: 10),
-                      _buildTextField(
-                        controller: controller.deviceNameController,
-                        hint: 'e.g., iPhone 15 Pro',
-                        icon: Icons.devices_rounded,
-                      ),
                     ],
                   ),
                 ),
@@ -199,48 +183,6 @@ class RegisterView extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
-        color: AppColors.primary,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool obscureText = false,
-    TextInputType keyboardType = TextInputType.text,
-    Widget? suffixIcon,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-        suffixIcon: suffixIcon,
-        fillColor: Colors.white,
-        filled: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 18),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
         ),
       ),
     );

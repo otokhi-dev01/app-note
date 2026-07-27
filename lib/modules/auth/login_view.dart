@@ -4,6 +4,7 @@ import 'auth_controller.dart';
 import '../../app/routes/app_routes.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/custom_text_field.dart';
 import '../../core/widgets/decorative_background.dart';
 
 class LoginView extends StatelessWidget {
@@ -107,60 +108,31 @@ class LoginView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel('Phone Number'),
-                      const SizedBox(height: 10),
-                      TextField(
+                      CustomTextField(
+                        label: 'Phone Number',
                         controller: controller.phoneController,
+                        hint: 'Enter your phone',
+                        prefixIcon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your phone',
-                          prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                          fillColor: Colors.white,
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
                       ),
                       const SizedBox(height: 24),
-                      _buildLabel('Password'),
-                      const SizedBox(height: 10),
-                      Obx(() => TextField(
+                      Obx(() => CustomTextField(
+                        label: 'Password',
                         controller: controller.passwordController,
+                        hint: 'Enter your password',
+                        prefixIcon: Icons.lock_outline,
                         obscureText: controller.obscurePassword.value,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your password',
-                          prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                          fillColor: Colors.white,
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              controller.obscurePassword.value 
-                                ? Icons.visibility_off_outlined 
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            controller.obscurePassword.value
+                                ? Icons.visibility_off_outlined
                                 : Icons.visibility_outlined,
-                              size: 20,
-                              color: AppColors.textPlaceholder,
-                            ),
-                            onPressed: controller.togglePasswordVisibility,
+                            size: 20,
+                            color: AppColors.textPlaceholder,
                           ),
+                          onPressed: controller.togglePasswordVisibility,
                         ),
                       )),
-                      
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
@@ -189,49 +161,10 @@ class LoginView extends StatelessWidget {
                         onPressed: controller.login,
                         icon: Icons.login_rounded,
                       )),
-                      const SizedBox(height: 32),
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: AppColors.border.withValues(alpha: 0.5))),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'Or continue with',
-                              style: TextStyle(
-                                color: AppColors.textSecondary.withValues(alpha: 0.6),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: AppColors.border.withValues(alpha: 0.5))),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
-                      // Social Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildSocialButton(
-                              icon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png',
-                              label: 'Google',
-                              onTap: () {},
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildSocialButton(
-                              icon: 'https://cdn-icons-png.flaticon.com/512/0/747.png',
-                              label: 'Apple',
-                              onTap: () {},
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
                 // Footer
                 _buildAnimatedSlide(
                   delay: 800,
@@ -260,50 +193,6 @@ class LoginView extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
-        color: AppColors.primary,
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required String icon,
-    required String label,
-    required VoidCallback onTap
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.8)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.network(icon, width: 20, height: 20),
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ],
         ),
       ),
     );
