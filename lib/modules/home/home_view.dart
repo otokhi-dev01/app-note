@@ -18,47 +18,139 @@ class HomeView extends GetView<HomeController> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      body: Obx(() => IndexedStack(
-        index: controller.currentIndex.value,
-        children: const [
-          _DashboardView(),
-          FolderListView(),
-          PinnedNotesView(),
-          SettingsView(),
+      body: PageView(
+        key: const ValueKey('home_page_view'),
+        controller: controller.pageController,
+        onPageChanged: controller.onPageChanged,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          const _DashboardView(),
+          const FolderListView(),
+          const PinnedNotesView(),
+          const SettingsView(),
         ],
-      )),
+      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
         child: LiquidGlassContainer(
           borderRadius: BorderRadius.circular(30),
           blur: 20,
           opacity: 0.6,
-          child: Obx(() => BottomNavigationBar(
-            currentIndex: controller.currentIndex.value,
-            onTap: controller.changePage,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedItemColor: AppColors.accent,
-            unselectedItemColor: AppColors.textSecondary.withValues(alpha: 0.5),
-            showUnselectedLabels: true,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            unselectedLabelStyle: const TextStyle(fontSize: 12),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Notes', activeIcon: Icon(Icons.description)),
-              BottomNavigationBarItem(icon: Icon(Icons.folder_outlined), label: 'Folders', activeIcon: Icon(Icons.folder)),
-              BottomNavigationBarItem(icon: Icon(Icons.push_pin_outlined), label: 'Pinned', activeIcon: Icon(Icons.push_pin)),
-              BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings', activeIcon: Icon(Icons.settings)),
-            ],
-          )),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            child: Obx(() => Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _NavBarItem(
+                  icon: Icons.description_outlined,
+                  activeIcon: Icons.description,
+                  label: 'Notes',
+                  isSelected: controller.currentIndex.value == 0,
+                  onTap: () => controller.changePage(0),
+                ),
+                _NavBarItem(
+                  icon: Icons.folder_outlined,
+                  activeIcon: Icons.folder,
+                  label: 'Folders',
+                  isSelected: controller.currentIndex.value == 1,
+                  onTap: () => controller.changePage(1),
+                ),
+                _NavBarItem(
+                  icon: Icons.push_pin_outlined,
+                  activeIcon: Icons.push_pin,
+                  label: 'Pinned',
+                  isSelected: controller.currentIndex.value == 2,
+                  onTap: () => controller.changePage(2),
+                ),
+                _NavBarItem(
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings,
+                  label: 'Settings',
+                  isSelected: controller.currentIndex.value == 3,
+                  onTap: () => controller.changePage(3),
+                ),
+              ],
+            )),
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'home_fab',
-        onPressed: () => Get.toNamed(AppRoutes.noteEditor),
-        backgroundColor: AppColors.accent,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 20),
+        child: FloatingActionButton(
+          heroTag: 'home_fab',
+          onPressed: () => Get.toNamed(AppRoutes.noteEditor),
+          backgroundColor: AppColors.accent,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          child: const Icon(Icons.add, size: 28, color: Colors.white, weight: 800),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavBarItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _NavBarItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedScale(
+            duration: const Duration(milliseconds: 300),
+            scale: isSelected ? 1.2 : 1.0,
+            curve: Curves.easeOutBack,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.accent.withValues(alpha: 0.1) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: isSelected ? AppColors.accent : AppColors.textSecondary.withValues(alpha: 0.6),
+                size: 26,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 300),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? AppColors.accent : AppColors.textSecondary.withValues(alpha: 0.5),
+            ),
+            child: Text(label),
+          ),
+          const SizedBox(height: 4),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: 4,
+            width: isSelected ? 4 : 0,
+            decoration: const BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -74,7 +166,7 @@ class _DashboardView extends GetView<HomeController> {
       child: RefreshIndicator(
         onRefresh: controller.fetchData,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 120.0),
+          padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 160.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -226,9 +318,8 @@ class _DashboardView extends GetView<HomeController> {
             mainAxisSpacing: 16,
             childAspectRatio: 1.3,
           ),
-          itemCount: controller.folders.take(4).length + 1,
+          itemCount: controller.folders.take(4).length,
             itemBuilder: (context, index) {
-            if (index < controller.folders.take(4).length) {
               final folder = controller.folders[index];
               final heroTag = 'home_folder_${folder.id ?? index}';
               return Hero(
@@ -241,28 +332,9 @@ class _DashboardView extends GetView<HomeController> {
                   }),
                 ),
               );
-            }
-            return _buildNewFolderCard();
           },
         )),
       ],
-    );
-  }
-
-  Widget _buildNewFolderCard() {
-    return InkWell(
-      onTap: () => Get.toNamed(AppRoutes.folderList),
-      child: LiquidGlassContainer(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.add, color: AppColors.textSecondary),
-            SizedBox(height: 8),
-            Text('New Folder', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
     );
   }
 

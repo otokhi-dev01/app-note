@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/services.dart';
 import '../../data/repositories/folder_repository.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -13,6 +15,7 @@ class HomeController extends GetxController {
   final AuthRepository _authRepository = AuthRepository();
 
   final currentIndex = 0.obs;
+  late PageController pageController;
   
   final isLoading = false.obs;
   final folders = <FolderModel>[].obs;
@@ -23,7 +26,14 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    pageController = PageController(initialPage: currentIndex.value);
     fetchData();
+  }
+
+  @override
+  void onClose() {
+    pageController.dispose();
+    super.onClose();
   }
 
   Future<void> fetchData() async {
@@ -59,6 +69,17 @@ class HomeController extends GetxController {
   }
 
   void changePage(int index) {
+    if (currentIndex.value == index) return;
+    HapticFeedback.lightImpact();
+    currentIndex.value = index;
+    pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  void onPageChanged(int index) {
     currentIndex.value = index;
   }
 }

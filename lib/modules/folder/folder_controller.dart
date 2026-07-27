@@ -15,6 +15,19 @@ class FolderController extends GetxController {
   final folders = <FolderModel>[].obs;
   final isLoading = false.obs;
   
+  // Search logic
+  final searchQuery = ''.obs;
+  List<FolderModel> get filteredFolders {
+    if (searchQuery.isEmpty) return folders;
+    return folders.where((f) => 
+      f.name.toLowerCase().contains(searchQuery.value.toLowerCase())
+    ).toList();
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
+  }
+  
   final nameController = TextEditingController();
   final selectedColorIndex = 0.obs;
   final selectedIconIndex = 0.obs;
