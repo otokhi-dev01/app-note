@@ -9,7 +9,7 @@ import 'services/api_service.dart';
 void main() async {
   /*
     branch nona_developer
-    - code update : 26,07.2026
+    - code update : 27,07.2026
     - fix bug
     - update new feature and logic
     - fix dark mod and light mod
