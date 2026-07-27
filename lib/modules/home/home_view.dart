@@ -116,11 +116,8 @@ class _DashboardView extends GetView<HomeController> {
               tag: 'profile_avatar',
               child: CircleAvatar(
                 radius: 24,
-                backgroundImage: NetworkImage(
-                  (user?.avatar != null && user!.avatar!.isNotEmpty)
-                      ? user.avatar!
-                      : 'https://i.pravatar.cc/150?u=a042581f4e29026704d',
-                ),
+                backgroundColor: AppColors.primary,
+                child: const Icon(Icons.person, color: Colors.white, size: 24),
               ),
             ),
           ),

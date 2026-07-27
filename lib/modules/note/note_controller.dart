@@ -18,7 +18,26 @@ class NoteController extends GetxController {
   final isLoading = false.obs;
   final titleController = TextEditingController();
   final blocks = <ContentBlockModel>[].obs;
-  final selectedFolderId = 2.obs; // Default to general/marketing team as per current UI
+  final selectedFolderId = 2.obs;
+  
+  // Cache controllers to prevent re-creation in build
+  final blockControllers = <String, TextEditingController>{};
+
+  @override
+  void onClose() {
+    for (var controller in blockControllers.values) {
+      controller.dispose();
+    }
+    titleController.dispose();
+    super.onClose();
+  }
+
+  TextEditingController getBlockController(String id, String? initialText) {
+    if (!blockControllers.containsKey(id)) {
+      blockControllers[id] = TextEditingController(text: initialText);
+    }
+    return blockControllers[id]!;
+  }
 
   void initNote(int? id) async {
     if (id == null) {

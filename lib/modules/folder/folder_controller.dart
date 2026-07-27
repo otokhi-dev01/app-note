@@ -58,20 +58,22 @@ class FolderController extends GetxController {
   }
 
   void openEditFolder(FolderModel folder) {
+    selectedFolder.value = folder;
     nameController.text = folder.name;
-    // Map color/icon back if possible
-    _showFolderSheet(isEdit: true, folderId: folder.id);
-  }
-
-  void _showFolderSheet({bool isEdit = false, int? folderId}) {
-    // This logic is called from the View.
-    // I'll provide a helper method to be used in FolderListView.
+    
+    // Map color/icon back to indices
+    int colorIdx = AppColors.folderColors.indexWhere(
+      (c) => c.toARGB32().toString() == folder.colorValue
+    );
+    selectedColorIndex.value = colorIdx != -1 ? colorIdx : 0;
+    selectedIconIndex.value = int.tryParse(folder.iconName ?? '0') ?? 0;
   }
 
   Future<void> createFolder() async {
     if (nameController.text.isEmpty) return;
     
-    final newFolder = FolderModel(
+    final folderToSave = FolderModel(
+      id: selectedFolder.value?.id,
       name: nameController.text,
       colorValue: AppColors.folderColors[selectedColorIndex.value].toARGB32().toString(),
       iconName: selectedIconIndex.value.toString(),
@@ -79,8 +81,9 @@ class FolderController extends GetxController {
 
     isLoading.value = true;
     try {
-      await _folderRepository.saveFolder(newFolder);
+      await _folderRepository.saveFolder(folderToSave);
       nameController.clear();
+      selectedFolder.value = null;
       Get.back();
       fetchFolders();
     } catch (e) {

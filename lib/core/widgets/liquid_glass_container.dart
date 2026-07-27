@@ -31,8 +31,8 @@ class LiquidGlassContainer extends StatelessWidget {
             color: Colors.white.withValues(alpha: opacity),
             borderRadius: effectiveBorderRadius,
             border: Border.all(
-              color: Colors.white10.withValues(alpha: 0.05),
-              width: 1.5,
+              color: Colors.grey.withValues(alpha: 0.3),
+              width: 1,
             ),
             boxShadow: [
               BoxShadow(

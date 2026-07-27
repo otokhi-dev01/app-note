@@ -56,7 +56,7 @@ class NoteEditorView extends GetView<NoteController> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildTagsHeader(context),
                     const SizedBox(height: 24),
@@ -74,14 +74,9 @@ class NoteEditorView extends GetView<NoteController> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: controller.blocks.length,
-                      itemBuilder: (context, index) {
-                        return _buildBlock(index, controller.blocks[index]);
-                      },
-                    ),
+                    ...controller.blocks.asMap().entries.map((entry) {
+                      return _buildBlock(entry.key, entry.value);
+                    }),
                   ],
                 ),
               ),
@@ -97,27 +92,33 @@ class NoteEditorView extends GetView<NoteController> {
     final folderController = Get.find<FolderController>();
     return Row(
       children: [
-        GestureDetector(
-          onTap: () => _showFolderPicker(context, folderController),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.folder_outlined, size: 14),
-                const SizedBox(width: 4),
-                Obx(() {
-                  final folderId = controller.selectedFolderId.value;
-                  final folder = folderController.folders.firstWhereOrNull((f) => f.id == folderId);
-                  return Text(
-                    folder?.name ?? 'Select Folder', 
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
-                  );
-                }),
-              ],
+        Flexible(
+          child: GestureDetector(
+            onTap: () => _showFolderPicker(context, folderController),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.folder_outlined, size: 14),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Obx(() {
+                      final folderId = controller.selectedFolderId.value;
+                      final folder = folderController.folders.firstWhereOrNull((f) => f.id == folderId);
+                      return Text(
+                        folder?.name ?? 'Select Folder', 
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -136,10 +137,11 @@ class NoteEditorView extends GetView<NoteController> {
 
   Widget _buildBlock(int index, ContentBlockModel block) {
     if (block.type == 'text') {
+      final textController = controller.getBlockController(block.id, block.text);
       return TextField(
         onChanged: (val) => controller.updateTextBlock(index, val),
         maxLines: null,
-        controller: TextEditingController(text: block.text)..selection = TextSelection.collapsed(offset: block.text?.length ?? 0),
+        controller: textController,
         decoration: const InputDecoration(
           hintText: 'Start typing...',
           hintStyle: TextStyle(color: AppColors.textPlaceholder),
@@ -155,6 +157,7 @@ class NoteEditorView extends GetView<NoteController> {
         children: (block.items ?? []).asMap().entries.map((entry) {
           int itemIndex = entry.key;
           ChecklistItemModel item = entry.value;
+          final itemController = controller.getBlockController(item.id, item.text);
           return Row(
             children: [
               Checkbox(
@@ -166,13 +169,15 @@ class NoteEditorView extends GetView<NoteController> {
               Expanded(
                 child: TextField(
                   onChanged: (val) => controller.updateChecklistItemText(index, itemIndex, val),
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     fillColor: Colors.transparent,
                   ),
-                  controller: TextEditingController(text: item.text)..selection = TextSelection.collapsed(offset: item.text.length),
+                  controller: itemController,
                   style: TextStyle(
                     decoration: item.checked ? TextDecoration.lineThrough : null,
                     color: item.checked ? AppColors.textPlaceholder : AppColors.textPrimary,
@@ -186,13 +191,9 @@ class NoteEditorView extends GetView<NoteController> {
     } else if (block.type == 'attachment') {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Container(
+        child: LiquidGlassContainer(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
+          borderRadius: BorderRadius.circular(16),
           child: Row(
             children: [
               if (block.text != null && (block.text!.endsWith('.jpg') || block.text!.endsWith('.png')))
@@ -203,8 +204,20 @@ class NoteEditorView extends GetView<NoteController> {
               else
                 const Icon(Icons.insert_drive_file_outlined),
               const SizedBox(width: 12),
-              Expanded(child: Text(block.displayName ?? 'Attachment')),
-              const Icon(Icons.close, size: 16),
+              Expanded(
+                child: Text(
+                  block.displayName ?? 'Attachment',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              IconButton(
+                onPressed: () {}, // TODO: Remove attachment
+                icon: const Icon(Icons.close, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
         ),
@@ -228,27 +241,30 @@ class NoteEditorView extends GetView<NoteController> {
       ),
       child: SafeArea(
         top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(onPressed: controller.addImageBlock, icon: const Icon(Icons.image_outlined)),
-            IconButton(onPressed: controller.addChecklistBlock, icon: const Icon(Icons.check_box_outlined)),
-            IconButton(
-              onPressed: () => Get.to(() => const AttachmentListView()), 
-              icon: const Icon(Icons.attach_file),
-            ),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.format_bold)),
-            IconButton(onPressed: () {}, icon: const Icon(Icons.format_italic)),
-            IconButton(onPressed: controller.addTextBlock, icon: const Icon(Icons.format_list_bulleted)),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              IconButton(onPressed: controller.addImageBlock, icon: const Icon(Icons.image_outlined)),
+              IconButton(onPressed: controller.addChecklistBlock, icon: const Icon(Icons.check_box_outlined)),
+              IconButton(
+                onPressed: () => Get.to(() => const AttachmentListView()), 
+                icon: const Icon(Icons.attach_file),
               ),
-              child: const Icon(Icons.more_vert, color: AppColors.accent),
-            ),
-          ],
+              IconButton(onPressed: () {}, icon: const Icon(Icons.format_bold)),
+              IconButton(onPressed: () {}, icon: const Icon(Icons.format_italic)),
+              IconButton(onPressed: controller.addTextBlock, icon: const Icon(Icons.format_list_bulleted)),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.more_vert, color: AppColors.accent),
+              ),
+            ],
+          ),
         ),
       ),
     );

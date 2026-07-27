@@ -103,8 +103,8 @@ class NoteListController extends GetxController {
       );
       
       // Update local state immediately if in pinned list
-      if (!newState && notes.contains(note)) {
-        notes.remove(note);
+      if (!newState) {
+        notes.removeWhere((n) => n.id == note.id);
       }
       
       // Refresh Home if it exists
