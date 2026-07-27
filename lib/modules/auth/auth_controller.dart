@@ -15,16 +15,27 @@ class AuthController extends GetxController {
 
   final isLoading = false.obs;
   final obscurePassword = true.obs;
+  final hasError = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Clear error when user starts typing
+    phoneController.addListener(() => hasError.value = false);
+    passwordController.addListener(() => hasError.value = false);
+  }
 
   void togglePasswordVisibility() => obscurePassword.value = !obscurePassword.value;
 
   Future<void> login() async {
     if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
+      hasError.value = true;
       Get.snackbar('Error', 'Please fill in all fields');
       return;
     }
 
     isLoading.value = true;
+    hasError.value = false;
     try {
       final response = await _repository.login(
         phoneController.text,
@@ -36,9 +47,11 @@ class AuthController extends GetxController {
         _authService.login(token);
         Get.offAllNamed(AppRoutes.home);
       } else {
+        hasError.value = true;
         Get.snackbar('Error', response.data['message'] ?? 'Login failed');
       }
     } catch (e) {
+      hasError.value = true;
       Get.snackbar('Error', 'An error occurred during login');
     } finally {
       isLoading.value = false;
@@ -55,6 +68,7 @@ class AuthController extends GetxController {
     }
 
     isLoading.value = true;
+    hasError.value = false;
     try {
       final response = await _repository.register(
         fullName: fullNameController.text,
@@ -67,9 +81,11 @@ class AuthController extends GetxController {
         Get.snackbar('Success', 'Account created successfully. Please login.');
         Get.back();
       } else {
+        hasError.value = true;
         Get.snackbar('Error', response.data['message'] ?? 'Registration failed');
       }
     } catch (e) {
+      hasError.value = true;
       Get.snackbar('Error', 'An error occurred during registration');
     } finally {
       isLoading.value = false;

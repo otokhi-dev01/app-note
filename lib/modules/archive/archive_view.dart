@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../data/models/note_model.dart';
 import '../note/note_list_controller.dart';
 import '../../app/theme/colors.dart';
-import '../../data/models/note_model.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 
 class ArchiveView extends StatelessWidget {
   const ArchiveView({super.key});
@@ -46,13 +47,10 @@ class ArchiveView extends StatelessWidget {
   }
 
   Widget _buildArchiveCard(NoteModel note) {
-    return Container(
+    return LiquidGlassContainer(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: BorderRadius.circular(24),
+      opacity: 0.6,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -60,28 +58,44 @@ class ArchiveView extends StatelessWidget {
             children: [
               const Icon(Icons.archive_outlined, size: 20, color: AppColors.textPlaceholder),
               const SizedBox(width: 8),
-              Text(note.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text(
+                  note.title, 
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Initial thoughts on the new architecture. We need to focus on scalability...',
+          Text(
+            note.content?.firstWhereOrNull((b) => b.type == 'text')?.text ?? 'No description',
             maxLines: 2,
-            style: TextStyle(color: AppColors.textSecondary),
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8)),
-                child: const Text('Archived 2 weeks ago', style: TextStyle(fontSize: 10)),
+                decoration: BoxDecoration(
+                  color: AppColors.background.withValues(alpha: 0.4), 
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('Archived recently', style: TextStyle(fontSize: 10)),
               ),
               const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Text('Work', style: TextStyle(fontSize: 10, color: AppColors.accent)),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.1), 
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  note.folderName ?? 'General', 
+                  style: const TextStyle(fontSize: 10, color: AppColors.accent),
+                ),
               ),
             ],
           ),

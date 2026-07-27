@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../app/services/auth_service.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/decorative_background.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -144,40 +145,34 @@ class ProfileView extends StatelessWidget {
   Widget _buildMenuItem(IconData icon, String title, String subtitle, {String? trailing}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      child: LiquidGlassContainer(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        opacity: 0.6,
+        blur: 10,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.background.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 22),
           ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 22),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (trailing != null) ...[
-              Text(trailing, style: const TextStyle(fontSize: 12, color: AppColors.textPlaceholder, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 8),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (trailing != null) ...[
+                Text(trailing, style: const TextStyle(fontSize: 12, color: AppColors.textPlaceholder, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 8),
+              ],
+              const Icon(Icons.chevron_right_rounded, color: AppColors.textPlaceholder),
             ],
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textPlaceholder),
-          ],
+          ),
+          onTap: () {},
         ),
-        onTap: () {},
       ),
     );
   }

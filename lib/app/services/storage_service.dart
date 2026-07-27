@@ -21,4 +21,10 @@ class StorageService extends GetxService {
 
   bool get isFirstTime => read<bool>(AppConstants.isFirstTimeKey) ?? true;
   set isFirstTime(bool value) => write(AppConstants.isFirstTimeKey, value);
+
+  String? get languageCode => read<String>(AppConstants.languageCodeKey);
+  set languageCode(String? value) => write(AppConstants.languageCodeKey, value);
+
+  String? get countryCode => read<String>(AppConstants.countryCodeKey);
+  set countryCode(String? value) => write(AppConstants.countryCodeKey, value);
 }

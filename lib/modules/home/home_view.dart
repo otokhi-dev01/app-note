@@ -130,21 +130,14 @@ class _DashboardView extends GetView<HomeController> {
     return Row(
       children: [
         Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          child: LiquidGlassContainer(
+            borderRadius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            opacity: 0.6,
             child: TextField(
               onTap: () => Get.toNamed(AppRoutes.search),
               readOnly: true,
+              style: const TextStyle(fontWeight: FontWeight.w500),
               decoration: const InputDecoration(
                 hintText: 'Search notes, folders...',
                 prefixIcon: Icon(Icons.search, color: AppColors.textPlaceholder),

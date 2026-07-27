@@ -6,6 +6,7 @@ import '../../app/services/storage_service.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/decorative_background.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({super.key});
@@ -135,20 +136,11 @@ class _OnboardingViewState extends State<OnboardingView> {
                               scale: value,
                               child: child,
                             ),
-                            child: Container(
-                              height: 180,
-                              width: 180,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(40),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.08),
-                                    blurRadius: 30,
-                                    offset: const Offset(0, 15),
-                                  ),
-                                ],
-                              ),
+                            child: LiquidGlassContainer(
+                              borderRadius: BorderRadius.circular(40),
+                              padding: const EdgeInsets.all(40),
+                              opacity: 0.6,
+                              blur: 10,
                               child: Icon(
                                 _items[index].icon,
                                 size: 80,
