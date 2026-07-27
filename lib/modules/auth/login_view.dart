@@ -58,7 +58,7 @@ class LoginView extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(100),
                                 child: Image.asset(
-                                  'assets/images/logo.png',
+                                  'assets/icons/logo_icon.png',
                                   width: 100,
                                   height: 100,
                                   fit: BoxFit.contain,
@@ -69,9 +69,9 @@ class LoginView extends StatelessWidget {
                             const Text(
                               'OTOKHI NOTES',
                               style: TextStyle(
-                                fontSize: 14,
-                                letterSpacing: 4,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                                letterSpacing: 5,
+                                fontWeight: FontWeight.bold,
                                 color: AppColors.primary,
                               ),
                             ),

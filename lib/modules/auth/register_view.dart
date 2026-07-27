@@ -57,7 +57,7 @@ class RegisterView extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(100),
                                 child: Image.asset(
-                                  'assets/images/logo.png',
+                                  'assets/icons/app_icon.png',
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.contain,

@@ -7,12 +7,11 @@ import 'services/storage_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 
-/*
-    branch nona_developer
-    - code update : 27,07.2026
-    - fix bug
-    - update new feature and logic
-    - fix dark mod and light mod
+  /*
+    date : 27.07.2026
+    Today, I was updated the new feature
+    by branch nona_developer
+    name: otokhi_note App
    */
 
 void main() async {
@@ -35,7 +34,7 @@ class MyApp extends StatelessWidget {
         : Get.deviceLocale;
 
     return GetMaterialApp(
-      title: 'OTOKHI-Notes',
+      title: 'otokhi_note',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       translations: AppTranslations(),

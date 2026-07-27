@@ -8,24 +8,55 @@ import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/liquid_glass_container.dart';
 import '../../data/models/folder_model.dart';
 
-class FolderListView extends GetView<FolderController> {
+class FolderListView extends StatefulWidget {
   const FolderListView({super.key});
+
+  @override
+  State<FolderListView> createState() => _FolderListViewState();
+}
+
+class _FolderListViewState extends State<FolderListView> {
+  final controller = Get.find<FolderController>();
+  bool _isSearching = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Folders'),
+        title: _isSearching 
+          ? TextField(
+              autofocus: true,
+              onChanged: controller.updateSearchQuery,
+              decoration: const InputDecoration(
+                hintText: 'Search folders...',
+                border: InputBorder.none,
+              ),
+            )
+          : const Text('Folders', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _isSearching = !_isSearching;
+                if (!_isSearching) controller.updateSearchQuery('');
+              });
+            }, 
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+          ),
+          IconButton(
+            onPressed: () => _showCreateFolderSheet(context),
+            icon: const Icon(Icons.add_circle_outline),
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Obx(() => ListView.separated(
+        key: const ValueKey('folder_list'),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-        itemCount: controller.folders.length,
+        itemCount: controller.filteredFolders.length,
         separatorBuilder: (context, index) => const SizedBox(height: 16),
         itemBuilder: (context, index) {
-          final folder = controller.folders[index];
+          final folder = controller.filteredFolders[index];
           final heroTag = 'list_folder_${folder.id ?? index}';
           return TweenAnimationBuilder(
             duration: Duration(milliseconds: 400 + (index * 50)),
@@ -48,12 +79,6 @@ class FolderListView extends GetView<FolderController> {
           );
         },
       )),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'folder_fab',
-        onPressed: () => _showCreateFolderSheet(context),
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
