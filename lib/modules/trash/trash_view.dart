@@ -4,6 +4,7 @@ import '../note/note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/note_model.dart';
 import '../../core/utils/ui_helpers.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 import 'package:intl/intl.dart';
 
 class TrashView extends StatelessWidget {
@@ -77,13 +78,10 @@ class TrashView extends StatelessWidget {
   }
 
   Widget _buildTrashCard(NoteListController controller, NoteModel note) {
-    return Container(
+    return LiquidGlassContainer(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
+      borderRadius: BorderRadius.circular(24),
+      opacity: 0.6,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -100,16 +98,20 @@ class TrashView extends StatelessWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(12)),
-                child: const Text('Expires Soon', style: TextStyle(fontSize: 10, color: AppColors.error, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1), 
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text('In Trash', style: TextStyle(fontSize: 10, color: AppColors.error, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'This note was deleted. You can restore it to your main list or delete it permanently.',
+          Text(
+            note.content?.firstWhereOrNull((b) => b.type == 'text')?.text ?? 'No description available',
             maxLines: 2,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 20),
           Row(
