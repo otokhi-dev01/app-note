@@ -25,6 +25,9 @@ class NoteCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
+          child: SizedBox(
+          width: 240,
+          height: 170,
           child: LiquidGlassContainer(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -75,6 +78,7 @@ class NoteCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       );
     }

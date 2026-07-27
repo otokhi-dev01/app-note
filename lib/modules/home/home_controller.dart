@@ -71,7 +71,11 @@ class HomeController extends GetxController {
   void changePage(int index) {
     if (currentIndex.value == index) return;
     HapticFeedback.lightImpact();
+    
+    // We update the index here to make the bottom bar react instantly
     currentIndex.value = index;
+    
+    // Animate the PageView to the selected tab
     pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 400),

@@ -7,6 +7,7 @@ import '../../core/widgets/folder_card.dart';
 import '../../core/widgets/note_card.dart';
 import '../../core/widgets/sort_filter_sheets.dart';
 import '../../core/widgets/liquid_glass_container.dart';
+import '../../core/widgets/keep_alive_wrapper.dart';
 import '../folder/folder_list_view.dart';
 import '../note/pinned_notes_view.dart';
 import '../settings/settings_view.dart';
@@ -24,10 +25,10 @@ class HomeView extends GetView<HomeController> {
         onPageChanged: controller.onPageChanged,
         physics: const BouncingScrollPhysics(),
         children: [
-          const _DashboardView(),
-          const FolderListView(),
-          const PinnedNotesView(),
-          const SettingsView(),
+          const KeepAliveWrapper(child: _DashboardView()),
+          const KeepAliveWrapper(child: FolderListView()),
+          const KeepAliveWrapper(child: PinnedNotesView()),
+          const KeepAliveWrapper(child: SettingsView()),
         ],
       ),
       bottomNavigationBar: Container(

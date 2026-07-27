@@ -15,12 +15,16 @@ class FolderListView extends StatefulWidget {
   State<FolderListView> createState() => _FolderListViewState();
 }
 
-class _FolderListViewState extends State<FolderListView> {
+class _FolderListViewState extends State<FolderListView> with AutomaticKeepAliveClientMixin {
   final controller = Get.find<FolderController>();
   bool _isSearching = false;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: AppBar(
         title: _isSearching 
