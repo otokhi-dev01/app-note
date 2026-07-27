@@ -36,7 +36,8 @@ class ProfileView extends StatelessWidget {
                       tag: 'profile_avatar',
                       child: CircleAvatar(
                         radius: 60,
-                        backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=eleanor'),
+                        backgroundColor: AppColors.primary,
+                        child: Icon(Icons.person, color: Colors.white, size: 60),
                       ),
                     ),
                   ),
