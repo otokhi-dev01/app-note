@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/colors.dart';
+import 'liquid_glass_container.dart';
 
 class CustomTextField extends StatelessWidget {
   final String? label;
@@ -43,43 +44,57 @@ class CustomTextField extends StatelessWidget {
           ),
           const SizedBox(height: 10),
         ],
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
-          onChanged: onChanged,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: Icon(prefixIcon, size: 22, color: AppColors.primary.withValues(alpha: 0.6)),
-            suffixIcon: suffixIcon,
-            fillColor: Colors.white,
-            filled: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 20),
-            
-            // Default border
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: isError ? AppColors.error : const Color(0xFFE2E8F0),
-                width: 1.5,
+        LiquidGlassContainer(
+          borderRadius: BorderRadius.circular(16),
+          opacity: 0.1,
+          blur: 10,
+          child: TextFormField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            validator: validator,
+            onChanged: onChanged,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: AppColors.primary.withValues(alpha: 0.4),
+                fontWeight: FontWeight.bold,
               ),
-            ),
-            // Focused border
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: isError ? AppColors.error : const Color(0xFFEC4899).withValues(alpha: 0.5),
-                width: 2.0,
+              prefixIcon: Icon(
+                prefixIcon, 
+                size: 22, 
+                color: AppColors.primary.withValues(alpha: 0.6),
+                weight: 800,
               ),
-            ),
-            // Error and base borders
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: isError ? AppColors.error : const Color(0xFFE2E8F0),
-                width: 1.5,
+              suffixIcon: suffixIcon,
+              fillColor: Colors.transparent,
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 20),
+              
+              // Default border
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isError ? AppColors.error : AppColors.primary.withValues(alpha: 0.05),
+                  width: 1.5,
+                ),
+              ),
+              // Focused border
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isError ? AppColors.error : AppColors.accent.withValues(alpha: 0.5),
+                  width: 2.0,
+                ),
+              ),
+              // Error and base borders
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: isError ? AppColors.error : Colors.transparent,
+                  width: 1.5,
+                ),
               ),
             ),
           ),

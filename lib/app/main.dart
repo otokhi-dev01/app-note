@@ -8,7 +8,7 @@ import 'services/auth_service.dart';
 import 'services/api_service.dart';
 
   /*
-    date : 27.07.2026
+    date : 28.07.2026
     Today, I was updated the new feature
     by branch nona_developer
     name: otokhi_note App

@@ -11,6 +11,7 @@ import '../../modules/folder/folder_list_view.dart';
 import '../../modules/folder/folder_detail_view.dart';
 import '../../modules/folder/folder_controller.dart';
 import '../../modules/note/note_editor_view.dart';
+import '../../modules/note/note_list_view.dart';
 import '../../modules/note/note_binding.dart';
 import '../../modules/note/pinned_notes_view.dart';
 import '../../modules/note/locked_notes_view.dart';
@@ -59,6 +60,10 @@ class AppPages {
       name: AppRoutes.noteEditor,
       page: () => const NoteEditorView(),
       binding: NoteBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.noteList,
+      page: () => const NoteListView(),
     ),
     GetPage(
       name: AppRoutes.pinned,

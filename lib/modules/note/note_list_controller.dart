@@ -13,6 +13,19 @@ class NoteListController extends GetxController {
   final trashFolders = <FolderModel>[].obs;
   final isLoading = false.obs;
 
+  void fetchAllNotes() async {
+    isLoading.value = true;
+    try {
+      final all = await _repository.getAllNotes();
+      notes.value = all['note'] ?? [];
+      // Sort by updatedAt descending
+      notes.sort((a, b) => (b.updatedAt ?? b.createdAt ?? DateTime.now())
+          .compareTo(a.updatedAt ?? a.createdAt ?? DateTime.now()));
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   void fetchPinnedNotes() async {
     isLoading.value = true;
     try {

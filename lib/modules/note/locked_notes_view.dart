@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/note_model.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 
 class LockedNotesView extends StatelessWidget {
@@ -16,10 +17,10 @@ class LockedNotesView extends StatelessWidget {
     controller.fetchLockedNotes();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Locked Notes'),
+      appBar: CustomGlassAppBar(
+        titleText: 'Locked Notes',
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, weight: 800)),
           const SizedBox(width: 16),
         ],
       ),

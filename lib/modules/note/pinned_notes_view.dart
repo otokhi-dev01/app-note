@@ -4,6 +4,7 @@ import 'note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../app/routes/app_routes.dart';
 import '../../core/widgets/note_card.dart';
+import '../../core/widgets/custom_app_bar.dart';
 
 class PinnedNotesView extends StatefulWidget {
   const PinnedNotesView({super.key});
@@ -29,10 +30,10 @@ class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAli
     super.build(context); // Required by AutomaticKeepAliveClientMixin
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pinned Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+      appBar: CustomGlassAppBar(
+        titleText: 'Pinned Notes',
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, weight: 800)),
           const SizedBox(width: 16),
         ],
       ),

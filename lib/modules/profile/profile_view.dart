@@ -4,6 +4,7 @@ import '../../app/services/auth_service.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/decorative_background.dart';
 import '../../core/widgets/liquid_glass_container.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import '../home/home_controller.dart';
 
 class ProfileView extends StatelessWidget {
@@ -15,8 +16,8 @@ class ProfileView extends StatelessWidget {
     final homeController = Get.find<HomeController>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+      appBar: const CustomGlassAppBar(
+        titleText: 'Profile',
       ),
       body: DecorativeBackground(
         child: SingleChildScrollView(
