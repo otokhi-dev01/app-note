@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import '../../app/theme/colors.dart';
+import '../../data/models/attachment_model.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 import 'note_controller.dart';
 import 'attachment_upload_view.dart';
 import 'attachment_preview_view.dart';
@@ -11,18 +14,22 @@ class AttachmentListView extends GetView<NoteController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
         title: Column(
           children: [
-            const Text('Attachments'),
-            Text(
-              controller.note.value?.title ?? 'Project_Alpha_Notes',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: AppColors.textSecondary),
-            ),
+            const Text('Attachments', style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold)),
+            Obx(() => Text(
+              controller.note.value?.title ?? 'Untitled Note',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Color(0xFF64748B)),
+            )),
           ],
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
           onPressed: () => Get.back(),
         ),
       ),
@@ -30,30 +37,41 @@ class AttachmentListView extends GetView<NoteController> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'UPLOADED FILES',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF94A3B8), letterSpacing: 1.2),
                   ),
                   const SizedBox(height: 16),
-                  Obx(() => ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: controller.blocks.where((b) => b.type == 'attachment').length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final attachment = controller.blocks.where((b) => b.type == 'attachment').toList()[index];
-                      return _buildAttachmentCard(
-                        attachment.displayName ?? 'File', 
-                        '2.4 MB', 
-                        'Document',
-                        onTap: () => Get.to(() => AttachmentPreviewView(fileName: attachment.displayName ?? 'File')),
+                  Obx(() {
+                    final attachments = controller.note.value?.attachments ?? [];
+                    if (attachments.isEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: Column(
+                            children: [
+                              Icon(Icons.attachment_rounded, size: 48, color: const Color(0xFFE2E8F0)),
+                              const SizedBox(height: 12),
+                              const Text('No attachments found', style: TextStyle(color: Color(0xFF94A3B8))),
+                            ],
+                          ),
+                        ),
                       );
-                    },
-                  )),
+                    }
+                    return ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: attachments.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return _buildAttachmentCard(attachments[index]);
+                      },
+                    );
+                  }),
                 ],
               ),
             ),
@@ -64,43 +82,72 @@ class AttachmentListView extends GetView<NoteController> {
     );
   }
 
-  Widget _buildAttachmentCard(String name, String size, String type, {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 48,
-              width: 48,
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.insert_drive_file, color: AppColors.accent),
+  Widget _buildAttachmentCard(AttachmentModel attachment) {
+    final String size = (attachment.sizeBytes / 1024 / 1024).toStringAsFixed(1);
+    final isImage = attachment.mimeType.startsWith('image/');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Get.to(() => AttachmentPreviewView(fileName: attachment.originalFileName)),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: isImage
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(
+                            'https://note.piisiit.com${attachment.filePath}',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.image, color: Color(0xFF94A3B8)),
+                          ),
+                        )
+                      : const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF64748B), size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        attachment.originalFileName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$size MB • ${attachment.mimeType.split('/').last.toUpperCase()}',
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {}, // TODO: Delete from API
+                  icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 22),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text('$size • $type', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.delete_outline, color: AppColors.textPlaceholder),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -111,28 +158,28 @@ class AttachmentListView extends GetView<NoteController> {
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: AppColors.border)),
+        border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
       ),
-      child: InkWell(
-        onTap: () => Get.to(() => const AttachmentUploadView()),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border, style: BorderStyle.solid),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                child: const Icon(Icons.upload, color: Colors.white, size: 20),
-              ),
-              const SizedBox(height: 8),
-              const Text('Upload Attachment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              const Text('Drag & drop or tap to browse', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ],
+      child: SafeArea(
+        top: false,
+        child: InkWell(
+          onTap: () => Get.to(() => const AttachmentUploadView()),
+          child: LiquidGlassContainer(
+            padding: const EdgeInsets.all(24),
+            borderRadius: BorderRadius.circular(20),
+            opacity: 0.1,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(color: Color(0xFF1E293B), shape: BoxShape.circle),
+                  child: const Icon(Icons.cloud_upload_outlined, color: Colors.white, size: 22),
+                ),
+                const SizedBox(height: 12),
+                const Text('Upload New Attachment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1E293B))),
+                const Text('Images, PDFs or Documents up to 10MB', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+              ],
+            ),
           ),
         ),
       ),

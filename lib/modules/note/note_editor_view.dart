@@ -14,8 +14,8 @@ class NoteEditorView extends GetView<NoteController> {
 
   @override
   Widget build(BuildContext context) {
-    final int? noteId = Get.arguments as int?;
-    controller.initNote(noteId);
+    final dynamic args = Get.arguments;
+    controller.initNote(args);
 
     return Scaffold(
       backgroundColor: Colors.white,

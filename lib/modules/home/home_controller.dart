@@ -8,6 +8,8 @@ import '../../data/models/folder_model.dart';
 import '../../data/models/note_model.dart';
 import '../../data/models/user_model.dart';
 import '../../core/utils/app_logger.dart';
+import '../note/note_list_controller.dart';
+import '../folder/folder_controller.dart';
 
 class HomeController extends GetxController {
   final FolderRepository _folderRepository = FolderRepository();
@@ -45,8 +47,8 @@ class HomeController extends GetxController {
         user.value = fetchedUser;
       }
 
-      final fetchedFolders = await _folderRepository.getFolders();
-      folders.value = fetchedFolders;
+      final fetchedData = await _folderRepository.getFolders();
+      folders.value = fetchedData['folder'] ?? [];
 
       final allNotes = await _noteRepository.getAllNotes();
       final notes = allNotes['note'] ?? [];
@@ -60,6 +62,18 @@ class HomeController extends GetxController {
       recentNotes.value = notes.where((n) => !n.isPinned).toList()
         ..sort((a, b) => (b.updatedAt ?? b.createdAt ?? DateTime.now())
             .compareTo(a.updatedAt ?? a.createdAt ?? DateTime.now()));
+
+      // Synchronize other controllers if they exist
+      if (Get.isRegistered<NoteListController>()) {
+        final noteListController = Get.find<NoteListController>();
+        // Only refresh the active list to avoid unnecessary API calls
+        if (currentIndex.value == 2) { // Pinned Tab
+          noteListController.fetchPinnedNotes();
+        }
+      }
+      if (Get.isRegistered<FolderController>()) {
+        Get.find<FolderController>().fetchFolders();
+      }
     } catch (e) {
       AppLogger.error('Home data fetch error', error: e);
       Get.snackbar('Error', 'Failed to load data: $e');

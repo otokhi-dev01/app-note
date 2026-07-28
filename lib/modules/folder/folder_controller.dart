@@ -13,6 +13,7 @@ class FolderController extends GetxController {
   final NoteRepository _noteRepository = NoteRepository();
 
   final folders = <FolderModel>[].obs;
+  final trashFolders = <FolderModel>[].obs;
   final isLoading = false.obs;
   
   // Search logic
@@ -44,7 +45,9 @@ class FolderController extends GetxController {
   Future<void> fetchFolders() async {
     isLoading.value = true;
     try {
-      folders.value = await _folderRepository.getFolders();
+      final data = await _folderRepository.getFolders();
+      folders.value = data['folder'] ?? [];
+      trashFolders.value = data['trash'] ?? [];
     } finally {
       isLoading.value = false;
     }
@@ -74,22 +77,30 @@ class FolderController extends GetxController {
     selectedFolder.value = folder;
     nameController.text = folder.name;
     
-    // Map color/icon back to indices
+    // Map colorValue back to index
     int colorIdx = AppColors.folderColors.indexWhere(
       (c) => c.toARGB32().toString() == folder.colorValue
     );
     selectedColorIndex.value = colorIdx != -1 ? colorIdx : 0;
-    selectedIconIndex.value = int.tryParse(folder.iconName ?? '0') ?? 0;
+
+    // Map iconName back to index
+    final iconMap = ['folder', 'work', 'home', 'lightbulb', 'favorite', 'school'];
+    int iconIdx = iconMap.indexOf(folder.iconName?.toLowerCase() ?? 'folder');
+    if (iconIdx == -1) {
+      iconIdx = int.tryParse(folder.iconName ?? '0') ?? 0;
+    }
+    selectedIconIndex.value = iconIdx;
   }
 
   Future<void> createFolder() async {
     if (nameController.text.isEmpty) return;
     
+    final iconMap = ['folder', 'work', 'home', 'lightbulb', 'favorite', 'school'];
     final folderToSave = FolderModel(
       id: selectedFolder.value?.id,
       name: nameController.text,
       colorValue: AppColors.folderColors[selectedColorIndex.value].toARGB32().toString(),
-      iconName: selectedIconIndex.value.toString(),
+      iconName: iconMap[selectedIconIndex.value],
     );
 
     isLoading.value = true;

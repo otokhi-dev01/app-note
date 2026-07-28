@@ -3,7 +3,8 @@ import 'package:get/get.dart';
 import '../../data/models/note_model.dart';
 import '../note/note_list_controller.dart';
 import '../../app/theme/colors.dart';
-import '../../core/widgets/liquid_glass_container.dart';
+import '../../app/routes/app_routes.dart';
+import '../../core/utils/ui_helpers.dart';
 
 class ArchiveView extends StatelessWidget {
   const ArchiveView({super.key});
@@ -16,106 +17,198 @@ class ArchiveView extends StatelessWidget {
     controller.fetchArchivedNotes();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
-        title: const Text('Archive'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
+          onPressed: () => Get.back(),
+        ),
+        title: const Text(
+          'Archive',
+          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold, fontSize: 24),
+        ),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
-          const CircleAvatar(radius: 16, backgroundImage: NetworkImage('https://i.pravatar.cc/150')),
-          const SizedBox(width: 16),
+          IconButton(
+            onPressed: () => Get.toNamed(AppRoutes.search),
+            icon: const Icon(Icons.search, color: Color(0xFF1E293B)),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a'),
+            ),
+          ),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.all(20.0),
+            padding: EdgeInsets.fromLTRB(20, 24, 20, 24),
             child: Text(
               'Items here are hidden from your main notes view but remain searchable. They stay indefinitely.',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 16, height: 1.5),
             ),
           ),
           Expanded(
-            child: Obx(() => ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: controller.notes.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _buildArchiveCard(controller.notes[index]),
-            )),
+            child: Obx(() {
+              if (controller.isLoading.value && controller.notes.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (controller.notes.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.archive_outlined, size: 80, color: AppColors.textPlaceholder.withValues(alpha: 0.3)),
+                      const SizedBox(height: 16),
+                      const Text('Archive is empty', style: TextStyle(color: AppColors.textSecondary, fontSize: 18)),
+                    ],
+                  ),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                itemCount: controller.notes.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 16),
+                itemBuilder: (context, index) => _buildArchiveCard(controller, controller.notes[index]),
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildArchiveCard(NoteModel note) {
-    return LiquidGlassContainer(
-      padding: const EdgeInsets.all(20),
-      borderRadius: BorderRadius.circular(24),
-      opacity: 0.6,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.archive_outlined, size: 20, color: AppColors.textPlaceholder),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  note.title, 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            note.content?.firstWhereOrNull((b) => b.type == 'text')?.text ?? 'No description',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.background.withValues(alpha: 0.4), 
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text('Archived recently', style: TextStyle(fontSize: 10)),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.1), 
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  note.folderName ?? 'General', 
-                  style: const TextStyle(fontSize: 10, color: AppColors.accent),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => Get.find<NoteListController>().archiveNote(note, false),
-                icon: const Icon(Icons.restore, size: 18),
-                label: const Text('Restore'),
-              ),
-              IconButton(
-                onPressed: () => Get.find<NoteListController>().deleteNoteForever(note.id!), 
-                icon: const Icon(Icons.delete_outline, color: AppColors.error),
-              ),
-            ],
+  Widget _buildArchiveCard(NoteListController controller, NoteModel note) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () => Get.toNamed(AppRoutes.noteEditor, arguments: note.id),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.inventory_2_outlined, size: 24, color: Color(0xFF94A3B8)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            note.title.isEmpty ? 'Untitled Note' : note.title, 
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            note.content?.firstWhereOrNull((b) => b.type == 'text')?.text ?? 'No description available',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 16, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    _buildBadge('Archived ${controller.getTimeAgo(note.updatedAt)}', const Color(0xFFF1F5F9), const Color(0xFF64748B)),
+                    const SizedBox(width: 8),
+                    if (note.folderName != null)
+                      _buildBadge(note.folderName!, const Color(0xFFF0FDFA), const Color(0xFF0D9488)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    _buildActionButton(
+                      onPressed: () => controller.archiveNote(note, false),
+                      icon: Icons.unarchive_outlined,
+                      label: 'Restore',
+                      color: const Color(0xFF1E293B),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () async {
+                        final confirm = await UIHelpers.showConfirmDialog(
+                          title: 'Delete Permanently',
+                          message: 'Are you sure?',
+                          confirmText: 'Delete',
+                        );
+                        if (confirm == true) {
+                          controller.deleteNoteForever(note.id!);
+                        }
+                      },
+                      icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadge(String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({required VoidCallback onPressed, required IconData icon, required String label, required Color color}) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14)),
+          ],
+        ),
       ),
     );
   }

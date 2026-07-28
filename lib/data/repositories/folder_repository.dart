@@ -3,18 +3,18 @@ import '../models/folder_model.dart';
 import '../providers/api_provider.dart';
 
 class FolderRepository extends ApiProvider {
-  Future<List<FolderModel>> getFolders() async {
+  Future<Map<String, List<FolderModel>>> getFolders() async {
     final response = await get('/folder');
     if (response.statusCode == 200) {
       final rawData = response.data['data'];
-      if (rawData is List) {
-        return rawData.map((e) => FolderModel.fromJson(e)).toList();
-      } else if (rawData is Map && rawData.containsKey('folder')) {
-        final List folders = rawData['folder'] ?? [];
-        return folders.map((e) => FolderModel.fromJson(e)).toList();
+      if (rawData is Map) {
+        return {
+          'folder': (rawData['folder'] as List?)?.map((e) => FolderModel.fromJson(e)).toList() ?? [],
+          'trash': (rawData['trash'] as List?)?.map((e) => FolderModel.fromJson(e)).toList() ?? [],
+        };
       }
     }
-    return [];
+    return {'folder': [], 'trash': []};
   }
 
   Future<dio.Response> saveFolder(FolderModel folder) async {

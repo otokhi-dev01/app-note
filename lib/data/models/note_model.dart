@@ -50,7 +50,7 @@ class NoteModel {
       createdAt: json['CreatedAt'] != null ? DateTime.parse(json['CreatedAt']) : null,
       updatedAt: json['UpdatedAt'] != null ? DateTime.parse(json['UpdatedAt']) : null,
       deletedAt: json['DeletedAt'] != null ? DateTime.parse(json['DeletedAt']) : null,
-      attachmentCount: json['AttachmentCount'] ?? 0,
+      attachmentCount: json['AttachmentCount'] ?? (json['Attachments'] as List?)?.length ?? 0,
       content: (json['ContentJson'] as List?)?.map((e) => ContentBlockModel.fromJson(e)).toList(),
       attachments: (json['Attachments'] as List?)?.map((e) => AttachmentModel.fromJson(e)).toList(),
     );
