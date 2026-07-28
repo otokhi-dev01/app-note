@@ -7,6 +7,7 @@ class AppRoutes {
   static const folderList = '/folders';
   static const folderDetail = '/folder-detail';
   static const noteEditor = '/note-editor';
+  static const noteList = '/note-list';
   static const search = '/search';
   static const pinned = '/pinned';
   static const archive = '/archive';

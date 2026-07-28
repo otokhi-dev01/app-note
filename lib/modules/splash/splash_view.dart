@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/widgets/liquid_glass_container.dart';
 import 'splash_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/decorative_background.dart';
@@ -26,29 +27,16 @@ class SplashView extends GetView<SplashController> {
               ),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        blurRadius: 30,
-                        offset: const Offset(0, 15),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: Image.asset(
-                      'assets/icons/logo_icon.png',
-                      width: 140,
-                      height: 140,
-                      fit: BoxFit.cover,
-                    ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: Image.asset(
+                    'assets/icons/logo_icon.png',
+                    width: 140,
+                    height: 140,
+                    fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(height: 40),

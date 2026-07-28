@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:otokhi_note/core/widgets/liquid_glass_container.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import 'note_controller.dart';
 
 class AttachmentUploadView extends GetView<NoteController> {
@@ -10,12 +12,8 @@ class AttachmentUploadView extends GetView<NoteController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Upload'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
+      appBar: const CustomGlassAppBar(
+        titleText: 'Upload',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -65,39 +63,38 @@ class AttachmentUploadView extends GetView<NoteController> {
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            Obx(() => ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: controller.blocks.where((b) => b.type == 'attachment').length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final attachment = controller.blocks.where((b) => b.type == 'attachment').toList()[index];
-                return _buildFileItem(attachment.displayName ?? 'File', '2.4 MB'); // Mock size for now
-              },
-            )),
+            Obx(() {
+              final attachments = controller.note.value?.attachments ?? [];
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: attachments.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final attachment = attachments[index];
+                  final sizeStr = (attachment.sizeBytes / 1024 / 1024).toStringAsFixed(1) + ' MB';
+                  return _buildFileItem(
+                    attachment.originalFileName, 
+                    sizeStr,
+                    onDelete: () => controller.deleteAttachment(attachment.id),
+                  );
+                },
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFileItem(String name, String size) {
-    return Container(
+  Widget _buildFileItem(String name, String size, {VoidCallback? onDelete}) {
+    return LiquidGlassContainer(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
       child: Row(
         children: [
-          Container(
+          LiquidGlassContainer(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.description_outlined, color: AppColors.primary),
+            child: const Icon(Icons.description_outlined, fontWeight: FontWeight.bold, color: AppColors.accent),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -110,8 +107,8 @@ class AttachmentUploadView extends GetView<NoteController> {
             ),
           ),
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.delete_outline, color: AppColors.textPlaceholder),
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline, fontWeight: FontWeight.bold, color: AppColors.error),
           ),
         ],
       ),

@@ -9,6 +9,7 @@ import 'package:otokhi_note/data/models/folder_model.dart';
 import 'package:otokhi_note/core/utils/ui_helpers.dart';
 import 'package:otokhi_note/core/widgets/liquid_glass_container.dart';
 import 'package:otokhi_note/core/widgets/folder_card.dart';
+import 'package:otokhi_note/core/widgets/custom_app_bar.dart';
 
 class TrashView extends StatelessWidget {
   const TrashView({super.key});
@@ -22,23 +23,14 @@ class TrashView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-          onPressed: () => Get.back(),
-        ),
-        title: const Text(
-          'Trash',
-          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold, fontSize: 28),
-        ),
+      appBar: CustomGlassAppBar(
+        titleText: 'Trash',
         actions: [
           TextButton.icon(
             onPressed: () => _confirmClearTrash(controller),
-            icon: const Icon(Icons.disabled_by_default_rounded, size: 20, color: AppColors.error),
+            icon: const Icon(Icons.disabled_by_default_rounded, size: 20, color: AppColors.error, weight: 800),
             label: const Text(
-              'Clear Trash',
+              'Clear',
               style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

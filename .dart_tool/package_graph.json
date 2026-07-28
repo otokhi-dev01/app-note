@@ -1,10 +1,10 @@
 {
   "roots": [
-    "otokhi001"
+    "otokhi_note"
   ],
   "packages": [
     {
-      "name": "otokhi001",
+      "name": "otokhi_note",
       "version": "1.0.0+1",
       "dependencies": [
         "cupertino_icons",

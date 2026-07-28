@@ -15,6 +15,11 @@ class FolderController extends GetxController {
   final folders = <FolderModel>[].obs;
   final trashFolders = <FolderModel>[].obs;
   final isLoading = false.obs;
+  final isGridView = true.obs;
+
+  void toggleViewMode() {
+    isGridView.value = !isGridView.value;
+  }
   
   // Search logic
   final searchQuery = ''.obs;

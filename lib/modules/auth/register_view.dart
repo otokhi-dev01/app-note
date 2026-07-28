@@ -26,55 +26,42 @@ class RegisterView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 120),
-                    // Logo Section with Animation
-                    TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 800),
-                      tween: Tween(begin: 0, end: 1),
-                      builder: (context, value, child) => Opacity(
-                        opacity: value,
-                        child: Transform.translate(
-                          offset: Offset(0, 30 * (1 - value)),
-                          child: child,
-                        ),
-                      ),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(100),
-                                child: Image.asset(
-                                  'assets/icons/app_icon.png',
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 60),
                     LiquidGlassContainer(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(28),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Logo Section with Animation
+                          _buildAnimatedSlide(
+                            delay: 0,
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(100),
+                                    child: Image.asset(
+                                      'assets/icons/logo_icon.png',
+                                      width: 90,
+                                      height: 90,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'OTOKHI NOTES',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      letterSpacing: 6,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 48),
                           // Welcome Text with Animation
                           _buildAnimatedSlide(
                             delay: 200,
@@ -84,7 +71,7 @@ class RegisterView extends StatelessWidget {
                                 Text(
                                   'create_account'.tr,
                                   style: const TextStyle(
-                                    fontSize: 34,
+                                    fontSize: 32,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textPrimary,
                                   ),

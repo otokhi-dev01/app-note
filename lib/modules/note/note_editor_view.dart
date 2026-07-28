@@ -6,6 +6,7 @@ import '../../core/widgets/app_button.dart';
 import '../../data/models/content_block_model.dart';
 import '../folder/folder_controller.dart';
 import '../../core/widgets/liquid_glass_container.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import 'attachment_list_view.dart';
 import 'dart:io';
 
@@ -19,11 +20,8 @@ class NoteEditorView extends GetView<NoteController> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
+      appBar: CustomGlassAppBar(
+        centerTitle: false,
         actions: [
           Obx(() => IconButton(
             icon: Icon(controller.note.value?.isPinned ?? false ? Icons.push_pin : Icons.push_pin_outlined),
@@ -31,15 +29,15 @@ class NoteEditorView extends GetView<NoteController> {
           )),
           IconButton(
             onPressed: () => _showMoreActions(context), 
-            icon: const Icon(Icons.more_horiz),
+            icon: const Icon(Icons.more_horiz_rounded, weight: 800),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            padding: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
             child: SizedBox(
               width: 80,
               child: Obx(() => AppButton(
                 onPressed: controller.saveNote,
-                text: 'Save',
+                text: 'Done',
                 isLoading: controller.isLoading.value,
               )),
             ),
@@ -106,17 +104,15 @@ class NoteEditorView extends GetView<NoteController> {
                 children: [
                   const Icon(Icons.folder_outlined, size: 14),
                   const SizedBox(width: 4),
-                  Flexible(
-                    child: Obx(() {
-                      final folderId = controller.selectedFolderId.value;
-                      final folder = folderController.folders.firstWhereOrNull((f) => f.id == folderId);
-                      return Text(
-                        folder?.name ?? 'Select Folder', 
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                        overflow: TextOverflow.ellipsis,
-                      );
-                    }),
-                  ),
+                  Obx(() {
+                    final folderId = controller.selectedFolderId.value;
+                    final folder = folderController.folders.firstWhereOrNull((f) => f.id == folderId);
+                    return Text(
+                      folder?.name ?? 'Select Folder', 
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    );
+                  }),
                 ],
               ),
             ),
@@ -244,7 +240,7 @@ class NoteEditorView extends GetView<NoteController> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(onPressed: controller.addImageBlock, icon: const Icon(Icons.image_outlined)),
               IconButton(onPressed: controller.addChecklistBlock, icon: const Icon(Icons.check_box_outlined)),
@@ -255,6 +251,7 @@ class NoteEditorView extends GetView<NoteController> {
               IconButton(onPressed: () {}, icon: const Icon(Icons.format_bold)),
               IconButton(onPressed: () {}, icon: const Icon(Icons.format_italic)),
               IconButton(onPressed: controller.addTextBlock, icon: const Icon(Icons.format_list_bulleted)),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -263,6 +260,7 @@ class NoteEditorView extends GetView<NoteController> {
                 ),
                 child: const Icon(Icons.more_vert, color: AppColors.accent),
               ),
+              const SizedBox(width: 16),
             ],
           ),
         ),

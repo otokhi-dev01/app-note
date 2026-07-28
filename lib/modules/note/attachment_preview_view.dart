@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../app/theme/colors.dart';
+import '../../core/widgets/custom_app_bar.dart';
 
 class AttachmentPreviewView extends StatelessWidget {
   final String fileName;
@@ -10,23 +11,20 @@ class AttachmentPreviewView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(fileName, style: const TextStyle(fontSize: 16)),
+      appBar: CustomGlassAppBar(
+        titleText: fileName,
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.share_outlined)),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: ElevatedButton(
               onPressed: () => Get.back(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 minimumSize: const Size(80, 40),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: const Text('Done'),
             ),

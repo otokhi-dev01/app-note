@@ -5,6 +5,7 @@ import '../../app/theme/colors.dart';
 import '../../app/routes/app_routes.dart';
 import '../../core/widgets/note_card.dart';
 import '../../core/widgets/sort_filter_sheets.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import '../../data/models/folder_model.dart';
 
 class FolderDetailView extends StatefulWidget {
@@ -35,30 +36,31 @@ class _FolderDetailViewState extends State<FolderDetailView> with AutomaticKeepA
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
+      appBar: CustomGlassAppBar(
         title: Obx(() => Column(
           children: [
             Text(
               controller.selectedFolder.value?.name ?? 'Folder',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF1E293B)),
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                fontSize: 18, 
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.primary
+              ),
             ),
             Text(
               '${controller.folderNotes.length} Notes',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.normal),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.normal),
             ),
           ],
         )),
         actions: [
           IconButton(
             onPressed: () => Get.bottomSheet(const SortSheet()), 
-            icon: const Icon(Icons.sort_rounded, color: Color(0xFF1E293B)),
+            icon: const Icon(Icons.sort_rounded),
           ),
           IconButton(
             onPressed: () => Get.bottomSheet(const FilterSheet()), 
-            icon: const Icon(Icons.tune_rounded, color: Color(0xFF1E293B)),
+            icon: const Icon(Icons.tune_rounded),
           ),
           const SizedBox(width: 8),
         ],
@@ -105,7 +107,7 @@ class _FolderDetailViewState extends State<FolderDetailView> with AutomaticKeepA
         onPressed: () => Get.toNamed(AppRoutes.noteEditor, arguments: {'folderId': controller.selectedFolder.value?.id}),
         backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.open_in_new),
       ),
     );
   }

@@ -5,6 +5,7 @@ import '../note/note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../app/routes/app_routes.dart';
 import '../../core/utils/ui_helpers.dart';
+import '../../core/widgets/custom_app_bar.dart';
 
 class ArchiveView extends StatelessWidget {
   const ArchiveView({super.key});
@@ -18,29 +19,14 @@ class ArchiveView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-          onPressed: () => Get.back(),
-        ),
-        title: const Text(
-          'Archive',
-          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold, fontSize: 24),
-        ),
+      appBar: CustomGlassAppBar(
+        titleText: 'Archive',
         actions: [
           IconButton(
             onPressed: () => Get.toNamed(AppRoutes.search),
-            icon: const Icon(Icons.search, color: Color(0xFF1E293B)),
+            icon: const Icon(Icons.search_rounded, weight: 800),
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=a'),
-            ),
-          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(

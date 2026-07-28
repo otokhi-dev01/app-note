@@ -130,6 +130,7 @@ class NoteController extends GetxController {
           filePath: image.path,
           blockId: blockId,
         );
+        initNote(note.value!.id!); // Refresh note to get real attachment data
       }
     }
   }
@@ -152,7 +153,20 @@ class NoteController extends GetxController {
           filePath: file.path!,
           blockId: blockId,
         );
+        initNote(note.value!.id!); // Refresh note
       }
+    }
+  }
+
+  Future<void> deleteAttachment(int attachmentId) async {
+    try {
+      await _repository.deleteAttachment(attachmentId);
+      if (note.value?.id != null) {
+        initNote(note.value!.id!); // Refresh list
+      }
+      UIHelpers.showSnackBar('Success', 'Attachment deleted');
+    } catch (e) {
+      UIHelpers.showSnackBar('Error', 'Failed to delete attachment', isError: true);
     }
   }
 
@@ -231,6 +245,7 @@ class NoteController extends GetxController {
           }
         }
         UIHelpers.showSnackBar('Success', 'Note saved');
+        Get.back(); // iOS-style: close screen after saving
       }
     } catch (e) {
       UIHelpers.showSnackBar('Error', 'Failed to save note: $e', isError: true);

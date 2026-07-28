@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/attachment_model.dart';
 import '../../core/widgets/liquid_glass_container.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import 'note_controller.dart';
 import 'attachment_upload_view.dart';
 import 'attachment_preview_view.dart';
@@ -15,22 +15,18 @@ class AttachmentListView extends GetView<NoteController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
+      appBar: CustomGlassAppBar(
         title: Column(
           children: [
-            const Text('Attachments', style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.bold)),
+            const Text(
+              'Attachments', 
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)
+            ),
             Obx(() => Text(
               controller.note.value?.title ?? 'Untitled Note',
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Color(0xFF64748B)),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: AppColors.textSecondary),
             )),
           ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-          onPressed: () => Get.back(),
         ),
       ),
       body: Column(
@@ -141,7 +137,7 @@ class AttachmentListView extends GetView<NoteController> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () {}, // TODO: Delete from API
+                  onPressed: () => controller.deleteAttachment(attachment.id),
                   icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 22),
                   visualDensity: VisualDensity.compact,
                 ),

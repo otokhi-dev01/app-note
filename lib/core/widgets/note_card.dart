@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:collection/collection.dart';
 import '../../app/theme/colors.dart';
 import '../../data/models/note_model.dart';
-import '../../data/models/content_block_model.dart';
 import 'liquid_glass_container.dart';
 
 class NoteCard extends StatelessWidget {

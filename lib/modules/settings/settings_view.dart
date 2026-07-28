@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../app/services/auth_service.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/liquid_glass_container.dart';
+import '../../core/widgets/custom_app_bar.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -26,29 +27,12 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      // backgroundColor: AppColors.transparent,
-      appBar: AppBar(
-        // backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: const LiquidGlassContainer(
-          borderRadius: BorderRadius.zero,
-          blur: 10,
-          opacity: 0.6,
-          child: SizedBox.expand(),
-        ),
-        title: const Text(
-          'Settings',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+      appBar: CustomGlassAppBar(
+        titleText: 'Settings',
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.search, color: AppColors.textPrimary),
+            icon: const Icon(Icons.search),
           ),
           const SizedBox(width: 8),
         ],

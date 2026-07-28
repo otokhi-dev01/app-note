@@ -90,4 +90,10 @@ class NoteRepository extends ApiProvider {
 
     return await post('/note/attachment', data: formData);
   }
+
+  Future<dio.Response> deleteAttachment(int id) async {
+    return await post('/note/delete-attachment', data: {
+      'id': id,
+    });
+  }
 }

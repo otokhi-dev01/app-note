@@ -8,6 +8,8 @@ import '../../core/widgets/note_card.dart';
 import '../../core/widgets/sort_filter_sheets.dart';
 import '../../core/widgets/liquid_glass_container.dart';
 import '../../core/widgets/keep_alive_wrapper.dart';
+import '../../core/widgets/decorative_background.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import '../folder/folder_list_view.dart';
 import '../note/pinned_notes_view.dart';
 import '../settings/settings_view.dart';
@@ -34,7 +36,6 @@ class HomeView extends GetView<HomeController> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
         child: LiquidGlassContainer(
-          borderRadius: BorderRadius.circular(30),
           blur: 20,
           opacity: 0.6,
           child: Padding(
@@ -83,7 +84,7 @@ class HomeView extends GetView<HomeController> {
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           elevation: 4,
-          child: const Icon(Icons.add, size: 28, color: Colors.white, weight: 800),
+          child: const Icon(Icons.open_in_new, size: 28, color: Colors.white, weight: 800),
         ),
       ),
     );
@@ -162,125 +163,141 @@ class _DashboardView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return DecorativeBackground(
       child: RefreshIndicator(
         onRefresh: controller.fetchData,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 160.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildSearchBar(),
-              const SizedBox(height: 24),
-              _buildPinnedNotes(),
-              const SizedBox(height: 32),
-              _buildFoldersGrid(),
-              const SizedBox(height: 32),
-              _buildRecentNotes(),
-            ],
-          ),
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // iOS-Style Collapsing Header
+            CustomGlassSliverAppBar(
+              titleText: controller.user.value?.fullName ?? 'My Notes',
+              borderRadius: BorderRadius.zero,
+              expandedHeight: 140.0,
+              actions: [
+                GestureDetector(
+                  onTap: () => Get.toNamed(AppRoutes.profile),
+                  child: const Padding(
+                    padding: EdgeInsets.only(right: 20),
+                    child: Hero(
+                      tag: 'profile_avatar',
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.primary,
+                        child: Icon(Icons.person, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // Pull-to-Search Bar
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: LiquidGlassContainer(
+                        borderRadius: BorderRadius.circular(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        opacity: 0.6,
+                        child: TextField(
+                          onTap: () => Get.toNamed(AppRoutes.search),
+                          readOnly: true,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            hintText: 'Search notes, folders...',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white38 : AppColors.textPlaceholder,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search, 
+                              color: isDark ? Colors.white38 : AppColors.textPlaceholder,
+                              weight: 800,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    LiquidGlassContainer(
+                      borderRadius: BorderRadius.circular(16),
+                      opacity: 0.6,
+                      child: IconButton(
+                        onPressed: () => Get.bottomSheet(const FilterSheet()),
+                        icon: const Icon(Icons.tune_rounded, color: AppColors.accent, weight: 800),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Pinned Notes Section
+            SliverToBoxAdapter(
+              child: _buildPinnedNotes(),
+            ),
+
+            // Folders Grid Section
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverToBoxAdapter(
+                child: _buildFoldersGrid(),
+              ),
+            ),
+
+            // Recent Notes Section
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 32, 20, 160),
+              sliver: SliverToBoxAdapter(
+                child: _buildRecentNotes(),
+              ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Obx(() {
-      final user = controller.user.value;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Good morning,', style: TextStyle(color: AppColors.textSecondary)),
-              Text(
-                user?.fullName ?? 'Welcome',
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
-              ),
-            ],
-          ),
-          GestureDetector(
-            onTap: () => Get.toNamed(AppRoutes.profile),
-            child: Hero(
-              tag: 'profile_avatar',
-              child: CircleAvatar(
-                radius: 24,
-                backgroundColor: AppColors.primary,
-                child: const Icon(Icons.person, color: Colors.white, size: 24),
-              ),
-            ),
-          ),
-        ],
-      );
-    });
-  }
-
-  Widget _buildSearchBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: LiquidGlassContainer(
-            borderRadius: BorderRadius.circular(16),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            opacity: 0.6,
-            child: TextField(
-              onTap: () => Get.toNamed(AppRoutes.search),
-              readOnly: true,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              decoration: const InputDecoration(
-                hintText: 'Search notes, folders...',
-                prefixIcon: Icon(Icons.search, color: AppColors.textPlaceholder),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                fillColor: Colors.transparent,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        LiquidGlassContainer(
-          borderRadius: BorderRadius.circular(16),
-          child: IconButton(
-            onPressed: () => Get.bottomSheet(const FilterSheet()),
-            icon: const Icon(Icons.tune_rounded, color: AppColors.accent),
-          ),
-        ),
-      ],
     );
   }
 
   Widget _buildPinnedNotes() {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Pinned Notes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            TextButton(
-              onPressed: () => Get.toNamed(AppRoutes.pinned),
-              child: const Text('View all', style: TextStyle(color: AppColors.accent)),
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Pinned Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              TextButton(
+                onPressed: () => Get.toNamed(AppRoutes.pinned),
+                child: const Text('View all', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 180,
+          height: 190,
           child: Obx(() => ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             scrollDirection: Axis.horizontal,
             itemCount: controller.pinnedNotes.length,
             separatorBuilder: (context, index) => const SizedBox(width: 16),
             itemBuilder: (context, index) => TweenAnimationBuilder(
-              duration: Duration(milliseconds: 300 + (index * 100)),
+              duration: Duration(milliseconds: 400 + (index * 100)),
               tween: Tween<double>(begin: 0, end: 1),
               builder: (context, value, child) => Opacity(
                 opacity: value,
                 child: Transform.translate(
-                  offset: Offset(50 * (1 - value), 0),
+                  offset: Offset(30 * (1 - value), 0),
                   child: child,
                 ),
               ),
@@ -292,6 +309,7 @@ class _DashboardView extends GetView<HomeController> {
             ),
           )),
         ),
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -302,10 +320,10 @@ class _DashboardView extends GetView<HomeController> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Folders', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Folders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             IconButton(
               onPressed: () => Get.toNamed(AppRoutes.folderList),
-              icon: const Icon(Icons.add_circle_outline, color: AppColors.accent),
+              icon: const Icon(Icons.add_circle_outline, color: AppColors.accent, weight: 800),
             ),
           ],
         ),
@@ -320,19 +338,19 @@ class _DashboardView extends GetView<HomeController> {
             childAspectRatio: 1.3,
           ),
           itemCount: controller.folders.take(4).length,
-            itemBuilder: (context, index) {
-              final folder = controller.folders[index];
-              final heroTag = 'home_folder_${folder.id ?? index}';
-              return Hero(
-                tag: heroTag,
-                child: FolderCard(
-                  folder: folder,
-                  onTap: () => Get.toNamed(AppRoutes.folderDetail, arguments: {
-                    'folder': folder,
-                    'heroTag': heroTag,
-                  }),
-                ),
-              );
+          itemBuilder: (context, index) {
+            final folder = controller.folders[index];
+            final heroTag = 'home_folder_${folder.id ?? index}';
+            return Hero(
+              tag: heroTag,
+              child: FolderCard(
+                folder: folder,
+                onTap: () => Get.toNamed(AppRoutes.folderDetail, arguments: {
+                  'folder': folder,
+                  'heroTag': heroTag,
+                }),
+              ),
+            );
           },
         )),
       ],
@@ -343,7 +361,16 @@ class _DashboardView extends GetView<HomeController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Recent Notes', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Recent Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            TextButton(
+              onPressed: () => Get.toNamed(AppRoutes.noteList),
+              child: const Text('View all', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         Obx(() => ListView.separated(
           shrinkWrap: true,
