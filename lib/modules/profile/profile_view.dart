@@ -4,6 +4,7 @@ import '../../app/services/auth_service.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/decorative_background.dart';
 import '../../core/widgets/liquid_glass_container.dart';
+import '../home/home_controller.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -11,99 +12,102 @@ class ProfileView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = Get.find<AuthService>();
+    final homeController = Get.find<HomeController>();
 
     return Scaffold(
-      // backgroundColor: AppColors.background,
       appBar: AppBar(
-        // backgroundColor: Colors.transparent,
         title: const Text('Profile', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: DecorativeBackground(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Hero(
-                      tag: 'profile_avatar',
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: AppColors.primary,
-                        child: Icon(Icons.person, color: Colors.white, size: 60),
+          child: Obx(() {
+            final user = homeController.user.value;
+            return Column(
+              children: [
+                const SizedBox(height: 20),
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Hero(
+                        tag: 'profile_avatar',
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundColor: AppColors.primary,
+                          backgroundImage: user?.avatar != null ? NetworkImage(user!.avatar!) : null,
+                          child: user?.avatar == null ? const Icon(Icons.person, color: Colors.white, size: 60) : null,
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Eleanor Vance',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'eleanor.vance@example.com',
-                style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7)),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildTag('Pro Member', Icons.verified, Colors.teal),
-                  const SizedBox(width: 12),
-                  _buildTag('Synced', Icons.cloud_done, Colors.blueGrey),
-                ],
-              ),
-              const SizedBox(height: 40),
-              _buildSectionTitle('ACCOUNT SETTINGS'),
-              const SizedBox(height: 12),
-              _buildMenuItem(Icons.person_outline_rounded, 'Edit Profile', 'Update name, avatar, and contact info'),
-              _buildMenuItem(Icons.lock_outline_rounded, 'Security', 'Password, 2FA, and active sessions'),
-              const SizedBox(height: 24),
-              _buildSectionTitle('PREFERENCES'),
-              const SizedBox(height: 12),
-              _buildMenuItem(Icons.storage_outlined, 'Data & Storage', 'Manage backups and local storage', trailing: '1.2 GB'),
-              _buildMenuItem(Icons.help_outline_rounded, 'Help & Support', 'FAQs, contact support, guides'),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: () => authService.logout(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 56),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.logout_rounded),
-                    SizedBox(width: 8),
-                    Text('Logout', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   ],
                 ),
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
+                const SizedBox(height: 24),
+                Text(
+                  user?.fullName ?? 'Welcome',
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.phone ?? 'No phone linked',
+                  style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7)),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildTag('Pro Member', Icons.verified, Colors.teal),
+                    const SizedBox(width: 12),
+                    _buildTag('Synced', Icons.cloud_done, Colors.blueGrey),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                _buildSectionTitle('ACCOUNT SETTINGS'),
+                const SizedBox(height: 12),
+                _buildMenuItem(Icons.person_outline_rounded, 'Edit Profile', 'Update name, avatar, and contact info'),
+                _buildMenuItem(Icons.lock_outline_rounded, 'Security', 'Password, 2FA, and active sessions'),
+                const SizedBox(height: 24),
+                _buildSectionTitle('PREFERENCES'),
+                const SizedBox(height: 12),
+                _buildMenuItem(Icons.storage_outlined, 'Data & Storage', 'Manage backups and local storage', trailing: '1.2 GB'),
+                _buildMenuItem(Icons.help_outline_rounded, 'Help & Support', 'FAQs, contact support, guides'),
+                const SizedBox(height: 40),
+                ElevatedButton(
+                  onPressed: () => authService.logout(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 56),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.logout_rounded),
+                      SizedBox(width: 8),
+                      Text('Logout', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            );
+          }),
         ),
       ),
     );

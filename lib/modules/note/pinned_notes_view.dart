@@ -71,6 +71,7 @@ class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAli
               return NoteCard(
                 note: note,
                 isPinned: true,
+                isFullWidth: true,
                 onTap: () => Get.toNamed(AppRoutes.noteEditor, arguments: note.id),
               );
             },

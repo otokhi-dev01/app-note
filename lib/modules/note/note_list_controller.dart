@@ -1,13 +1,16 @@
 import 'package:get/get.dart';
+import '../../data/models/folder_model.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../data/models/note_model.dart';
 import '../../core/utils/ui_helpers.dart';
+import '../folder/folder_controller.dart';
 import '../home/home_controller.dart';
 
 class NoteListController extends GetxController {
   final NoteRepository _repository = NoteRepository();
 
   final notes = <NoteModel>[].obs;
+  final trashFolders = <FolderModel>[].obs;
   final isLoading = false.obs;
 
   void fetchPinnedNotes() async {
@@ -39,6 +42,13 @@ class NoteListController extends GetxController {
     try {
       final all = await _repository.getAllNotes();
       notes.value = all['trash'] ?? [];
+      
+      // Also fetch trash folders
+      if (Get.isRegistered<FolderController>()) {
+        final folderController = Get.find<FolderController>();
+        await folderController.fetchFolders();
+        trashFolders.value = folderController.trashFolders;
+      }
     } finally {
       isLoading.value = false;
     }
@@ -155,5 +165,21 @@ class NoteListController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  String getDaysRemaining(DateTime? deletedAt) {
+    if (deletedAt == null) return '30 days left';
+    final expiryDate = deletedAt.add(const Duration(days: 30));
+    final remaining = expiryDate.difference(DateTime.now()).inDays;
+    return remaining > 0 ? '$remaining days left' : 'Expiring soon';
+  }
+
+  String getTimeAgo(DateTime? date) {
+    if (date == null) return 'recently';
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays >= 30) return '${(diff.inDays / 30).floor()} months ago';
+    if (diff.inDays >= 7) return '${(diff.inDays / 7).floor()} weeks ago';
+    if (diff.inDays >= 1) return '${diff.inDays} days ago';
+    return 'recently';
   }
 }

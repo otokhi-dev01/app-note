@@ -269,7 +269,7 @@ class _DashboardView extends GetView<HomeController> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 160,
+          height: 180,
           child: Obx(() => ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: controller.pinnedNotes.length,

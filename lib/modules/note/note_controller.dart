@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../data/repositories/note_repository.dart';
 import '../../data/models/note_model.dart';
@@ -7,8 +8,9 @@ import 'package:uuid/uuid.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../core/utils/ui_helpers.dart';
-import '../../core/widgets/pin_dialog.dart';
+import '../../core/widgets/unlock_vault_view.dart';
 import '../home/home_controller.dart';
+import '../folder/folder_controller.dart';
 
 class NoteController extends GetxController {
   final NoteRepository _repository = NoteRepository();
@@ -39,17 +41,27 @@ class NoteController extends GetxController {
     return blockControllers[id]!;
   }
 
-  void initNote(int? id) async {
-    if (id == null) {
+  void initNote(dynamic args) async {
+    if (args == null || (args is Map && !args.containsKey('noteId'))) {
       note.value = null;
       titleController.clear();
+      blockControllers.clear();
+      
+      // If we have a folderId argument (from FolderDetailView), use it
+      if (args is Map && args.containsKey('folderId')) {
+        selectedFolderId.value = args['folderId'] ?? 2;
+      } else {
+        selectedFolderId.value = 2; // Default
+      }
+      
       blocks.value = [
         ContentBlockModel(id: _uuid.v4(), type: 'text', text: '')
       ];
     } else {
+      final int noteId = args is int ? args : args['noteId'];
       isLoading.value = true;
       try {
-        final detail = await _repository.getNoteDetail(id);
+        final detail = await _repository.getNoteDetail(noteId);
         if (detail != null) {
           if (detail.isLocked) {
             _showUnlockDialog(detail);
@@ -73,14 +85,21 @@ class NoteController extends GetxController {
   }
 
   void _showUnlockDialog(NoteModel detail) {
-    Get.dialog(PinDialog(onConfirm: (pin) {
-      if (pin == '1234') { // Mock PIN
-        _loadNoteData(detail);
-      } else {
-        UIHelpers.showSnackBar('Error', 'Invalid PIN', isError: true);
-        Get.back();
-      }
-    }));
+    Get.bottomSheet(
+      UnlockVaultView(
+        onUnlock: (pin) {
+          if (pin == '1234') { // Mock PIN
+            Get.back(); // Close bottom sheet
+            _loadNoteData(detail);
+          } else {
+            HapticFeedback.heavyImpact();
+            UIHelpers.showSnackBar('Error', 'Invalid PIN', isError: true);
+          }
+        },
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
   }
 
   void addTextBlock() {
@@ -204,6 +223,13 @@ class NoteController extends GetxController {
         if (Get.isRegistered<HomeController>()) {
           Get.find<HomeController>().fetchData();
         }
+        // Refresh Folder if it exists
+        if (Get.isRegistered<FolderController>()) {
+          final folderController = Get.find<FolderController>();
+          if (folderController.selectedFolder.value != null) {
+            folderController.selectFolder(folderController.selectedFolder.value!, navigate: false);
+          }
+        }
         UIHelpers.showSnackBar('Success', 'Note saved');
       }
     } catch (e) {
@@ -261,5 +287,9 @@ class NoteController extends GetxController {
 
   void changeFolder(int folderId) {
     selectedFolderId.value = folderId;
+  }
+
+  void removeBlock(int index) {
+    blocks.removeAt(index);
   }
 }
