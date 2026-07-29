@@ -13,7 +13,9 @@ class AttachmentUploadView extends GetView<NoteController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomGlassAppBar(
-        titleText: 'Upload',
+        titleText: 'Upload',  bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: SizedBox(),)
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

@@ -41,7 +41,7 @@ class RegisterView extends StatelessWidget {
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(100),
                                     child: Image.asset(
-                                      'assets/icons/logo_icon.png',
+                                      'assets/icons/app_icon1.jpg',
                                       width: 90,
                                       height: 90,
                                       fit: BoxFit.cover,
@@ -61,7 +61,7 @@ class RegisterView extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 15),
                           // Welcome Text with Animation
                           _buildAnimatedSlide(
                             delay: 200,
@@ -76,12 +76,14 @@ class RegisterView extends StatelessWidget {
                                     color: AppColors.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 3),
                                 Text(
                                   'sign_up_subtitle'.tr,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: AppColors.textSecondary.withValues(alpha: 0.8),
+                                    color: AppColors.textSecondary.withValues(
+                                      alpha: 0.8,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -94,90 +96,103 @@ class RegisterView extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Obx(() => CustomTextField(
-                                  label: 'full_name'.tr,
-                                  controller: controller.fullNameController,
-                                  hint: 'enter_full_name'.tr,
-                                  prefixIcon: Icons.person_outline_rounded,
-                                  isError: controller.hasError.value,
-                                )),
-                                const SizedBox(height: 20),
-                                Obx(() => CustomTextField(
-                                  label: 'phone_number'.tr,
-                                  controller: controller.phoneController,
-                                  hint: 'enter_phone'.tr,
-                                  prefixIcon: Icons.phone_outlined,
-                                  keyboardType: TextInputType.phone,
-                                  isError: controller.hasError.value,
-                                )),
-                                const SizedBox(height: 20),
-                                Obx(() => CustomTextField(
-                                  label: 'password'.tr,
-                                  controller: controller.passwordController,
-                                  hint: 'create_password'.tr,
-                                  prefixIcon: Icons.lock_outline_rounded,
-                                  obscureText: controller.obscurePassword.value,
-                                  isError: controller.hasError.value,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      controller.obscurePassword.value 
-                                        ? Icons.visibility_off_outlined 
-                                        : Icons.visibility_outlined,
-                                      size: 20,
-                                      color: AppColors.textPlaceholder,
-                                    ),
-                                    onPressed: controller.togglePasswordVisibility,
+                                Obx(
+                                      () => CustomTextField(
+                                    label: 'full_name'.tr,
+                                    controller: controller.fullNameController,
+                                    hint: 'enter_full_name'.tr,
+                                    prefixIcon: Icons.person_outline_rounded,
+                                    isError: controller.hasError.value,
                                   ),
-                                )),
+                                ),
+                                const SizedBox(height: 20),
+                                Obx(
+                                      () => CustomTextField(
+                                    label: 'phone_number'.tr,
+                                    controller: controller.phoneController,
+                                    hint: 'enter_phone'.tr,
+                                    prefixIcon: Icons.phone_outlined,
+                                    keyboardType: TextInputType.phone,
+                                    isError: controller.hasError.value,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Obx(
+                                      () => CustomTextField(
+                                    label: 'password'.tr,
+                                    controller: controller.passwordController,
+                                    hint: 'create_password'.tr,
+                                    prefixIcon: Icons.lock_outline_rounded,
+                                    obscureText:
+                                    controller.obscurePassword.value,
+                                    isError: controller.hasError.value,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        controller.obscurePassword.value
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        size: 20,
+                                        color: AppColors.textPlaceholder,
+                                      ),
+                                      onPressed:
+                                      controller.togglePasswordVisibility,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 40),
                           // Action Buttons
                           _buildAnimatedSlide(
                             delay: 600,
                             child: Column(
                               children: [
-                                Obx(() => AppButton(
-                                  text: 'register'.tr,
-                                  isLoading: controller.isLoading.value,
-                                  onPressed: controller.register,
-                                  icon: Icons.person_add_alt_1_rounded,
-                                )),
+                                Obx(
+                                      () => AppButton(
+                                    text: 'register'.tr,
+                                    isLoading: controller.isLoading.value,
+                                    onPressed: controller.register,
+                                    icon: Icons.person_add_alt_1_rounded,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildAnimatedSlide(
+                            delay: 800,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'already_have_account'.tr,
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary.withValues(
+                                      alpha: 0.8,
+                                    ),
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () => Get.back(),
+                                  child: Text(
+                                    'sign_in'.tr,
+                                    style: const TextStyle(
+                                      color: AppColors.accent,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: AppColors.accent,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 32),
-                    
-                    // Footer
-                    _buildAnimatedSlide(
-                      delay: 800,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'already_have_account'.tr,
-                            style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8)),
-                          ),
-                          GestureDetector(
-                            onTap: () => Get.back(),
-                            child: Text(
-                              'sign_in'.tr,
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 10),
                   ],
                 ),
               ),
@@ -189,7 +204,10 @@ class RegisterView extends StatelessWidget {
                   children: [
                     IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                      ),
                     ),
                     const LanguagePickerButton(),
                   ],

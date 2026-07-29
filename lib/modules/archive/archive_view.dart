@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/note_model.dart';
-import '../note/note_list_controller.dart';
+import 'package:otokhi_note/modules/note/note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../app/routes/app_routes.dart';
 import '../../core/utils/ui_helpers.dart';
@@ -27,7 +27,9 @@ class ArchiveView extends StatelessWidget {
             icon: const Icon(Icons.search_rounded, weight: 800),
           ),
           const SizedBox(width: 8),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

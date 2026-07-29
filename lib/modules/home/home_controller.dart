@@ -8,7 +8,7 @@ import '../../data/models/folder_model.dart';
 import '../../data/models/note_model.dart';
 import '../../data/models/user_model.dart';
 import '../../core/utils/app_logger.dart';
-import '../note/note_list_controller.dart';
+import 'package:otokhi_note/modules/note/note_list_controller.dart';
 import '../folder/folder_controller.dart';
 
 class HomeController extends GetxController {

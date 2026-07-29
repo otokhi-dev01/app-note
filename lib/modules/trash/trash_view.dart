@@ -35,7 +35,9 @@ class TrashView extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

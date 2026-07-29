@@ -39,40 +39,42 @@ class HomeView extends GetView<HomeController> {
           blur: 20,
           opacity: 0.6,
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-            child: Obx(() => Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _NavBarItem(
-                  icon: Icons.description_outlined,
-                  activeIcon: Icons.description,
-                  label: 'Notes',
-                  isSelected: controller.currentIndex.value == 0,
-                  onTap: () => controller.changePage(0),
-                ),
-                _NavBarItem(
-                  icon: Icons.folder_outlined,
-                  activeIcon: Icons.folder,
-                  label: 'Folders',
-                  isSelected: controller.currentIndex.value == 1,
-                  onTap: () => controller.changePage(1),
-                ),
-                _NavBarItem(
-                  icon: Icons.push_pin_outlined,
-                  activeIcon: Icons.push_pin,
-                  label: 'Pinned',
-                  isSelected: controller.currentIndex.value == 2,
-                  onTap: () => controller.changePage(2),
-                ),
-                _NavBarItem(
-                  icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
-                  label: 'Settings',
-                  isSelected: controller.currentIndex.value == 3,
-                  onTap: () => controller.changePage(3),
-                ),
-              ],
-            )),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+            child: Obx(
+                  () => Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _NavBarItem(
+                    icon: Icons.description_outlined,
+                    activeIcon: Icons.description,
+                    label: 'Notes',
+                    isSelected: controller.currentIndex.value == 0,
+                    onTap: () => controller.changePage(0),
+                  ),
+                  _NavBarItem(
+                    icon: Icons.folder_outlined,
+                    activeIcon: Icons.folder,
+                    label: 'Folders',
+                    isSelected: controller.currentIndex.value == 1,
+                    onTap: () => controller.changePage(1),
+                  ),
+                  _NavBarItem(
+                    icon: Icons.push_pin_outlined,
+                    activeIcon: Icons.push_pin,
+                    label: 'Pinned',
+                    isSelected: controller.currentIndex.value == 2,
+                    onTap: () => controller.changePage(2),
+                  ),
+                  _NavBarItem(
+                    icon: Icons.settings_outlined,
+                    activeIcon: Icons.settings,
+                    label: 'Settings',
+                    isSelected: controller.currentIndex.value == 3,
+                    onTap: () => controller.changePage(3),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -84,7 +86,12 @@ class HomeView extends GetView<HomeController> {
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           elevation: 4,
-          child: const Icon(Icons.open_in_new, size: 28, color: Colors.white, weight: 800),
+          child: const Icon(
+            Icons.open_in_new,
+            size: 28,
+            color: Colors.white,
+            weight: 800,
+          ),
         ),
       ),
     );
@@ -122,12 +129,16 @@ class _NavBarItem extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.accent.withValues(alpha: 0.1) : Colors.transparent,
+                color: isSelected
+                    ? AppColors.accent.withValues(alpha: 0.1)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 isSelected ? activeIcon : icon,
-                color: isSelected ? AppColors.accent : AppColors.textSecondary.withValues(alpha: 0.6),
+                color: isSelected
+                    ? AppColors.accent
+                    : AppColors.textSecondary.withValues(alpha: 0.6),
                 size: 26,
               ),
             ),
@@ -138,7 +149,9 @@ class _NavBarItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? AppColors.accent : AppColors.textSecondary.withValues(alpha: 0.5),
+              color: isSelected
+                  ? AppColors.accent
+                  : AppColors.textSecondary.withValues(alpha: 0.5),
             ),
             child: Text(label),
           ),
@@ -171,114 +184,131 @@ class _DashboardView extends GetView<HomeController> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // iOS-Style Collapsing Header
+            // Collapsing AppBar + Search
             CustomGlassSliverAppBar(
-              titleText: controller.user.value?.fullName ?? 'My Notes',
-              borderRadius: BorderRadius.zero,
-              expandedHeight: 140.0,
+              titleText: controller.user.value?.fullName ?? 'Notes',
               actions: [
-                GestureDetector(
-                  onTap: () => Get.toNamed(AppRoutes.profile),
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 20),
-                    child: Hero(
-                      tag: 'profile_avatar',
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: AppColors.primary,
-                        child: Icon(Icons.person, color: Colors.white, size: 20),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Row(
+                    children: [
+                      LiquidGlassContainer(
+                        borderRadius: BorderRadius.circular(14),
+                        opacity: 0.55,
+                        child: IconButton(
+                          onPressed: () => Get.toNamed(AppRoutes.profile),
+                          icon: const Icon(
+                            Icons.person_outline_rounded,
+                            color: AppColors.accent,
+                            size: 22,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      LiquidGlassContainer(
+                        borderRadius: BorderRadius.circular(14),
+                        opacity: 0.55,
+                        child: IconButton(
+                          onPressed: () => Get.bottomSheet(const FilterSheet()),
+                          icon: const Icon(
+                            Icons.tune_rounded,
+                            color: AppColors.accent,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                   ),
                 ),
               ],
-            ),
-
-            // Pull-to-Search Bar
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: LiquidGlassContainer(
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(64),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: LiquidGlassContainer(
+                    borderRadius: BorderRadius.circular(16),
+                    opacity: 0.55,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => Get.toNamed(AppRoutes.search),
                         borderRadius: BorderRadius.circular(16),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        opacity: 0.6,
-                        child: TextField(
-                          onTap: () => Get.toNamed(AppRoutes.search),
-                          readOnly: true,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                          decoration: InputDecoration(
-                            hintText: 'Search notes, folders...',
-                            hintStyle: TextStyle(
-                              color: isDark ? Colors.white38 : AppColors.textPlaceholder,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search, 
-                              color: isDark ? Colors.white38 : AppColors.textPlaceholder,
-                              weight: 800,
-                            ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.search_rounded,
+                                size: 22,
+                                color: isDark
+                                    ? Colors.white38
+                                    : AppColors.textPlaceholder,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Search notes, folders...',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : AppColors.textPlaceholder,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    LiquidGlassContainer(
-                      borderRadius: BorderRadius.circular(16),
-                      opacity: 0.6,
-                      child: IconButton(
-                        onPressed: () => Get.bottomSheet(const FilterSheet()),
-                        icon: const Icon(Icons.tune_rounded, color: AppColors.accent, weight: 800),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
 
-            // Pinned Notes Section
-            SliverToBoxAdapter(
-              child: _buildPinnedNotes(),
+            // Pinned Notes
+            const SliverToBoxAdapter(child: _PinnedNotesSection()),
+
+            // Folders
+            const SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverToBoxAdapter(child: _FoldersGridSection()),
             ),
 
-            // Folders Grid Section
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              sliver: SliverToBoxAdapter(
-                child: _buildFoldersGrid(),
-              ),
-            ),
-
-            // Recent Notes Section
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 32, 20, 160),
-              sliver: SliverToBoxAdapter(
-                child: _buildRecentNotes(),
-              ),
+            // Recent Notes
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(20, 28, 20, 160),
+              sliver: SliverToBoxAdapter(child: _RecentNotesSection()),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildPinnedNotes() {
+// ==================== SECTIONS ====================
+
+class _PinnedNotesSection extends GetView<HomeController> {
+  const _PinnedNotesSection();
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Pinned Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              TextButton(
-                onPressed: () => Get.toNamed(AppRoutes.pinned),
-                child: const Text('View all', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+              Text(
+                'Pinned Notes',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -286,102 +316,131 @@ class _DashboardView extends GetView<HomeController> {
         const SizedBox(height: 12),
         SizedBox(
           height: 190,
-          child: Obx(() => ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            itemCount: controller.pinnedNotes.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
-            itemBuilder: (context, index) => TweenAnimationBuilder(
-              duration: Duration(milliseconds: 400 + (index * 100)),
-              tween: Tween<double>(begin: 0, end: 1),
-              builder: (context, value, child) => Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(30 * (1 - value), 0),
-                  child: child,
+          child: Obx(
+                () => ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: controller.pinnedNotes.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 16),
+              itemBuilder: (context, index) => TweenAnimationBuilder(
+                duration: Duration(milliseconds: 400 + (index * 100)),
+                tween: Tween<double>(begin: 0, end: 1),
+                builder: (context, value, child) => Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(30 * (1 - value), 0),
+                    child: child,
+                  ),
+                ),
+                child: NoteCard(
+                  note: controller.pinnedNotes[index],
+                  isPinned: true,
+                  onTap: () => Get.toNamed(
+                    AppRoutes.noteEditor,
+                    arguments: controller.pinnedNotes[index].id,
+                  ),
                 ),
               ),
-              child: NoteCard(
-                note: controller.pinnedNotes[index],
-                isPinned: true,
-                onTap: () => Get.toNamed(AppRoutes.noteEditor, arguments: controller.pinnedNotes[index].id),
-              ),
             ),
-          )),
+          ),
         ),
         const SizedBox(height: 32),
       ],
     );
   }
+}
 
-  Widget _buildFoldersGrid() {
+class _FoldersGridSection extends GetView<HomeController> {
+  const _FoldersGridSection();
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Folders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            IconButton(
-              onPressed: () => Get.toNamed(AppRoutes.folderList),
-              icon: const Icon(Icons.add_circle_outline, color: AppColors.accent, weight: 800),
+            Text(
+              'Folders',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Obx(() => GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.3,
+        Obx(
+              () => GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.3,
+            ),
+            itemCount: controller.folders.take(4).length,
+            itemBuilder: (context, index) {
+              final folder = controller.folders[index];
+              final heroTag = 'home_folder_${folder.id ?? index}';
+              return Hero(
+                tag: heroTag,
+                child: FolderCard(
+                  folder: folder,
+                  onTap: () => Get.toNamed(
+                    AppRoutes.folderDetail,
+                    arguments: {'folder': folder, 'heroTag': heroTag},
+                  ),
+                ),
+              );
+            },
           ),
-          itemCount: controller.folders.take(4).length,
-          itemBuilder: (context, index) {
-            final folder = controller.folders[index];
-            final heroTag = 'home_folder_${folder.id ?? index}';
-            return Hero(
-              tag: heroTag,
-              child: FolderCard(
-                folder: folder,
-                onTap: () => Get.toNamed(AppRoutes.folderDetail, arguments: {
-                  'folder': folder,
-                  'heroTag': heroTag,
-                }),
-              ),
-            );
-          },
-        )),
+        ),
       ],
     );
   }
+}
 
-  Widget _buildRecentNotes() {
+class _RecentNotesSection extends GetView<HomeController> {
+  const _RecentNotesSection();
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Recent Notes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              'Recent Notes',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             TextButton(
-              onPressed: () => Get.toNamed(AppRoutes.noteList),
-              child: const Text('View all', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+              onPressed: () => Get.toNamed(AppRoutes.pinned),
+              child: const Text(
+                'View all',
+                style: TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        Obx(() => ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: controller.recentNotes.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) => NoteCard(
-            note: controller.recentNotes[index],
-            onTap: () => Get.toNamed(AppRoutes.noteEditor, arguments: controller.recentNotes[index].id),
+        Obx(
+              () => ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: controller.recentNotes.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) => NoteCard(
+              note: controller.recentNotes[index],
+              onTap: () => Get.toNamed(
+                AppRoutes.noteEditor,
+                arguments: controller.recentNotes[index].id,
+              ),
+            ),
           ),
-        )),
+        ),
       ],
     );
   }

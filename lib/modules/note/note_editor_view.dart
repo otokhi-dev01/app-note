@@ -42,7 +42,9 @@ class NoteEditorView extends GetView<NoteController> {
               )),
             ),
           ),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: Obx(() {
         if (controller.isLoading.value && controller.note.value == null) {
@@ -137,7 +139,10 @@ class NoteEditorView extends GetView<NoteController> {
       return TextField(
         onChanged: (val) => controller.updateTextBlock(index, val),
         maxLines: null,
+        keyboardType: TextInputType.multiline,
+        textInputAction: TextInputAction.newline,
         controller: textController,
+        style: const TextStyle(fontSize: 18, height: 1.6),
         decoration: const InputDecoration(
           hintText: 'Start typing...',
           hintStyle: TextStyle(color: AppColors.textPlaceholder),
@@ -185,6 +190,9 @@ class NoteEditorView extends GetView<NoteController> {
         }).toList(),
       );
     } else if (block.type == 'attachment') {
+      final isImage = block.text != null && (block.text!.endsWith('.jpg') || block.text!.endsWith('.png'));
+      final isVideo = block.text != null && (block.text!.endsWith('.mp4') || block.text!.endsWith('.mov') || block.text!.endsWith('.avi'));
+
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: LiquidGlassContainer(
@@ -192,24 +200,47 @@ class NoteEditorView extends GetView<NoteController> {
           borderRadius: BorderRadius.circular(16),
           child: Row(
             children: [
-              if (block.text != null && (block.text!.endsWith('.jpg') || block.text!.endsWith('.png')))
+              if (isImage)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.file(File(block.text!), width: 40, height: 40, fit: BoxFit.cover),
+                )
+              else if (isVideo)
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.videocam_rounded, color: AppColors.accent),
                 )
               else
                 const Icon(Icons.insert_drive_file_outlined),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  block.displayName ?? 'Attachment',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      block.displayName ?? (isVideo ? 'Video Attachment' : 'Attachment'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    if (isVideo)
+                      const Text('Video', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                  ],
                 ),
               ),
               IconButton(
-                onPressed: () {}, // TODO: Remove attachment
+                onPressed: () {
+                  if (block.attachmentId != null) {
+                    controller.deleteAttachment(block.attachmentId!);
+                  } else {
+                    // Logic for local block removal if not synced yet
+                  }
+                },
                 icon: const Icon(Icons.close, size: 18),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -243,6 +274,7 @@ class NoteEditorView extends GetView<NoteController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(onPressed: controller.addImageBlock, icon: const Icon(Icons.image_outlined)),
+              IconButton(onPressed: controller.addVideoBlock, icon: const Icon(Icons.videocam_outlined)),
               IconButton(onPressed: controller.addChecklistBlock, icon: const Icon(Icons.check_box_outlined)),
               IconButton(
                 onPressed: () => Get.to(() => const AttachmentListView()), 
@@ -276,7 +308,20 @@ class NoteEditorView extends GetView<NoteController> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Move to Folder', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Move to Folder', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                TextButton.icon(
+                  onPressed: () {
+                    Get.back();
+                    _showNewFolderDialog(context, folderController);
+                  },
+                  icon: const Icon(Icons.add_circle_outline, size: 20),
+                  label: const Text('New Folder', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.4),
@@ -300,6 +345,92 @@ class NoteEditorView extends GetView<NoteController> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showNewFolderDialog(BuildContext context, FolderController folderController) {
+    folderController.selectedFolder.value = null;
+    folderController.nameController.clear();
+    folderController.selectedColorIndex.value = 0;
+    folderController.selectedIconIndex.value = 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        child: LiquidGlassContainer(
+          borderRadius: BorderRadius.circular(30),
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('New Folder', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.close)),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Text('NAME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: folderController.nameController,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Travel Plans',
+                    prefixIcon: const Icon(Icons.folder_open_outlined),
+                    filled: true,
+                    fillColor: AppColors.background.withValues(alpha: 0.5),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text('COLOR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: AppColors.folderColors.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) => Obx(() => GestureDetector(
+                      onTap: () => folderController.selectedColorIndex.value = index,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.folderColors[index],
+                          shape: BoxShape.circle,
+                          border: folderController.selectedColorIndex.value == index 
+                            ? Border.all(color: AppColors.accent, width: 2) 
+                            : null,
+                        ),
+                        child: folderController.selectedColorIndex.value == index 
+                          ? const Icon(Icons.check, color: Colors.white, size: 20) 
+                          : null,
+                      ),
+                    )),
+                  ),
+                ),
+                const SizedBox(height: 40),
+                AppButton(
+                  onPressed: () async {
+                    await folderController.createFolder();
+                    // Auto-select the newly created folder for the current note
+                    if (folderController.folders.isNotEmpty) {
+                      controller.changeFolder(folderController.folders.last.id!);
+                    }
+                  },
+                  text: 'Create & Use',
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -330,9 +461,18 @@ class NoteEditorView extends GetView<NoteController> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.lock_outline),
-              title: const Text('Lock Note'),
-              onTap: () => Get.back(),
+              leading: Obx(() => Icon(
+                controller.note.value?.isLocked ?? false ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+                color: AppColors.primary,
+              )),
+              title: Obx(() => Text(
+                controller.note.value?.isLocked ?? false ? 'Unlock Note' : 'Lock Note',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              )),
+              onTap: () {
+                Get.back();
+                controller.toggleLock();
+              },
             ),
           ],
         ),
