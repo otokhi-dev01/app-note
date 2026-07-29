@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/widgets/sort_filter_sheets.dart';
 import 'note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../app/routes/app_routes.dart';
@@ -14,9 +15,10 @@ class NoteListView extends StatefulWidget {
   State<NoteListView> createState() => _NoteListViewState();
 }
 
-class _NoteListViewState extends State<NoteListView> with AutomaticKeepAliveClientMixin {
-  final controller = Get.isRegistered<NoteListController>() 
-      ? Get.find<NoteListController>() 
+class _NoteListViewState extends State<NoteListView>
+    with AutomaticKeepAliveClientMixin {
+  final controller = Get.isRegistered<NoteListController>()
+      ? Get.find<NoteListController>()
       : Get.put(NoteListController());
 
   @override
@@ -35,8 +37,23 @@ class _NoteListViewState extends State<NoteListView> with AutomaticKeepAliveClie
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FE),
-      appBar: const CustomGlassAppBar(
+      appBar: CustomGlassAppBar(
         titleText: 'All Notes',
+        actions: [
+          IconButton(
+            onPressed: () => Get.bottomSheet(const SortSheet()), 
+            icon: const Icon(Icons.sort_rounded, weight: 800),
+          ),
+          IconButton(
+            onPressed: () => Get.bottomSheet(const FilterSheet()), 
+            icon: const Icon(Icons.tune_rounded, weight: 800),
+          ),
+          const SizedBox(width: 8),
+        ],
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: SizedBox(),
+        ),
       ),
       body: Column(
         children: [
@@ -57,8 +74,8 @@ class _NoteListViewState extends State<NoteListView> with AutomaticKeepAliveClie
                     fontWeight: FontWeight.bold,
                   ),
                   prefixIcon: Icon(
-                    Icons.search, 
-                    size: 22, 
+                    Icons.search,
+                    size: 22,
                     color: isDark ? Colors.white38 : AppColors.textPlaceholder,
                     weight: 800,
                   ),
@@ -69,7 +86,7 @@ class _NoteListViewState extends State<NoteListView> with AutomaticKeepAliveClie
               ),
             ),
           ),
-          
+
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async => controller.fetchAllNotes(),
@@ -77,7 +94,7 @@ class _NoteListViewState extends State<NoteListView> with AutomaticKeepAliveClie
                 if (controller.isLoading.value && controller.notes.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+
                 if (controller.notes.isEmpty) {
                   return SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -87,27 +104,41 @@ class _NoteListViewState extends State<NoteListView> with AutomaticKeepAliveClie
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.note_alt_outlined, size: 64, color: AppColors.textPlaceholder.withValues(alpha: 0.5)),
+                            Icon(
+                              Icons.note_alt_outlined,
+                              size: 64,
+                              color: AppColors.textPlaceholder.withValues(
+                                alpha: 0.5,
+                              ),
+                            ),
                             const SizedBox(height: 16),
-                            const Text('No Notes Found', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                            const Text(
+                              'No Notes Found',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 16,
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   );
                 }
-                
+
                 return ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                   itemCount: controller.notes.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                  const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final note = controller.notes[index];
                     return NoteCard(
                       note: note,
                       isFullWidth: true,
-                      onTap: () => Get.toNamed(AppRoutes.noteEditor, arguments: note.id),
+                      onTap: () =>
+                          Get.toNamed(AppRoutes.noteEditor, arguments: note.id),
                     );
                   },
                 );

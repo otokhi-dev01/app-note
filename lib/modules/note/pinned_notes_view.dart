@@ -35,7 +35,9 @@ class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAli
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, weight: 800)),
           const SizedBox(width: 16),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: RefreshIndicator(
         onRefresh: () async => controller.fetchPinnedNotes(),

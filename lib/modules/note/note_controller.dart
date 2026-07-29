@@ -11,6 +11,7 @@ import '../../core/utils/ui_helpers.dart';
 import '../../core/widgets/unlock_vault_view.dart';
 import '../home/home_controller.dart';
 import '../folder/folder_controller.dart';
+import 'note_list_controller.dart';
 
 class NoteController extends GetxController {
   final NoteRepository _repository = NoteRepository();
@@ -135,6 +136,28 @@ class NoteController extends GetxController {
     }
   }
 
+  Future<void> addVideoBlock() async {
+    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+    if (video != null) {
+      final blockId = _uuid.v4();
+      blocks.add(ContentBlockModel(
+        id: blockId,
+        type: 'attachment',
+        displayName: video.name,
+        text: video.path,
+      ));
+      // If note exists, upload immediately
+      if (note.value?.id != null) {
+        await _repository.uploadAttachment(
+          noteId: note.value!.id!,
+          filePath: video.path,
+          blockId: blockId,
+        );
+        initNote(note.value!.id!); // Refresh note to get real attachment data
+      }
+    }
+  }
+
   Future<void> addFileBlock() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
@@ -233,6 +256,10 @@ class NoteController extends GetxController {
         if (note.value == null && savedId != null) {
           initNote(savedId);
         }
+        // Refresh Note List if it exists
+        if (Get.isRegistered<NoteListController>()) {
+          Get.find<NoteListController>().fetchAllNotes();
+        }
         // Refresh Home if it exists
         if (Get.isRegistered<HomeController>()) {
           Get.find<HomeController>().fetchData();
@@ -267,6 +294,27 @@ class NoteController extends GetxController {
       UIHelpers.showSnackBar('Success', newState ? 'Note pinned' : 'Note unpinned');
     } catch (e) {
       UIHelpers.showSnackBar('Error', 'Failed to update pin status', isError: true);
+    }
+  }
+
+  Future<void> toggleLock() async {
+    if (note.value == null) return;
+    final newState = !note.value!.isLocked;
+    try {
+      await _repository.updateNoteState(id: note.value!.id!, isLocked: newState);
+      note.value = note.value!.copyWith(isLocked: newState);
+      
+      // Refresh relevant controllers
+      if (Get.isRegistered<NoteListController>()) {
+        Get.find<NoteListController>().fetchAllNotes();
+      }
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchData();
+      }
+      
+      UIHelpers.showSnackBar('Success', newState ? 'Note locked' : 'Note unlocked');
+    } catch (e) {
+      UIHelpers.showSnackBar('Error', 'Failed to update lock status', isError: true);
     }
   }
 

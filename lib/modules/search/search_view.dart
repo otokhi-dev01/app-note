@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../note/note_list_controller.dart';
+import 'package:otokhi_note/modules/note/note_list_controller.dart';
 import '../../app/theme/colors.dart';
+import '../../core/widgets/custom_app_bar.dart';
 import '../../data/models/note_model.dart';
 
 class SearchView extends StatelessWidget {
@@ -12,12 +13,14 @@ class SearchView extends StatelessWidget {
     final controller = Get.put(NoteListController());
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: CustomGlassAppBar(
         title: TextField(
           autofocus: true,
           onChanged: controller.searchNotes,
+          style: const TextStyle(fontWeight: FontWeight.bold),
           decoration: const InputDecoration(
             hintText: 'Search notes...',
+            hintStyle: TextStyle(fontWeight: FontWeight.bold),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
@@ -81,41 +84,49 @@ class SearchView extends StatelessWidget {
   }
 
   Widget _buildResultCard(NoteModel note) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.folder_outlined, size: 16, color: AppColors.textPlaceholder),
-              const SizedBox(width: 4),
-              Text(note.folderName ?? 'Work', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              const SizedBox(width: 8),
-              const CircleAvatar(radius: 2, backgroundColor: AppColors.textPlaceholder),
-              const SizedBox(width: 8),
-              const Text('2 days ago', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(note.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+    final noteListController = Get.find<NoteListController>();
+    
+    return InkWell(
+      onTap: () => Get.toNamed('/note-editor', arguments: note.id),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const TextSpan(text: 'Initial thoughts on the Alpha '),
-                TextSpan(text: 'project', style: TextStyle(backgroundColor: AppColors.accent.withValues(alpha: 0.3), color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                const TextSpan(text: ' timeline. We need to align the design system with the...'),
+                const Icon(Icons.folder_outlined, size: 16, color: AppColors.textPlaceholder),
+                const SizedBox(width: 4),
+                Text(note.folderName ?? 'General', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                const SizedBox(width: 8),
+                const CircleAvatar(radius: 2, backgroundColor: AppColors.textPlaceholder),
+                const SizedBox(width: 8),
+                Text(
+                  noteListController.getTimeAgo(note.updatedAt ?? note.createdAt), 
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)
+                ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              note.title.isEmpty ? 'Untitled Note' : note.title, 
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+            ),
+            const SizedBox(height: 8),
+            Text(
+              note.content?.firstWhereOrNull((b) => b.type == 'text')?.text ?? 'No content available',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }

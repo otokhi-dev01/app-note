@@ -35,7 +35,9 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
             icon: const Icon(Icons.search),
           ),
           const SizedBox(width: 8),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),

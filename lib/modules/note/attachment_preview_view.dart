@@ -29,7 +29,9 @@ class AttachmentPreviewView extends StatelessWidget {
               child: const Text('Done'),
             ),
           ),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: Center(
         child: Column(

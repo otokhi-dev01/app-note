@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/widgets/liquid_glass_container.dart';
 import 'splash_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../core/widgets/decorative_background.dart';
@@ -33,7 +32,7 @@ class SplashView extends GetView<SplashController> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(100),
                   child: Image.asset(
-                    'assets/icons/logo_icon.png',
+                    'assets/icons/app_icon2.jpg',
                     width: 140,
                     height: 140,
                     fit: BoxFit.cover,

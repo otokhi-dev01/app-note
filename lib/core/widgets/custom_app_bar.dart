@@ -12,6 +12,7 @@ class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool centerTitle;
   final double height;
   final bool showBackButton;
+  final PreferredSizeWidget? bottom;
 
   const CustomGlassAppBar({
     super.key,
@@ -22,36 +23,48 @@ class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.centerTitle = true,
     this.height = kToolbarHeight + 10,
     this.showBackButton = true,
+    this.bottom,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return AppBar(
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       centerTitle: centerTitle,
       toolbarHeight: height,
-      systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      leading: leading ?? (showBackButton ? IconButton(
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded, 
-          color: isDark ? Colors.white : AppColors.primary,
-          size: 20,
-        ),
-        onPressed: () => Get.back(),
-      ) : null),
-      title: title ?? (titleText != null ? Text(
-        titleText!,
-        style: TextStyle(
-          color: isDark ? Colors.white : AppColors.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
-        ),
-      ) : null),
+      systemOverlayStyle: isDark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      leading:
+      leading ??
+          (showBackButton
+              ? IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : AppColors.primary,
+              size: 20,
+            ),
+            onPressed: () => Get.back(),
+          )
+              : null),
+      title:
+      title ??
+          (titleText != null
+              ? Text(
+            titleText!,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          )
+              : null),
       actions: actions,
+      bottom: bottom,
       flexibleSpace: LiquidGlassContainer(
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
         opacity: isDark ? 0.3 : 0.6,
@@ -62,7 +75,8 @@ class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(height);
+  Size get preferredSize =>
+      Size.fromHeight(height + (bottom?.preferredSize.height ?? 0));
 }
 
 class CustomGlassSliverAppBar extends StatelessWidget {
@@ -77,6 +91,7 @@ class CustomGlassSliverAppBar extends StatelessWidget {
   final bool stretch;
   final BorderRadius? borderRadius;
   final bool centerTitle;
+  final PreferredSizeWidget? bottom;
 
   const CustomGlassSliverAppBar({
     super.key,
@@ -91,12 +106,13 @@ class CustomGlassSliverAppBar extends StatelessWidget {
     this.stretch = true,
     this.borderRadius,
     this.centerTitle = true,
+    this.bottom,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return SliverAppBar(
       expandedHeight: expandedHeight,
       floating: false,
@@ -105,42 +121,62 @@ class CustomGlassSliverAppBar extends StatelessWidget {
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      leading: leading ?? (showBackButton ? IconButton(
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded, 
-          color: isDark ? Colors.white : AppColors.primary,
-          size: 20,
-        ),
-        onPressed: () => Get.back(),
-      ) : null),
+      systemOverlayStyle: isDark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      leading:
+      leading ??
+          (showBackButton
+              ? IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? Colors.white : AppColors.primary,
+              size: 20,
+            ),
+            onPressed: () => Get.back(),
+          )
+              : null),
       // The main title shown when the AppBar is collapsed
-      title: title ?? (titleText != null ? Text(
-        titleText!,
-        style: TextStyle(
-          color: isDark ? Colors.white : AppColors.primary,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
-        ),
-      ) : null),
-      centerTitle: centerTitle,
-      flexibleSpace: LiquidGlassContainer(
-        borderRadius: borderRadius ?? const BorderRadius.vertical(bottom: Radius.circular(30)),
-        opacity: isDark ? 0.3 : 0.6,
-        blur: 20,
-        child: flexibleSpace ?? (titleText != null ? FlexibleSpaceBar(
-          stretchModes: const [StretchMode.blurBackground, StretchMode.zoomBackground],
-          centerTitle: false,
-          titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-          title: Text(
+      title:
+      title ??
+          (titleText != null
+              ? Text(
             titleText!,
             style: TextStyle(
-              color: isDark ? Colors.white : AppColors.textPrimary,
+              color: isDark ? Colors.white : AppColors.primary,
               fontWeight: FontWeight.bold,
-              fontSize: 28,
+              fontSize: 18,
             ),
-          ),
-        ) : const SizedBox.expand()),
+          )
+              : null),
+      centerTitle: centerTitle,
+      bottom: bottom,
+      flexibleSpace: LiquidGlassContainer(
+        borderRadius:
+        borderRadius ??
+            const BorderRadius.vertical(bottom: Radius.circular(30)),
+        opacity: isDark ? 0.3 : 0.6,
+        blur: 20,
+        child:
+        flexibleSpace ??
+            (titleText != null
+                ? FlexibleSpaceBar(
+              stretchModes: const [
+                StretchMode.blurBackground,
+                StretchMode.zoomBackground,
+              ],
+              centerTitle: false,
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+              title: Text(
+                titleText!,
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                ),
+              ),
+            )
+                : const SizedBox.expand()),
       ),
       actions: actions,
     );

@@ -63,7 +63,9 @@ class _FolderDetailViewState extends State<FolderDetailView> with AutomaticKeepA
             icon: const Icon(Icons.tune_rounded),
           ),
           const SizedBox(width: 8),
-        ],
+        ],  bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: SizedBox(),)
       ),
       body: Obx(() {
         if (controller.isLoading.value && controller.folderNotes.isEmpty) {

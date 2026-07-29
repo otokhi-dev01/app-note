@@ -27,7 +27,9 @@ class AttachmentListView extends GetView<NoteController> {
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: AppColors.textSecondary),
             )),
           ],
-        ),
+        ), bottom: PreferredSize(
+      preferredSize: Size.fromHeight(0),
+      child: SizedBox(),)
       ),
       body: Column(
         children: [

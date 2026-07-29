@@ -22,7 +22,9 @@ class LockedNotesView extends StatelessWidget {
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, weight: 800)),
           const SizedBox(width: 16),
-        ],
+        ],  bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: SizedBox(),)
       ),
       body: Obx(() => ListView.separated(
         padding: const EdgeInsets.all(20),

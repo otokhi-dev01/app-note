@@ -56,13 +56,14 @@ class _FolderListViewState extends State<FolderListView> with AutomaticKeepAlive
                   icon: Icon(Icons.open_in_new, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.accent),
                 ),
                 const SizedBox(width: 8),
-              ],
+              ], bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: SizedBox(),)
             ),
-
             // Pull-to-Search Bar
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                 child: LiquidGlassContainer(
                   borderRadius: BorderRadius.circular(16),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -71,14 +72,14 @@ class _FolderListViewState extends State<FolderListView> with AutomaticKeepAlive
                     onChanged: controller.updateSearchQuery,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                     decoration: InputDecoration(
-                      hintText: 'Search folders...',
+                      hintText: 'Search all notes...',
                       hintStyle: TextStyle(
                         color: isDark ? Colors.white38 : AppColors.textPlaceholder,
                         fontWeight: FontWeight.bold,
                       ),
                       prefixIcon: Icon(
-                        Icons.search, 
-                        size: 22, 
+                        Icons.search,
+                        size: 22,
                         color: isDark ? Colors.white38 : AppColors.textPlaceholder,
                         weight: 800,
                       ),
@@ -89,6 +90,7 @@ class _FolderListViewState extends State<FolderListView> with AutomaticKeepAlive
                   ),
                 ),
               ),
+
             ),
             // Dynamic Folder Content (Grid or List)
             Obx(() {
