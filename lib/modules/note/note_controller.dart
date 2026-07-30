@@ -244,33 +244,45 @@ class NoteController extends GetxController {
     try {
       final noteId = note.value?.id ?? 0;
       final folderId = selectedFolderId.value;
+      
+      // 1. Save/Create the base note to get/confirm an ID
       final savedId = await _repository.saveNote(noteId, folderId, titleController.text);
-      final idToSave = note.value?.id ?? savedId ?? 0;
-      if (idToSave != 0) {
+      final finalId = note.value?.id ?? savedId ?? 0;
+
+      if (finalId != 0) {
+        // 2. Handle pending attachments if this was a new note
+        final pendingBlocks = blocks.where((b) => b.type == 'attachment' && b.attachmentId == null && b.text != null).toList();
+        for (var block in pendingBlocks) {
+          await _repository.uploadAttachment(
+            noteId: finalId,
+            filePath: block.text!,
+            blockId: block.id,
+          );
+        }
+
+        // 3. Save the full block content (including any new attachment data)
+        // Note: Ideally, we'd re-fetch the note detail here if pending uploads occurred
+        // to get the real attachment IDs from the server before saveContent.
         await _repository.saveContent(
-          idToSave, 
+          finalId, 
           titleController.text, 
           blocks.map((e) => e.toJson()).toList()
         );
-        // Refresh local note state
-        if (note.value == null && savedId != null) {
-          initNote(savedId);
-        }
-        // Refresh Note List if it exists
+
+        // Refresh relevant views
         if (Get.isRegistered<NoteListController>()) {
           Get.find<NoteListController>().fetchAllNotes();
         }
-        // Refresh Home if it exists
         if (Get.isRegistered<HomeController>()) {
           Get.find<HomeController>().fetchData();
         }
-        // Refresh Folder if it exists
         if (Get.isRegistered<FolderController>()) {
           final folderController = Get.find<FolderController>();
           if (folderController.selectedFolder.value != null) {
             folderController.selectFolder(folderController.selectedFolder.value!, navigate: false);
           }
         }
+        
         UIHelpers.showSnackBar('Success', 'Note saved');
         Get.back(); // iOS-style: close screen after saving
       }

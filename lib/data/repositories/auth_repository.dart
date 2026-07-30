@@ -15,13 +15,13 @@ class AuthRepository extends ApiProvider {
     required String phone,
     required String password,
     required String deviceName,
-    String deviceType = 'android',
+    String deviceType = 'mobile',
   }) async {
     return await post('/auth/register', data: {
       'fullName': fullName,
       'phone': phone,
       'password': password,
-      'deviceName': deviceName,
+      'deviceName': deviceName.isEmpty ? 'Mobile App' : deviceName,
       'deviceType': deviceType,
     });
   }
