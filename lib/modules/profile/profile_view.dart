@@ -16,7 +16,7 @@ class ProfileView extends StatelessWidget {
     final homeController = Get.find<HomeController>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FE),
+      backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       appBar: CustomGlassAppBar(
         titleText: '${homeController.user.value?.fullName ?? 'User'}',
@@ -53,10 +53,10 @@ class ProfileView extends StatelessWidget {
                                 : null,
                             child: user?.avatar == null
                                 ? const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 60,
-                            )
+                                    Icons.person,
+                                    color: AppColors.accent,
+                                    size: 60,
+                                  )
                                 : null,
                           ),
                         ),
@@ -206,11 +206,11 @@ class ProfileView extends StatelessWidget {
   }
 
   Widget _buildMenuItem(
-      IconData icon,
-      String title,
-      String subtitle, {
-        String? trailing,
-      }) {
+    IconData icon,
+    String title,
+    String subtitle, {
+    String? trailing,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: LiquidGlassContainer(

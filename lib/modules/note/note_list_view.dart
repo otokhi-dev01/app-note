@@ -41,11 +41,11 @@ class _NoteListViewState extends State<NoteListView>
         titleText: 'All Notes',
         actions: [
           IconButton(
-            onPressed: () => Get.bottomSheet(const SortSheet()), 
+            onPressed: () => Get.bottomSheet(const SortSheet()),
             icon: const Icon(Icons.sort_rounded, weight: 800),
           ),
           IconButton(
-            onPressed: () => Get.bottomSheet(const FilterSheet()), 
+            onPressed: () => Get.bottomSheet(const FilterSheet()),
             icon: const Icon(Icons.tune_rounded, weight: 800),
           ),
           const SizedBox(width: 8),
@@ -86,7 +86,6 @@ class _NoteListViewState extends State<NoteListView>
               ),
             ),
           ),
-
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async => controller.fetchAllNotes(),
@@ -94,7 +93,6 @@ class _NoteListViewState extends State<NoteListView>
                 if (controller.isLoading.value && controller.notes.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
                 if (controller.notes.isEmpty) {
                   return SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
@@ -125,13 +123,12 @@ class _NoteListViewState extends State<NoteListView>
                     ),
                   );
                 }
-
                 return ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
                   itemCount: controller.notes.length,
                   separatorBuilder: (context, index) =>
-                  const SizedBox(height: 12),
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final note = controller.notes[index];
                     return NoteCard(

@@ -41,7 +41,7 @@ class RegisterView extends StatelessWidget {
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(100),
                                     child: Image.asset(
-                                      'assets/icons/app_icon1.jpg',
+                                      'assets/icons/app_icon.jpg',
                                       width: 90,
                                       height: 90,
                                       fit: BoxFit.cover,
@@ -97,7 +97,7 @@ class RegisterView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Obx(
-                                      () => CustomTextField(
+                                  () => CustomTextField(
                                     label: 'full_name'.tr,
                                     controller: controller.fullNameController,
                                     hint: 'enter_full_name'.tr,
@@ -107,7 +107,7 @@ class RegisterView extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 20),
                                 Obx(
-                                      () => CustomTextField(
+                                  () => CustomTextField(
                                     label: 'phone_number'.tr,
                                     controller: controller.phoneController,
                                     hint: 'enter_phone'.tr,
@@ -118,13 +118,13 @@ class RegisterView extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 20),
                                 Obx(
-                                      () => CustomTextField(
+                                  () => CustomTextField(
                                     label: 'password'.tr,
                                     controller: controller.passwordController,
                                     hint: 'create_password'.tr,
                                     prefixIcon: Icons.lock_outline_rounded,
                                     obscureText:
-                                    controller.obscurePassword.value,
+                                        controller.obscurePassword.value,
                                     isError: controller.hasError.value,
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -135,7 +135,7 @@ class RegisterView extends StatelessWidget {
                                         color: AppColors.textPlaceholder,
                                       ),
                                       onPressed:
-                                      controller.togglePasswordVisibility,
+                                          controller.togglePasswordVisibility,
                                     ),
                                   ),
                                 ),
@@ -149,7 +149,7 @@ class RegisterView extends StatelessWidget {
                             child: Column(
                               children: [
                                 Obx(
-                                      () => AppButton(
+                                  () => AppButton(
                                     text: 'register'.tr,
                                     isLoading: controller.isLoading.value,
                                     onPressed: controller.register,

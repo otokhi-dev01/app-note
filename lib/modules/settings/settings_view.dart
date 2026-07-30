@@ -12,7 +12,8 @@ class SettingsView extends StatefulWidget {
   State<SettingsView> createState() => _SettingsViewState();
 }
 
-class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClientMixin {
+class _SettingsViewState extends State<SettingsView>
+    with AutomaticKeepAliveClientMixin {
   // State variables for the toggles
   bool _pushNotifications = true;
   bool _emailSummaries = false;
@@ -30,14 +31,13 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
       appBar: CustomGlassAppBar(
         titleText: 'Settings',
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search),
-          ),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
           const SizedBox(width: 8),
-        ],  bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
-        child: SizedBox(),)
+        ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: SizedBox(),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
@@ -55,13 +55,13 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
                 'Push Notifications',
                 'Receive alerts on your device.',
                 _pushNotifications,
-                    (val) => setState(() => _pushNotifications = val),
+                (val) => setState(() => _pushNotifications = val),
               ),
               _buildSwitchItem(
                 'Email Summaries',
                 'Weekly digest of activity.',
                 _emailSummaries,
-                    (val) => setState(() => _emailSummaries = val),
+                (val) => setState(() => _emailSummaries = val),
               ),
             ]),
 
@@ -71,24 +71,28 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
                 'Dark Mode',
                 'Toggle dark theme.',
                 _darkMode,
-                    (val) => setState(() => _darkMode = val),
+                (val) => setState(() => _darkMode = val),
               ),
               _buildSwitchItem(
                 'Compact View',
                 'Reduce spacing in lists.',
                 _compactView,
-                    (val) => setState(() => _compactView = val),
+                (val) => setState(() => _compactView = val),
               ),
             ]),
 
             const SizedBox(height: 24),
             _buildSection('Sync Settings', [
-              _buildSyncItem('Cloud Provider', 'Google Drive Connected', Icons.cloud_outlined),
+              _buildSyncItem(
+                'Cloud Provider',
+                'Google Drive Connected',
+                Icons.cloud_outlined,
+              ),
               _buildSwitchItem(
                 'Sync over Wi-Fi only',
                 'Save mobile data.',
                 _syncWifiOnly,
-                    (val) => setState(() => _syncWifiOnly = val),
+                (val) => setState(() => _syncWifiOnly = val),
               ),
             ]),
 
@@ -115,10 +119,7 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
                   ),
                   child: const Text(
                     'Log Out',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
               ),
@@ -136,12 +137,14 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
     for (int i = 0; i < children.length; i++) {
       itemsWithDividers.add(children[i]);
       if (i < children.length - 1) {
-        itemsWithDividers.add(const Divider(
-          height: 1,
-          color: AppColors.border,
-          indent: 16,
-          endIndent: 16,
-        ));
+        itemsWithDividers.add(
+          const Divider(
+            height: 1,
+            color: AppColors.border,
+            indent: 16,
+            endIndent: 16,
+          ),
+        );
       }
     }
 
@@ -152,7 +155,11 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
           padding: const EdgeInsets.only(bottom: 12, left: 4),
           child: Row(
             children: [
-              Icon(_getSectionIcon(title), size: 20, color: AppColors.textPrimary),
+              Icon(
+                _getSectionIcon(title),
+                size: 20,
+                color: AppColors.textPrimary,
+              ),
               const SizedBox(width: 8),
               Text(
                 title,
@@ -177,20 +184,33 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
 
   IconData _getSectionIcon(String title) {
     switch (title) {
-      case 'Notifications': return Icons.notifications_outlined;
-      case 'Appearance': return Icons.palette_outlined;
-      case 'Sync Settings': return Icons.sync_outlined;
-      case 'About': return Icons.info_outline;
-      default: return Icons.settings_outlined;
+      case 'Notifications':
+        return Icons.notifications_outlined;
+      case 'Appearance':
+        return Icons.palette_outlined;
+      case 'Sync Settings':
+        return Icons.sync_outlined;
+      case 'About':
+        return Icons.info_outline;
+      default:
+        return Icons.settings_outlined;
     }
   }
 
-  Widget _buildSwitchItem(String title, String subtitle, bool value, ValueChanged<bool> onChanged) {
+  Widget _buildSwitchItem(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
     return SwitchListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
       ),
       subtitle: Text(
         subtitle,
@@ -198,7 +218,7 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
       ),
       value: value,
       onChanged: onChanged,
-      activeColor: AppColors.primary,
+      activeThumbColor: AppColors.primary,
       activeTrackColor: AppColors.primary.withValues(alpha: 0.2),
       inactiveThumbColor: AppColors.textPlaceholder,
       inactiveTrackColor: AppColors.border,
@@ -218,13 +238,20 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
       ),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
       ),
       subtitle: Text(
         subtitle,
         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       ),
-      trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.textPlaceholder),
+      trailing: const Icon(
+        Icons.chevron_right,
+        size: 20,
+        color: AppColors.textPlaceholder,
+      ),
       onTap: () {},
     );
   }
@@ -234,17 +261,24 @@ class _SettingsViewState extends State<SettingsView> with AutomaticKeepAliveClie
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-      ),
-      trailing: showLink
-          ? const Icon(Icons.open_in_new, size: 18, color: AppColors.textPlaceholder)
-          : Text(
-        value,
         style: const TextStyle(
-          color: AppColors.textSecondary,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
         ),
       ),
+      trailing: showLink
+          ? const Icon(
+              Icons.open_in_new,
+              size: 18,
+              color: AppColors.textPlaceholder,
+            )
+          : Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
       onTap: showLink ? () {} : null,
     );
   }

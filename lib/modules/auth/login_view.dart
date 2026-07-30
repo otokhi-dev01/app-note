@@ -42,7 +42,7 @@ class LoginView extends StatelessWidget {
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(100),
                                     child: Image.asset(
-                                      'assets/icons/app_icon2.jpg',
+                                      'assets/icons/app_icon.jpg',
                                       width: 90,
                                       height: 90,
                                       fit: BoxFit.cover,

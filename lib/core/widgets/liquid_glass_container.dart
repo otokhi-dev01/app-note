@@ -20,7 +20,7 @@ class LiquidGlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBorderRadius = borderRadius ?? BorderRadius.circular(24);
-    
+
     return ClipRRect(
       borderRadius: effectiveBorderRadius,
       child: BackdropFilter(
@@ -42,7 +42,7 @@ class LiquidGlassContainer extends StatelessWidget {
               ),
             ],
           ),
-          child: child,
+          child: Material(type: MaterialType.transparency, child: child),
         ),
       ),
     );

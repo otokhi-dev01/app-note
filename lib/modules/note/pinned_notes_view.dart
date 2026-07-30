@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:otokhi_note/core/widgets/liquid_glass_container.dart';
 import 'note_list_controller.dart';
 import '../../app/theme/colors.dart';
 import '../../app/routes/app_routes.dart';
@@ -13,7 +14,8 @@ class PinnedNotesView extends StatefulWidget {
   State<PinnedNotesView> createState() => _PinnedNotesViewState();
 }
 
-class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAliveClientMixin {
+class _PinnedNotesViewState extends State<PinnedNotesView>
+    with AutomaticKeepAliveClientMixin {
   final controller = Get.find<NoteListController>();
 
   @override
@@ -33,11 +35,23 @@ class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAli
       appBar: CustomGlassAppBar(
         titleText: 'Pinned Notes',
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, weight: 800)),
+          LiquidGlassContainer(
+            child: IconButton(
+              onPressed: () {
+                Get.toNamed(
+                  AppRoutes.search,
+                  arguments: {'isPinnedSearch': true},
+                );
+              },
+              icon: const Icon(Icons.search_rounded, weight: 800),
+            ),
+          ),
           const SizedBox(width: 16),
-        ],  bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
-        child: SizedBox(),)
+        ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: SizedBox(),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: () async => controller.fetchPinnedNotes(),
@@ -54,9 +68,19 @@ class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAli
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.push_pin_outlined, size: 64, color: AppColors.textPlaceholder.withValues(alpha: 0.5)),
+                      Icon(
+                        Icons.push_pin_outlined,
+                        size: 64,
+                        color: AppColors.textPlaceholder.withValues(alpha: 0.5),
+                      ),
                       const SizedBox(height: 16),
-                      const Text('No Pinned Notes', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                      const Text(
+                        'No Pinned Notes',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 16,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -75,7 +99,8 @@ class _PinnedNotesViewState extends State<PinnedNotesView> with AutomaticKeepAli
                 note: note,
                 isPinned: true,
                 isFullWidth: true,
-                onTap: () => Get.toNamed(AppRoutes.noteEditor, arguments: note.id),
+                onTap: () =>
+                    Get.toNamed(AppRoutes.noteEditor, arguments: note.id),
               );
             },
           );
