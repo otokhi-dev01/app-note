@@ -20,6 +20,9 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    // Automatically set a default device name to avoid registration failure
+    deviceNameController.text = 'Mobile App';
+    
     // Clear error when user starts typing
     phoneController.addListener(() => hasError.value = false);
     passwordController.addListener(() => hasError.value = false);
@@ -42,17 +45,22 @@ class AuthController extends GetxController {
         passwordController.text,
       );
 
-      if (response.statusCode == 200) {
-        final token = response.data['data']['token'];
-        _authService.login(token);
-        Get.offAllNamed(AppRoutes.home);
-      } else {
-        hasError.value = true;
-        Get.snackbar('Error', response.data['message'] ?? 'Login failed');
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data['data'];
+        if (data != null && data['token'] != null) {
+          _authService.login(data['token']);
+          Get.offAllNamed(AppRoutes.home);
+          return;
+        }
       }
+      
+      hasError.value = true;
+      String message = response.data?['message'] ?? 'Login failed. Please check your credentials.';
+      Get.snackbar('Error', message);
     } catch (e) {
       hasError.value = true;
-      Get.snackbar('Error', 'An error occurred during login');
+      Get.snackbar('Error', 'Unable to connect to server. Please try again later.');
+      debugPrint('Login Error: $e');
     } finally {
       isLoading.value = false;
     }
@@ -74,7 +82,7 @@ class AuthController extends GetxController {
         fullName: fullNameController.text,
         phone: phoneController.text,
         password: passwordController.text,
-        deviceName: deviceNameController.text,
+        deviceName: deviceNameController.text.isEmpty ? 'Mobile App' : deviceNameController.text,
       );
 
       if (response.statusCode == 200) {
@@ -82,11 +90,13 @@ class AuthController extends GetxController {
         Get.back();
       } else {
         hasError.value = true;
-        Get.snackbar('Error', response.data['message'] ?? 'Registration failed');
+        String message = response.data?['message'] ?? 'Registration failed. Please check your information.';
+        Get.snackbar('Error', message);
       }
     } catch (e) {
       hasError.value = true;
-      Get.snackbar('Error', 'An error occurred during registration');
+      Get.snackbar('Error', 'An error occurred during registration. Please try again.');
+      debugPrint('Registration Error: $e');
     } finally {
       isLoading.value = false;
     }

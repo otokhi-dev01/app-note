@@ -7,6 +7,8 @@ import '../../data/models/folder_model.dart';
 import '../../data/models/note_model.dart';
 import '../../app/theme/colors.dart';
 import '../../core/utils/app_logger.dart';
+import '../home/home_controller.dart';
+import '../note/note_list_controller.dart';
 
 class FolderController extends GetxController {
   final FolderRepository _folderRepository = FolderRepository();
@@ -133,6 +135,13 @@ class FolderController extends GetxController {
     try {
       await _folderRepository.deleteRestoreFolder(id, true);
       fetchFolders();
+      // Refresh Home and Note Lists
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchData();
+      }
+      if (Get.isRegistered<NoteListController>()) {
+        Get.find<NoteListController>().fetchAllNotes();
+      }
     } finally {
       isLoading.value = false;
     }
@@ -143,6 +152,13 @@ class FolderController extends GetxController {
     try {
       await _folderRepository.deleteRestoreFolder(id, false);
       fetchFolders();
+      // Refresh Home and Note Lists
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().fetchData();
+      }
+      if (Get.isRegistered<NoteListController>()) {
+        Get.find<NoteListController>().fetchAllNotes();
+      }
     } finally {
       isLoading.value = false;
     }
