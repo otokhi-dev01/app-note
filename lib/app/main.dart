@@ -7,10 +7,10 @@ import 'services/storage_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 
-  /*
-    date : 28.07.2026
+/*
+    date : 30.07.2026
     Today, I was updated the new feature
-    by branch nona_developer
+    by branch notea
     name: otokhi_note App
    */
 
@@ -29,10 +29,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final storage = Get.find<StorageService>();
-    final savedLocale = storage.languageCode != null 
-        ? Locale(storage.languageCode!, storage.countryCode) 
+    final savedLocale = storage.languageCode != null
+        ? Locale(storage.languageCode!, storage.countryCode)
         : Get.deviceLocale;
-
     return GetMaterialApp(
       title: 'otokhi_note',
       debugShowCheckedModeBanner: false,

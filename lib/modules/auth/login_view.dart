@@ -45,8 +45,7 @@ class LoginView extends StatelessWidget {
                                       'assets/icons/app_icon2.jpg',
                                       width: 90,
                                       height: 90,
-                                      fit: BoxFit.cover
-                                      ,
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
                                   const SizedBox(height: 16),
@@ -99,7 +98,7 @@ class LoginView extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Obx(
-                                      () => CustomTextField(
+                                  () => CustomTextField(
                                     label: 'phone_number'.tr,
                                     controller: controller.phoneController,
                                     hint: 'enter_phone'.tr,
@@ -110,13 +109,13 @@ class LoginView extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 15),
                                 Obx(
-                                      () => CustomTextField(
+                                  () => CustomTextField(
                                     label: 'password'.tr,
                                     controller: controller.passwordController,
                                     hint: 'enter_password'.tr,
                                     prefixIcon: Icons.lock_outline,
                                     obscureText:
-                                    controller.obscurePassword.value,
+                                        controller.obscurePassword.value,
                                     isError: controller.hasError.value,
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -127,7 +126,7 @@ class LoginView extends StatelessWidget {
                                         color: AppColors.textPlaceholder,
                                       ),
                                       onPressed:
-                                      controller.togglePasswordVisibility,
+                                          controller.togglePasswordVisibility,
                                     ),
                                   ),
                                 ),
@@ -154,7 +153,7 @@ class LoginView extends StatelessWidget {
                             child: Column(
                               children: [
                                 Obx(
-                                      () => AppButton(
+                                  () => AppButton(
                                     text: 'sign_in'.tr,
                                     isLoading: controller.isLoading.value,
                                     onPressed: controller.login,
@@ -198,7 +197,7 @@ class LoginView extends StatelessWidget {
                       ),
                     ),
                     // Footer
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40),
                   ],
                 ),
               ),
