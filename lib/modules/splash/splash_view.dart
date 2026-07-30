@@ -20,10 +20,7 @@ class SplashView extends GetView<SplashController> {
             curve: Curves.easeOutBack,
             builder: (context, value, child) => Opacity(
               opacity: value.clamp(0.0, 1.0),
-              child: Transform.scale(
-                scale: value,
-                child: child,
-              ),
+              child: Transform.scale(scale: value, child: child),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -32,7 +29,7 @@ class SplashView extends GetView<SplashController> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(100),
                   child: Image.asset(
-                    'assets/icons/app_icon2.jpg',
+                    'assets/icons/app_icon.jpg',
                     width: 140,
                     height: 140,
                     fit: BoxFit.cover,
@@ -63,7 +60,9 @@ class SplashView extends GetView<SplashController> {
                   width: 40,
                   child: LinearProgressIndicator(
                     backgroundColor: AppColors.border,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                   ),
                 ),
               ],
