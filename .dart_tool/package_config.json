@@ -26,6 +26,24 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "cached_network_image",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/cached_network_image-3.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "cached_network_image_platform_interface",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/cached_network_image_platform_interface-4.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "cached_network_image_web",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/cached_network_image_web-1.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "characters",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/characters-1.4.1",
       "packageUri": "lib/",
@@ -104,10 +122,10 @@
       "languageVersion": "3.7"
     },
     {
-      "name": "file_picker",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/file_picker-8.3.7",
+      "name": "file",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/file-7.0.1",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.0"
     },
     {
       "name": "file_selector_linux",
@@ -143,13 +161,25 @@
       "name": "flutter",
       "rootUri": "file:///Users/yornnona/develop/flutter/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
+    },
+    {
+      "name": "flutter_animate",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_animate-4.5.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
+      "name": "flutter_cache_manager",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_cache_manager-3.4.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
     },
     {
       "name": "flutter_launcher_icons",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_launcher_icons-0.13.1",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_launcher_icons-0.14.4",
       "packageUri": "lib/",
-      "languageVersion": "2.18"
+      "languageVersion": "3.0"
     },
     {
       "name": "flutter_lints",
@@ -164,32 +194,32 @@
       "languageVersion": "3.10"
     },
     {
+      "name": "flutter_shaders",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_shaders-0.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.19"
+    },
+    {
       "name": "flutter_spinkit",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_spinkit-5.2.2",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
     {
-      "name": "flutter_svg",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/flutter_svg-2.3.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.9"
-    },
-    {
       "name": "flutter_test",
       "rootUri": "file:///Users/yornnona/develop/flutter/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "flutter_web_plugins",
       "rootUri": "file:///Users/yornnona/develop/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "font_awesome_flutter",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/font_awesome_flutter-10.12.0",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/font_awesome_flutter-11.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -204,6 +234,12 @@
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/get_storage-2.1.1",
       "packageUri": "lib/",
       "languageVersion": "2.16"
+    },
+    {
+      "name": "glassmorphism",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/glassmorphism-3.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "google_fonts",
@@ -243,9 +279,9 @@
     },
     {
       "name": "image_picker_android",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/image_picker_android-0.8.13+17",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/image_picker_android-0.8.13+19",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.12"
     },
     {
       "name": "image_picker_for_web",
@@ -285,19 +321,25 @@
     },
     {
       "name": "intl",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/intl-0.20.3",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/intl-0.19.0",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.0"
     },
     {
       "name": "jni",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/jni-1.0.0",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/jni-1.0.3",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
     {
       "name": "jni_flutter",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/jni_flutter-1.0.1",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/jni_flutter-1.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "jni_util",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/jni_util-1.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
@@ -351,7 +393,7 @@
     },
     {
       "name": "meta",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/meta-1.17.0",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/meta-1.18.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
@@ -363,27 +405,27 @@
     },
     {
       "name": "objective_c",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.5.0",
       "packageUri": "lib/",
       "languageVersion": "3.10"
     },
     {
-      "name": "package_config",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/package_config-2.2.0",
+      "name": "octo_image",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/octo_image-2.1.0",
       "packageUri": "lib/",
-      "languageVersion": "3.4"
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "package_config",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/package_config-3.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.11"
     },
     {
       "name": "path",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/path-1.9.1",
       "packageUri": "lib/",
       "languageVersion": "3.4"
-    },
-    {
-      "name": "path_parsing",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/path_parsing-1.1.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.3"
     },
     {
       "name": "path_provider",
@@ -422,42 +464,6 @@
       "languageVersion": "3.2"
     },
     {
-      "name": "permission_handler",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/permission_handler-11.4.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.5"
-    },
-    {
-      "name": "permission_handler_android",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.5"
-    },
-    {
-      "name": "permission_handler_apple",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/permission_handler_apple-9.4.10",
-      "packageUri": "lib/",
-      "languageVersion": "2.18"
-    },
-    {
-      "name": "permission_handler_html",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/permission_handler_html-0.1.3+5",
-      "packageUri": "lib/",
-      "languageVersion": "3.3"
-    },
-    {
-      "name": "permission_handler_platform_interface",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/permission_handler_platform_interface-4.3.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.5"
-    },
-    {
-      "name": "permission_handler_windows",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/permission_handler_windows-0.2.1",
-      "packageUri": "lib/",
-      "languageVersion": "2.12"
-    },
-    {
       "name": "petitparser",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/petitparser-7.0.2",
       "packageUri": "lib/",
@@ -494,16 +500,52 @@
       "languageVersion": "3.10"
     },
     {
+      "name": "rxdart",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/rxdart-0.28.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "sky_engine",
       "rootUri": "file:///Users/yornnona/develop/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.10"
     },
     {
       "name": "source_span",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/source_span-1.10.2",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "sqflite",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/sqflite-2.4.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    },
+    {
+      "name": "sqflite_android",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/sqflite_android-2.4.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    },
+    {
+      "name": "sqflite_common",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/sqflite_common-2.5.11",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    },
+    {
+      "name": "sqflite_darwin",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/sqflite_darwin-2.4.3+1",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    },
+    {
+      "name": "sqflite_platform_interface",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/sqflite_platform_interface-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
     },
     {
       "name": "stack_trace",
@@ -524,6 +566,12 @@
       "languageVersion": "3.1"
     },
     {
+      "name": "synchronized",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/synchronized-3.4.1+1",
+      "packageUri": "lib/",
+      "languageVersion": "3.12"
+    },
+    {
       "name": "term_glyph",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/term_glyph-1.2.2",
       "packageUri": "lib/",
@@ -531,7 +579,7 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/test_api-0.7.10",
+      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/test_api-0.7.11",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -546,24 +594,6 @@
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/uuid-4.6.0",
       "packageUri": "lib/",
       "languageVersion": "3.0"
-    },
-    {
-      "name": "vector_graphics",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/vector_graphics-1.2.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.9"
-    },
-    {
-      "name": "vector_graphics_codec",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/vector_graphics_codec-1.1.13",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "vector_graphics_compiler",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/vector_graphics_compiler-1.2.6",
-      "packageUri": "lib/",
-      "languageVersion": "3.10"
     },
     {
       "name": "vector_math",
@@ -584,12 +614,6 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "win32",
-      "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/win32-5.15.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.8"
-    },
-    {
       "name": "xdg_directories",
       "rootUri": "file:///Users/yornnona/.pub-cache/hosted/pub.dev/xdg_directories-1.1.0",
       "packageUri": "lib/",
@@ -608,15 +632,15 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "otokhi_note",
+      "name": "Note",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.11"
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.11.5",
+  "generatorVersion": "3.12.2",
   "flutterRoot": "file:///Users/yornnona/develop/flutter",
-  "flutterVersion": "3.41.9",
+  "flutterVersion": "3.44.8",
   "pubCache": "file:///Users/yornnona/.pub-cache"
 }

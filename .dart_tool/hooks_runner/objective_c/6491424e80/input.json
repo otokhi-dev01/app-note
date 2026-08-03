@@ -22,9 +22,9 @@
     },
     "linking_enabled": false
   },
-  "out_dir_shared": "/Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/shared/objective_c/build/",
-  "out_file": "/Users/yornnona/Documents/flutter_app/app-note/.dart_tool/hooks_runner/objective_c/6491424e80/output.json",
+  "out_dir_shared": "/Users/yornnona/Documents/Apps/app-note/.dart_tool/hooks_runner/shared/objective_c/build/",
+  "out_file": "/Users/yornnona/Documents/Apps/app-note/.dart_tool/hooks_runner/objective_c/6491424e80/output.json",
   "package_name": "objective_c",
-  "package_root": "/Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.4.1/",
+  "package_root": "/Users/yornnona/.pub-cache/hosted/pub.dev/objective_c-9.5.0/",
   "user_defines": {}
 }
