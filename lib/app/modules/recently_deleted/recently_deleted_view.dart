@@ -236,7 +236,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             children: [
               if (controller.isEditing.value)
                 _buildSelectionIndicator(context, isSelected),
-              Icon(folder.icon, color: AppTheme.folderYellow, size: 24),
+              Icon(folder.icon, color: AppTheme.folderYellow, size: 30),
             ],
           ),
           title: Text(folder.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),

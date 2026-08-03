@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -96,32 +98,83 @@ class ProfileView extends GetView<ProfileController> {
                     Center(
                       child: Column(
                         children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: isDark ? Colors.black26 : Colors.black12,
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 5),
+                          GestureDetector(
+                            onTap: controller.updateProfileImage,
+                            child: Stack(
+                              children: [
+                                Obx(() => Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppTheme.folderYellow,
+                                      width: 3,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: isDark ? Colors.black26 : Colors.black12,
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                    image: controller.userImagePath.value.isNotEmpty
+                                        ? DecorationImage(
+                                            image: FileImage(File(controller.userImagePath.value)),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: controller.userImagePath.value.isEmpty
+                                      ? Center(
+                                          child: Icon(
+                                            Icons.person_rounded,
+                                            size: 60,
+                                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                          ),
+                                        )
+                                      : null,
+                                )),
+                                Positioned(
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.folderYellow,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt_rounded,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/icons/otokhi_logo_app.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
                           ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                           const SizedBox(height: 20),
-                          Obx(() => Text(
-                            controller.userName.value,
-                            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                          )),
+                          GestureDetector(
+                            onTap: controller.updateUserName,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Obx(() => Text(
+                                  controller.userName.value,
+                                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                                )),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.edit_note_rounded,
+                                  size: 20,
+                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                ),
+                              ],
+                            ),
+                          ),
                           Obx(() => Text(
                             controller.userPhone.value,
                             style: theme.textTheme.bodyMedium,

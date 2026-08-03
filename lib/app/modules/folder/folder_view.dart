@@ -237,7 +237,7 @@ class FolderView extends GetView<FolderController> {
           onTap: (isEditing && isSystem)
               ? null
               : () => Get.toNamed(Routes.NOTE_LIST, arguments: folder)?.then((value) => controller.fetchFolders()),
-          leading: Icon(folder.icon, color: AppTheme.folderYellow, size: 24),
+          leading: Icon(folder.icon, color: AppTheme.folderYellow, size: 30),
           title: Text(folder.name, style: theme.textTheme.bodyLarge),
           trailing: isEditing && !isSystem
               ? Row(
@@ -284,7 +284,7 @@ class FolderView extends GetView<FolderController> {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
-          leading: const Icon(Icons.delete_outline_rounded, color: AppTheme.folderYellow, size: 24),
+          leading: const Icon(Icons.delete_outline_rounded, color: AppTheme.folderYellow, size: 30),
           title: Text("Recently Deleted", style: theme.textTheme.bodyLarge),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -310,13 +310,13 @@ class FolderView extends GetView<FolderController> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.PROFILE),
           leading: LiquidGlassContainer(
-            width: 34,
-            height: 34,
-            borderRadius: 8,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
             opacity: 0.08,
             blur: 15,
             child: const Center(
-              child: Icon(Icons.person_outline, color: AppTheme.folderYellow, size: 20),
+              child: Icon(Icons.person_outline, color: AppTheme.folderYellow, size: 24),
             ),
           ),
           title: Text("Profile", style: theme.textTheme.bodyLarge),
@@ -337,13 +337,13 @@ class FolderView extends GetView<FolderController> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.TRASH),
           leading: LiquidGlassContainer(
-            width: 34,
-            height: 34,
-            borderRadius: 8,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
             opacity: 0.08,
             blur: 15,
             child: const Center(
-              child: Icon(Icons.delete_sweep_rounded, color: AppTheme.folderYellow, size: 20),
+              child: Icon(Icons.delete_sweep_rounded, color: AppTheme.folderYellow, size: 24),
             ),
           ),
           title: Text("Trash", style: theme.textTheme.bodyLarge),

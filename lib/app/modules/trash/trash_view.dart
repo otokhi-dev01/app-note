@@ -128,7 +128,7 @@ class TrashView extends GetView<TrashController> {
                         "Trash",
                         style: theme.textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          fontSize: 34,
+                          fontSize: 27,
                         ),
                       ),
                     );
@@ -196,7 +196,7 @@ class TrashView extends GetView<TrashController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (controller.isEditing.value) _buildSelectionIndicator(context, isSelected),
-            Icon(folder.icon, color: AppTheme.folderYellow, size: 24),
+            Icon(folder.icon, color: AppTheme.folderYellow, size: 30),
           ],
         ),
         title: Text(folder.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
