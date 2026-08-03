@@ -10,7 +10,7 @@
 		</data>
 		<key>flutter_assets/AssetManifest.bin</key>
 		<data>
-		f3ip+HBOsG3PSp2FfzNzdKEy2Ts=
+		tjtcxoNF8c3X0zGbdGqqswZZUHU=
 		</data>
 		<key>flutter_assets/FontManifest.json</key>
 		<data>
@@ -18,31 +18,15 @@
 		</data>
 		<key>flutter_assets/NOTICES.Z</key>
 		<data>
-		AXaCCVqoiDwx221juMntfsHUm9s=
+		mKnqH0md4xSrRNOoukfNhEU5pnA=
 		</data>
 		<key>flutter_assets/NativeAssetsManifest.json</key>
 		<data>
 		1o4e1HoC2MFSsIe6ubyyYbEuqSU=
 		</data>
-		<key>flutter_assets/assets/icons/app_icon1.jpg</key>
-		<data>
-		3isEIgfHOOPLiWD9V5XuVCaDUAs=
-		</data>
-		<key>flutter_assets/assets/icons/app_icon2.jpg</key>
+		<key>flutter_assets/assets/icons/otokhi_logo_app.jpg</key>
 		<data>
 		K/LBck1LmypHwjY4SSUSpvw7YSU=
-		</data>
-		<key>flutter_assets/assets/images/flags/cambodia.png</key>
-		<data>
-		9mClePdsMdDc4gtbLqfhs9WX5Aw=
-		</data>
-		<key>flutter_assets/assets/images/flags/china.png</key>
-		<data>
-		ZlNcGopy9FXDLgaWUJGya+pBC5w=
-		</data>
-		<key>flutter_assets/assets/images/flags/usa.png</key>
-		<data>
-		tNVGpRFlSuEj4zx8g53PBaNO+nU=
 		</data>
 		<key>flutter_assets/fonts/MaterialIcons-Regular.otf</key>
 		<data>
@@ -50,11 +34,11 @@
 		</data>
 		<key>flutter_assets/isolate_snapshot_data</key>
 		<data>
-		E5Q+fHQoSbVIMbkkTTyKXAQfJVk=
+		MFvYIb0ni8M0H202p3pKXtnQCHc=
 		</data>
 		<key>flutter_assets/kernel_blob.bin</key>
 		<data>
-		8E2fiXiIl4u7z1JPgehNLhUefQA=
+		QOCwymw7FvJLRC5RlvL/+dq6kak=
 		</data>
 		<key>flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf</key>
 		<data>
@@ -62,27 +46,27 @@
 		</data>
 		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Brands-Regular-400.otf</key>
 		<data>
-		YBl4gce02PwIDieMs7VDVihjZUg=
+		rw0TjKJZtC0AHOMxTRpOzuSkprg=
 		</data>
 		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Regular-400.otf</key>
 		<data>
-		TVGKUMf13tdSMq2lRZRetgiJ0Bc=
+		vuRqQ/ki4HQept65ExRshTMuZp8=
 		</data>
 		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Solid-900.otf</key>
 		<data>
-		wXi5Pi49/qOM6ShFisxNZDd2qeY=
+		+GOxLzHIuZsicDoxi302VKes3jk=
 		</data>
 		<key>flutter_assets/shaders/ink_sparkle.frag</key>
 		<data>
-		sxM4vXUdXTlz/NE5jWpDMQiyBlU=
+		EGRz1/Lz0IU55sDsYLpgQGHcfzg=
 		</data>
 		<key>flutter_assets/shaders/stretch_effect.frag</key>
 		<data>
-		E+CXIAqhfAZloEXY0OAHmD4YsUA=
+		oF3vzikJfeSpIcWLzeBHGrs5u+w=
 		</data>
 		<key>flutter_assets/vm_snapshot_data</key>
 		<data>
-		PLk09h0l/XVt/bVElKkgNzt9Djw=
+		INvwoEFK3LR/KYxK7HlD9EOPqpY=
 		</data>
 	</dict>
 	<key>files2</key>
@@ -91,7 +75,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			ihylBSg6uwYHvtP3w+Hvt0vVgqu3h1hYKWx3ymhQTK4=
+			wK/7nJVjxCdV3dGjG64wwalE9FT6/YOz7xpLyglSWxA=
 			</data>
 		</dict>
 		<key>flutter_assets/FontManifest.json</key>
@@ -105,7 +89,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			637Xc7035HqYmpgHpujyuoXHDAhGYAqZer1nUIa5sY4=
+			iCKVt+I8J2duQRRJw5TG9VeNijwN9Bl4ZvpNqGAw94w=
 			</data>
 		</dict>
 		<key>flutter_assets/NativeAssetsManifest.json</key>
@@ -115,39 +99,11 @@
 			tIZt1I4Za5qN/TqyBt8KjDWoH6danpGjuOrhmqkl3js=
 			</data>
 		</dict>
-		<key>flutter_assets/assets/icons/app_icon1.jpg</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			zWwfQ6MIRnU2mI48vU7qFVyQdP1jwDiLGY91aFg/08M=
-			</data>
-		</dict>
-		<key>flutter_assets/assets/icons/app_icon2.jpg</key>
+		<key>flutter_assets/assets/icons/otokhi_logo_app.jpg</key>
 		<dict>
 			<key>hash2</key>
 			<data>
 			FJhksylmTxdncl38Km0uwfa9ZudOrLJbAGhcmmSGaac=
-			</data>
-		</dict>
-		<key>flutter_assets/assets/images/flags/cambodia.png</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			0EyCW6S+W2CHbXdeSAM+RiAJ639dlnl6Dwv+x1q/yMo=
-			</data>
-		</dict>
-		<key>flutter_assets/assets/images/flags/china.png</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			XTB79KY7gc32E4NbuhQgomNe85m6y1fCVnw7vf29h1U=
-			</data>
-		</dict>
-		<key>flutter_assets/assets/images/flags/usa.png</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			mjcEhtjNNrncECCUptbMbsK+EndvE/A4IqA7xvP6O9Q=
 			</data>
 		</dict>
 		<key>flutter_assets/fonts/MaterialIcons-Regular.otf</key>
@@ -161,14 +117,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			tf1mlFxX0MhuutTY6vTlrJvl6n9iq7KDratUEtVl0cM=
+			68/PNpCWKD/SRRjDQlOry5w0RETrm3J0+rZ6h+HVK7o=
 			</data>
 		</dict>
 		<key>flutter_assets/kernel_blob.bin</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			RRtd3wFb5tDZznnNX/Qgxt+ef1ZoFAtbUjmKLvMNOI0=
+			btmpxTPLEpQEGG8yI3cPxeRp8KU+3qr2juq98tT3YO0=
 			</data>
 		</dict>
 		<key>flutter_assets/packages/cupertino_icons/assets/CupertinoIcons.ttf</key>
@@ -182,42 +138,42 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			vS+oQL9rcmg26QBA7ZfMGPJQFxwbI7aEC5SMIvbbP3U=
+			XKRaiWbirKkZmDnkhOQpraNuUlx2N/2RBhPd/lFzg3U=
 			</data>
 		</dict>
 		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Regular-400.otf</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			zkg1HfpKDU0z9F8dTPIAYAwkyBgLKeYneolkToByFR8=
+			xiZcpYOZOGJaPIw3oAzcsmM9GtarLAlsl7WQonFitno=
 			</data>
 		</dict>
 		<key>flutter_assets/packages/font_awesome_flutter/lib/fonts/Font-Awesome-7-Free-Solid-900.otf</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			Mfimk/T2qj2UXxKbEmqPgIxFTsrVoNueSgYKp9HpCk0=
+			wQkRRymahGGVu8qLJlKN5smvhC8jbn20ShwujJ31I3I=
 			</data>
 		</dict>
 		<key>flutter_assets/shaders/ink_sparkle.frag</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			RoZF1LMcQMF0HavWao7KX8AlJjP2YoMdCmoodqEbrTM=
+			Ys5LpuNCVDcf/fuOBnCvzFMU9EUu317nCvzwefLtfqI=
 			</data>
 		</dict>
 		<key>flutter_assets/shaders/stretch_effect.frag</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			L1Nkyap/uLTY181NUgIAgKYl2ViXbpyX1/JoAy3gIto=
+			Ic3y7MmxE2cfsihiDZUuuuDxAqeKOanfibbr32rsMVo=
 			</data>
 		</dict>
 		<key>flutter_assets/vm_snapshot_data</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			voayeld2cKO/xTgKH/PG6QD4xzLD9m37V4iUvNPMgww=
+			0PJUwp9lyAMf9n4MpFHynft9d6qy+pimUOysOZ+k8LI=
 			</data>
 		</dict>
 	</dict>

@@ -1,17 +1,15 @@
-class AppRoutes {
-  static const splash = '/splash';
-  static const onboarding = '/onboarding';
-  static const login = '/login';
-  static const register = '/register';
-  static const home = '/home';
-  static const folderList = '/folders';
-  static const folderDetail = '/folder-detail';
-  static const noteEditor = '/note-editor';
-  static const noteList = '/note-list';
-  static const search = '/search';
-  static const pinned = '/pinned';
-  static const archive = '/archive';
-  static const trash = '/trash';
-  static const profile = '/profile';
-  static const settings = '/settings';
+part of 'app_pages.dart';
+
+abstract class Routes {
+  static const SPLASH = '/splash';
+  static const ONBOARDING = '/onboarding';
+  static const LOGIN = '/login';
+  static const REGISTER = '/register';
+  static const FOLDER = '/folder';
+  static const NOTE_LIST = '/note-list';
+  static const NOTE_DETAIL = '/note-detail';
+  static const SEARCH = '/search';
+  static const RECENTLY_DELETED = '/recently-deleted';
+  static const PROFILE = '/profile';
+  static const TRASH = '/trash';
 }

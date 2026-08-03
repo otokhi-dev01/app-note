@@ -1,97 +1,85 @@
 import 'package:get/get.dart';
-import 'app_routes.dart';
-import '../../modules/splash/splash_view.dart';
-import '../../modules/splash/splash_binding.dart';
-import '../../modules/onboarding/onboarding_view.dart';
-import '../../modules/auth/login_view.dart';
-import '../../modules/auth/register_view.dart';
-import '../../modules/home/home_view.dart';
-import '../../modules/home/home_binding.dart';
-import '../../modules/folder/folder_list_view.dart';
-import '../../modules/folder/folder_detail_view.dart';
-import '../../modules/folder/folder_controller.dart';
-import '../../modules/note/note_editor_view.dart';
-import '../../modules/note/note_list_view.dart';
-import '../../modules/note/note_binding.dart';
-import '../../modules/note/pinned_notes_view.dart';
-import '../../modules/note/locked_notes_view.dart';
-import '../../modules/archive/archive_view.dart';
-import '../../modules/trash/trash_view.dart';
-import '../../modules/search/search_view.dart';
-import '../../modules/profile/profile_view.dart';
-import '../../modules/settings/settings_view.dart';
+import '../modules/splash/splash_view.dart';
+import '../modules/splash/splash_binding.dart';
+import '../modules/onboarding/onboarding_view.dart';
+import '../modules/onboarding/onboarding_binding.dart';
+import '../modules/auth/login_view.dart';
+import '../modules/auth/auth_binding.dart';
+import '../modules/auth/register_view.dart';
+import '../modules/folder/folder_view.dart';
+import '../modules/folder/folder_binding.dart';
+import '../modules/note/note_list_view.dart';
+import '../modules/note/note_binding.dart';
+import '../modules/note/note_detail_view.dart';
+import '../modules/search/search_view.dart';
+import '../modules/search/search_binding.dart';
+import '../modules/profile/profile_view.dart';
+import '../modules/profile/profile_binding.dart';
+import '../modules/recently_deleted/recently_deleted_view.dart';
+import '../modules/recently_deleted/recently_deleted_binding.dart';
+import '../modules/trash/trash_view.dart';
+import '../modules/trash/trash_binding.dart';
+
+part 'app_routes.dart';
 
 class AppPages {
-  static const initial = AppRoutes.splash;
+  static const INITIAL = Routes.SPLASH;
 
   static final routes = [
     GetPage(
-      name: AppRoutes.splash,
+      name: Routes.SPLASH,
       page: () => const SplashView(),
       binding: SplashBinding(),
     ),
     GetPage(
-      name: AppRoutes.onboarding,
+      name: Routes.ONBOARDING,
       page: () => const OnboardingView(),
+      binding: OnboardingBinding(),
     ),
     GetPage(
-      name: AppRoutes.login,
+      name: Routes.LOGIN,
       page: () => const LoginView(),
+      binding: AuthBinding(),
     ),
     GetPage(
-      name: AppRoutes.register,
+      name: Routes.REGISTER,
       page: () => const RegisterView(),
+      binding: AuthBinding(),
     ),
     GetPage(
-      name: AppRoutes.home,
-      page: () => const HomeView(),
-      binding: HomeBinding(),
+      name: Routes.FOLDER,
+      page: () => const FolderView(),
+      binding: FolderBinding(),
     ),
     GetPage(
-      name: AppRoutes.folderList,
-      page: () => const FolderListView(),
-      binding: BindingsBuilder(() => Get.lazyPut(() => FolderController())),
-    ),
-    GetPage(
-      name: AppRoutes.folderDetail,
-      page: () => const FolderDetailView(),
-    ),
-    GetPage(
-      name: AppRoutes.noteEditor,
-      page: () => const NoteEditorView(),
+      name: Routes.NOTE_LIST,
+      page: () => const NoteListView(),
       binding: NoteBinding(),
     ),
     GetPage(
-      name: AppRoutes.noteList,
-      page: () => const NoteListView(),
+      name: Routes.NOTE_DETAIL,
+      page: () => const NoteDetailView(),
+      binding: NoteBinding(),
     ),
     GetPage(
-      name: AppRoutes.pinned,
-      page: () => const PinnedNotesView(),
-    ),
-    GetPage(
-      name: '/locked-notes',
-      page: () => const LockedNotesView(),
-    ),
-    GetPage(
-      name: AppRoutes.archive,
-      page: () => const ArchiveView(),
-    ),
-    GetPage(
-      name: AppRoutes.trash,
-      page: () => const TrashView(),
-    ),
-    GetPage(
-      name: AppRoutes.search,
+      name: Routes.SEARCH,
       page: () => const SearchView(),
+      binding: SearchBinding(),
     ),
     GetPage(
-      name: AppRoutes.profile,
+      name: Routes.PROFILE,
       page: () => const ProfileView(),
+      binding: ProfileBinding(),
     ),
     GetPage(
-      name: AppRoutes.settings,
-      page: () => const SettingsView(),
+      name: Routes.RECENTLY_DELETED,
+      page: () => const RecentlyDeletedView(),
+      binding: RecentlyDeletedBinding(),
+    ),
+    GetPage(
+      name: Routes.TRASH,
+      page: () => const TrashView(),
+      binding: TrashBinding(),
     ),
   ];
 }

@@ -1,0 +1,96 @@
+import 'package:flutter/material.dart';
+
+class FolderModel {
+  final int id;
+  final String name;
+  final String iconName;
+  final String colorValue;
+  final int sortOrder;
+  final int noteCount;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  FolderModel({
+    required this.id,
+    required this.name,
+    required this.iconName,
+    required this.colorValue,
+    required this.sortOrder,
+    this.noteCount = 0,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory FolderModel.fromJson(Map<String, dynamic> json) {
+    return FolderModel(
+      id: json['FolderId'] ?? 0,
+      name: (json['FolderName'] ?? '').toString().trim(),
+      iconName: json['IconName'] ?? '',
+      colorValue: json['ColorValue'] ?? '',
+      sortOrder: json['SortOrder'] ?? 0,
+      noteCount: json['NoteCount'] ?? 0,
+      createdAt: json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt']) : null,
+      updatedAt: json['UpdatedAt'] != null ? DateTime.tryParse(json['UpdatedAt']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    "FolderId": id,
+    "FolderName": name,
+    "IconName": iconName,
+    "ColorValue": colorValue,
+    "SortOrder": sortOrder,
+  };
+
+  IconData get icon {
+    switch (iconName.toLowerCase()) {
+      case 'work': return Icons.work_outline;
+      case 'school': return Icons.school_outlined;
+      case 'favorite': return Icons.favorite_border;
+      case '5': return Icons.code_rounded;
+      case 'folder': return Icons.folder_open_rounded;
+      default: return Icons.folder_open_rounded;
+    }
+  }
+
+  Color get color {
+    if (colorValue.isEmpty) return const Color(0xFFFFCC00);
+    if (colorValue.startsWith('#')) {
+      return Color(int.parse(colorValue.replaceFirst('#', '0xFF')));
+    }
+    // Handle large decimal strings from API
+    return Color(int.tryParse(colorValue) ?? 0xFFFFCC00);
+  }
+}
+
+class FolderResponse {
+  final List<FolderModel> folders;
+  final List<dynamic> trash;
+  final int code;
+  final String message;
+
+  FolderResponse({
+    required this.folders,
+    required this.trash,
+    required this.code,
+    required this.message,
+  });
+
+  factory FolderResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    final List trashList = data['trash'] ?? [];
+    final List archiveList = data['archive'] ?? [];
+    
+    // Combine trash and archive for folders just like notes
+    final List combinedTrash = [...trashList, ...archiveList];
+
+    return FolderResponse(
+      folders: (data['folder'] as List? ?? [])
+          .map((e) => FolderModel.fromJson(e))
+          .toList(),
+      trash: combinedTrash,
+      code: json['code'] ?? 0,
+      message: json['message'] ?? '',
+    );
+  }
+}
