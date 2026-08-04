@@ -12,4 +12,5 @@ abstract class Routes {
   static const RECENTLY_DELETED = '/recently-deleted';
   static const PROFILE = '/profile';
   static const TRASH = '/trash';
+  static const ARCHIVE = '/archive';
 }

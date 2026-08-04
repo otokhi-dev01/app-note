@@ -46,7 +46,8 @@ class SearchController extends GetxController {
         _folderService.getFolders(),
       ]);
 
-      final List<NoteModel> allNotes = results[0] as List<NoteModel>;
+      final noteResponse = results[0] as NoteResponse;
+      final List<NoteModel> allNotes = noteResponse.notes;
       final folderResponse = results[1] as FolderResponse;
       final List<FolderModel> allFolders = folderResponse.folders;
 

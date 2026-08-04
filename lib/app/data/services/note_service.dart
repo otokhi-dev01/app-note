@@ -8,29 +8,39 @@ import 'api_service.dart';
 class NoteService extends GetxService {
   final ApiService _api = Get.find<ApiService>();
 
-  Future<List<NoteModel>> getNotes({int? folderId}) async {
+  Future<NoteResponse> getNotes({int? folderId}) async {
     try {
       final response = await _api.dio.get("/api/note", queryParameters: {
-        if (folderId != null) "FolderId": folderId,
+        if (folderId != null && folderId != 0) "FolderId": folderId,
       });
-      
-      debugPrint("GET NOTES Response: ${response.data}");
-      
-      final data = response.data['data'];
-      if (data == null) return [];
-      
-      // We combine 'note' (active) and 'archive' (hidden/deleted) to show "all data"
-      final List noteList = data['note'] ?? [];
-      final List archiveList = data['archive'] ?? [];
-      
-      final List combined = [...noteList, ...archiveList];
-      
-      return combined
-          .map((e) => NoteModel.fromJson(e))
-          .toList();
+
+      // Safely handle data decoding
+      final responseData = response.data;
+      Map<String, dynamic> mappedData;
+      if (responseData is String) {
+        mappedData = jsonDecode(responseData);
+      } else if (responseData is Map) {
+        mappedData = Map<String, dynamic>.from(responseData);
+      } else {
+        throw Exception("Invalid response format: ${responseData.runtimeType}");
+      }
+
+      final noteResponse = NoteResponse.fromJson(mappedData);
+
+      // Compact debug logs for successful requests
+      if (kDebugMode) {
+        debugPrint("API Code: ${noteResponse.code}");
+        debugPrint("API Message: ${noteResponse.message}");
+        debugPrint("Active Notes: ${noteResponse.notes.length}");
+        debugPrint("Archived Notes: ${noteResponse.archive.length}");
+      }
+
+      return noteResponse;
     } catch (e) {
-      debugPrint("GET NOTES Error: $e");
-      return [];
+      if (kDebugMode) {
+        debugPrint("FETCH NOTES Error: $e");
+      }
+      rethrow;
     }
   }
 
@@ -49,7 +59,9 @@ class NoteService extends GetxService {
           .map((e) => NoteModel.fromJson(e))
           .toList();
     } catch (e) {
-      debugPrint("GET TRASH Error: $e");
+      if (kDebugMode) {
+        debugPrint("GET TRASH Error: $e");
+      }
       return [];
     }
   }

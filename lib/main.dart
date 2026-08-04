@@ -8,10 +8,11 @@ import 'app/data/services/theme_service.dart';
 
 /*
   App: Otokhi Notes
-  Date: 08.02.2026
+  Date: 08.04.2026
   Update by: branch nona_developer
   Update by: branch nona
   Feature: dark mode and light mode, rebranding to Otokhi
+
  */
 
 void main() async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/note_model.dart';
+import '../../data/models/folder_model.dart';
 import '../../data/services/folder_service.dart';
 import '../../data/services/note_service.dart';
 import 'widgets/note_move_folder_modal.dart';
@@ -12,7 +13,10 @@ class NoteController extends GetxController {
   final _picker = ImagePicker();
 
   final notes = <NoteModel>[].obs;
+  final archivedNotes = <NoteModel>[].obs;
   final isLoading = true.obs;
+  final hasError = false.obs;
+  final errorMessage = "".obs;
 
   // Edit and selection mode for list view
   final isEditing = false.obs;
@@ -128,8 +132,10 @@ class NoteController extends GetxController {
       } else {
         _initNewNote(args['folderId']);
       }
-    } else if (args != null && args is! Map) {
+    } else if (args is FolderModel) {
       fetchNotes(folderId: args.id);
+    } else {
+      fetchNotes();
     }
   }
 
@@ -144,14 +150,33 @@ class NoteController extends GetxController {
 
   Future<void> fetchNotes({int? folderId}) async {
     isLoading.value = true;
+    hasError.value = false;
     try {
-      final data = await _noteService.getNotes(folderId: folderId);
-      notes.assignAll(data);
+      final response = await _noteService.getNotes(folderId: folderId);
+      
+      notes.assignAll(_sortNotes(response.notes));
+      archivedNotes.assignAll(_sortNotes(response.archive));
     } catch (e) {
+      hasError.value = true;
+      errorMessage.value = "Unable to load notes. Please check your connection.";
       Get.snackbar("Error", "Could not load notes");
     } finally {
       isLoading.value = false;
     }
+  }
+
+  List<NoteModel> _sortNotes(List<NoteModel> list) {
+    list.sort((a, b) {
+      // 1. Pinned notes first
+      if (a.isPinned != b.isPinned) {
+        return a.isPinned ? -1 : 1;
+      }
+      // 2. UpdatedAt descending (newest first)
+      final dateA = a.updatedAt ?? DateTime(0);
+      final dateB = b.updatedAt ?? DateTime(0);
+      return dateB.compareTo(dateA);
+    });
+    return list;
   }
 
   Future<void> fetchNoteDetail(int id) async {
@@ -169,7 +194,6 @@ class NoteController extends GetxController {
       
       blocks.assignAll(note.content);
       
-      // If content is empty, add an initial text block
       if (blocks.isEmpty) {
         addTextBlock();
       }
@@ -181,7 +205,7 @@ class NoteController extends GetxController {
   }
 
   void _initNewNote(int folderId) {
-    currentNote.value = NoteModel(id: 0, folderId: folderId, title: "");
+    currentNote.value = NoteModel(id: 0, folderId: folderId, title: "", folderName: "");
     titleController.clear();
     blocks.clear();
     addTextBlock();
@@ -198,7 +222,6 @@ class NoteController extends GetxController {
   Future<void> saveNote() async {
     if (currentNote.value == null) return;
     
-    // Update block content from controllers before saving
     for (int i = 0; i < blocks.length; i++) {
       if (blocks[i] is TextBlock) {
         final controller = blockControllers[blocks[i].id];
@@ -224,12 +247,7 @@ class NoteController extends GetxController {
     }
   }
 
-  void updateTextBlock(int index, String text) {
-    // This is now handled by persistence logic in saveNote or can be debounced
-    if (blocks[index] is TextBlock) {
-      // Just keep track of text if needed for real-time logic
-    }
-  }
+  void updateTextBlock(int index, String text) {}
 
   void onUpdateChecklistItem(int blockIndex, int itemIndex, String text) {
     if (blocks[blockIndex] is ChecklistBlock) {
@@ -306,7 +324,7 @@ class NoteController extends GetxController {
           activeBlockIndex = blocks.length - 1;
         }
         
-        addTextBlock(); // Write text under image/video
+        addTextBlock();
 
         if (currentNote.value!.id != 0) {
           await _noteService.uploadAttachment(
@@ -364,7 +382,6 @@ class NoteController extends GetxController {
     }
   }
 
-  // Note List Management Features
   void toggleViewMode() {
     Get.snackbar("Info", "Gallery View coming soon");
   }

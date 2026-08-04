@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
@@ -25,28 +27,43 @@ class ApiService extends GetxService {
       },
     ));
 
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true, // Re-enable for debugging trash items
-      logPrint: (obj) => debugPrint(obj.toString()),
-    ));
-
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
+        if (kDebugMode) {
+          debugPrint("--> ${options.method} ${options.uri}");
+        }
         final token = _storage.read('token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },
+      onResponse: (response, handler) {
+        if (kDebugMode) {
+          debugPrint("<-- ${response.statusCode} ${response.requestOptions.uri}");
+        }
+        return handler.next(response);
+      },
       onError: (e, handler) {
+        if (kDebugMode) {
+          debugPrint("<-- ERROR ${e.response?.statusCode} ${e.requestOptions.uri}");
+          _printErrorResponse(e.response?.data);
+        }
         if (e.response?.statusCode == 401) {
-          // Handle Unauthorized - Clear token and redirect to login
           _storage.remove('token');
           Get.offAllNamed('/login');
         }
         return handler.next(e);
       },
     ));
+  }
+
+  void _printErrorResponse(Object? data) {
+    if (!kDebugMode || data == null) return;
+    final String text = data.toString();
+    const int maxLength = 1000;
+    debugPrint(
+      text.length > maxLength ? '${text.substring(0, maxLength)}... [truncated]' : text,
+    );
   }
 }

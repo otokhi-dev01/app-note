@@ -4,25 +4,37 @@ import 'package:flutter/material.dart';
 class NoteModel {
   final int id;
   final int folderId;
+  final String folderName;
   final String title;
   final List<NoteBlock> content;
   final bool isPinned;
   final bool isArchived;
   final bool isLocked;
+  final int sortOrder;
   final int attachmentCount;
+  final DateTime? pinnedAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   NoteModel({
     required this.id,
     required this.folderId,
+    required this.folderName,
     required this.title,
     this.content = const [],
     this.isPinned = false,
     this.isArchived = false,
     this.isLocked = false,
+    this.sortOrder = 0,
     this.attachmentCount = 0,
+    this.pinnedAt,
+    this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
+
+  String get displayTitle => title.isEmpty ? "Untitled Note" : title;
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
     var contentData = json['Content'] ?? json['content'];
@@ -42,15 +54,20 @@ class NoteModel {
     return NoteModel(
       id: json['NoteId'] ?? json['id'] ?? 0,
       folderId: json['FolderId'] ?? json['folderId'] ?? 0,
-      title: json['Title'] ?? json['title'] ?? '',
+      folderName: (json['FolderName'] ?? '').toString().trim(),
+      title: (json['Title'] ?? '').toString().trim(),
       content: parsedContent,
       isPinned: json['IsPinned'] ?? json['isPinned'] ?? false,
       isArchived: json['IsArchived'] ?? json['isArchived'] ?? false,
       isLocked: json['IsLocked'] ?? json['isLocked'] ?? false,
+      sortOrder: json['SortOrder'] ?? 0,
       attachmentCount: json['AttachmentCount'] ?? json['attachmentCount'] ?? 0,
+      pinnedAt: json['PinnedAt'] != null ? DateTime.tryParse(json['PinnedAt']) : null,
+      createdAt: json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt']) : null,
       updatedAt: json['UpdatedAt'] != null 
           ? DateTime.tryParse(json['UpdatedAt']) 
           : (json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null),
+      deletedAt: json['DeletedAt'] != null ? DateTime.tryParse(json['DeletedAt']) : null,
     );
   }
 
@@ -62,7 +79,41 @@ class NoteModel {
     "IsPinned": isPinned,
     "IsArchived": isArchived,
     "IsLocked": isLocked,
+    "SortOrder": sortOrder,
   };
+}
+
+class NoteResponse {
+  final int code;
+  final String message;
+  final NoteData? data;
+
+  NoteResponse({required this.code, required this.message, this.data});
+
+  List<NoteModel> get notes => data?.notes ?? [];
+  List<NoteModel> get archive => data?.archive ?? [];
+
+  factory NoteResponse.fromJson(Map<String, dynamic> json) {
+    return NoteResponse(
+      code: json['code'] ?? 0,
+      message: json['message'] ?? '',
+      data: json['data'] != null ? NoteData.fromJson(json['data']) : null,
+    );
+  }
+}
+
+class NoteData {
+  final List<NoteModel> notes;
+  final List<NoteModel> archive;
+
+  NoteData({required this.notes, required this.archive});
+
+  factory NoteData.fromJson(Map<String, dynamic> json) {
+    return NoteData(
+      notes: (json['note'] as List? ?? []).map((e) => NoteModel.fromJson(e)).toList(),
+      archive: (json['archive'] as List? ?? []).map((e) => NoteModel.fromJson(e)).toList(),
+    );
+  }
 }
 
 enum BlockType { text, checklist, attachment, table, drawing }

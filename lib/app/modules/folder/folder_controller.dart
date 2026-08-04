@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/models/folder_model.dart';
+import '../../data/models/note_model.dart';
 import '../../data/services/folder_service.dart';
+import '../../data/services/note_service.dart';
 import '../../routes/app_pages.dart';
 import 'widgets/folder_create_modal.dart';
 
 class FolderController extends GetxController {
   final _folderService = Get.find<FolderService>();
+  final _noteService = Get.find<NoteService>();
 
   final folders = <FolderModel>[].obs;
   final deletedCount = 0.obs;
+  final allNotesCount = 0.obs;
+  final archivedCount = 0.obs;
   final isLoading = true.obs;
   final isEditing = false.obs;
   
@@ -53,8 +58,13 @@ class FolderController extends GetxController {
       });
       folders.assignAll(response.folders);
       deletedCount.value = response.trash.length;
+      
+      // Fetch all notes count
+      final NoteResponse allNotes = await _noteService.getNotes();
+      allNotesCount.value = allNotes.notes.length;
+      archivedCount.value = allNotes.archive.length;
     } catch (e) {
-      Get.snackbar("Error", "Could not load folders");
+      Get.snackbar("Error", "Could not load data");
     } finally {
       isLoading.value = false;
     }

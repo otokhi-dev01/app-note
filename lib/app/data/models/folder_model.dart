@@ -78,17 +78,18 @@ class FolderResponse {
 
   factory FolderResponse.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
-    final List trashList = data['trash'] ?? [];
-    final List archiveList = data['archive'] ?? [];
+    final List folderList = data['folder'] as List? ?? [];
+    final List archiveList = data['archive'] as List? ?? [];
+    final List trashList = data['trash'] as List? ?? [];
     
-    // Combine trash and archive for folders just like notes
-    final List combinedTrash = [...trashList, ...archiveList];
+    // Combine folder and archive for active display
+    final List combinedFolders = [...folderList, ...archiveList];
 
     return FolderResponse(
-      folders: (data['folder'] as List? ?? [])
+      folders: combinedFolders
           .map((e) => FolderModel.fromJson(e))
           .toList(),
-      trash: combinedTrash,
+      trash: trashList,
       code: json['code'] ?? 0,
       message: json['message'] ?? '',
     );

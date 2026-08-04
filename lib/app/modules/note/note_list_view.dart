@@ -16,15 +16,9 @@ class NoteListView extends GetView<NoteController> {
 
   @override
   Widget build(BuildContext context) {
-    final FolderModel? folder = Get.arguments;
+    final FolderModel? folder = Get.arguments is FolderModel ? Get.arguments : null;
     final theme = Theme.of(context);
-
-    if (folder == null) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: Text("Error: No folder selected")),
-      );
-    }
+    final folderName = folder?.name ?? "All Notes";
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: theme.brightness == Brightness.dark 
@@ -33,190 +27,199 @@ class NoteListView extends GetView<NoteController> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
-        body: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // SliverAppBar with Dynamic iOS Transition
-            SliverAppBar(
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              pinned: true,
-              expandedHeight: 140.0,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              centerTitle: true,
-              systemOverlayStyle: theme.brightness == Brightness.dark 
-                  ? SystemUiOverlayStyle.light 
-                  : SystemUiOverlayStyle.dark,
-              // Small centered title
-              title: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
-                  final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-                  
-                  return Opacity(
-                    opacity: opacity > 0.8 ? 1.0 : 0.0,
-                    child: Text(
-                      folder.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              leading: Center(
-                child: LiquidGlassContainer(
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  child: IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 28),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ),
-              ),
-              leadingWidth: 70,
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: Obx(() {
-                    if (controller.isEditing.value) {
-                      return LiquidGlassContainer(
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        child: GestureDetector(
-                          onTap: controller.toggleEditing,
-                          child: Center(
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppTheme.folderYellow,
-                              ),
-                              child: const Icon(Icons.check, color: Colors.white, size: 20),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-
-                    return GestureDetector(
-                      onTap: () => Get.dialog(
-                        NoteContextMenu(controller: controller),
-                        barrierColor: Colors.black.withValues(alpha: 0.1),
-                      ),
-                      child: LiquidGlassContainer(
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        child: Center(
-                            child: Icon(
-                              CupertinoIcons.ellipsis_circle,
-                              color: AppTheme.textSecondary,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                    );
-                  }),
-                ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+        body: RefreshIndicator(
+          onRefresh: () => controller.fetchNotes(folderId: folder?.id),
+          color: theme.primaryColor,
+          backgroundColor: theme.scaffoldBackgroundColor,
+          edgeOffset: 140,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                pinned: true,
+                expandedHeight: 140.0,
+                elevation: 0,
+                automaticallyImplyLeading: false,
+                centerTitle: true,
                 title: LayoutBuilder(
                   builder: (context, constraints) {
                     final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+                    final opacity = (1.0 - percentage).clamp(0.0, 1.0);
+                    
                     return Opacity(
-                      opacity: percentage.clamp(0.0, 1.0),
+                      opacity: opacity > 0.8 ? 1.0 : 0.0,
                       child: Text(
-                        folder.name,
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 34,
+                        folderName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 17,
                         ),
                       ),
                     );
                   },
                 ),
-              ),
-            ),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: Obx(() => Text(
-                  "${controller.notes.length} Notes",
-                  style: theme.textTheme.bodySmall,
-                )),
-              ),
-            ),
-
-            Obx(() {
-              if (controller.isLoading.value) {
-                return SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
-                );
-              }
-              
-              if (controller.notes.isEmpty) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Text("No Notes", style: theme.textTheme.bodyLarge),
+                leading: Center(
+                  child: LiquidGlassContainer(
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    child: IconButton(
+                      onPressed: () => Get.back(),
+                      icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 28),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ),
-                );
-              }
+                ),
+                leadingWidth: 70,
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: Obx(() {
+                      if (controller.isEditing.value) {
+                        return LiquidGlassContainer(
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          child: GestureDetector(
+                            onTap: controller.toggleEditing,
+                            child: Center(
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppTheme.folderYellow,
+                                ),
+                                child: const Icon(Icons.check, color: Colors.white, size: 20),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
 
-              final groupedNotes = _groupNotesByDate(controller.notes);
-
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final section = groupedNotes.keys.elementAt(index);
-                  final sectionNotes = groupedNotes[section]!;
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8, bottom: 8),
-                          child: Text(section, 
-                            style: theme.textTheme.titleLarge),
+                      return GestureDetector(
+                        onTap: () => Get.dialog(
+                          NoteContextMenu(controller: controller),
+                          barrierColor: Colors.black.withValues(alpha: 0.1),
                         ),
-                        GlassCard(
-                          borderRadius: 20,
-                          padding: EdgeInsets.zero,
-                          children: [
-                            for (int i = 0; i < sectionNotes.length; i++) ...[
-                              _buildNoteTile(context, sectionNotes[i], folder.id),
-                              if (i < sectionNotes.length - 1)
-                                const Divider(indent: 56, height: 1),
-                            ],
-                          ],
+                        child: LiquidGlassContainer(
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          child: const Center(
+                              child: Icon(
+                                CupertinoIcons.ellipsis_circle,
+                                color: AppTheme.textSecondary,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                      );
+                    }),
+                  ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  centerTitle: false,
+                  titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+                  title: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+                      return Opacity(
+                        opacity: percentage.clamp(0.0, 1.0),
+                        child: Text(
+                          folderName,
+                          style: theme.textTheme.headlineLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 34,
+                          ),
                         ),
-                      ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              Obx(() {
+                if (controller.isLoading.value) {
+                  return const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+                  );
+                }
+                
+                if (controller.hasError.value) {
+                  return SliverFillRemaining(
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.wifi_off_rounded, size: 64, color: AppTheme.textSecondary),
+                          const SizedBox(height: 16),
+                          Text(controller.errorMessage.value, style: theme.textTheme.bodyLarge),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: () => controller.fetchNotes(folderId: folder?.id),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.folderYellow),
+                            child: const Text("Retry"),
+                          ),
+                        ],
+                      ),
                     ),
                   );
-                }, childCount: groupedNotes.length),
-              );
-            }),
+                }
 
-            const SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
+                if (controller.notes.isEmpty) {
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(child: Text("No Notes")),
+                  );
+                }
+
+                final groupedNotes = _groupNotesByDate(controller.notes);
+
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final section = groupedNotes.keys.elementAt(index);
+                    final sectionNotes = groupedNotes[section]!;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8, bottom: 8),
+                            child: Text(section, style: theme.textTheme.titleLarge),
+                          ),
+                          GlassCard(
+                            borderRadius: 20,
+                            padding: EdgeInsets.zero,
+                            children: [
+                              for (int i = 0; i < sectionNotes.length; i++) ...[
+                                _buildNoteTile(context, sectionNotes[i], folder?.id ?? 0),
+                                if (i < sectionNotes.length - 1)
+                                  const Divider(indent: 56, height: 1),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }, childCount: groupedNotes.length),
+                );
+              }),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
         ),
         bottomNavigationBar: Obx(() {
           if (controller.isEditing.value) {
-            return _buildEditBottomBar(context, folder);
+            return _buildEditBottomBar(context, folder?.id ?? 0);
           }
-          return _buildBottomBar(context, folder);
+          return _buildBottomBar(context, folder?.id ?? 0);
         }),
       ),
     );
@@ -256,9 +259,9 @@ class NoteListView extends GetView<NoteController> {
                     ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
                     : null,
               )
-            : null,
+            : (note.isPinned ? const Icon(Icons.push_pin, color: AppTheme.folderYellow, size: 16) : null),
         title: Text(
-          note.title.isEmpty ? "New Note" : note.title,
+          note.displayTitle,
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -291,7 +294,7 @@ class NoteListView extends GetView<NoteController> {
     });
   }
 
-  Widget _buildEditBottomBar(BuildContext context, FolderModel folder) {
+  Widget _buildEditBottomBar(BuildContext context, int folderId) {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -303,8 +306,8 @@ class NoteListView extends GetView<NoteController> {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _actionButton(context, moveText, onTap: () => controller.moveSelectedNotes(context, folder.id)),
-              _actionButton(context, deleteText, onTap: () => controller.deleteSelectedNotes(folder.id)),
+              _actionButton(context, moveText, onTap: () => controller.moveSelectedNotes(context, folderId)),
+              _actionButton(context, deleteText, onTap: () => controller.deleteSelectedNotes(folderId)),
             ],
           );
         }),
@@ -331,7 +334,7 @@ class NoteListView extends GetView<NoteController> {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context, FolderModel folder) {
+  Widget _buildBottomBar(BuildContext context, int folderId) {
     final theme = Theme.of(context);
     return SafeArea(
       child: Padding(
@@ -368,8 +371,8 @@ class NoteListView extends GetView<NoteController> {
               height: 50,
               borderRadius: 25,
               child: IconButton(
-                onPressed: () => Get.toNamed(Routes.NOTE_DETAIL, arguments: {"folderId": folder.id, "noteId": 0})
-                    ?.then((value) => controller.fetchNotes(folderId: folder.id)),
+                onPressed: () => Get.toNamed(Routes.NOTE_DETAIL, arguments: {"folderId": folderId, "noteId": 0})
+                    ?.then((value) => controller.fetchNotes(folderId: folderId)),
                 icon: Icon(Icons.open_in_new, color: theme.colorScheme.onSurface, size: 28),
               ),
             ),
