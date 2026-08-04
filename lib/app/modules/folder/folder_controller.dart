@@ -102,7 +102,9 @@ class FolderController extends GetxController {
   void createNewNote() {
     if (folders.isNotEmpty) {
       Get.toNamed(Routes.NOTE_DETAIL, arguments: {"folderId": folders.first.id, "noteId": 0})
-          ?.then((value) => fetchFolders());
+          ?.then((value) {
+            if (value == true) fetchFolders();
+          });
     } else {
       Get.snackbar("Info", "Create a folder first");
     }

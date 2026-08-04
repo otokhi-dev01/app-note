@@ -161,7 +161,10 @@ class SearchView extends GetView<sc.SearchController> {
               children: [
                 for (int i = 0; i < controller.noteResults.length; i++) ...[
                   ListTile(
-                    onTap: () => Get.toNamed(Routes.NOTE_DETAIL, arguments: {"noteId": controller.noteResults[i].id}),
+                    onTap: () => Get.toNamed(Routes.NOTE_DETAIL, arguments: {
+                      "noteId": controller.noteResults[i].id,
+                      "folderId": controller.noteResults[i].folderId,
+                    }),
                     title: Text(controller.noteResults[i].title.isEmpty ? "New Note" : controller.noteResults[i].title, 
                       style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
                     trailing: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),

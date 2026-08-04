@@ -175,8 +175,12 @@ class ArchiveView extends GetView<NoteController> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: () {
-        Get.toNamed(Routes.NOTE_DETAIL, arguments: {"noteId": note.id})
-            ?.then((value) => controller.fetchNotes());
+        Get.toNamed(Routes.NOTE_DETAIL, arguments: {
+          "noteId": note.id,
+          "folderId": note.folderId,
+        })?.then((value) {
+          if (value == true) controller.fetchNotes();
+        });
       },
       leading: note.isPinned 
           ? const Icon(Icons.push_pin, color: AppTheme.folderYellow, size: 16) 

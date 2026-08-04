@@ -239,8 +239,14 @@ class NoteListView extends GetView<NoteController> {
           if (isEditing) {
             controller.toggleSelectNote(note.id);
           } else {
-            Get.toNamed(Routes.NOTE_DETAIL, arguments: {"noteId": note.id})
-                ?.then((value) => controller.fetchNotes(folderId: folderId));
+            Get.toNamed(Routes.NOTE_DETAIL, arguments: {
+              "noteId": note.id,
+              "folderId": note.folderId,
+            })?.then((value) {
+              if (value == true) {
+                controller.fetchNotes(folderId: folderId);
+              }
+            });
           }
         },
         leading: isEditing

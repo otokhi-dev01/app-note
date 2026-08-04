@@ -9,10 +9,10 @@ import 'package:intl/intl.dart';
 
 import '../../data/models/note_model.dart';
 import '../../widgets/glass_widgets.dart';
-import 'note_controller.dart';
+import 'note_detail_controller.dart';
 import '../../theme/app_theme.dart';
 
-class NoteDetailView extends GetView<NoteController> {
+class NoteDetailView extends GetView<NoteDetailController> {
   const NoteDetailView({super.key});
 
   static const double _maxContentWidth = 600;
@@ -111,12 +111,21 @@ class NoteDetailView extends GetView<NoteController> {
                             color: AppTheme.folderYellow,
                             shape: BoxShape.circle,
                           ),
-                          child: const Center(
-                            child: Icon(
-                              CupertinoIcons.checkmark,
-                              color: Colors.white,
-                              size: 18,
-                            ),
+                          child: Center(
+                            child: Obx(() => controller.isSaving.value
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(
+                                  CupertinoIcons.checkmark,
+                                  color: Colors.white,
+                                  size: 18,
+                                )),
                           ),
                         ),
                       ),
