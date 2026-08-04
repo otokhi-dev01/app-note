@@ -77,12 +77,7 @@ class RegisterView extends GetView<AuthController> {
                                 ),
                               ],
                             ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/icons/otokhi_logo_app.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
+                              child: Icon(Icons.edit, color: theme.colorScheme.onSurface, size: 50)
                           ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                           
                           const SizedBox(height: 32),
