@@ -119,12 +119,6 @@ class ProfileView extends GetView<ProfileController> {
                                         offset: const Offset(0, 5),
                                       ),
                                     ],
-                                    image: controller.userImagePath.value.isNotEmpty
-                                        ? DecorationImage(
-                                            image: FileImage(File(controller.userImagePath.value)),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null,
                                   ),
                                   child: controller.userImagePath.value.isEmpty
                                       ? Center(
@@ -134,7 +128,22 @@ class ProfileView extends GetView<ProfileController> {
                                             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                           ),
                                         )
-                                      : null,
+                                      : ClipRRect(
+                                          borderRadius: BorderRadius.circular(60),
+                                          child: Image.file(
+                                            File(controller.userImagePath.value),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Center(
+                                                child: Icon(
+                                                  Icons.person_rounded,
+                                                  size: 60,
+                                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
                                 )),
                                 Positioned(
                                   right: 0,

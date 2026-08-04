@@ -19,9 +19,13 @@ class FolderView extends GetView<FolderController> {
       body: SafeArea(
         top: false, // Allow background to reach the very top
         bottom: false,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () => controller.fetchFolders(),
+          color: AppTheme.folderYellow,
+          backgroundColor: theme.scaffoldBackgroundColor,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             // SliverAppBar with Dynamic Title Transition (Large to Small)
             SliverAppBar(
               backgroundColor: theme.scaffoldBackgroundColor,
@@ -177,9 +181,10 @@ class FolderView extends GetView<FolderController> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(context),
-    );
-  }
+    ),
+    bottomNavigationBar: _buildBottomBar(context),
+  );
+}
   Widget _buildSectionHeader(BuildContext context, String title, RxBool isExpanded, VoidCallback onTap) {
     final theme = Theme.of(context);
     return Padding(
@@ -208,11 +213,17 @@ class FolderView extends GetView<FolderController> {
         borderRadius: 20,
         padding: EdgeInsets.zero,
         children: [
+          if (includeRecentlyDeleted) ...[
+            _buildAllNotesTile(context),
+            const Divider(indent: 56, height: 1),
+          ],
           for (int i = 0; i < folders.length; i++) ...[
             _buildFolderTile(context, folders[i]),
             const Divider(indent: 56, height: 1),
           ],
           if (includeRecentlyDeleted) ...[
+            _buildArchiveTile(context),
+            const Divider(indent: 56, height: 1),
             _buildRecentlyDeletedTile(context),
             const Divider(indent: 56, height: 1),
             _buildTrashTile(context),
@@ -222,6 +233,37 @@ class FolderView extends GetView<FolderController> {
         ],
       ),
     );
+  }
+
+  Widget _buildAllNotesTile(BuildContext context) {
+    final theme = Theme.of(context);
+    return Obx(() {
+      final isEditing = controller.isEditing.value;
+
+      return Opacity(
+        opacity: isEditing ? 0.15 : 1.0,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onTap: isEditing ? null : () => Get.toNamed(Routes.NOTE_LIST, arguments: FolderModel(
+            id: 0, // 0 usually means All Notes in this app's logic
+            name: "All on My iPhone",
+            iconName: "folder",
+            colorValue: "#FFB703",
+            sortOrder: 0,
+          )),
+          leading: const Icon(Icons.folder_special_outlined, color: AppTheme.folderYellow, size: 30),
+          title: Text("All on My iPhone", style: theme.textTheme.bodyLarge),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("${controller.allNotesCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildFolderTile(BuildContext context, FolderModel folder) {
@@ -290,6 +332,31 @@ class FolderView extends GetView<FolderController> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text("${controller.deletedCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildArchiveTile(BuildContext context) {
+    final theme = Theme.of(context);
+    return Obx(() {
+      final isEditing = controller.isEditing.value;
+
+      return Opacity(
+        opacity: isEditing ? 0.15 : 1.0,
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE),
+          leading: const Icon(Icons.archive_outlined, color: AppTheme.folderYellow, size: 30),
+          title: Text("Archive", style: theme.textTheme.bodyLarge),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("${controller.archivedCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               const SizedBox(width: 4),
               Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
             ],

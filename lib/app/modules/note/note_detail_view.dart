@@ -430,11 +430,14 @@ class NoteDetailView extends GetView<NoteController> {
     final errorPlaceholder = _attachmentPlaceholder(context);
 
     if (block.localPath != null && block.localPath!.isNotEmpty) {
-      return Image.file(
-        File(block.localPath!),
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => errorPlaceholder,
-      );
+      final file = File(block.localPath!);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => errorPlaceholder,
+        );
+      }
     }
 
     if (block.url != null && block.url!.isNotEmpty) {

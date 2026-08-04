@@ -19,6 +19,7 @@ import '../modules/recently_deleted/recently_deleted_view.dart';
 import '../modules/recently_deleted/recently_deleted_binding.dart';
 import '../modules/trash/trash_view.dart';
 import '../modules/trash/trash_binding.dart';
+import '../modules/archive/archive_view.dart';
 
 part 'app_routes.dart';
 
@@ -80,6 +81,11 @@ class AppPages {
       name: Routes.TRASH,
       page: () => const TrashView(),
       binding: TrashBinding(),
+    ),
+    GetPage(
+      name: Routes.ARCHIVE,
+      page: () => const ArchiveView(),
+      binding: NoteBinding(),
     ),
   ];
 }

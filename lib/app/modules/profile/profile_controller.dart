@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -26,7 +28,14 @@ class ProfileController extends GetxController {
   void _loadUserData() {
     userName.value = _storage.read('userName') ?? "User Name";
     userPhone.value = _storage.read('userPhone') ?? "0968734812";
-    userImagePath.value = _storage.read('userImage') ?? "";
+    
+    final savedPath = _storage.read('userImage') ?? "";
+    if (savedPath.isNotEmpty && File(savedPath).existsSync()) {
+      userImagePath.value = savedPath;
+    } else {
+      userImagePath.value = "";
+      if (savedPath.isNotEmpty) _storage.remove('userImage');
+    }
   }
 
   void updateUserName() {
