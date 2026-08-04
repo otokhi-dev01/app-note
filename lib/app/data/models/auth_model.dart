@@ -82,4 +82,28 @@ class UserData {
       deviceType: json['deviceType']?.toString(),
     );
   }
+
+  UserData copyWith({
+    String? id,
+    String? fullName,
+    String? phone,
+    String? deviceName,
+    String? deviceType,
+  }) {
+    return UserData(
+      id: id ?? this.id,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      deviceName: deviceName ?? this.deviceName,
+      deviceType: deviceType ?? this.deviceType,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    "userId": id,
+    "fullName": fullName,
+    "phone": phone,
+    "deviceName": deviceName,
+    "deviceType": deviceType,
+  };
 }

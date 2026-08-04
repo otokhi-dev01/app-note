@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: "Otokhi Note",
       debugShowCheckedModeBanner: false,
+      enableLog: kDebugMode,
       initialBinding: InitialBinding(),
       initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,

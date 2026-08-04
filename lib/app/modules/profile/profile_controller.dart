@@ -2,19 +2,19 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../data/services/session_service.dart';
 import '../../data/services/theme_service.dart';
 import '../../theme/app_theme.dart';
 import '../../routes/app_pages.dart';
 
 class ProfileController extends GetxController {
-  final _storage = GetStorage();
+  final _sessionService = Get.find<SessionService>();
   final _themeService = ThemeService();
   final _picker = ImagePicker();
 
-  final userName = "User Name".obs;
-  final userPhone = "0968734812".obs;
+  final userName = "".obs;
+  final userPhone = "".obs;
   final userImagePath = "".obs;
   final currentThemeMode = ThemeMode.system.obs;
 
@@ -26,16 +26,13 @@ class ProfileController extends GetxController {
   }
 
   void _loadUserData() {
-    userName.value = _storage.read('userName') ?? "User Name";
-    userPhone.value = _storage.read('userPhone') ?? "0968734812";
+    final user = _sessionService.user.value;
+    userName.value = user?.fullName ?? "User Name";
+    userPhone.value = user?.phone ?? "";
     
-    final savedPath = _storage.read('userImage') ?? "";
-    if (savedPath.isNotEmpty && File(savedPath).existsSync()) {
-      userImagePath.value = savedPath;
-    } else {
-      userImagePath.value = "";
-      if (savedPath.isNotEmpty) _storage.remove('userImage');
-    }
+    // Note: Profile image is currently handled separately in storage
+    // If you want to store it in SessionService, you can update it there.
+    userImagePath.value = ""; 
   }
 
   void updateUserName() {
@@ -56,15 +53,22 @@ class ProfileController extends GetxController {
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
                 userName.value = nameController.text.trim();
-                _storage.write('userName', userName.value);
+                // Update local session
+                final currentUser = _sessionService.user.value;
+                if (currentUser != null) {
+                   await _sessionService.saveSession(
+                    _sessionService.token.value ?? "",
+                    currentUser.copyWith(fullName: userName.value),
+                  );
+                }
                 Get.back();
                 Get.snackbar("Success", "Name updated");
               }
             },
-            child: Text("Save", style: TextStyle(color: AppTheme.folderYellow)),
+            child: const Text("Save", style: TextStyle(color: AppTheme.folderYellow)),
           ),
         ],
       ),
@@ -80,7 +84,7 @@ class ProfileController extends GetxController {
       
       if (image != null) {
         userImagePath.value = image.path;
-        _storage.write('userImage', image.path);
+        // You might want to save this path securely or upload it to a server
         Get.snackbar("Success", "Profile image updated");
       }
     } catch (e) {
@@ -89,12 +93,8 @@ class ProfileController extends GetxController {
   }
 
   void _loadCurrentTheme() {
-    final isDark = _storage.read('isDarkMode');
-    if (isDark == null) {
-      currentThemeMode.value = ThemeMode.system;
-    } else {
-      currentThemeMode.value = isDark ? ThemeMode.dark : ThemeMode.light;
-    }
+    // Current theme mode is retrieved from theme service
+    currentThemeMode.value = _themeService.theme;
   }
 
   void changeTheme(ThemeMode mode) {
@@ -102,8 +102,8 @@ class ProfileController extends GetxController {
     _themeService.switchTheme(mode);
   }
 
-  void logout() {
-    _storage.remove('token');
+  void logout() async {
+    await _sessionService.clearSession();
     Get.offAllNamed(Routes.LOGIN);
   }
 }

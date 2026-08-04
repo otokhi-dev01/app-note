@@ -71,12 +71,13 @@ class NoteService extends GetxService {
     return NoteModel.fromJson(response.data['data']);
   }
 
-  Future<void> saveNote(int folderId, String title, {int noteId = 0}) async {
-    await _api.dio.post("/api/note/save", data: {
+  Future<NoteModel> saveNote(int folderId, String title, {int noteId = 0}) async {
+    final response = await _api.dio.post("/api/note/save", data: {
       "NoteId": noteId,
       "FolderId": folderId,
       "Title": title,
     });
+    return NoteModel.fromJson(response.data['data']);
   }
 
   Future<void> saveContent(int noteId, String title, List<NoteBlock> content) async {

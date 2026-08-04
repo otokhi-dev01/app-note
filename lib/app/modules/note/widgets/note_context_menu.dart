@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
-import '../note_controller.dart';
-
+import 'package:Note/app/modules/note/note_controller.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class NoteContextMenu extends StatelessWidget {

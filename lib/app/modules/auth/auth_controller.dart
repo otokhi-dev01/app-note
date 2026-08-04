@@ -1,15 +1,16 @@
 import 'dart:io';
 import 'package:dio/dio.dart' as dio;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import '../../data/models/auth_model.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/session_service.dart';
 import '../../routes/app_pages.dart';
 
 class AuthController extends GetxController {
   final _authService = Get.find<AuthService>();
-  final _storage = GetStorage();
+  final _sessionService = Get.find<SessionService>();
 
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
@@ -27,7 +28,7 @@ class AuthController extends GetxController {
     try {
       final response = await _authService.login(phoneController.text, passwordController.text);
       if (response.code == 200) {
-        _storage.write('token', response.token);
+        await _sessionService.saveSession(response.token, response.user);
         Get.offAllNamed(Routes.FOLDER);
       } else {
         Get.snackbar("Error", response.message, snackPosition: SnackPosition.BOTTOM);
@@ -37,6 +38,11 @@ class AuthController extends GetxController {
       if (e is dio.DioException) {
         errorMsg = e.response?.data['message'] ?? e.message ?? "Connection Error";
       }
+      
+      if (kDebugMode) {
+        debugPrint("Login failed: $errorMsg");
+      }
+      
       Get.snackbar("Error", errorMsg, snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
@@ -61,7 +67,16 @@ class AuthController extends GetxController {
       Get.snackbar("Success", "Account created! Please login.", snackPosition: SnackPosition.BOTTOM);
       Get.back();
     } catch (e) {
-      Get.snackbar("Error", "Registration failed.", snackPosition: SnackPosition.BOTTOM);
+      String errorMsg = "Registration failed.";
+      if (e is dio.DioException) {
+        errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
+      }
+      
+      if (kDebugMode) {
+        debugPrint("Registration failed: $errorMsg");
+      }
+      
+      Get.snackbar("Error", errorMsg, snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
     }
