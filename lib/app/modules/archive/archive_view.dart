@@ -22,7 +22,7 @@ class ArchiveView extends GetView<NoteController> {
           : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        extendBodyBehindAppBar: false,
+        extendBodyBehindAppBar: true,
         body: RefreshIndicator(
           onRefresh: () => controller.fetchNotes(),
           color: theme.primaryColor,

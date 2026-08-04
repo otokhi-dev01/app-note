@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -63,12 +64,7 @@ class LoginView extends GetView<AuthController> {
                                 ),
                               ],
                             ),
-                                  child: ClipOval(
-                              child: Image.asset(
-                                'assets/icons/otokhi_logo_app.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
+                                  child: Icon(Icons.edit, color: theme.colorScheme.onSurface, size: 50)
                           ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                           
                           const SizedBox(height: 32),
