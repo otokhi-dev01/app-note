@@ -1,7 +1,9 @@
+import 'package:Note/app/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+
 import '../../theme/app_theme.dart';
 import 'onboarding_controller.dart';
 
@@ -14,118 +16,439 @@ class OnboardingView extends GetView<OnboardingController> {
     final isDark = theme.brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: isDark
+          ? SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: theme.scaffoldBackgroundColor,
+      )
+          : SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: theme.scaffoldBackgroundColor,
+      ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        extendBodyBehindAppBar: true,
-        body: Stack(
-          children: [
-            PageView.builder(
-              controller: controller.pageController,
-              onPageChanged: controller.onPageChanged,
-              itemCount: controller.pages.length,
-              itemBuilder: (context, index) {
-                final page = controller.pages[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        height: 280,
-                        width: 280,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: isDark ? Colors.black26 : Colors.black.withOpacity(0.05),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Icon(
-                            page.icon,
-                            size: 100,
-                            color: AppTheme.folderYellow,
-                          ).animate().shake(duration: GetNumUtils(1).seconds),
-                        ),
-                      ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
-                      const SizedBox(height: 60),
-                      Text(
-                        page.title,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.headlineLarge?.copyWith(fontSize: 32),
-                      ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
-                      const SizedBox(height: 20),
-                      Text(
-                        page.description,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontSize: 17,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.5,
-                        ),
-                      ).animate().fadeIn(delay: 400.ms),
-                    ],
-                  ),
-                );
-              },
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildTopSection(context),
+              Expanded(
+                child: PageView.builder(
+                  controller: controller.pageController,
+                  onPageChanged: controller.onPageChanged,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: controller.pages.length,
+                  itemBuilder: (context, index) {
+                    final page = controller.pages[index];
+
+                    return _buildOnboardingPage(
+                      context,
+                      icon: page.icon,
+                      title: page.title,
+                      description: page.description,
+                    );
+                  },
+                ),
+              ),
+              _buildBottomSection(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopSection(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 16, 4),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AppTheme.folderYellow,
+              borderRadius: BorderRadius.circular(12),
             ),
-            
-            Positioned(
-              bottom: 60,
-              left: 32,
-              right: 32,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: const Icon(
+              Icons.note_alt_rounded,
+              color: AppTheme.bodyColor,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Text(
+            'OTOKHI',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const Spacer(),
+          Obx(
+                () => controller.currentPage.value ==
+                controller.pages.length - 1
+                ? const SizedBox(width: 70, height: 44)
+                : TextButton(
+              onPressed: _skipToLastPage,
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.onSurfaceVariant,
+                minimumSize: const Size(70, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
+              ),
+              child: LiquidGlassContainer(
+                width: 60,
+                height: 30,
+                child: Center(
+                  child: const Text(
+                    'Skip',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnboardingPage(
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String description,
+      }) {
+    final theme = Theme.of(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final illustrationSize =
+        (constraints.maxWidth * 0.68).clamp(220.0, 300.0);
+
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Obx(() => Row(
-                    children: List.generate(
-                      controller.pages.length,
-                      (index) => AnimatedContainer(
-                        duration: 300.ms,
-                        margin: const EdgeInsets.only(right: 8),
-                        width: controller.currentPage.value == index ? 24 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: controller.currentPage.value == index 
-                              ? AppTheme.folderYellow 
-                              : theme.colorScheme.onSurfaceVariant.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                  _buildIllustration(
+                    context,
+                    icon: icon,
+                    size: illustrationSize,
+                  ),
+                  const SizedBox(height: 44),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      fontSize: 32,
+                      height: 1.15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  )
+                      .animate()
+                      .fadeIn(
+                    duration: 500.ms,
+                    delay: 150.ms,
+                  )
+                      .slideY(
+                    begin: 0.15,
+                    end: 0,
+                    duration: 500.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
+                  const SizedBox(height: 18),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Text(
+                      description,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: 17,
+                        height: 1.55,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  )),
-                  
-                  ElevatedButton(
-                    onPressed: controller.nextPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.folderYellow,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Obx(() => Text(
-                      controller.currentPage.value == controller.pages.length - 1 
-                          ? "Get Started" 
-                          : "Next",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    )),
+                  )
+                      .animate()
+                      .fadeIn(
+                    duration: 500.ms,
+                    delay: 300.ms,
+                  )
+                      .slideY(
+                    begin: 0.12,
+                    end: 0,
+                    duration: 500.ms,
+                    curve: Curves.easeOutCubic,
                   ),
                 ],
               ),
             ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildIllustration(
+      BuildContext context, {
+        required IconData icon,
+        required double size,
+      }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Transform.rotate(
+            angle: -0.09,
+            child: Container(
+              width: size * 0.58,
+              height: size * 0.68,
+              decoration: BoxDecoration(
+                color: AppTheme.folderYellow.withValues(
+                  alpha: isDark ? 0.14 : 0.18,
+                ),
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+          ),
+          Container(
+            width: size * 0.58,
+            height: size * 0.68,
+            padding: EdgeInsets.all(size * 0.09),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(
+                  alpha: 0.45,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(
+                    alpha: isDark ? 0.20 : 0.07,
+                  ),
+                  blurRadius: 25,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: size * 0.24,
+                  height: size * 0.24,
+                  decoration: BoxDecoration(
+                    color: AppTheme.folderYellow.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: size * 0.13,
+                    color: AppTheme.folderYellow,
+                  ),
+                ),
+                const Spacer(),
+                _buildNoteLine(
+                  context,
+                  width: double.infinity,
+                ),
+                SizedBox(height: size * 0.035),
+                _buildNoteLine(
+                  context,
+                  width: size * 0.31,
+                ),
+                SizedBox(height: size * 0.035),
+                _buildNoteLine(
+                  context,
+                  width: size * 0.23,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: size * 0.14,
+            right: size * 0.14,
+            child: Container(
+              width: size * 0.17,
+              height: size * 0.17,
+              decoration: BoxDecoration(
+                color: AppTheme.folderYellow,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: theme.scaffoldBackgroundColor,
+                  width: 5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.folderYellow.withValues(alpha: 0.22),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.check_rounded,
+                color: AppTheme.bodyColor,
+                size: size * 0.085,
+              ),
+            ),
+          ),
+        ],
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 500.ms)
+        .scale(
+      begin: const Offset(0.88, 0.88),
+      end: const Offset(1, 1),
+      duration: 650.ms,
+      curve: Curves.easeOutBack,
+    );
+  }
+
+  Widget _buildNoteLine(
+      BuildContext context, {
+        required double width,
+      }) {
+    final theme = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: width,
+        height: 9,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
+    );
+  }
+
+  Widget _buildBottomSection(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 22),
+      child: Row(
+        children: [
+          Expanded(
+            child: Obx(
+                  () => Row(
+                children: List.generate(
+                  controller.pages.length,
+                      (index) {
+                    final isActive =
+                        controller.currentPage.value == index;
+
+                    return AnimatedContainer(
+                      duration: 300.ms,
+                      curve: Curves.easeOutCubic,
+                      margin: const EdgeInsets.only(right: 7),
+                      width: isActive ? 28 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppTheme.folderYellow
+                            : theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          Obx(
+                () {
+              final isLastPage = controller.currentPage.value ==
+                  controller.pages.length - 1;
+
+              return ElevatedButton(
+                onPressed: controller.nextPage,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(138, 56),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  elevation: 0,
+                  backgroundColor: AppTheme.folderYellow,
+                  foregroundColor: AppTheme.bodyColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                child: AnimatedSwitcher(
+                  duration: 220.ms,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.12, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Row(
+                    key: ValueKey(isLastPage),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        isLastPage ? 'Get Started' : 'Next',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        isLastPage
+                            ? Icons.check_rounded
+                            : Icons.arrow_forward_rounded,
+                        size: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _skipToLastPage() {
+    controller.pageController.animateToPage(
+      controller.pages.length - 1,
+      duration: 450.ms,
+      curve: Curves.easeOutCubic,
     );
   }
 }

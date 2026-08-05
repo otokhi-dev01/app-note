@@ -56,22 +56,33 @@ class NoteModel {
       }
     }
 
-    // 2. Parse Attachments (Images/Videos)
+    // 2. Parse Attachments (Images/Videos) and MERGE into content blocks
     final List rawAttachments = (json['Attachments'] ?? json['attachments'] ?? []) as List;
     for (var att in rawAttachments) {
       final map = Map<String, dynamic>.from(att);
       final String blockId = (map['BlockId'] ?? map['blockId'] ?? '').toString();
       
-      // Check if this attachment is already represented in content blocks
-      bool alreadyInContent = parsedContent.any((b) => b.id == blockId);
-      
-      if (!alreadyInContent) {
-        String? relativePath = map['FilePath'] ?? map['filePath'] ?? map['Url'] ?? map['url'];
-        String? fullUrl;
-        if (relativePath != null) {
-          fullUrl = relativePath.startsWith('http') ? relativePath : "$baseUrl$relativePath";
-        }
+      String? relativePath = map['FilePath'] ?? map['filePath'] ?? map['Url'] ?? map['url'];
+      String? fullUrl;
+      if (relativePath != null && relativePath.isNotEmpty) {
+        fullUrl = relativePath.startsWith('http') ? relativePath : "$baseUrl$relativePath";
+      }
 
+      // Check if this attachment is already represented in content blocks
+      int existingIndex = parsedContent.indexWhere((b) => b.id == blockId);
+      
+      if (existingIndex != -1) {
+        // UPDATE existing block with full URL and server metadata
+        final oldBlock = parsedContent[existingIndex] as AttachmentBlock;
+        parsedContent[existingIndex] = AttachmentBlock(
+          id: blockId,
+          attachmentId: map['AttachmentId'] ?? map['id'] ?? oldBlock.attachmentId,
+          displayName: map['OriginalFileName'] ?? map['fileName'] ?? oldBlock.displayName,
+          url: fullUrl ?? oldBlock.url,
+          localPath: oldBlock.localPath,
+        );
+      } else {
+        // ADD new block if not present
         parsedContent.add(AttachmentBlock(
           id: blockId.isEmpty ? DateTime.now().millisecondsSinceEpoch.toString() : blockId,
           attachmentId: map['AttachmentId'] ?? map['id'] ?? 0,

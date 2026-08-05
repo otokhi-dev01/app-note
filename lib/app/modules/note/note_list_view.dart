@@ -59,7 +59,7 @@ class NoteListView extends GetView<NoteController> {
                         folderName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: 17,
+                          fontSize: 15,
                         ),
                       ),
                     );
@@ -138,7 +138,7 @@ class NoteListView extends GetView<NoteController> {
                           folderName,
                           style: theme.textTheme.headlineLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: 34,
+                            fontSize: 22,
                           ),
                         ),
                       );

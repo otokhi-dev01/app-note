@@ -163,3 +163,6 @@ class NoteController extends GetxController {
     Get.snackbar("Info", "Viewing all attachments");
   }
 }
+
+
+

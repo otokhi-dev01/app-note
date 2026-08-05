@@ -120,11 +120,6 @@ class NoteService extends GetxService {
       if (map.containsKey('NoteId') || map.containsKey('id')) {
         return NoteModel.fromJson(map);
       }
-      
-      // If it's a wrapper with code/message but the note might be in a list under 'data'
-      if (map.containsKey('code') && map.containsKey('message')) {
-        // We already checked 'data' above, so if we reach here, it's not in 'data'
-      }
     }
 
     // Handle List response (pick first item)
@@ -136,68 +131,41 @@ class NoteService extends GetxService {
     return null;
   }
 
-  Future<NoteModel> saveNote(int folderId, String title, {int noteId = 0}) async {
+  Future<NoteModel> saveNote(int folderId, String title, {int noteId = 0, List<NoteBlock>? content}) async {
     if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote START for NoteId: $noteId");
-    final response = await _api.dio.post("/api/note/save", data: {
+    
+    final Map<String, dynamic> payload = {
       "NoteId": noteId,
       "FolderId": folderId,
       "Title": title,
-    });
+    };
+    
+    if (content != null) {
+      payload["Content"] = jsonEncode(content.map((e) => e.toJson()).toList());
+    }
+
+    final response = await _api.dio.post("/api/note/save", data: payload);
     
     if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote RESPONSE: ${response.data}");
     
     final note = _parseNoteFromResponse(response.data);
     if (note == null) {
       if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote FAILED to parse response. Attempting fallback fetch.");
+      
       if (noteId != 0) {
         return await getNoteDetail(noteId);
+      } else {
+        // For new notes where API returns null data, find the latest note in the folder
+        final allNotes = await getNotes(folderId: folderId, refresh: true);
+        if (allNotes.notes.isNotEmpty) {
+          final sorted = List<NoteModel>.from(allNotes.notes);
+          sorted.sort((a, b) => b.id.compareTo(a.id));
+          return sorted.first;
+        }
       }
-      throw Exception("Failed to parse saved note");
+      throw Exception("Failed to parse saved note and no fallback found");
     }
     return note;
-  }
-
-  Future<void> saveContent(int noteId, int folderId, String title, List<NoteBlock> content) async {
-    final payload = {
-      "NoteId": noteId,
-      "FolderId": folderId,
-      "Title": title,
-      "Content": content.map((e) => e.toJson()).toList(),
-    };
-
-    if (kDebugMode) {
-      debugPrint("[NOTE SAVE] URL: /api/note/save-content");
-      debugPrint("[NOTE SAVE] METHOD: POST");
-      debugPrint("[NOTE SAVE] NOTE ID: $noteId");
-      debugPrint("[NOTE SAVE] FOLDER ID: $folderId");
-      debugPrint("[NOTE SAVE] TITLE: $title");
-      debugPrint("[NOTE SAVE] CONTENT COUNT: ${content.length}");
-    }
-
-    final endpoints = [
-      "/api/note/save-content",
-      "/api/note/detail/save-content",
-      "/api/note/$noteId/save-content",
-    ];
-
-    for (var url in endpoints) {
-      try {
-        if (kDebugMode) debugPrint("[NOTE DEBUG] Trying save: POST $url");
-        final response = await _api.dio.post(
-          url, 
-          data: payload,
-          queryParameters: {"NoteId": noteId},
-        );
-        if (response.statusCode == 200) {
-          if (kDebugMode) debugPrint("[NOTE SAVE RESPONSE] STATUS: 200, BODY: ${response.data}");
-          return;
-        }
-      } catch (e) {
-        if (kDebugMode) debugPrint("[NOTE SAVE ERROR] Endpoint $url failed: $e");
-      }
-    }
-
-    throw Exception("All save variations failed for NoteId: $noteId.");
   }
 
   Future<void> updateNoteState(int id, {bool? isPinned, bool? isArchived, bool? isLocked}) async {

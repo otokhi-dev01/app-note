@@ -59,7 +59,7 @@ class ProfileView extends GetView<ProfileController> {
                 child: LiquidGlassContainer(
                   width: 44,
                   height: 44,
-                  borderRadius: 22,
+                  borderRadius: 30,
                   child: IconButton(
                     onPressed: () => Get.back(),
                     icon: Icon(
@@ -131,7 +131,7 @@ class ProfileView extends GetView<ProfileController> {
                                           child: Icon(
                                             Icons.person_rounded,
                                             size: 60,
-                                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                           ),
                                         )
                                       : ClipRRect(
@@ -144,7 +144,7 @@ class ProfileView extends GetView<ProfileController> {
                                                 child: Icon(
                                                   Icons.person_rounded,
                                                   size: 60,
-                                                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                                 ),
                                               );
                                             },
@@ -185,7 +185,7 @@ class ProfileView extends GetView<ProfileController> {
                                 Icon(
                                   Icons.edit_note_rounded,
                                   size: 20,
-                                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                                 ),
                               ],
                             ),
@@ -213,7 +213,7 @@ class ProfileView extends GetView<ProfileController> {
                     ),
                     
                     GlassCard(
-                      borderRadius: 20,
+                      borderRadius: 30,
                       children: [
                         _buildThemeOption(context, "Light Mode", Icons.light_mode_outlined, ThemeMode.light),
                         Divider(indent: 56, height: 1, color: theme.dividerColor),
@@ -227,7 +227,7 @@ class ProfileView extends GetView<ProfileController> {
                     
                     // Account Section
                     GlassCard(
-                      borderRadius: 20,
+                      borderRadius: 30,
                       children: [
                         ListTile(
                           onTap: controller.logout,

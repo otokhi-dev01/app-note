@@ -64,6 +64,7 @@ class UserData {
   final String? phone;
   final String? deviceName;
   final String? deviceType;
+  final String? profileImage;
 
   UserData({
     this.id,
@@ -71,6 +72,7 @@ class UserData {
     this.phone,
     this.deviceName,
     this.deviceType,
+    this.profileImage,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -80,6 +82,7 @@ class UserData {
       phone: json['phone']?.toString(),
       deviceName: json['deviceName']?.toString(),
       deviceType: json['deviceType']?.toString(),
+      profileImage: json['profileImage']?.toString(),
     );
   }
 
@@ -89,6 +92,7 @@ class UserData {
     String? phone,
     String? deviceName,
     String? deviceType,
+    String? profileImage,
   }) {
     return UserData(
       id: id ?? this.id,
@@ -96,6 +100,7 @@ class UserData {
       phone: phone ?? this.phone,
       deviceName: deviceName ?? this.deviceName,
       deviceType: deviceType ?? this.deviceType,
+      profileImage: profileImage ?? this.profileImage,
     );
   }
 
@@ -105,5 +110,6 @@ class UserData {
     "phone": phone,
     "deviceName": deviceName,
     "deviceType": deviceType,
+    "profileImage": profileImage,
   };
 }
