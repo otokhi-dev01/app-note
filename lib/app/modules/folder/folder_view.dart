@@ -246,7 +246,6 @@ class FolderView extends GetView<FolderController> {
       ),
     );
   }
-
   Widget _buildAllNotesTile(BuildContext context) {
     final theme = Theme.of(context);
     return Obx(() {

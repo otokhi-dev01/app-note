@@ -36,11 +36,14 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/otokhi_logo_app.jpg"
+#  image_path: "assets/icons/otokhi_logo_app.jpg"
+  image_path: "assets/icons/otokhi_note_app.jpg"
   min_sdk_android: 21
 
 flutter:
   uses-material-design: true
   assets:
     - assets/icons/otokhi_logo_app.jpg
+    - assets/icons/otokhi_note_app.jpg
+    - assets/icons/otokhi_note_app_1.jpg
 
