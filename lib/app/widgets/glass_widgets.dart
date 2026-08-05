@@ -39,8 +39,8 @@ class LiquidGlassContainer extends StatelessWidget {
             border: isDark 
                 ? null 
                 : Border.all(
-                    color: AppTheme.dividerColor,
-                    width: 0.5,
+                    color: Colors.white,
+                    width: 0.10,
                   ),
           ),
           child: Material(

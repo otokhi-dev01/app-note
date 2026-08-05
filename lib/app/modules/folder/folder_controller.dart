@@ -47,7 +47,7 @@ class FolderController extends GetxController {
     return systemNames.contains(folder.name);
   }
 
-  Future<void> fetchFolders() async {
+  Future<void> fetchFolders({bool refresh = false}) async {
     isLoading.value = true;
     try {
       final response = await _folderService.getFolders();
@@ -61,7 +61,7 @@ class FolderController extends GetxController {
       deletedCount.value = response.trash.length;
       
       // Fetch all notes count
-      final NoteResponse allNotes = await _noteService.getNotes();
+      final NoteResponse allNotes = await _noteService.getNotes(refresh: refresh);
       allNotesCount.value = allNotes.notes.length;
       archivedCount.value = allNotes.archive.length;
     } catch (e) {

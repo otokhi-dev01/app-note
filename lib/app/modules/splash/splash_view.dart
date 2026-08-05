@@ -45,11 +45,11 @@ class SplashView extends GetView<SplashController> {
                       alignment: Alignment.center,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(10),
                           child: ClipOval(
                             child: Image.asset(
                               'assets/icons/otokhi_logo_app.jpg',
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
                             ),
                           ),
                         ),

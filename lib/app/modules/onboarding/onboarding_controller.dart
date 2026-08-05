@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import '../../data/services/session_service.dart';
 import '../../routes/app_pages.dart';
 
 class OnboardingController extends GetxController {
   final pageController = PageController();
   final currentPage = 0.obs;
   final _storage = GetStorage();
+  final _sessionService = Get.find<SessionService>();
 
   final pages = [
     OnboardingData(
@@ -43,8 +45,7 @@ class OnboardingController extends GetxController {
 
   void skipOnboarding() {
     _storage.write('isFirstTime', false);
-    String? token = _storage.read('token');
-    if (token == null) {
+    if (!_sessionService.isLoggedIn) {
       Get.offAllNamed(Routes.LOGIN);
     } else {
       Get.offAllNamed(Routes.FOLDER);

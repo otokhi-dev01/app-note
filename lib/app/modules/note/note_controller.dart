@@ -119,11 +119,11 @@ class NoteController extends GetxController {
     }
   }
 
-  Future<void> fetchNotes({int? folderId}) async {
+  Future<void> fetchNotes({int? folderId, bool refresh = false}) async {
     isLoading.value = true;
     hasError.value = false;
     try {
-      final response = await _noteService.getNotes(folderId: folderId);
+      final response = await _noteService.getNotes(folderId: folderId, refresh: refresh);
       notes.assignAll(_sortNotes(response.notes));
       archivedNotes.assignAll(_sortNotes(response.archive));
     } catch (e) {
