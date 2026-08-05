@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../routes/note_navigation.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_widgets.dart';
 import '../../routes/app_pages.dart';
@@ -11,25 +13,31 @@ class SearchView extends GetView<sc.SearchController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // Sticky Top Bar for Search
-            _buildTopBar(context),
-            
-            Expanded(
-              child: Obx(() {
-                if (controller.isSearching.value) {
-                  return _buildSearchResults(context);
-                }
-                return _buildSuggestedSection(context);
-              }),
-            ),
-            _buildBottomSearchBar(context),
-          ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: theme.brightness == Brightness.dark 
+          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
+          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        extendBodyBehindAppBar: true,
+        bottomNavigationBar: _buildBottomSearchBar(context),
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Sticky Top Bar for Search
+              _buildTopBar(context),
+              
+              Expanded(
+                child: Obx(() {
+                  if (controller.isSearching.value) {
+                    return _buildSearchResults(context);
+                  }
+                  return _buildSuggestedSection(context);
+                }),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -141,7 +149,7 @@ class SearchView extends GetView<sc.SearchController> {
                     onTap: () => Get.toNamed(Routes.NOTE_LIST, arguments: controller.folderResults[i]),
                     leading: Icon(controller.folderResults[i].icon, color: AppTheme.folderYellow),
                     title: Text(controller.folderResults[i].name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    trailing: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                    trailing: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3)),
                   ),
                   if (i < controller.folderResults.length - 1)
                     const Divider(indent: 56, height: 1),
@@ -161,13 +169,12 @@ class SearchView extends GetView<sc.SearchController> {
               children: [
                 for (int i = 0; i < controller.noteResults.length; i++) ...[
                   ListTile(
-                    onTap: () => Get.toNamed(Routes.NOTE_DETAIL, arguments: {
-                      "noteId": controller.noteResults[i].id,
-                      "folderId": controller.noteResults[i].folderId,
-                    }),
+                    onTap: () {
+                      NoteNavigation.toDetail(controller.noteResults[i]);
+                    },
                     title: Text(controller.noteResults[i].title.isEmpty ? "New Note" : controller.noteResults[i].title, 
                       style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    trailing: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
+                    trailing: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3)),
                   ),
                   if (i < controller.noteResults.length - 1)
                     const Divider(indent: 16, height: 1),
@@ -196,7 +203,7 @@ class SearchView extends GetView<sc.SearchController> {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: isDark ? null : [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -242,7 +249,7 @@ class SearchView extends GetView<sc.SearchController> {
                   shape: BoxShape.circle,
                   boxShadow: isDark ? null : [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
                     ),
                   ],

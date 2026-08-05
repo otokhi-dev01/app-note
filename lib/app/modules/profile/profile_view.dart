@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../widgets/glass_widgets.dart';
@@ -15,27 +16,32 @@ class ProfileView extends GetView<ProfileController> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        top: false, // Allow background to reach the very top
-        bottom: false,
-        child: CustomScrollView(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark 
+          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
+          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        extendBodyBehindAppBar: true,
+        body: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             // SliverAppBar with Dynamic Title Transition (Large to Small)
             SliverAppBar(
-              backgroundColor: theme.scaffoldBackgroundColor,
+              backgroundColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
               pinned: true,
-              expandedHeight: 120.0,
+              expandedHeight: 140.0,
               elevation: 0,
               automaticallyImplyLeading: false,
               centerTitle: true,
+              systemOverlayStyle: isDark 
+                  ? SystemUiOverlayStyle.light 
+                  : SystemUiOverlayStyle.dark,
               // Centered small title (visible when collapsed)
               title: LayoutBuilder(
                 builder: (context, constraints) {
-                  final double percentage = (constraints.maxHeight - kToolbarHeight) / (120.0 - kToolbarHeight);
+                  final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
                   final opacity = (1.0 - percentage).clamp(0.0, 1.0);
                   return Opacity(
                     opacity: opacity > 0.8 ? 1.0 : 0.0,
@@ -71,7 +77,7 @@ class ProfileView extends GetView<ProfileController> {
                 titlePadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 title: LayoutBuilder(
                   builder: (context, constraints) {
-                    final double percentage = (constraints.maxHeight - kToolbarHeight) / (120.0 - kToolbarHeight);
+                    final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
                     return Opacity(
                       opacity: percentage.clamp(0.0, 1.0),
                       child: Text(
@@ -125,7 +131,7 @@ class ProfileView extends GetView<ProfileController> {
                                           child: Icon(
                                             Icons.person_rounded,
                                             size: 60,
-                                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                                           ),
                                         )
                                       : ClipRRect(
@@ -138,7 +144,7 @@ class ProfileView extends GetView<ProfileController> {
                                                 child: Icon(
                                                   Icons.person_rounded,
                                                   size: 60,
-                                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                                                 ),
                                               );
                                             },
@@ -179,7 +185,7 @@ class ProfileView extends GetView<ProfileController> {
                                 Icon(
                                   Icons.edit_note_rounded,
                                   size: 20,
-                                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                                  color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
                                 ),
                               ],
                             ),
@@ -215,7 +221,7 @@ class ProfileView extends GetView<ProfileController> {
                         Divider(indent: 56, height: 1, color: theme.dividerColor),
                         _buildThemeOption(context, "System Default", Icons.settings_brightness_outlined, ThemeMode.system),
                       ],
-                    ).animate().fadeIn(delay: const Duration(milliseconds: 200)).slideY(begin: 0.1, end: 0),
+                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
                     
                     const SizedBox(height: 32),
                     
@@ -230,7 +236,7 @@ class ProfileView extends GetView<ProfileController> {
                           trailing: const Icon(Icons.chevron_right_rounded, color: Colors.redAccent),
                         ),
                       ],
-                    ).animate().fadeIn(delay: const Duration(milliseconds: 400)).slideY(begin: 0.1, end: 0),
+                    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
                     
                     const SizedBox(height: 60), // Extra bottom spacing
                   ],

@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 class NoteModel {
   final int id;
@@ -37,45 +37,84 @@ class NoteModel {
   String get displayTitle => title.isEmpty ? "Untitled Note" : title;
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
-    var contentData = json['Content'] ?? json['content'];
+    const String baseUrl = "https://note.piisiit.com";
+    
+    // 1. Parse Content (Text, Checklists, etc.)
+    var contentData = json['ContentJson'] ?? json['Content'] ?? json['content'] ?? json['NoteContent'] ?? json['blocks'] ?? json['data'];
     List<NoteBlock> parsedContent = [];
     
     if (contentData is List) {
-      parsedContent = contentData.map((e) => NoteBlock.fromJson(e)).toList();
+      parsedContent = contentData.map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e))).toList();
     } else if (contentData is String && contentData.isNotEmpty) {
       try {
         final decoded = jsonDecode(contentData);
         if (decoded is List) {
-          parsedContent = decoded.map((e) => NoteBlock.fromJson(e)).toList();
+          parsedContent = decoded.map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e))).toList();
         }
-      } catch (_) {}
+      } catch (_) {
+        if (kDebugMode) debugPrint("Failed to decode Content string: $contentData");
+      }
+    }
+
+    // 2. Parse Attachments (Images/Videos)
+    final List rawAttachments = (json['Attachments'] ?? json['attachments'] ?? []) as List;
+    for (var att in rawAttachments) {
+      final map = Map<String, dynamic>.from(att);
+      final String blockId = (map['BlockId'] ?? map['blockId'] ?? '').toString();
+      
+      // Check if this attachment is already represented in content blocks
+      bool alreadyInContent = parsedContent.any((b) => b.id == blockId);
+      
+      if (!alreadyInContent) {
+        String? relativePath = map['FilePath'] ?? map['filePath'] ?? map['Url'] ?? map['url'];
+        String? fullUrl;
+        if (relativePath != null) {
+          fullUrl = relativePath.startsWith('http') ? relativePath : "$baseUrl$relativePath";
+        }
+
+        parsedContent.add(AttachmentBlock(
+          id: blockId.isEmpty ? DateTime.now().millisecondsSinceEpoch.toString() : blockId,
+          attachmentId: map['AttachmentId'] ?? map['id'] ?? 0,
+          displayName: map['OriginalFileName'] ?? map['fileName'] ?? 'Attachment',
+          url: fullUrl,
+          localPath: null,
+        ));
+      }
     }
 
     return NoteModel(
-      id: json['NoteId'] ?? json['id'] ?? 0,
+      id: json['NoteId'] ?? json['id'] ?? 0, // Fallback to 'id' if 'NoteId' is missing
       folderId: json['FolderId'] ?? json['folderId'] ?? 0,
-      folderName: (json['FolderName'] ?? '').toString().trim(),
-      title: (json['Title'] ?? '').toString().trim(),
+      folderName: (json['FolderName'] ?? json['folderName'] ?? '').toString().trim(),
+      title: (json['Title'] ?? json['title'] ?? '').toString().trim(),
       content: parsedContent,
       isPinned: json['IsPinned'] ?? json['isPinned'] ?? false,
       isArchived: json['IsArchived'] ?? json['isArchived'] ?? false,
       isLocked: json['IsLocked'] ?? json['isLocked'] ?? false,
-      sortOrder: json['SortOrder'] ?? 0,
+      sortOrder: json['SortOrder'] ?? json['sortOrder'] ?? 0,
       attachmentCount: json['AttachmentCount'] ?? json['attachmentCount'] ?? 0,
-      pinnedAt: json['PinnedAt'] != null ? DateTime.tryParse(json['PinnedAt']) : null,
-      createdAt: json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt']) : null,
-      updatedAt: json['UpdatedAt'] != null 
-          ? DateTime.tryParse(json['UpdatedAt']) 
-          : (json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null),
-      deletedAt: json['DeletedAt'] != null ? DateTime.tryParse(json['DeletedAt']) : null,
+      pinnedAt: _parseDate(json['PinnedAt'] ?? json['pinnedAt']),
+      createdAt: _parseDate(json['CreatedAt'] ?? json['createdAt']),
+      updatedAt: _parseDate(json['UpdatedAt'] ?? json['updatedAt'] ?? json['updated_at']),
+      deletedAt: _parseDate(json['DeletedAt'] ?? json['deletedAt'] ?? json['deleted_at']),
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) {
+      if (value.isEmpty) return null;
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() => {
     "NoteId": id,
     "FolderId": folderId,
     "Title": title,
-    "Content": jsonEncode(content.map((e) => e.toJson()).toList()),
+    "Content": content.map((e) => e.toJson()).toList(),
     "IsPinned": isPinned,
     "IsArchived": isArchived,
     "IsLocked": isLocked,
@@ -92,6 +131,7 @@ class NoteResponse {
 
   List<NoteModel> get notes => data?.notes ?? [];
   List<NoteModel> get archive => data?.archive ?? [];
+  List<NoteModel> get trash => data?.trash ?? [];
 
   factory NoteResponse.fromJson(Map<String, dynamic> json) {
     return NoteResponse(
@@ -105,13 +145,48 @@ class NoteResponse {
 class NoteData {
   final List<NoteModel> notes;
   final List<NoteModel> archive;
+  final List<NoteModel> trash;
 
-  NoteData({required this.notes, required this.archive});
+  NoteData({required this.notes, required this.archive, required this.trash});
 
   factory NoteData.fromJson(Map<String, dynamic> json) {
+    if (kDebugMode) {
+      debugPrint("[NOTE DEBUG] NoteData.fromJson Keys: ${json.keys.toList()}");
+    }
+
+    // 1. Trust the backend's explicit list categorization first
+    final List rawNotes = (json['note'] ?? json['notes'] ?? json['active'] ?? []) as List;
+    final List rawArchive = (json['archive'] ?? json['archived'] ?? []) as List;
+    final List rawTrash = (json['trash'] ?? json['deleted'] ?? []) as List;
+    final List rawData = (json['data'] is List ? json['data'] : []) as List;
+
+    final activeItems = rawNotes.map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e))).where((n) => n.id > 0).toList();
+    final archivedItems = rawArchive.map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e))).where((n) => n.id > 0).toList();
+    final deletedItems = rawTrash.map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e))).where((n) => n.id > 0).toList();
+    final extraItems = rawData.map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e))).where((n) => n.id > 0).toList();
+
+    // 2. Final Lists (Avoiding property re-filtering because properties are inconsistent)
+    // We strictly use the list location as the source of truth for the UI
+    final finalActive = [...activeItems];
+    final finalArchive = [...archivedItems];
+    final finalTrash = [...deletedItems];
+
+    // If there are extra notes in 'data', add them to active if not already present elsewhere
+    for (var n in extraItems) {
+      bool exists = finalActive.any((a) => a.id == n.id) || 
+                   finalArchive.any((a) => a.id == n.id) || 
+                   finalTrash.any((t) => t.id == n.id);
+      if (!exists) finalActive.add(n);
+    }
+
+    if (kDebugMode) {
+      debugPrint("NoteData Parsed: ${finalActive.length} Active, ${finalArchive.length} Archive, ${finalTrash.length} Trash");
+    }
+
     return NoteData(
-      notes: (json['note'] as List? ?? []).map((e) => NoteModel.fromJson(e)).toList(),
-      archive: (json['archive'] as List? ?? []).map((e) => NoteModel.fromJson(e)).toList(),
+      notes: finalActive,
+      archive: finalArchive,
+      trash: finalTrash,
     );
   }
 }
@@ -146,7 +221,7 @@ class DrawingBlock extends NoteBlock {
 
   factory DrawingBlock.fromJson(Map<String, dynamic> json) {
     return DrawingBlock(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       localPath: json['localPath'],
       url: json['url'],
     );
@@ -169,7 +244,7 @@ class TableBlock extends NoteBlock {
 
   factory TableBlock.fromJson(Map<String, dynamic> json) {
     return TableBlock(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       rows: (json['rows'] as List? ?? [])
           .map((row) => (row as List).map((cell) => cell.toString()).toList())
           .toList(),
@@ -193,7 +268,7 @@ class TextBlock extends NoteBlock {
 
   factory TextBlock.fromJson(Map<String, dynamic> json) {
     return TextBlock(
-      id: json['id'], 
+      id: json['id']?.toString() ?? '', 
       text: json['text'] ?? '',
       style: json['style'] ?? 'body',
     );
@@ -216,9 +291,9 @@ class ChecklistBlock extends NoteBlock {
 
   factory ChecklistBlock.fromJson(Map<String, dynamic> json) {
     return ChecklistBlock(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       items: (json['items'] as List? ?? [])
-          .map((e) => ChecklistItem.fromJson(e))
+          .map((e) => ChecklistItem.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
     );
   }
@@ -240,7 +315,7 @@ class ChecklistItem {
 
   factory ChecklistItem.fromJson(Map<String, dynamic> json) {
     return ChecklistItem(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       text: json['text'] ?? '',
       checked: json['checked'] ?? false,
     );
@@ -269,10 +344,10 @@ class AttachmentBlock extends NoteBlock {
 
   factory AttachmentBlock.fromJson(Map<String, dynamic> json) {
     return AttachmentBlock(
-      id: json['id'],
-      attachmentId: json['attachmentId'],
-      displayName: json['displayName'] ?? '',
-      url: json['url'],
+      id: json['id']?.toString() ?? '',
+      attachmentId: json['attachmentId'] ?? json['Id'] ?? 0,
+      displayName: json['displayName'] ?? json['DisplayName'] ?? '',
+      url: json['url'] ?? json['Url'],
       localPath: json['localPath'],
     );
   }

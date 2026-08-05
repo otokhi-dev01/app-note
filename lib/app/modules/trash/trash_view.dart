@@ -5,6 +5,8 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/note_model.dart';
 import '../../data/models/folder_model.dart';
+import '../../routes/app_pages.dart';
+import '../../routes/note_navigation.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_widgets.dart';
 import 'trash_controller.dart';
@@ -209,9 +211,12 @@ class TrashView extends GetView<TrashController> {
     final theme = Theme.of(context);
     return Obx(() {
       final isSelected = controller.selectedNoteIds.contains(note.id);
+      final isEditing = controller.isEditing.value;
       return ListTile(
-        onTap: controller.isEditing.value ? () => controller.toggleSelectNote(note.id) : null,
-        leading: controller.isEditing.value ? _buildSelectionIndicator(context, isSelected) : null,
+        onTap: isEditing 
+            ? () => controller.toggleSelectNote(note.id) 
+            : () => NoteNavigation.toDetail(note),
+        leading: isEditing ? _buildSelectionIndicator(context, isSelected) : null,
         title: Text(note.title.isEmpty ? "New Note" : note.title, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
         subtitle: Text(DateFormat('MM/dd/yy').format(note.updatedAt ?? DateTime.now()), style: theme.textTheme.bodySmall),
         trailing: Icon(Icons.chevron_right, color: theme.colorScheme.outline, size: 20),

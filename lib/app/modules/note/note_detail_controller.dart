@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -13,6 +12,7 @@ class NoteDetailController extends GetxController {
   final currentNote = Rxn<NoteModel>();
   final isLoading = true.obs;
   final isSaving = false.obs;
+  final isReadOnly = false.obs;
 
   final titleController = TextEditingController();
   final blocks = <NoteBlock>[].obs;
@@ -23,19 +23,24 @@ class NoteDetailController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
+    if (kDebugMode) debugPrint("NoteDetailController.onInit with args: $args (Type: ${args.runtimeType})");
+
     if (args is Map) {
       final int? noteId = args['noteId'];
       final int? folderId = args['folderId'];
+      isReadOnly.value = args['isDeleted'] ?? false;
       
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
       } else if (folderId != null) {
         _initNewNote(folderId);
       } else {
+        if (kDebugMode) debugPrint("NoteDetailController: Invalid Map arguments, closing.");
         Get.back();
         Get.snackbar("Error", "Invalid navigation arguments");
       }
     } else {
+      if (kDebugMode) debugPrint("NoteDetailController: Arguments are not a Map, closing.");
       Get.back();
     }
   }
@@ -52,8 +57,10 @@ class NoteDetailController extends GetxController {
   Future<void> fetchNoteDetail(int id) async {
     isLoading.value = true;
     try {
-      if (kDebugMode) debugPrint("Fetching detail for NoteId: $id");
+      if (kDebugMode) debugPrint("fetchNoteDetail START for NoteId: $id");
       final note = await _noteService.getNoteDetail(id);
+      
+      if (kDebugMode) debugPrint("fetchNoteDetail SUCCESS for NoteId: $id");
       currentNote.value = note;
       titleController.text = note.title;
       
@@ -69,9 +76,10 @@ class NoteDetailController extends GetxController {
         addTextBlock();
       }
     } catch (e) {
+      if (kDebugMode) debugPrint("fetchNoteDetail CATCH ERROR for NoteId: $id: $e");
       Get.snackbar("Error", "Could not load note detail");
-      debugPrint("FETCH DETAIL ERROR: $e");
     } finally {
+      if (kDebugMode) debugPrint("fetchNoteDetail FINALLY (loading = false) for NoteId: $id");
       isLoading.value = false;
     }
   }
@@ -92,7 +100,7 @@ class NoteDetailController extends GetxController {
   }
 
   Future<void> saveNote() async {
-    if (currentNote.value == null || isSaving.value) return;
+    if (currentNote.value == null || isSaving.value || isReadOnly.value) return;
     
     isSaving.value = true;
     
@@ -109,16 +117,25 @@ class NoteDetailController extends GetxController {
         }
       }
     }
+
+    final int originalId = currentNote.value!.id;
+    final int folderId = currentNote.value!.folderId;
+    if (kDebugMode) {
+      debugPrint("[NOTE DEBUG] SAVE FLOW START");
+      debugPrint("[NOTE DEBUG] CURRENT NOTE ID: $originalId");
+      debugPrint("[NOTE DEBUG] FOLDER ID: $folderId");
+    }
     
     try {
       // 1. Save Metadata first
       final savedNote = await _noteService.saveNote(
-        currentNote.value!.folderId, 
+        folderId, 
         titleController.text,
-        noteId: currentNote.value!.id,
+        noteId: originalId,
       );
       
-      final int noteId = savedNote.id;
+      final int confirmedNoteId = savedNote.id;
+      if (kDebugMode) debugPrint("[NOTE DEBUG] STEP 1: Metadata Saved. Confirmed ID: $confirmedNoteId");
       currentNote.value = savedNote;
 
       // 2. Upload any unsaved attachments
@@ -126,12 +143,25 @@ class NoteDetailController extends GetxController {
         final block = blocks[i];
         if (block is AttachmentBlock && block.attachmentId == 0 && block.localPath != null) {
           try {
-            await _noteService.uploadAttachment(
-              noteId,
+            if (kDebugMode) debugPrint("[NOTE DEBUG] STEP 2: Uploading attachment for block: ${block.id}");
+            final result = await _noteService.uploadAttachment(
+              confirmedNoteId,
               block.localPath!,
               block.id,
               i,
             );
+
+            // Update block with SERVER data
+            if (kDebugMode) debugPrint("[NOTE DEBUG] UPLOAD RESULT KEYS: ${result.keys.toList()}");
+            
+            blocks[i] = AttachmentBlock(
+              id: block.id,
+              attachmentId: int.tryParse((result['AttachmentId'] ?? result['attachmentId'] ?? result['id'] ?? result['Id'] ?? 0).toString()) ?? 0,
+              displayName: block.displayName,
+              url: result['Url'] ?? result['url'] ?? result['FilePath'] ?? result['filePath'],
+              localPath: null,
+            );
+            if (kDebugMode) debugPrint("[NOTE DEBUG] UPLOAD SUCCESS: New AttachmentId: ${(blocks[i] as AttachmentBlock).attachmentId}");
           } catch (e) {
             debugPrint("Failed to upload attachment: $e");
           }
@@ -139,14 +169,16 @@ class NoteDetailController extends GetxController {
       }
 
       // 3. Save Final Content
-      await _noteService.saveContent(noteId, titleController.text, blocks);
+      if (kDebugMode) debugPrint("[NOTE DEBUG] STEP 3: Saving final content blocks for $confirmedNoteId");
+      await _noteService.saveContent(confirmedNoteId, folderId, titleController.text, blocks);
       
+      if (kDebugMode) debugPrint("[NOTE DEBUG] SAVE COMPLETE - NoteId: $confirmedNoteId");
       isSaving.value = false;
       Get.back(result: true);
     } catch (e) {
       isSaving.value = false;
-      Get.snackbar("Error", "Failed to save note");
-      debugPrint("SAVE NOTE ERROR: $e");
+      if (kDebugMode) debugPrint("[NOTE DEBUG] SAVE FATAL ERROR: $e");
+      Get.snackbar("Error", "Failed to save note: ${e.toString()}");
     }
   }
 
@@ -174,6 +206,7 @@ class NoteDetailController extends GetxController {
   }
 
   void addTextBlock({String style = 'body'}) {
+    if (isReadOnly.value) return;
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final block = TextBlock(id: id, text: "", style: style);
     
@@ -187,6 +220,7 @@ class NoteDetailController extends GetxController {
   }
 
   void addChecklistBlock() {
+    if (isReadOnly.value) return;
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final block = ChecklistBlock(id: id, items: [
       ChecklistItem(id: "1", text: "")
@@ -202,6 +236,7 @@ class NoteDetailController extends GetxController {
   }
 
   Future<void> addAttachment(ImageSource source, {bool isVideo = false}) async {
+    if (isReadOnly.value) return;
     try {
       XFile? file;
       if (isVideo) {
@@ -235,6 +270,7 @@ class NoteDetailController extends GetxController {
   }
 
   void addTableBlock() {
+    if (isReadOnly.value) return;
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final block = TableBlock(id: id, rows: [
       ["", ""],
@@ -252,6 +288,7 @@ class NoteDetailController extends GetxController {
   }
 
   void addDrawingBlock() {
+    if (isReadOnly.value) return;
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final block = DrawingBlock(id: id);
 
@@ -266,6 +303,7 @@ class NoteDetailController extends GetxController {
   }
 
   void updateTextBlockStyle(int index, String style) {
+    if (isReadOnly.value) return;
     if (blocks[index] is TextBlock) {
       final oldBlock = blocks[index] as TextBlock;
       blocks[index] = TextBlock(

@@ -15,6 +15,9 @@ class SplashController extends GetxController {
     // Elegant delay for the splash animation to finish
     await Future.delayed(const Duration(milliseconds: 3500));
     
+    // For testing/debugging, we can force onboarding if needed
+    // _storage.write('isFirstTime', true); 
+
     final bool isFirstTime = _storage.read('isFirstTime') ?? true;
     final String? token = _storage.read('token');
 

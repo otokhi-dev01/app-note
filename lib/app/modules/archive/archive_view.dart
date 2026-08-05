@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/note_model.dart';
 import '../../routes/app_pages.dart';
+import '../../routes/note_navigation.dart';
 import '../../widgets/glass_widgets.dart';
 import '../note/note_controller.dart';
 import '../../theme/app_theme.dart';
@@ -39,6 +40,10 @@ class ArchiveView extends GetView<NoteController> {
                 elevation: 0,
                 automaticallyImplyLeading: false,
                 centerTitle: true,
+                systemOverlayStyle: theme.brightness == Brightness.dark 
+                    ? SystemUiOverlayStyle.light 
+                    : SystemUiOverlayStyle.dark,
+                // Centered small title (visible when collapsed)
                 title: LayoutBuilder(
                   builder: (context, constraints) {
                     final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
@@ -175,10 +180,7 @@ class ArchiveView extends GetView<NoteController> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       onTap: () {
-        Get.toNamed(Routes.NOTE_DETAIL, arguments: {
-          "noteId": note.id,
-          "folderId": note.folderId,
-        })?.then((value) {
+        NoteNavigation.toDetail(note)?.then((value) {
           if (value == true) controller.fetchNotes();
         });
       },

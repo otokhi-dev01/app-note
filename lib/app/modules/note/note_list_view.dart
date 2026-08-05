@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../data/models/folder_model.dart';
 import '../../data/models/note_model.dart';
 import '../../routes/app_pages.dart';
+import '../../routes/note_navigation.dart';
 import '../../widgets/glass_widgets.dart';
 import 'note_controller.dart';
 import '../../theme/app_theme.dart';
@@ -43,6 +44,9 @@ class NoteListView extends GetView<NoteController> {
                 elevation: 0,
                 automaticallyImplyLeading: false,
                 centerTitle: true,
+                systemOverlayStyle: theme.brightness == Brightness.dark 
+                    ? SystemUiOverlayStyle.light 
+                    : SystemUiOverlayStyle.dark,
                 title: LayoutBuilder(
                   builder: (context, constraints) {
                     final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
@@ -122,7 +126,7 @@ class NoteListView extends GetView<NoteController> {
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: false,
+                  centerTitle: true,
                   titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
                   title: LayoutBuilder(
                     builder: (context, constraints) {
@@ -239,10 +243,7 @@ class NoteListView extends GetView<NoteController> {
           if (isEditing) {
             controller.toggleSelectNote(note.id);
           } else {
-            Get.toNamed(Routes.NOTE_DETAIL, arguments: {
-              "noteId": note.id,
-              "folderId": note.folderId,
-            })?.then((value) {
+            NoteNavigation.toDetail(note)?.then((value) {
               if (value == true) {
                 controller.fetchNotes(folderId: folderId);
               }
@@ -377,7 +378,7 @@ class NoteListView extends GetView<NoteController> {
               height: 50,
               borderRadius: 25,
               child: IconButton(
-                onPressed: () => Get.toNamed(Routes.NOTE_DETAIL, arguments: {"folderId": folderId, "noteId": 0})
+                onPressed: () => NoteNavigation.toNewNote(folderId)
                     ?.then((value) => controller.fetchNotes(folderId: folderId)),
                 icon: Icon(Icons.open_in_new, color: theme.colorScheme.onSurface, size: 28),
               ),

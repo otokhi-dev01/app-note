@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -20,9 +21,12 @@ class NoteDetailView extends GetView<NoteDetailController> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    if (kDebugMode) debugPrint("NoteDetailView.build - isLoading: ${controller.isLoading.value}, blocks: ${controller.blocks.length}");
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      value: theme.brightness == Brightness.dark 
+          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
+          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         resizeToAvoidBottomInset: true,
@@ -30,6 +34,9 @@ class NoteDetailView extends GetView<NoteDetailController> {
           children: [
             // Sticky Top Bar with Background (covers status bar)
             _buildTopBar(context),
+            Obx(() => controller.isReadOnly.value 
+                ? _buildReadOnlyBanner(context) 
+                : const SizedBox.shrink()),
             Expanded(
               child: Obx(() {
                 if (controller.isLoading.value) {
@@ -100,36 +107,38 @@ class NoteDetailView extends GetView<NoteDetailController> {
                     const SizedBox(width: 12),
                     _topBarIcon(context, CupertinoIcons.ellipsis_circle, onTap: () {}),
                     const SizedBox(width: 12),
-                    LiquidGlassContainer(
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      child: GestureDetector(
-                        onTap: controller.saveNote,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: AppTheme.folderYellow,
-                            shape: BoxShape.circle,
+                    Obx(() => controller.isReadOnly.value
+                      ? const SizedBox.shrink()
+                      : LiquidGlassContainer(
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          child: GestureDetector(
+                            onTap: controller.saveNote,
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: AppTheme.folderYellow,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Obx(() => controller.isSaving.value
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      CupertinoIcons.checkmark,
+                                      color: Colors.white,
+                                      size: 18,
+                                    )),
+                              ),
+                            ),
                           ),
-                          child: Center(
-                            child: Obx(() => controller.isSaving.value
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(
-                                  CupertinoIcons.checkmark,
-                                  color: Colors.white,
-                                  size: 18,
-                                )),
-                          ),
-                        ),
-                      ),
-                    ),
+                        )),
                   ],
                 ),
               ],
@@ -197,6 +206,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
           TextField(
             key: const ValueKey('note-title-field'),
             controller: controller.titleController,
+            enabled: !controller.isReadOnly.value,
             onTap: () => controller.activeBlockIndex = -1,
             cursorColor: AppTheme.folderYellow,
             cursorWidth: 1.5,
@@ -250,6 +260,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
         child: TextField(
           key: ValueKey('note-text-${block.id}'),
           controller: textController,
+          enabled: !controller.isReadOnly.value,
           onTap: () => controller.activeBlockIndex = blockIndex,
           cursorColor: AppTheme.folderYellow,
           cursorWidth: 1.5,
@@ -376,6 +387,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
                       '${block.id}_${entry.key}',
                       entry.value.text,
                     ),
+                    enabled: !controller.isReadOnly.value,
                     cursorColor: AppTheme.folderYellow,
                     cursorWidth: 1.5,
                     maxLines: null,
@@ -478,6 +490,8 @@ class NoteDetailView extends GetView<NoteDetailController> {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final bool isKeyboardVisible = bottomInset > 0;
+
+    if (controller.isReadOnly.value) return const SizedBox.shrink();
 
     return Material(
       color: theme.scaffoldBackgroundColor,
@@ -646,6 +660,40 @@ class NoteDetailView extends GetView<NoteDetailController> {
 
   double _editorInset(BuildContext context) {
     return (MediaQuery.sizeOf(context).width * 0.065).clamp(21.0, 32.0);
+  }
+
+  Widget _buildReadOnlyBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      color: Colors.orange.withValues(alpha: 0.1),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "This note is in Recently Deleted. Restore it to make changes.",
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange[800], fontWeight: FontWeight.w500),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              // Navigation to restore or just closing for now
+              Get.back();
+              Get.snackbar("Tip", "Use Recently Deleted to restore this note.");
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text("OK", style: TextStyle(color: Colors.orange[900], fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 }
 
