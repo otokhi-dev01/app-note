@@ -5,6 +5,7 @@ import '../../data/models/note_model.dart';
 import '../../data/services/folder_service.dart';
 import '../../data/services/note_service.dart';
 import '../../routes/app_pages.dart';
+import '../../routes/note_navigation.dart';
 import 'widgets/folder_create_modal.dart';
 
 class FolderController extends GetxController {
@@ -101,7 +102,7 @@ class FolderController extends GetxController {
 
   void createNewNote() {
     if (folders.isNotEmpty) {
-      Get.toNamed(Routes.NOTE_DETAIL, arguments: {"folderId": folders.first.id, "noteId": 0})
+      NoteNavigation.toNewNote(folders.first.id)
           ?.then((value) {
             if (value == true) fetchFolders();
           });

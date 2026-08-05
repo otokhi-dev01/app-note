@@ -37,13 +37,17 @@ class OnboardingController extends GetxController {
         curve: Curves.easeIn,
       );
     } else {
-      _storage.write('isFirstTime', false);
-      String? token = _storage.read('token');
-      if (token == null) {
-        Get.offAllNamed(Routes.LOGIN);
-      } else {
-        Get.offAllNamed(Routes.FOLDER);
-      }
+      skipOnboarding();
+    }
+  }
+
+  void skipOnboarding() {
+    _storage.write('isFirstTime', false);
+    String? token = _storage.read('token');
+    if (token == null) {
+      Get.offAllNamed(Routes.LOGIN);
+    } else {
+      Get.offAllNamed(Routes.FOLDER);
     }
   }
 }
