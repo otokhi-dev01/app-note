@@ -1,13 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../data/models/note_model.dart';
 import '../../data/services/note_service.dart';
 
 class NoteDetailController extends GetxController {
-  final _noteService = Get.find<NoteService>();
-  final _picker = ImagePicker();
+  final NoteService _noteService = Get.find<NoteService>();
+  final ImagePicker _picker = ImagePicker();
 
   final currentNote = Rxn<NoteModel>();
   final isLoading = true.obs;
@@ -16,31 +19,34 @@ class NoteDetailController extends GetxController {
 
   final titleController = TextEditingController();
   final blocks = <NoteBlock>[].obs;
-  int activeBlockIndex = -1;
   final Map<String, TextEditingController> blockControllers = {};
+
+  int activeBlockIndex = -1;
 
   @override
   void onInit() {
     super.onInit();
+
     final args = Get.arguments;
-    if (kDebugMode) debugPrint("NoteDetailController.onInit with args: $args (Type: ${args.runtimeType})");
+
+    if (kDebugMode) {
+      debugPrint('NoteDetailController.onInit with args: $args');
+    }
 
     if (args is Map) {
-      final int? noteId = args['noteId'];
-      final int? folderId = args['folderId'];
-      isReadOnly.value = args['isDeleted'] ?? false;
-      
+      final noteId = _toInt(args['noteId']);
+      final folderId = _toInt(args['folderId']);
+
+      isReadOnly.value = args['isDeleted'] == true;
+
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
       } else if (folderId != null) {
         _initNewNote(folderId);
       } else {
-        if (kDebugMode) debugPrint("NoteDetailController: Invalid Map arguments, closing.");
         Get.back();
-        Get.snackbar("Error", "Invalid navigation arguments");
       }
     } else {
-      if (kDebugMode) debugPrint("NoteDetailController: Arguments are not a Map, closing.");
       Get.back();
     }
   }
@@ -48,269 +54,532 @@ class NoteDetailController extends GetxController {
   @override
   void onClose() {
     titleController.dispose();
-    for (var controller in blockControllers.values) {
+
+    for (final controller in blockControllers.values) {
       controller.dispose();
     }
+
+    blockControllers.clear();
     super.onClose();
   }
 
   Future<void> fetchNoteDetail(int id) async {
     isLoading.value = true;
+
     try {
-      if (kDebugMode) debugPrint("fetchNoteDetail START for NoteId: $id");
       final note = await _noteService.getNoteDetail(id);
-      
-      if (kDebugMode) debugPrint("fetchNoteDetail SUCCESS for NoteId: $id");
+
       currentNote.value = note;
       titleController.text = note.title;
-      
-      // Clear old controllers
-      for (var c in blockControllers.values) {
-        c.dispose();
+
+      for (final controller in blockControllers.values) {
+        controller.dispose();
       }
+
       blockControllers.clear();
-      
       blocks.assignAll(note.content);
-      
-      if (blocks.isEmpty) {
+
+      if (blocks.isEmpty && !isReadOnly.value) {
         addTextBlock();
       }
-    } catch (e) {
-      if (kDebugMode) debugPrint("fetchNoteDetail CATCH ERROR for NoteId: $id: $e");
-      Get.snackbar("Error", "Could not load note detail");
+    } catch (error, stackTrace) {
+      Get.snackbar(
+        'Error',
+        'Could not load note detail',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      if (kDebugMode) {
+        debugPrint('Could not load note detail: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
     } finally {
-      if (kDebugMode) debugPrint("fetchNoteDetail FINALLY (loading = false) for NoteId: $id");
       isLoading.value = false;
     }
   }
 
   void _initNewNote(int folderId) {
-    currentNote.value = NoteModel(id: 0, folderId: folderId, title: "", folderName: "");
+    currentNote.value = NoteModel(
+      id: 0,
+      folderId: folderId,
+      title: '',
+      folderName: '',
+    );
+
     titleController.clear();
     blocks.clear();
     addTextBlock();
     isLoading.value = false;
   }
 
-  TextEditingController getTextController(String blockId, String initialText) {
-    if (!blockControllers.containsKey(blockId)) {
-      blockControllers[blockId] = TextEditingController(text: initialText);
-    }
-    return blockControllers[blockId]!;
+  TextEditingController getTextController(
+      String blockId,
+      String initialText,
+      ) {
+    return blockControllers.putIfAbsent(
+      blockId,
+          () => TextEditingController(text: initialText),
+    );
   }
 
   Future<void> saveNote() async {
-    if (currentNote.value == null || isSaving.value || isReadOnly.value) return;
-    
-    isSaving.value = true;
-    
-    // Sync text controllers back to blocks
-    for (int i = 0; i < blocks.length; i++) {
-      if (blocks[i] is TextBlock) {
-        final controller = blockControllers[blocks[i].id];
-        if (controller != null) {
-          blocks[i] = TextBlock(
-            id: blocks[i].id, 
-            text: controller.text,
-            style: (blocks[i] as TextBlock).style,
-          );
-        }
-      }
+    if (currentNote.value == null ||
+        isSaving.value ||
+        isReadOnly.value) {
+      return;
     }
 
-    final int originalId = currentNote.value!.id;
-    final int folderId = currentNote.value!.folderId;
-    if (kDebugMode) {
-      debugPrint("[NOTE DEBUG] SAVE FLOW START");
-      debugPrint("[NOTE DEBUG] CURRENT NOTE ID: $originalId");
-      debugPrint("[NOTE DEBUG] FOLDER ID: $folderId");
-    }
-    
+    isSaving.value = true;
+
     try {
-      // 1. Save Metadata first
+      _syncTextBlocks();
+
       final savedNote = await _noteService.saveNote(
-        folderId, 
-        titleController.text,
-        noteId: originalId,
+        currentNote.value!.folderId,
+        titleController.text.trim(),
+        noteId: currentNote.value!.id,
       );
-      
-      final int confirmedNoteId = savedNote.id;
-      if (kDebugMode) debugPrint("[NOTE DEBUG] STEP 1: Metadata Saved. Confirmed ID: $confirmedNoteId");
+
+      final confirmedNoteId = savedNote.id;
       currentNote.value = savedNote;
 
-      // 2. Upload any unsaved attachments
-      for (int i = 0; i < blocks.length; i++) {
-        final block = blocks[i];
-        if (block is AttachmentBlock && block.attachmentId == 0 && block.localPath != null) {
-          try {
-            if (kDebugMode) debugPrint("[NOTE DEBUG] STEP 2: Uploading attachment for block: ${block.id}");
-            final result = await _noteService.uploadAttachment(
-              confirmedNoteId,
-              block.localPath!,
-              block.id,
-              i,
-            );
+      for (int index = 0; index < blocks.length; index++) {
+        final block = blocks[index];
 
-            // Update block with SERVER data
-            if (kDebugMode) debugPrint("[NOTE DEBUG] UPLOAD RESULT KEYS: ${result.keys.toList()}");
-            
-            blocks[i] = AttachmentBlock(
-              id: block.id,
-              attachmentId: int.tryParse((result['AttachmentId'] ?? result['attachmentId'] ?? result['id'] ?? result['Id'] ?? 0).toString()) ?? 0,
-              displayName: block.displayName,
-              url: result['Url'] ?? result['url'] ?? result['FilePath'] ?? result['filePath'],
-              localPath: null,
-            );
-            if (kDebugMode) debugPrint("[NOTE DEBUG] UPLOAD SUCCESS: New AttachmentId: ${(blocks[i] as AttachmentBlock).attachmentId}");
-          } catch (e) {
-            debugPrint("Failed to upload attachment: $e");
+        if (block is! AttachmentBlock ||
+            block.attachmentId != 0 ||
+            block.localPath == null ||
+            block.localPath!.trim().isEmpty) {
+          continue;
+        }
+
+        final localPath = block.localPath!.trim();
+        final localFile = File(localPath);
+
+        if (!localFile.existsSync()) {
+          if (kDebugMode) {
+            debugPrint('Attachment file does not exist: $localPath');
           }
+          continue;
+        }
+
+        try {
+          final result = await _noteService.uploadAttachment(
+            confirmedNoteId,
+            localPath,
+            block.id,
+            index,
+          );
+
+          if (kDebugMode) {
+            debugPrint('Attachment upload response: $result');
+          }
+
+          final uploadedPath = _getUploadValue(
+            result,
+            const [
+              'Url',
+              'url',
+              'FileUrl',
+              'fileUrl',
+              'FilePath',
+              'filePath',
+              'Path',
+              'path',
+            ],
+          );
+
+          final uploadedId = _getUploadValue(
+            result,
+            const [
+              'AttachmentId',
+              'attachmentId',
+              'Id',
+              'id',
+            ],
+          );
+
+          final fullUrl = _buildAttachmentUrl(uploadedPath);
+          final attachmentId =
+              int.tryParse(uploadedId?.toString() ?? '') ?? 0;
+
+          if (fullUrl == null || fullUrl.isEmpty) {
+            if (kDebugMode) {
+              debugPrint(
+                'Upload response did not contain a valid image URL.',
+              );
+            }
+
+            // Keep the local path so the image remains visible.
+            continue;
+          }
+
+          blocks[index] = AttachmentBlock(
+            id: block.id,
+            attachmentId: attachmentId,
+            displayName: block.displayName,
+            url: fullUrl,
+            localPath: null,
+          );
+        } catch (error, stackTrace) {
+          if (kDebugMode) {
+            debugPrint('Failed to upload attachment: $error');
+            debugPrintStack(stackTrace: stackTrace);
+          }
+
+          // Keep the local path when upload fails.
         }
       }
 
-      // 3. Save Final Content
-      if (kDebugMode) debugPrint("[NOTE DEBUG] STEP 3: Saving final content blocks for $confirmedNoteId");
-      await _noteService.saveContent(confirmedNoteId, folderId, titleController.text, blocks);
-      
-      if (kDebugMode) debugPrint("[NOTE DEBUG] SAVE COMPLETE - NoteId: $confirmedNoteId");
-      isSaving.value = false;
-      Get.back(result: true);
-    } catch (e) {
-      isSaving.value = false;
-      if (kDebugMode) debugPrint("[NOTE DEBUG] SAVE FATAL ERROR: $e");
-      Get.snackbar("Error", "Failed to save note: ${e.toString()}");
-    }
-  }
-
-  void updateTextBlock(int index, String text) {}
-
-  void onUpdateChecklistItem(int blockIndex, int itemIndex, String text) {
-    if (blocks[blockIndex] is ChecklistBlock) {
-      final block = blocks[blockIndex] as ChecklistBlock;
-      block.items[itemIndex] = ChecklistItem(
-        id: block.items[itemIndex].id,
-        text: text,
-        checked: block.items[itemIndex].checked,
+      await _noteService.saveNote(
+        currentNote.value!.folderId,
+        titleController.text.trim(),
+        noteId: confirmedNoteId,
+        content: blocks,
       );
-      blocks[blockIndex] = ChecklistBlock(id: block.id, items: block.items);
+
+      Get.back(result: true);
+    } catch (error, stackTrace) {
+      Get.snackbar(
+        'Error',
+        'Failed to save note',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      if (kDebugMode) {
+        debugPrint('[NOTE DEBUG] SAVE FATAL ERROR: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    } finally {
+      isSaving.value = false;
     }
   }
 
-  void toggleChecklistItem(int blockIndex, int itemIndex) {
-    if (blocks[blockIndex] is ChecklistBlock) {
-      final block = blocks[blockIndex] as ChecklistBlock;
-      final item = block.items[itemIndex];
-      block.items[itemIndex] = ChecklistItem(id: item.id, text: item.text, checked: !item.checked);
-      blocks[blockIndex] = ChecklistBlock(id: block.id, items: block.items);
+  void _syncTextBlocks() {
+    for (int index = 0; index < blocks.length; index++) {
+      final block = blocks[index];
+
+      if (block is! TextBlock) continue;
+
+      final textController = blockControllers[block.id];
+
+      if (textController != null) {
+        blocks[index] = TextBlock(
+          id: block.id,
+          text: textController.text,
+          style: block.style,
+        );
+      }
     }
+  }
+
+  void updateTextBlock(int index, String text) {
+    if (index < 0 || index >= blocks.length) return;
+
+    final block = blocks[index];
+
+    if (block is TextBlock) {
+      blocks[index] = TextBlock(
+        id: block.id,
+        text: text,
+        style: block.style,
+      );
+    }
+  }
+
+  void onUpdateChecklistItem(
+      int blockIndex,
+      int itemIndex,
+      String text,
+      ) {
+    if (blockIndex < 0 || blockIndex >= blocks.length) return;
+
+    final block = blocks[blockIndex];
+
+    if (block is! ChecklistBlock ||
+        itemIndex < 0 ||
+        itemIndex >= block.items.length) {
+      return;
+    }
+
+    final items = List<ChecklistItem>.from(block.items);
+    final oldItem = items[itemIndex];
+
+    items[itemIndex] = ChecklistItem(
+      id: oldItem.id,
+      text: text,
+      checked: oldItem.checked,
+    );
+
+    blocks[blockIndex] = ChecklistBlock(
+      id: block.id,
+      items: items,
+    );
+  }
+
+  void toggleChecklistItem(
+      int blockIndex,
+      int itemIndex,
+      ) {
+    if (blockIndex < 0 || blockIndex >= blocks.length) return;
+
+    final block = blocks[blockIndex];
+
+    if (block is! ChecklistBlock ||
+        itemIndex < 0 ||
+        itemIndex >= block.items.length) {
+      return;
+    }
+
+    final items = List<ChecklistItem>.from(block.items);
+    final oldItem = items[itemIndex];
+
+    items[itemIndex] = ChecklistItem(
+      id: oldItem.id,
+      text: oldItem.text,
+      checked: !oldItem.checked,
+    );
+
+    blocks[blockIndex] = ChecklistBlock(
+      id: block.id,
+      items: items,
+    );
   }
 
   void addTextBlock({String style = 'body'}) {
     if (isReadOnly.value) return;
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final block = TextBlock(id: id, text: "", style: style);
-    
-    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
-      blocks.insert(activeBlockIndex + 1, block);
-      activeBlockIndex++;
-    } else {
-      blocks.add(block);
-      activeBlockIndex = blocks.length - 1;
-    }
+
+    _insertBlock(
+      TextBlock(
+        id: _generateBlockId(),
+        text: '',
+        style: style,
+      ),
+    );
   }
 
   void addChecklistBlock() {
     if (isReadOnly.value) return;
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final block = ChecklistBlock(id: id, items: [
-      ChecklistItem(id: "1", text: "")
-    ]);
 
-    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
-      blocks.insert(activeBlockIndex + 1, block);
-      activeBlockIndex++;
-    } else {
-      blocks.add(block);
-      activeBlockIndex = blocks.length - 1;
-    }
+    _insertBlock(
+      ChecklistBlock(
+        id: _generateBlockId(),
+        items: [
+          ChecklistItem(
+            id: _generateBlockId(),
+            text: '',
+          ),
+        ],
+      ),
+    );
   }
 
-  Future<void> addAttachment(ImageSource source, {bool isVideo = false}) async {
+  Future<void> addAttachment(
+      ImageSource source, {
+        bool isVideo = false,
+      }) async {
     if (isReadOnly.value) return;
+
     try {
-      XFile? file;
-      if (isVideo) {
-        file = await _picker.pickVideo(source: source);
-      } else {
-        file = await _picker.pickImage(source: source);
+      final XFile? file = isVideo
+          ? await _picker.pickVideo(source: source)
+          : await _picker.pickImage(
+        source: source,
+        imageQuality: 90,
+      );
+
+      if (file == null || currentNote.value == null) return;
+
+      final localFile = File(file.path);
+
+      if (!localFile.existsSync()) {
+        Get.snackbar(
+          'Error',
+          'The selected file could not be found',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
       }
 
-      if (file != null && currentNote.value != null) {
-        final id = DateTime.now().millisecondsSinceEpoch.toString();
-        final block = AttachmentBlock(
-          id: id,
+      _insertBlock(
+        AttachmentBlock(
+          id: _generateBlockId(),
           attachmentId: 0,
           displayName: file.name,
           localPath: file.path,
-        );
-        
-        if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
-          blocks.insert(activeBlockIndex + 1, block);
-          activeBlockIndex++;
-        } else {
-          blocks.add(block);
-          activeBlockIndex = blocks.length - 1;
-        }
-        
-        addTextBlock();
+          url: null,
+        ),
+      );
+
+      blocks.refresh();
+      addTextBlock();
+    } catch (error, stackTrace) {
+      Get.snackbar(
+        'Error',
+        'Could not add attachment',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+
+      if (kDebugMode) {
+        debugPrint('Could not add attachment: $error');
+        debugPrintStack(stackTrace: stackTrace);
       }
-    } catch (e) {
-      Get.snackbar("Error", "Could not add attachment");
     }
+  }
+
+  void updateAttachmentImage(
+      int blockIndex,
+      String editedPath,
+      ) {
+    if (isReadOnly.value) return;
+    if (blockIndex < 0 || blockIndex >= blocks.length) return;
+
+    final block = blocks[blockIndex];
+
+    if (block is! AttachmentBlock) return;
+
+    final editedFile = File(editedPath);
+
+    if (!editedFile.existsSync()) {
+      Get.snackbar(
+        'Error',
+        'The edited image file could not be found',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
+    blocks[blockIndex] = AttachmentBlock(
+      id: block.id,
+      attachmentId: 0,
+      displayName: '${block.id}_edited.png',
+      localPath: editedPath,
+      url: block.url,
+    );
+
+    blocks.refresh();
   }
 
   void addTableBlock() {
     if (isReadOnly.value) return;
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final block = TableBlock(id: id, rows: [
-      ["", ""],
-      ["", ""]
-    ]);
 
-    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
-      blocks.insert(activeBlockIndex + 1, block);
-      activeBlockIndex++;
-    } else {
-      blocks.add(block);
-      activeBlockIndex = blocks.length - 1;
-    }
+    _insertBlock(
+      TableBlock(
+        id: _generateBlockId(),
+        rows: [
+          ['', ''],
+          ['', ''],
+        ],
+      ),
+    );
+
     addTextBlock();
   }
 
   void addDrawingBlock() {
     if (isReadOnly.value) return;
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-    final block = DrawingBlock(id: id);
 
-    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
+    _insertBlock(
+      DrawingBlock(
+        id: _generateBlockId(),
+      ),
+    );
+
+    addTextBlock();
+  }
+
+  void updateTextBlockStyle(
+      int index,
+      String style,
+      ) {
+    if (isReadOnly.value) return;
+    if (index < 0 || index >= blocks.length) return;
+
+    final block = blocks[index];
+
+    if (block is TextBlock) {
+      blocks[index] = TextBlock(
+        id: block.id,
+        text: blockControllers[block.id]?.text ?? block.text,
+        style: style,
+      );
+    }
+  }
+
+  void _insertBlock(NoteBlock block) {
+    if (activeBlockIndex >= 0 &&
+        activeBlockIndex < blocks.length) {
       blocks.insert(activeBlockIndex + 1, block);
       activeBlockIndex++;
     } else {
       blocks.add(block);
       activeBlockIndex = blocks.length - 1;
     }
-    addTextBlock();
   }
 
-  void updateTextBlockStyle(int index, String style) {
-    if (isReadOnly.value) return;
-    if (blocks[index] is TextBlock) {
-      final oldBlock = blocks[index] as TextBlock;
-      blocks[index] = TextBlock(
-        id: oldBlock.id,
-        text: oldBlock.text,
-        style: style,
-      );
+  dynamic _getUploadValue(
+      dynamic result,
+      List<String> keys,
+      ) {
+    if (result is! Map) return null;
+
+    for (final key in keys) {
+      final value = result[key];
+
+      if (value != null && value.toString().trim().isNotEmpty) {
+        return value;
+      }
     }
+
+    final nestedData =
+        result['data'] ??
+            result['Data'] ??
+            result['result'] ??
+            result['Result'];
+
+    if (nestedData is Map) {
+      for (final key in keys) {
+        final value = nestedData[key];
+
+        if (value != null && value.toString().trim().isNotEmpty) {
+          return value;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  String? _buildAttachmentUrl(dynamic value) {
+    if (value == null) return null;
+
+    String path = value.toString().trim();
+
+    if (path.isEmpty) return null;
+
+    path = path.replaceAll('\\', '/');
+
+    if (path.startsWith('~/')) {
+      path = path.substring(2);
+    }
+
+    final uri = Uri.tryParse(path);
+
+    if (uri != null && uri.hasScheme) {
+      return uri.toString();
+    }
+
+    return Uri.parse(
+      'https://note.piisiit.com/',
+    ).resolve(path).toString();
+  }
+
+  int? _toInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  String _generateBlockId() {
+    return DateTime.now().microsecondsSinceEpoch.toString();
   }
 }

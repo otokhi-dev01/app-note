@@ -31,9 +31,12 @@ class ProfileController extends GetxController {
     userName.value = user?.fullName ?? "User Name";
     userPhone.value = user?.phone ?? "";
     
-    // Note: Profile image is currently handled separately in storage
-    // If you want to store it in SessionService, you can update it there.
-    userImagePath.value = ""; 
+    final savedPath = user?.profileImage ?? "";
+    if (savedPath.isNotEmpty && File(savedPath).existsSync()) {
+      userImagePath.value = savedPath;
+    } else {
+      userImagePath.value = "";
+    }
   }
 
   void updateUserName() {
@@ -85,7 +88,13 @@ class ProfileController extends GetxController {
       
       if (image != null) {
         userImagePath.value = image.path;
-        // You might want to save this path securely or upload it to a server
+        final currentUser = _sessionService.user.value;
+        if (currentUser != null) {
+          await _sessionService.saveSession(
+            _sessionService.token.value ?? "",
+            currentUser.copyWith(profileImage: image.path),
+          );
+        }
         Get.snackbar("Success", "Profile image updated");
       }
     } catch (e) {

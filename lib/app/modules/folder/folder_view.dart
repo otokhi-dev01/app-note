@@ -258,13 +258,13 @@ class FolderView extends GetView<FolderController> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.NOTE_LIST, arguments: FolderModel(
             id: 0, // 0 usually means All Notes in this app's logic
-            name: "All on My iPhone",
+            name: "All on My iphone",
             iconName: "folder",
             colorValue: "#FFB703",
             sortOrder: 0,
           )),
           leading: const Icon(Icons.folder_special_outlined, color: AppTheme.folderYellow, size: 30),
-          title: Text("All on My iPhone", style: theme.textTheme.bodyLarge),
+          title: Text("All on My iphone", style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

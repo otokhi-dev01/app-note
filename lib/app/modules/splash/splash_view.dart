@@ -1,3 +1,4 @@
+import 'package:Note/app/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -82,11 +83,9 @@ class SplashView extends GetView<SplashController> {
                   )
                   .fadeIn(duration: 600.ms)
                   .shimmer(delay: 1500.ms, duration: 2000.ms),
-                  
                   const SizedBox(height: 40),
-                  
                   Text(
-                    "Otokhi Note",
+                    "OTOKHI NOTE",
                     style: theme.textTheme.headlineLarge?.copyWith(
                       fontSize: 36, 
                       letterSpacing: 1.5,
@@ -115,13 +114,19 @@ class SplashView extends GetView<SplashController> {
                       ),
                     ).animate().fadeIn(delay: 1200.ms),
                     const SizedBox(height: 16),
-                    Text(
-                      "High Fidelity Note Taking",
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
-                        letterSpacing: 0.5,
+                    LiquidGlassContainer(
+                      width: 230,
+                      child: Center(
+                        child: Text(
+                          "High Fidelity Note Taking",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+                            letterSpacing: 0.5,
+                            fontSize: 15
+                          ),
+                        ).animate().fadeIn(delay: 1500.ms),
                       ),
-                    ).animate().fadeIn(delay: 1500.ms),
+                    ),
                   ],
                 ),
               ),
