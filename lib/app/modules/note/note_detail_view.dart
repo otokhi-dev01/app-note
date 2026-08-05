@@ -37,32 +37,35 @@ class NoteDetailView extends GetView<NoteDetailController> {
         backgroundColor: theme.scaffoldBackgroundColor,
         resizeToAvoidBottomInset: true,
         extendBody: true,
-        body: Column(
+        extendBodyBehindAppBar: true,
+        body: Stack(
           children: [
-            _buildTopBar(context),
             Obx(
-                  () => controller.isReadOnly.value
-                  ? _buildReadOnlyBanner(context)
-                  : const SizedBox.shrink(),
-            ),
-            Expanded(
-              child: Obx(
-                    () => controller.isLoading.value
-                    ? Center(
-                  child: CircularProgressIndicator(
-                    color: theme.primaryColor,
-                  ),
-                )
-                    : Stack(
-                  children: [
-                    _buildEditor(context),
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: _buildEditingToolbar(context),
+              () => controller.isLoading.value
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: theme.primaryColor,
+                      ),
+                    )
+                  : Stack(
+                      children: [
+                        _buildEditor(context),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: _buildEditingToolbar(context),
+                        ),
+                      ],
                     ),
-                  ],
+            ),
+            Column(
+              children: [
+                _buildTopBar(context),
+                Obx(
+                  () => controller.isReadOnly.value
+                      ? _buildReadOnlyBanner(context)
+                      : const SizedBox.shrink(),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -82,11 +85,10 @@ class NoteDetailView extends GetView<NoteDetailController> {
   }
 
   Widget _buildTopBar(BuildContext context) {
-    final theme = Theme.of(context);
     final topPadding = MediaQuery.paddingOf(context).top;
 
     return Container(
-      color: theme.scaffoldBackgroundColor,
+      color: Colors.transparent,
       padding: EdgeInsets.only(top: topPadding),
       child: _pageContent(
         Padding(
@@ -195,13 +197,14 @@ class NoteDetailView extends GetView<NoteDetailController> {
     final theme = Theme.of(context);
     final noteDate = controller.currentNote.value?.updatedAt ?? DateTime.now();
     final horizontalInset = _editorInset(context);
+    final topPadding = MediaQuery.paddingOf(context).top + _topBarControlSize + 16;
 
     return _pageContent(
       ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: EdgeInsets.fromLTRB(
           horizontalInset,
-          8,
+          topPadding,
           horizontalInset,
           _editorBottomPadding,
         ),

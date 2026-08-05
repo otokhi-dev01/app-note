@@ -49,7 +49,7 @@ class SplashView extends GetView<SplashController> {
                           padding: const EdgeInsets.all(10),
                           child: ClipOval(
                             child: Image.asset(
-                              'assets/icons/otokhi_logo_app.jpg',
+                              'assets/icons/otokhi_note_app_1.jpg',
                               fit: BoxFit.contain,
                             ),
                           ),

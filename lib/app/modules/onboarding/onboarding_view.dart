@@ -64,19 +64,14 @@ class OnboardingView extends GetView<OnboardingController> {
       padding: const EdgeInsets.fromLTRB(24, 12, 16, 4),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.folderYellow,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.note_alt_rounded,
-              color: AppTheme.bodyColor,
-              size: 22,
-            ),
-          ),
+            ClipOval(
+              child: Image.asset(
+                'assets/icons/otokhi_note_app_1.jpg',
+                width: 60,
+                height: 60,
+                // fit: BoxFit.contain,
+              ),
+            ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
           const SizedBox(width: 11),
           Text(
             'OTOKHI',
