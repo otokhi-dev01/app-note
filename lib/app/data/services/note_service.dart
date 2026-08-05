@@ -8,7 +8,13 @@ import 'api_service.dart';
 class NoteService extends GetxService {
   final ApiService _api = Get.find<ApiService>();
 
-  Future<NoteResponse> getNotes({int? folderId}) async {
+  NoteResponse? _cachedResponse;
+
+  Future<NoteResponse> getNotes({int? folderId, bool refresh = false}) async {
+    if (_cachedResponse != null && !refresh && folderId == null) {
+      return _cachedResponse!;
+    }
+    
     try {
       final response = await _api.dio.get("/api/note", queryParameters: {
         if (folderId != null && folderId != 0) "FolderId": folderId,
@@ -16,9 +22,6 @@ class NoteService extends GetxService {
 
       // Safely handle data decoding
       final responseData = response.data;
-      if (kDebugMode) {
-        debugPrint("RAW API RESPONSE: $responseData");
-      }
       Map<String, dynamic> mappedData;
       if (responseData is String) {
         mappedData = jsonDecode(responseData);
@@ -29,6 +32,11 @@ class NoteService extends GetxService {
       }
 
       final noteResponse = NoteResponse.fromJson(mappedData);
+
+      // Cache the full response if it's not a filtered request
+      if (folderId == null || folderId == 0) {
+        _cachedResponse = noteResponse;
+      }
 
       // Compact debug logs for successful requests
       if (kDebugMode) {

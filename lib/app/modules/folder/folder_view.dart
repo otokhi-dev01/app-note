@@ -21,10 +21,11 @@ class FolderView extends GetView<FolderController> {
           : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
+        extendBody: true,
         extendBodyBehindAppBar: true,
         bottomNavigationBar: _buildBottomBar(context),
         body: RefreshIndicator(
-          onRefresh: () => controller.fetchFolders(),
+          onRefresh: () => controller.fetchFolders(refresh: true),
           color: AppTheme.folderYellow,
           backgroundColor: theme.scaffoldBackgroundColor,
           edgeOffset: 140,
@@ -93,10 +94,10 @@ class FolderView extends GetView<FolderController> {
                                       height: 32,
                                       decoration: const BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: AppTheme.folderYellow,
+                                        // color: AppTheme.folderYellow,
                                       ),
                                       child: const Icon(Icons.check,
-                                          color: Colors.white, size: 20),
+                                          color: AppTheme.textSecondary, size: 20, fontWeight: FontWeight.bold,),
                                     ),
                                   ),
                                 ),
@@ -128,8 +129,9 @@ class FolderView extends GetView<FolderController> {
                   ),
                 ],
                 flexibleSpace: FlexibleSpaceBar(
-                  centerTitle: true,
-                  titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+                  centerTitle: false,
+                  titlePadding: const EdgeInsets.fromLTRB(20, 0, 16
+                      , 5),
                   title: LayoutBuilder(
                     builder: (context, constraints) {
                       final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
@@ -207,7 +209,8 @@ class FolderView extends GetView<FolderController> {
             Obx(() => Icon(
                   isExpanded.value ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
                   color: AppTheme.folderYellow,
-                  size: 24,
+                  size: 28,
+                  fontWeight: FontWeight.bold,
                 )),
           ],
         ),
@@ -219,7 +222,7 @@ class FolderView extends GetView<FolderController> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GlassCard(
-        borderRadius: 20,
+        borderRadius: 30,
         padding: EdgeInsets.zero,
         children: [
           if (includeRecentlyDeleted) ...[
@@ -267,7 +270,7 @@ class FolderView extends GetView<FolderController> {
             children: [
               Text("${controller.allNotesCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 20),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
             ],
           ),
         ),
@@ -297,7 +300,7 @@ class FolderView extends GetView<FolderController> {
                     GestureDetector(
                       onTap: () => Get.dialog(
                         FolderContextMenu(folder: folder, controller: controller),
-                        barrierColor: Colors.black.withOpacity(0.1),
+                        barrierColor: Colors.black.withValues(alpha: 0.1),
                       ),
                       child: Container(
                         padding: const EdgeInsets.all(2),
@@ -317,7 +320,7 @@ class FolderView extends GetView<FolderController> {
                   children: [
                     Text("${folder.noteCount}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                     const SizedBox(width: 4),
-                    Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 20),
+                    Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
                   ],
                 ),
         ),
@@ -342,7 +345,7 @@ class FolderView extends GetView<FolderController> {
             children: [
               Text("${controller.deletedCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 20),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
             ],
           ),
         ),
@@ -367,7 +370,7 @@ class FolderView extends GetView<FolderController> {
             children: [
               Text("${controller.archivedCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 20),
+              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
             ],
           ),
         ),
@@ -396,7 +399,7 @@ class FolderView extends GetView<FolderController> {
             ),
           ),
           title: Text("Profile", style: theme.textTheme.bodyLarge),
-          trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 20),
+          trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
         ),
       );
     });
@@ -423,7 +426,7 @@ class FolderView extends GetView<FolderController> {
             ),
           ),
           title: Text("Trash", style: theme.textTheme.bodyLarge),
-          trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3), size: 20),
+          trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
         ),
       );
     });
@@ -446,7 +449,7 @@ class FolderView extends GetView<FolderController> {
                     borderRadius: BorderRadius.circular(25),
                     boxShadow: theme.brightness == Brightness.dark ? null : [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),

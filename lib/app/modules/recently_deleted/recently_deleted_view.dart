@@ -15,7 +15,6 @@ import 'widgets/slidable_note_tile.dart';
 class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
 
   const RecentlyDeletedView({super.key});
-  static const String _displayFont = 'CupertinoSystemDisplay';
   static const double _maxContentWidth = 600;
 
   @override
@@ -27,6 +26,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
           : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
+        extendBody: true,
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         body: CustomScrollView(

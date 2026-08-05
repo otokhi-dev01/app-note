@@ -26,10 +26,11 @@ class NoteListView extends GetView<NoteController> {
           ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
           : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
+        extendBody: true,
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         body: RefreshIndicator(
-          onRefresh: () => controller.fetchNotes(folderId: folder?.id),
+          onRefresh: () => controller.fetchNotes(folderId: folder?.id, refresh: true),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
           edgeOffset: 140,
@@ -71,7 +72,7 @@ class NoteListView extends GetView<NoteController> {
                     borderRadius: 22,
                     child: IconButton(
                       onPressed: () => Get.back(),
-                      icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 28),
+                      icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 20, fontWeight: FontWeight.bold,),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
@@ -115,7 +116,7 @@ class NoteListView extends GetView<NoteController> {
                           borderRadius: 22,
                           child: const Center(
                               child: Icon(
-                                CupertinoIcons.ellipsis_circle,
+                               Icons.more_horiz,
                                 color: AppTheme.textSecondary,
                                 size: 24,
                               ),

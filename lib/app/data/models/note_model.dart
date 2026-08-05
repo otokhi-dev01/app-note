@@ -150,10 +150,6 @@ class NoteData {
   NoteData({required this.notes, required this.archive, required this.trash});
 
   factory NoteData.fromJson(Map<String, dynamic> json) {
-    if (kDebugMode) {
-      debugPrint("[NOTE DEBUG] NoteData.fromJson Keys: ${json.keys.toList()}");
-    }
-
     // 1. Trust the backend's explicit list categorization first
     final List rawNotes = (json['note'] ?? json['notes'] ?? json['active'] ?? []) as List;
     final List rawArchive = (json['archive'] ?? json['archived'] ?? []) as List;
@@ -177,10 +173,6 @@ class NoteData {
                    finalArchive.any((a) => a.id == n.id) || 
                    finalTrash.any((t) => t.id == n.id);
       if (!exists) finalActive.add(n);
-    }
-
-    if (kDebugMode) {
-      debugPrint("NoteData Parsed: ${finalActive.length} Active, ${finalArchive.length} Archive, ${finalTrash.length} Trash");
     }
 
     return NoteData(

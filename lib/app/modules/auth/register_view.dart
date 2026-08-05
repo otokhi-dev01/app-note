@@ -55,10 +55,10 @@ class RegisterView extends GetView<AuthController> {
                     // Large Title
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(25, 0, 25, 18),
                         child: Text(
                           "Register",
-                          style: theme.textTheme.headlineLarge,
+                          style: theme.textTheme.headlineLarge?.copyWith(fontSize: 30, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -85,21 +85,21 @@ class RegisterView extends GetView<AuthController> {
                                   ),
                                 ],
                               ),
-                                child: Icon(Icons.edit, color: theme.colorScheme.onSurface, size: 50)
+                                child: Icon(Icons.note_alt, color: AppTheme.folderYellow, size: 68)
                             ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                             
                             const SizedBox(height: 32),
 
                             Text(
                               "Create Account",
-                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 30),
                             ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0),
                             
                             const SizedBox(height: 8),
                             
                             Text(
                               "Sign up to get started",
-                              style: theme.textTheme.bodyMedium,
+                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                             ).animate().fadeIn(delay: 100.ms),
                             
                             const SizedBox(height: 40),
@@ -112,7 +112,7 @@ class RegisterView extends GetView<AuthController> {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 20,
                                     offset: const Offset(0, 10),
                                   ),
@@ -162,22 +162,32 @@ class RegisterView extends GetView<AuthController> {
                                               width: 20,
                                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                             )
-                                          : const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          : const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
                                     ),
                                   )),
                                 ],
                               ),
                             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1, end: 0),
                             
-                            const SizedBox(height: 32),
-                            
-                            TextButton(
-                              onPressed: () => Get.back(),
-                              child: Text(
-                                "Already have an account? Login",
-                                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                              ),
-                            ).animate().fadeIn(delay: 400.ms),
+                            const SizedBox(height: 28),
+
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Already have an account?",
+                                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontSize: 15),
+                                ),
+                                TextButton(
+                                  onPressed: () => Get.back(),
+                                  style: TextButton.styleFrom(foregroundColor: AppTheme.folderYellow, padding: const EdgeInsets.symmetric(horizontal: 5)),
+                                  child: Text(
+                                    "Login",
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.folderYellow, fontWeight: FontWeight.bold, fontSize: 15),
+                                  ),
+                                ),
+                              ],
+                            ).animate().fadeIn(delay: 600.ms),
                           ],
                         ),
                       ),
@@ -202,7 +212,7 @@ class RegisterView extends GetView<AuthController> {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withOpacity(0.5),
+        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(

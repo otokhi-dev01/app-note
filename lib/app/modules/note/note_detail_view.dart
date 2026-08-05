@@ -24,18 +24,20 @@ class NoteDetailView extends GetView<NoteDetailController> {
     if (kDebugMode) debugPrint("NoteDetailView.build - isLoading: ${controller.isLoading.value}, blocks: ${controller.blocks.length}");
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent)
           : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         resizeToAvoidBottomInset: true,
+        extendBodyBehindAppBar: false,
+        extendBody: true,
         body: Column(
           children: [
             // Sticky Top Bar with Background (covers status bar)
             _buildTopBar(context),
-            Obx(() => controller.isReadOnly.value 
-                ? _buildReadOnlyBanner(context) 
+            Obx(() => controller.isReadOnly.value
+                ? _buildReadOnlyBanner(context)
                 : const SizedBox.shrink()),
             Expanded(
               child: Obx(() {
@@ -46,7 +48,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
                     ),
                   );
                 }
-        
+
                 return Stack(
                   children: [
                     _buildEditor(context),
@@ -71,7 +73,8 @@ class NoteDetailView extends GetView<NoteDetailController> {
     final controlSize = 40.0;
 
     return Container(
-      color: theme.scaffoldBackgroundColor,
+       color: theme.scaffoldBackgroundColor,
+
       padding: EdgeInsets.only(top: topPadding),
       child: _pageContent(
         Padding(
@@ -102,11 +105,11 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 Row(
                   children: [
                     _topBarIcon(context, CupertinoIcons.arrow_uturn_left, onTap: () {}),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 15),
                     _topBarIcon(context, CupertinoIcons.share, onTap: () {}),
-                    const SizedBox(width: 12),
-                    _topBarIcon(context, CupertinoIcons.ellipsis_circle, onTap: () {}),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 15),
+                    _topBarIcon(context, Icons.more_horiz, onTap: () {}),
+                    const SizedBox(width: 15),
                     Obx(() => controller.isReadOnly.value
                       ? const SizedBox.shrink()
                       : LiquidGlassContainer(
@@ -132,8 +135,9 @@ class NoteDetailView extends GetView<NoteDetailController> {
                                     )
                                   : const Icon(
                                       CupertinoIcons.checkmark,
-                                      color: Colors.white,
+                                      color: AppTheme.bodyColor,
                                       size: 18,
+                                      fontWeight: FontWeight.bold,
                                     )),
                               ),
                             ),
@@ -495,16 +499,13 @@ class NoteDetailView extends GetView<NoteDetailController> {
 
     return Material(
       color: theme.scaffoldBackgroundColor,
-      child: Container(
-        padding: EdgeInsets.only(bottom: isKeyboardVisible ? 0 : 12),
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
-        ),
+      child: LiquidGlassContainer(
+        padding: EdgeInsets.only(bottom: isKeyboardVisible ? 10 : 12),
         child: SafeArea(
           top: false,
           child: _pageContent(
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -517,28 +518,28 @@ class NoteDetailView extends GetView<NoteDetailController> {
                           icon: CupertinoIcons.textformat, // "Aa"
                           onTap: () => _showFormattingPopup(context),
                         ),
-                        if (!isKeyboardVisible) const SizedBox(width: 24),
+                        if (!isKeyboardVisible) const SizedBox(width: 25),
                         _toolbarIcon(
                           context,
                           icon: CupertinoIcons.list_bullet, // Checklist
                           onTap: controller.addChecklistBlock,
                         ),
-                        if (!isKeyboardVisible) const SizedBox(width: 24),
+                        if (!isKeyboardVisible) const SizedBox(width: 25),
                         _toolbarIcon(
                           context,
                           icon: CupertinoIcons.table, // Table
                           onTap: controller.addTableBlock,
                         ),
-                        if (!isKeyboardVisible) const SizedBox(width: 24),
+                        if (!isKeyboardVisible) const SizedBox(width: 25),
                         _toolbarIcon(
                           context,
                           icon: CupertinoIcons.paperclip, // Attachment
                           onTap: () => _showAttachmentPopup(context),
                         ),
-                        if (!isKeyboardVisible) const SizedBox(width: 24),
+                        if (!isKeyboardVisible) const SizedBox(width: 25),
                         _toolbarIcon(
                           context,
-                          icon: CupertinoIcons.pencil_circle, // Markup (pencil circle)
+                          icon: CupertinoIcons.pen, // Markup (pencil circle)
                           onTap: controller.addDrawingBlock,
                         ),
                       ],

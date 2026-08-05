@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:get_storage/get_storage.dart';
 import '../../data/services/session_service.dart';
 import '../../data/services/theme_service.dart';
 import '../../theme/app_theme.dart';
@@ -104,6 +105,8 @@ class ProfileController extends GetxController {
 
   void logout() async {
     await _sessionService.clearSession();
-    Get.offAllNamed(Routes.LOGIN);
+    // Reset onboarding flag so it shows up again as requested
+    GetStorage().write('isFirstTime', true);
+    Get.offAllNamed(Routes.ONBOARDING);
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -40,10 +39,10 @@ class LoginView extends GetView<AuthController> {
                     // Large Title
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                        padding: const EdgeInsets.fromLTRB(25, 0, 25, 8),
                         child: Text(
                           "Login",
-                          style: theme.textTheme.headlineLarge,
+                          style: theme.textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 30),
                         ),
                       ),
                     ),
@@ -70,21 +69,21 @@ class LoginView extends GetView<AuthController> {
                                   ),
                                 ],
                               ),
-                                    child: Icon(Icons.edit, color: theme.colorScheme.onSurface, size: 50)
+                                child: Icon(Icons.note_alt, color: AppTheme.folderYellow, size: 68)
                             ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
                             
                             const SizedBox(height: 32),
                             
                             Text(
                               "Welcome Back",
-                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 30),
                             ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
                             
                             const SizedBox(height: 8),
                             
                             Text(
                               "Login to your account",
-                              style: theme.textTheme.bodyMedium,
+                              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                             ).animate().fadeIn(delay: 300.ms),
                             
                             const SizedBox(height: 40),
@@ -97,7 +96,7 @@ class LoginView extends GetView<AuthController> {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 20,
                                     offset: const Offset(0, 10),
                                   ),
@@ -140,21 +139,30 @@ class LoginView extends GetView<AuthController> {
                                               width: 20,
                                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                             )
-                                          : const Text("LOGIN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                          : const Text("LOGIN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
                                     ),
                                   )),
                                 ],
                               ),
                             ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
                             
-                            const SizedBox(height: 32),
-                            
-                            TextButton(
-                              onPressed: () => Get.toNamed(Routes.REGISTER),
-                              child: Text(
-                                "Don't have an account? Register",
-                                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
-                              ),
+                            const SizedBox(height: 28),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Don't have an account?",
+                                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontSize: 15),
+                                ),
+                                TextButton(
+                                  onPressed: () => Get.toNamed(Routes.REGISTER),
+                                  style: TextButton.styleFrom(foregroundColor: AppTheme.folderYellow, padding: const EdgeInsets.symmetric(horizontal: 5)),
+                                  child: Text(
+                                    "Register",
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.folderYellow, fontWeight: FontWeight.bold, fontSize: 15),
+                                  ),
+                                ),
+                              ],
                             ).animate().fadeIn(delay: 600.ms),
                           ],
                         ),
