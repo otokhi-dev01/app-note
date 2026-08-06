@@ -14,6 +14,7 @@ import '../../data/models/note_model.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_widgets.dart';
 import 'note_detail_controller.dart';
+import 'widgets/note_detail_more_popup.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
   const NoteDetailView({super.key});
@@ -108,17 +109,17 @@ class NoteDetailView extends GetView<NoteDetailController> {
                   children: [
                     _buildGlassIconButton(
                       icon: CupertinoIcons.arrow_uturn_left,
-                      onTap: () {},
+                      onTap: controller.undo,
                     ),
                     const SizedBox(width: _topBarSpacing),
                     _buildGlassIconButton(
                       icon: CupertinoIcons.share,
-                      onTap: () {},
+                      onTap: controller.shareNote,
                     ),
                     const SizedBox(width: _topBarSpacing),
                     _buildGlassIconButton(
                       icon: Icons.more_horiz,
-                      onTap: () {},
+                      onTap: () => _showMoreMenu(context),
                     ),
                     const SizedBox(width: _topBarSpacing),
                     Obx(
@@ -455,23 +456,45 @@ class NoteDetailView extends GetView<NoteDetailController> {
                     child: _attachmentImage(context, block),
                   ),
                 ),
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.62),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.pencil,
-                      color: Colors.white,
-                      size: 18,
+                if (!controller.isReadOnly.value) ...[
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: GestureDetector(
+                      onTap: () => controller.deleteBlock(blockIndex),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.xmark,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.62),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.pencil,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -496,7 +519,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
     }
 
     final canEdit = !controller.isReadOnly.value;
-    final String? editedPath = await Get.to<String>(
+    final dynamic result = await Get.to(
           () => ImageDrawingEditor(
         imageProvider: imageProvider,
         title: block.displayName.trim().isEmpty
@@ -506,11 +529,16 @@ class NoteDetailView extends GetView<NoteDetailController> {
       ),
     );
 
-    if (!canEdit || editedPath == null || editedPath.isEmpty) return;
+    if (result == 'delete') {
+      controller.deleteBlock(blockIndex);
+      return;
+    }
+
+    if (!canEdit || result == null || result is! String || result.isEmpty) return;
 
     controller.updateAttachmentImage(
       blockIndex,
-      editedPath,
+      result,
     );
   }
   ImageProvider? _resolveAttachmentImageProvider(
@@ -932,6 +960,13 @@ class NoteDetailView extends GetView<NoteDetailController> {
     );
   }
 
+  void _showMoreMenu(BuildContext context) {
+    Get.dialog(
+      NoteDetailMorePopup(controller: controller),
+      barrierColor: Colors.black.withValues(alpha: 0.1),
+    );
+  }
+
   CupertinoActionSheetAction _formatAction(
       String label,
       String style,
@@ -1222,6 +1257,11 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
         actions: [
           if (widget.canEdit) ...[
             IconButton(
+              tooltip: 'Share',
+              onPressed: _shareImage,
+              icon: const Icon(CupertinoIcons.share),
+            ),
+            IconButton(
               tooltip: 'Undo',
               onPressed: _strokes.isEmpty ? null : _undo,
               icon: const Icon(CupertinoIcons.arrow_uturn_left),
@@ -1446,6 +1486,18 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
   void _clear() {
     if (_strokes.isEmpty) return;
     setState(_strokes.clear);
+  }
+
+  void _shareImage() {
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Share Image"),
+        content: const Text("Sharing options will be available soon. For now, you can save your changes and use the main share button."),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("OK")),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveEditedImage() async {
