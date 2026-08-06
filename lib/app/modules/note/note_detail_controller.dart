@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -16,10 +17,16 @@ class NoteDetailController extends GetxController {
   final isLoading = true.obs;
   final isSaving = false.obs;
   final isReadOnly = false.obs;
+  final isPinned = false.obs;
+  final isArchived = false.obs;
 
   final titleController = TextEditingController();
   final blocks = <NoteBlock>[].obs;
   final Map<String, TextEditingController> blockControllers = {};
+  
+  // History for undo
+  final _history = <List<NoteBlock>>[];
+  static const int _maxHistory = 20;
 
   int activeBlockIndex = -1;
 
@@ -71,6 +78,8 @@ class NoteDetailController extends GetxController {
 
       currentNote.value = note;
       titleController.text = note.title;
+      isPinned.value = note.isPinned;
+      isArchived.value = note.isArchived;
 
       for (final controller in blockControllers.values) {
         controller.dispose();
@@ -78,6 +87,7 @@ class NoteDetailController extends GetxController {
 
       blockControllers.clear();
       blocks.assignAll(note.content);
+      _history.clear(); // Clear history on load
 
       if (blocks.isEmpty && !isReadOnly.value) {
         addTextBlock();
@@ -106,8 +116,11 @@ class NoteDetailController extends GetxController {
       folderName: '',
     );
 
+    isPinned.value = false;
+    isArchived.value = false;
     titleController.clear();
     blocks.clear();
+    _history.clear();
     addTextBlock();
     isLoading.value = false;
   }
@@ -302,6 +315,8 @@ class NoteDetailController extends GetxController {
       return;
     }
 
+    // We don't save history for every character, but maybe on focused change or periodically
+    // For now, just update
     final items = List<ChecklistItem>.from(block.items);
     final oldItem = items[itemIndex];
 
@@ -322,6 +337,7 @@ class NoteDetailController extends GetxController {
       int itemIndex,
       ) {
     if (blockIndex < 0 || blockIndex >= blocks.length) return;
+    _recordHistory();
 
     final block = blocks[blockIndex];
 
@@ -348,6 +364,7 @@ class NoteDetailController extends GetxController {
 
   void addTextBlock({String style = 'body'}) {
     if (isReadOnly.value) return;
+    _recordHistory();
 
     _insertBlock(
       TextBlock(
@@ -360,6 +377,7 @@ class NoteDetailController extends GetxController {
 
   void addChecklistBlock() {
     if (isReadOnly.value) return;
+    _recordHistory();
 
     _insertBlock(
       ChecklistBlock(
@@ -401,6 +419,7 @@ class NoteDetailController extends GetxController {
         return;
       }
 
+      _recordHistory();
       _insertBlock(
         AttachmentBlock(
           id: _generateBlockId(),
@@ -449,6 +468,7 @@ class NoteDetailController extends GetxController {
       return;
     }
 
+    _recordHistory();
     blocks[blockIndex] = AttachmentBlock(
       id: block.id,
       attachmentId: 0,
@@ -462,6 +482,7 @@ class NoteDetailController extends GetxController {
 
   void addTableBlock() {
     if (isReadOnly.value) return;
+    _recordHistory();
 
     _insertBlock(
       TableBlock(
@@ -478,6 +499,7 @@ class NoteDetailController extends GetxController {
 
   void addDrawingBlock() {
     if (isReadOnly.value) return;
+    _recordHistory();
 
     _insertBlock(
       DrawingBlock(
@@ -494,6 +516,7 @@ class NoteDetailController extends GetxController {
       ) {
     if (isReadOnly.value) return;
     if (index < 0 || index >= blocks.length) return;
+    _recordHistory();
 
     final block = blocks[index];
 
@@ -504,6 +527,13 @@ class NoteDetailController extends GetxController {
         style: style,
       );
     }
+  }
+
+  void deleteBlock(int index) {
+    if (index < 0 || index >= blocks.length || isReadOnly.value) return;
+    _recordHistory();
+    blocks.removeAt(index);
+    blocks.refresh();
   }
 
   void _insertBlock(NoteBlock block) {
@@ -581,5 +611,135 @@ class NoteDetailController extends GetxController {
 
   String _generateBlockId() {
     return DateTime.now().microsecondsSinceEpoch.toString();
+  }
+
+  // --- New Logic ---
+
+  void _recordHistory() {
+    _syncTextBlocks();
+    // Deep copy blocks
+    final snapshot = blocks.map((b) => b).toList();
+    _history.add(snapshot);
+    if (_history.length > _maxHistory) {
+      _history.removeAt(0);
+    }
+  }
+
+  void undo() {
+    if (_history.isEmpty || isReadOnly.value) return;
+
+    final lastState = _history.removeLast();
+    blocks.assignAll(lastState);
+
+    // Refresh controllers
+    for (final block in lastState) {
+      if (block is TextBlock) {
+        final controller = blockControllers[block.id];
+        if (controller != null) {
+          controller.text = block.text;
+        }
+      } else if (block is ChecklistBlock) {
+        for (final item in block.items) {
+          final controller = blockControllers['${block.id}_${item.id}'];
+          if (controller != null) {
+            controller.text = item.text;
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> togglePin() async {
+    final note = currentNote.value;
+    if (note == null || note.id == 0) return;
+
+    try {
+      final newState = !isPinned.value;
+      await _noteService.updateNoteState(note.id, isPinned: newState);
+      isPinned.value = newState;
+      Get.snackbar("Success", newState ? "Note Pinned" : "Note Unpinned",
+          snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      Get.snackbar("Error", "Failed to update pin status");
+    }
+  }
+
+  Future<void> toggleArchive() async {
+    final note = currentNote.value;
+    if (note == null || note.id == 0) return;
+
+    try {
+      final newState = !isArchived.value;
+      await _noteService.updateNoteState(note.id, isArchived: newState);
+      isArchived.value = newState;
+      Get.snackbar("Success", newState ? "Note Archived" : "Note Unarchived",
+          snackPosition: SnackPosition.BOTTOM);
+      if (newState) Get.back(result: true); // Go back if archived
+    } catch (e) {
+      Get.snackbar("Error", "Failed to update archive status");
+    }
+  }
+
+  Future<void> deleteNote() async {
+    final note = currentNote.value;
+    if (note == null || note.id == 0) return;
+
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Delete Note?"),
+        content: const Text("This note will be moved to Recently Deleted."),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              try {
+                await _noteService.deleteRestoreNote(note.id, true);
+                Get.back(); // close dialog
+                Get.back(result: true); // go back to list
+                Get.snackbar("Success", "Note moved to trash",
+                    snackPosition: SnackPosition.BOTTOM);
+              } catch (e) {
+                Get.snackbar("Error", "Failed to delete note");
+              }
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void shareNote() {
+    _syncTextBlocks();
+    String content = "${titleController.text}\n\n";
+    for (final block in blocks) {
+      if (block is TextBlock) {
+        content += "${block.text}\n";
+      } else if (block is ChecklistBlock) {
+        for (final item in block.items) {
+          content += "[${item.checked ? 'x' : ' '}] ${item.text}\n";
+        }
+      }
+    }
+    
+    // Since share_plus is not in pubspec, we use a dialog or clipboard for now
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Share Note"),
+        content: SingleChildScrollView(child: Text(content)),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Close")),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: content));
+              Get.back();
+              Get.snackbar("Success", "Content copied to clipboard",
+                  snackPosition: SnackPosition.BOTTOM);
+            },
+            child: const Text("Copy Text"),
+          ),
+        ],
+      ),
+    );
   }
 }
