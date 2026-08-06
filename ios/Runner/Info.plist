@@ -1,6 +1,6 @@
-<?xml version="1.0.0+1" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0.0+1//EN" "http://www.apple.com/DTDs/PropertyList-1.0.0+1.dtd">
-<plist version="1.0.0+1">
+<?xml version="1.0.0+2" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0.0+2//EN" "http://www.apple.com/DTDs/PropertyList-1.0.0+2.dtd">
+<plist version="1.0.0+2">
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
@@ -13,7 +13,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>1.0.0+1</string>
+	<string>1.0.0+2</string>
 	<key>CFBundleName</key>
 	<string>otokhi_note</string>
 	<key>CFBundlePackageType</key>
