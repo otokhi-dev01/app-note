@@ -30,7 +30,7 @@ class FolderTile extends StatelessWidget {
           onTap: (isEditing && isSystem)
               ? null
               : () => Get.toNamed(Routes.NOTE_LIST, arguments: folder)?.then((value) => controller.fetchFolders()),
-          leading: Icon(folder.icon, color: AppTheme.folderYellow, size: 30),
+          leading: Icon(folder.icon, color: theme.primaryColor, size: 30),
           title: Text(folder.name, style: theme.textTheme.bodyLarge),
           trailing: isEditing && !isSystem
               ? Row(
@@ -45,9 +45,9 @@ class FolderTile extends StatelessWidget {
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppTheme.folderYellow, width: 1.5),
+                          border: Border.all(color: theme.primaryColor, width: 1.5),
                         ),
-                        child: const Icon(Icons.more_horiz, color: AppTheme.folderYellow, size: 18),
+                        child: Icon(Icons.more_horiz, color: theme.primaryColor, size: 18),
                       ),
                     ),
                     const SizedBox(width: 12),

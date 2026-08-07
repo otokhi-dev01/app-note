@@ -64,9 +64,9 @@ class NoteAttachmentBlock extends StatelessWidget {
                           color: Colors.black.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           CupertinoIcons.xmark,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           size: 16,
                         ),
                       ),
@@ -82,9 +82,9 @@ class NoteAttachmentBlock extends StatelessWidget {
                         color: Colors.black.withValues(alpha: 0.62),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         CupertinoIcons.pencil,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onSurface,
                         size: 18,
                       ),
                     ),
@@ -265,7 +265,7 @@ class _NetworkAttachmentImage extends StatelessWidget {
             height: 24,
             child: CircularProgressIndicator(
               value: value,
-              color: AppTheme.folderYellow,
+              color: Theme.of(context).primaryColor,
               strokeWidth: 2,
             ),
           ),

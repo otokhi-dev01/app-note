@@ -92,6 +92,7 @@ class NoteContentEditor extends StatelessWidget {
 
   Widget _buildSearchBar(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final topPadding = MediaQuery.paddingOf(context).top + 60; // Just below top bar
 
     return Positioned(
@@ -99,9 +100,13 @@ class NoteContentEditor extends StatelessWidget {
       left: 16,
       right: 16,
       child: Material(
-        elevation: 10,
+        elevation: isDark ? 0 : 10,
         borderRadius: BorderRadius.circular(15),
         color: theme.colorScheme.surface,
+        shape: isDark ? RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: theme.dividerColor, width: 0.5),
+        ) : null,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(

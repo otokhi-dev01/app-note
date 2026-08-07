@@ -63,8 +63,8 @@ class ProfileView extends GetView<ProfileController> {
                     onPressed: () => Get.back(),
                     icon: Icon(
                       Icons.chevron_left, 
-                      color: theme.colorScheme.onSurfaceVariant, 
-                      size: 36,
+                      color: theme.colorScheme.onSurface, 
+                      size: 28,
                     ),
                     padding: EdgeInsets.zero,
                   ),
@@ -114,7 +114,7 @@ class ProfileView extends GetView<ProfileController> {
                                     color: theme.colorScheme.surface,
                                     shape: BoxShape.circle,
                                     border: Border.all(
-                                      color: AppTheme.folderYellow,
+                                      color: theme.primaryColor,
                                       width: 3,
                                     ),
                                     boxShadow: [
@@ -156,7 +156,7 @@ class ProfileView extends GetView<ProfileController> {
                                   child: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.folderYellow,
+                                      color: theme.primaryColor,
                                       shape: BoxShape.circle,
                                       border: Border.all(color: theme.scaffoldBackgroundColor, width: 2),
                                     ),
@@ -257,7 +257,7 @@ class ProfileView extends GetView<ProfileController> {
         onTap: () => controller.changeTheme(mode),
         leading: Icon(
           icon, 
-          color: isSelected ? AppTheme.folderYellow : theme.colorScheme.onSurfaceVariant,
+          color: isSelected ? theme.primaryColor : theme.colorScheme.onSurfaceVariant,
         ),
         title: Text(
           title, 

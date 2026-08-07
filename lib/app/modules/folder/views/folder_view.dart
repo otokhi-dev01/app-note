@@ -28,7 +28,7 @@ class FolderView extends GetView<FolderController> {
         bottomNavigationBar: FolderBottomBar(controller: controller),
         body: RefreshIndicator(
           onRefresh: () => controller.fetchFolders(refresh: true),
-          color: AppTheme.folderYellow,
+          color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
           edgeOffset: 140,
           child: CustomScrollView(
@@ -126,8 +126,8 @@ class FolderView extends GetView<FolderController> {
         borderRadius: 22,
         child: GestureDetector(
           onTap: controller.toggleEditing,
-          child: const Center(
-            child: Icon(Icons.check, color: AppTheme.textSecondary, size: 20, fontWeight: FontWeight.bold),
+          child: Center(
+            child: Icon(Icons.check, color: theme.colorScheme.onSurface, size: 20, fontWeight: FontWeight.bold),
           ),
         ),
       );
@@ -156,12 +156,13 @@ class FolderView extends GetView<FolderController> {
   }
 
   Widget _buildFolderList(BuildContext context) {
+    final theme = Theme.of(context);
     return SliverToBoxAdapter(
       child: Obx(() {
         if (controller.isLoading.value) {
-          return const SizedBox(
+          return SizedBox(
             height: 200,
-            child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+            child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
           );
         }
         return Column(

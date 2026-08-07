@@ -96,7 +96,7 @@ class NoteListView extends GetView<NoteController> {
           borderRadius: 22,
           child: IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 20, fontWeight: FontWeight.bold,),
+            icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 20, fontWeight: FontWeight.bold,),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -132,6 +132,7 @@ class NoteListView extends GetView<NoteController> {
   }
 
   Widget _buildActionIcon(BuildContext context) {
+    final theme = Theme.of(context);
     if (controller.isEditing.value) {
       return LiquidGlassContainer(
         width: 44,
@@ -143,9 +144,9 @@ class NoteListView extends GetView<NoteController> {
             child: Container(
               width: 32,
               height: 32,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppTheme.folderYellow,
+                color: theme.primaryColor,
               ),
               child: const Icon(Icons.check, color: Colors.white, size: 20),
             ),
@@ -159,14 +160,14 @@ class NoteListView extends GetView<NoteController> {
         NoteContextMenu(controller: controller),
         barrierColor: Colors.black.withValues(alpha: 0.1),
       ),
-      child: const LiquidGlassContainer(
+      child: LiquidGlassContainer(
         width: 44,
         height: 44,
         borderRadius: 22,
         child: Center(
           child: Icon(
             Icons.more_horiz,
-            color: AppTheme.textSecondary,
+            color: theme.colorScheme.onSurface,
             size: 24,
           ),
         ),
@@ -175,10 +176,11 @@ class NoteListView extends GetView<NoteController> {
   }
 
   Widget _buildNoteGrid(BuildContext context, int folderId) {
+    final theme = Theme.of(context);
     return Obx(() {
       if (controller.isLoading.value) {
-        return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+        return SliverFillRemaining(
+          child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
         );
       }
       
@@ -217,8 +219,8 @@ class NoteListView extends GetView<NoteController> {
     final theme = Theme.of(context);
     return Obx(() {
       if (controller.isLoading.value) {
-        return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+        return SliverFillRemaining(
+          child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
         );
       }
       
@@ -234,7 +236,7 @@ class NoteListView extends GetView<NoteController> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => controller.fetchNotes(),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.folderYellow),
+                  style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor),
                   child: const Text("Retry"),
                 ),
               ],

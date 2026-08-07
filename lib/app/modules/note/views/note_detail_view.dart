@@ -63,13 +63,14 @@ class NoteDetailView extends GetView<NoteDetailController> {
   }
 
   SystemUiOverlayStyle _systemUiStyle(ThemeData theme) {
-    final style = theme.brightness == Brightness.dark
-        ? SystemUiOverlayStyle.light
-        : SystemUiOverlayStyle.dark;
+    final isDark = theme.brightness == Brightness.dark;
+    final style = isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark;
 
     return style.copyWith(
       statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       systemNavigationBarColor: theme.scaffoldBackgroundColor,
+      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
     );
   }
 

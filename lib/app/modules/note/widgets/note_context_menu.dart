@@ -57,7 +57,7 @@ class NoteContextMenu extends StatelessWidget {
                         "Sort By",
                         Icons.swap_vert_rounded,
                         subtitle: "Default (Date Edited)",
-                        trailing: const Icon(Icons.chevron_right, size: 18, color: AppTheme.textGrey),
+                        trailing: Icon(Icons.chevron_right, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         onTap: () {
                           Get.back();
                           controller.updateSorting("Date Edited");
@@ -69,7 +69,7 @@ class NoteContextMenu extends StatelessWidget {
                         "Group By Date",
                         Icons.calendar_view_day_rounded,
                         subtitle: "Default (On)",
-                        trailing: const Icon(Icons.chevron_right, size: 18, color: AppTheme.textGrey),
+                        trailing: Icon(Icons.chevron_right, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                         onTap: () {
                           Get.back();
                           controller.toggleDateGrouping();
