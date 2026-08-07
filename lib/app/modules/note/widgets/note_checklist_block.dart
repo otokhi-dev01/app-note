@@ -24,81 +24,115 @@ class NoteChecklistBlock extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Column(
         children: [
-          for (final entry in block.items.asMap().entries)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  button: true,
-                  checked: entry.value.checked,
-                  label: entry.value.checked
-                      ? 'Mark checklist item incomplete'
-                      : 'Mark checklist item complete',
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => controller.toggleChecklistItem(
-                      blockIndex,
-                      entry.key,
-                    ),
-                    child: SizedBox(
-                      width: 31,
-                      height: 31,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Icon(
-                          entry.value.checked
-                              ? CupertinoIcons.check_mark_circled_solid
-                              : CupertinoIcons.circle,
-                          color: entry.value.checked
-                              ? AppTheme.folderYellow
-                              : theme.colorScheme.onSurfaceVariant,
-                          size: 21,
-                        ),
+          for (int i = 0; i < block.items.length; i++)
+            _buildChecklistItem(context, block.items[i], i),
+          if (!controller.isReadOnly.value)
+            Padding(
+              padding: const EdgeInsets.only(left: 31, top: 4),
+              child: InkWell(
+                onTap: () => controller.addChecklistItem(blockIndex),
+                child: Row(
+                  children: [
+                    const Icon(CupertinoIcons.add, size: 18, color: AppTheme.folderYellow),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Add Item",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.folderYellow,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                Expanded(
-                  child: TextField(
-                    key: ValueKey(
-                      'checklist-${block.id}-${entry.value.id}',
-                    ),
-                    controller: controller.getTextController(
-                      '${block.id}_${entry.value.id}',
-                      entry.value.text,
-                    ),
-                    enabled: !controller.isReadOnly.value,
-                    onChanged: (value) => controller.onUpdateChecklistItem(
-                      blockIndex,
-                      entry.key,
-                      value,
-                    ),
-                    cursorColor: AppTheme.folderYellow,
-                    cursorWidth: 1.5,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    scrollPadding: const EdgeInsets.only(bottom: 92),
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      height: 1.45,
-                      decoration: entry.value.checked
-                          ? TextDecoration.lineThrough
-                          : null,
-                      decorationColor: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isCollapsed: true,
-                      filled: false,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChecklistItem(BuildContext context, ChecklistItem item, int itemIndex) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          button: true,
+          checked: item.checked,
+          label: item.checked
+              ? 'Mark checklist item incomplete'
+              : 'Mark checklist item complete',
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => controller.toggleChecklistItem(
+              blockIndex,
+              itemIndex,
+            ),
+            child: SizedBox(
+              width: 31,
+              height: 31,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Icon(
+                  item.checked
+                      ? CupertinoIcons.check_mark_circled_solid
+                      : CupertinoIcons.circle,
+                  color: item.checked
+                      ? AppTheme.folderYellow
+                      : theme.colorScheme.onSurfaceVariant,
+                  size: 21,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: TextField(
+            key: ValueKey(
+              'checklist-${block.id}-${item.id}',
+            ),
+            controller: controller.getTextController(
+              '${block.id}_${item.id}',
+              item.text,
+            ),
+            enabled: !controller.isReadOnly.value,
+            onChanged: (value) => controller.onUpdateChecklistItem(
+              blockIndex,
+              itemIndex,
+              value,
+            ),
+            cursorColor: AppTheme.folderYellow,
+            cursorWidth: 1.5,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+            textCapitalization: TextCapitalization.sentences,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              height: 1.45,
+              decoration: item.checked
+                  ? TextDecoration.lineThrough
+                  : null,
+              decorationColor: theme.colorScheme.onSurfaceVariant,
+            ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              isCollapsed: true,
+              filled: false,
+              fillColor: Colors.transparent,
+            ),
+          ),
+        ),
+        if (!controller.isReadOnly.value && block.items.length > 1)
+          IconButton(
+            icon: const Icon(CupertinoIcons.xmark, size: 16),
+            onPressed: () => controller.deleteChecklistItem(blockIndex, itemIndex),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+          ),
+      ],
     );
   }
 }

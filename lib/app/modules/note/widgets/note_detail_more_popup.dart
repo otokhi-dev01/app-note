@@ -12,8 +12,6 @@ class NoteDetailMorePopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GestureDetector(
@@ -56,6 +54,16 @@ class NoteDetailMorePopup extends StatelessWidget {
                       _buildDivider(context),
                       _buildMenuItem(
                         context,
+                        controller.isLocked.value ? "Unlock" : "Lock",
+                        controller.isLocked.value ? CupertinoIcons.lock_fill : CupertinoIcons.lock,
+                        onTap: () {
+                          Get.back();
+                          controller.toggleLock();
+                        },
+                      ),
+                      _buildDivider(context),
+                      _buildMenuItem(
+                        context,
                         "Move",
                         CupertinoIcons.folder_badge_plus,
                         onTap: () {
@@ -70,7 +78,7 @@ class NoteDetailMorePopup extends StatelessWidget {
                         CupertinoIcons.doc_text_search,
                         onTap: () {
                           Get.back();
-                          Get.snackbar("Info", "Find in Note coming soon");
+                          controller.toggleSearch();
                         },
                       ),
                       _buildDivider(context),

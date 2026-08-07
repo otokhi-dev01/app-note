@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/note_model.dart';
 import '../../../theme/app_theme.dart';
@@ -22,58 +24,109 @@ class NoteContentEditor extends StatelessWidget {
     final noteDate = controller.currentNote.value?.updatedAt ?? DateTime.now();
     final horizontalInset = _editorInset(context);
     final topPadding = MediaQuery.paddingOf(context).top + _topBarControlSize + 16;
+    final bottomPadding = MediaQuery.viewInsetsOf(context).bottom + 140; // Space for toolbar + buffer
 
-    return _PageContent(
-      child: ListView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: EdgeInsets.fromLTRB(
-          horizontalInset,
-          topPadding,
-          horizontalInset,
-          120, // _editorBottomPadding
-        ),
-        children: [
-          Text(
-            DateFormat("MMMM d, yyyy 'at' h:mm a").format(noteDate),
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 13,
+    return Stack(
+      children: [
+        _PageContent(
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.fromLTRB(
+              horizontalInset,
+              topPadding,
+              horizontalInset,
+              bottomPadding,
             ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            key: const ValueKey('note-title-field'),
-            controller: controller.titleController,
-            enabled: !controller.isReadOnly.value,
-            onTap: () => controller.activeBlockIndex = -1,
-            cursorColor: AppTheme.folderYellow,
-            cursorWidth: 1.5,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            textCapitalization: TextCapitalization.sentences,
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Title',
-              hintStyle: theme.textTheme.headlineLarge?.copyWith(
-                fontSize: 32,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            children: [
+              Text(
+                DateFormat("MMMM d, yyyy 'at' h:mm a").format(noteDate),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  fontSize: 13,
+                ),
               ),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              isCollapsed: true,
-              filled: false,
-            ),
+              const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('note-title-field'),
+                controller: controller.titleController,
+                enabled: !controller.isReadOnly.value,
+                onTap: () => controller.activeBlockIndex = -1,
+                cursorColor: AppTheme.folderYellow,
+                cursorWidth: 1.5,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Title',
+                  hintStyle: theme.textTheme.headlineLarge?.copyWith(
+                    fontSize: 32,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  isCollapsed: true,
+                  filled: false,
+                  fillColor: Colors.transparent, // Explicitly transparent
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final entry in controller.blocks.asMap().entries)
+                _buildBlock(context, entry.value, entry.key),
+            ],
           ),
-          const SizedBox(height: 12),
-          for (final entry in controller.blocks.asMap().entries)
-            _buildBlock(context, entry.value, entry.key),
-        ],
+        ),
+        // Search Bar Overlay
+        Obx(() => controller.isSearchVisible.value
+            ? _buildSearchBar(context)
+            : const SizedBox.shrink()),
+      ],
+    );
+  }
+
+  Widget _buildSearchBar(BuildContext context) {
+    final theme = Theme.of(context);
+    final topPadding = MediaQuery.paddingOf(context).top + 60; // Just below top bar
+
+    return Positioned(
+      top: topPadding,
+      left: 16,
+      right: 16,
+      child: Material(
+        elevation: 10,
+        borderRadius: BorderRadius.circular(15),
+        color: theme.colorScheme.surface,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(CupertinoIcons.search, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  focusNode: controller.searchFocusNode,
+                  onChanged: (v) => controller.searchQuery.value = v,
+                  decoration: const InputDecoration(
+                    hintText: "Find in note...",
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    filled: false,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(CupertinoIcons.xmark_circle_fill, size: 18),
+                onPressed: controller.toggleSearch,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -133,6 +186,7 @@ class NoteContentEditor extends StatelessWidget {
           focusedBorder: InputBorder.none,
           isCollapsed: true,
           filled: false,
+          fillColor: Colors.transparent, // Explicitly transparent
         ),
       ),
     );
