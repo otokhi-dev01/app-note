@@ -69,7 +69,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                   borderRadius: 22,
                   child: IconButton(
                     onPressed: () => Get.back(),
-                    icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 28),
+                    icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 28),
                     padding: EdgeInsets.zero,
                   ),
                 ),
@@ -89,9 +89,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                             child: Container(
                               width: 32,
                               height: 32,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: AppTheme.folderYellow,
+                                color: theme.primaryColor,
                               ),
                               child: const Icon(Icons.check, color: Colors.white, size: 20),
                             ),
@@ -237,7 +237,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             children: [
               if (controller.isEditing.value)
                 _buildSelectionIndicator(context, isSelected),
-              Icon(folder.icon, color: AppTheme.folderYellow, size: 30),
+              Icon(folder.icon, color: theme.primaryColor, size: 30),
             ],
           ),
           title: Text(folder.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),

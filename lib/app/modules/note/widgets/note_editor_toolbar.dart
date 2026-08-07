@@ -17,6 +17,7 @@ class NoteEditorToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardVisible = bottomInset > 0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Smooth animation for following the keyboard
     return AnimatedContainer(
@@ -34,7 +35,7 @@ class NoteEditorToolbar extends StatelessWidget {
           child: LiquidGlassContainer(
             borderRadius: 30,
             blur: 25,
-            opacity: 0.98, // Professional iOS solid white feel
+            opacity: isDark ? 0.8 : 0.98, // Professional iOS feel
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 10,
@@ -102,7 +103,7 @@ class _ToolbarButton extends StatelessWidget {
           onPressed: onTap,
           icon: Icon(
             icon, 
-            color: Colors.black.withValues(alpha: 0.85), // High-quality dark icons
+            color: Theme.of(context).colorScheme.onSurface, // Uses adaptive theme color
             size: 26,
           ),
         ),

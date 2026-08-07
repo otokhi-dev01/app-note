@@ -64,6 +64,16 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
             image: widget.imageProvider,
             fit: BoxFit.contain,
             filterQuality: FilterQuality.high,
+            errorBuilder: (context, error, stackTrace) => const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.exclamationmark_triangle, color: Colors.white, size: 40),
+                  SizedBox(height: 12),
+                  Text("Image not available", style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
           ),
         ),
       ),

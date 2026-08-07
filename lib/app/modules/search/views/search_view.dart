@@ -113,7 +113,7 @@ class SearchView extends GetView<sc.SearchController> {
     final theme = Theme.of(context);
     return ListTile(
       onTap: () => controller.applyFilter(title),
-      leading: Icon(icon, color: AppTheme.folderYellow, size: 24),
+      leading: Icon(icon, color: theme.primaryColor, size: 24),
       title: Text(
         title,
         style: theme.textTheme.bodyLarge,
@@ -147,7 +147,7 @@ class SearchView extends GetView<sc.SearchController> {
                 for (int i = 0; i < controller.folderResults.length; i++) ...[
                   ListTile(
                     onTap: () => Get.toNamed(Routes.NOTE_LIST, arguments: controller.folderResults[i]),
-                    leading: Icon(controller.folderResults[i].icon, color: AppTheme.folderYellow),
+                    leading: Icon(controller.folderResults[i].icon, color: theme.primaryColor),
                     title: Text(controller.folderResults[i].name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
                     trailing: Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.onSurfaceVariant.withOpacity(0.3)),
                   ),

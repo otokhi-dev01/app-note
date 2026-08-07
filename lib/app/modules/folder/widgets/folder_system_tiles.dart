@@ -34,7 +34,7 @@ class FolderSystemTiles extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
-          leading: const Icon(Icons.delete_outline_rounded, color: AppTheme.folderYellow, size: 30),
+          leading: Icon(Icons.delete_outline_rounded, color: theme.primaryColor, size: 30),
           title: Text("Recently Deleted", style: theme.textTheme.bodyLarge),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -58,7 +58,7 @@ class FolderSystemTiles extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE),
-          leading: const Icon(Icons.archive_outlined, color: AppTheme.folderYellow, size: 30),
+          leading: Icon(Icons.archive_outlined, color: theme.primaryColor, size: 30),
           title: Text("Archive", style: theme.textTheme.bodyLarge),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -88,8 +88,8 @@ class FolderSystemTiles extends StatelessWidget {
             borderRadius: 10,
             opacity: 0.08,
             blur: 15,
-            child: const Center(
-              child: Icon(Icons.person_outline, color: AppTheme.folderYellow, size: 24),
+            child: Center(
+              child: Icon(Icons.person_outline, color: theme.primaryColor, size: 24),
             ),
           ),
           title: Text("Profile", style: theme.textTheme.bodyLarge),
@@ -114,8 +114,8 @@ class FolderSystemTiles extends StatelessWidget {
             borderRadius: 10,
             opacity: 0.08,
             blur: 15,
-            child: const Center(
-              child: Icon(Icons.delete_sweep_rounded, color: AppTheme.folderYellow, size: 24),
+            child: Center(
+              child: Icon(Icons.delete_sweep_rounded, color: theme.primaryColor, size: 24),
             ),
           ),
           title: Text("Trash", style: theme.textTheme.bodyLarge),

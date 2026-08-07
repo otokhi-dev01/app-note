@@ -27,6 +27,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ensure we use the ThemeService to load the saved preference or system default
+    final themeService = ThemeService();
+    
     return GetMaterialApp(
       title: "Otokhi Note",
       debugShowCheckedModeBanner: false,
@@ -36,7 +39,7 @@ class MyApp extends StatelessWidget {
       getPages: AppPages.routes,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeService().theme,
+      themeMode: themeService.theme,
     );
   }
 }

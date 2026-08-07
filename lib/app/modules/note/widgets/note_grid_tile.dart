@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -51,17 +53,9 @@ class NoteGridTile extends StatelessWidget {
                   if (attachment != null)
                     Expanded(
                       flex: 3,
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                          image: DecorationImage(
-                            image: attachment.url != null 
-                              ? NetworkImage(attachment.url!) 
-                              : const AssetImage('assets/images/placeholder.png') as ImageProvider,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: _GridImage(attachment: attachment),
                       ),
                     )
                   else
@@ -130,10 +124,10 @@ class NoteGridTile extends StatelessWidget {
                   ),
                 )
               else if (note.isPinned)
-                const Positioned(
+                Positioned(
                   top: 8,
                   left: 8,
-                  child: Icon(Icons.push_pin, color: AppTheme.folderYellow, size: 16),
+                  child: Icon(Icons.push_pin, color: theme.primaryColor, size: 16),
                 ),
             ],
           ),
@@ -155,5 +149,73 @@ class NoteGridTile extends StatelessWidget {
     if (note.content.isEmpty) return "No additional text";
     final firstBlock = note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
     return firstBlock != null ? firstBlock.text : "Attachment/Checklist";
+  }
+}
+
+class _GridImage extends StatelessWidget {
+  final AttachmentBlock attachment;
+
+  const _GridImage({required this.attachment});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final url = attachment.url;
+    final localPath = attachment.localPath;
+
+    if (localPath != null && File(localPath).existsSync()) {
+      return Image.file(
+        File(localPath),
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _GridPlaceholder(),
+      );
+    }
+
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.cover,
+        loadingBuilder: (_, child, progress) {
+          if (progress == null) return child;
+          return Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.primaryColor,
+                value: progress.expectedTotalBytes != null
+                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+        errorBuilder: (_, __, ___) => _GridPlaceholder(),
+      );
+    }
+
+    return _GridPlaceholder();
+  }
+}
+
+class _GridPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+      child: Icon(
+        CupertinoIcons.photo,
+        size: 30,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
+    );
   }
 }

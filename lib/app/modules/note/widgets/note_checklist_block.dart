@@ -38,7 +38,7 @@ class NoteChecklistBlock extends StatelessWidget {
                     Text(
                       "Add Item",
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.folderYellow,
+                        color: theme.primaryColor,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -79,7 +79,7 @@ class NoteChecklistBlock extends StatelessWidget {
                       ? CupertinoIcons.check_mark_circled_solid
                       : CupertinoIcons.circle,
                   color: item.checked
-                      ? AppTheme.folderYellow
+                      ? theme.primaryColor
                       : theme.colorScheme.onSurfaceVariant,
                   size: 21,
                 ),
@@ -102,7 +102,7 @@ class NoteChecklistBlock extends StatelessWidget {
               itemIndex,
               value,
             ),
-            cursorColor: AppTheme.folderYellow,
+            cursorColor: theme.primaryColor,
             cursorWidth: 1.5,
             maxLines: null,
             keyboardType: TextInputType.multiline,

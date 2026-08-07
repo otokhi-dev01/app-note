@@ -34,22 +34,26 @@ class NoteEditorTopBar extends StatelessWidget {
                 onTap: Get.back,
                 size: 44,
                 iconSize: 28,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               Row(
                 children: [
                   _GlassIconButton(
                     icon: CupertinoIcons.arrow_uturn_left,
                     onTap: controller.undo,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   const SizedBox(width: 15),
                   _GlassIconButton(
                     icon: CupertinoIcons.share,
                     onTap: controller.shareNote,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   const SizedBox(width: 15),
                   _GlassIconButton(
                     icon: Icons.more_horiz,
                     onTap: onShowMoreMenu,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   const SizedBox(width: 15),
                   Obx(
@@ -116,8 +120,8 @@ class _SaveButton extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: controller.saveNote,
         child: Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.folderYellow,
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor,
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,

@@ -119,7 +119,8 @@ class _TableActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = color ?? AppTheme.folderYellow;
+    final theme = Theme.of(context);
+    final effectiveColor = color ?? theme.primaryColor;
     
     return GestureDetector(
       onTap: onTap,
