@@ -23,12 +23,12 @@ class FolderModel {
 
   factory FolderModel.fromJson(Map<String, dynamic> json) {
     return FolderModel(
-      id: json['FolderId'] ?? 0,
-      name: (json['FolderName'] ?? '').toString().trim(),
-      iconName: json['IconName'] ?? '',
-      colorValue: json['ColorValue'] ?? '',
-      sortOrder: json['SortOrder'] ?? 0,
-      noteCount: json['NoteCount'] ?? 0,
+      id: json['FolderId'] ?? json['id'] ?? json['Id'] ?? 0,
+      name: (json['FolderName'] ?? json['Name'] ?? json['name'] ?? '').toString().trim(),
+      iconName: json['IconName'] ?? json['iconName'] ?? '',
+      colorValue: json['ColorValue'] ?? json['colorValue'] ?? '',
+      sortOrder: json['SortOrder'] ?? json['sortOrder'] ?? 0,
+      noteCount: json['NoteCount'] ?? json['noteCount'] ?? 0,
       createdAt: json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt']) : null,
       updatedAt: json['UpdatedAt'] != null ? DateTime.tryParse(json['UpdatedAt']) : null,
     );
@@ -37,9 +37,14 @@ class FolderModel {
   Map<String, dynamic> toJson() => {
     "FolderId": id,
     "FolderName": name,
+    "Name": name, 
+    "name": name,
     "IconName": iconName,
+    "iconName": iconName,
     "ColorValue": colorValue,
+    "colorValue": colorValue,
     "SortOrder": sortOrder,
+    "sortOrder": sortOrder,
   };
 
   IconData get icon {

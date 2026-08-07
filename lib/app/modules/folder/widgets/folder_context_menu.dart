@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
-import '../folder_controller.dart';
+import '../controllers/folder_controller.dart';
 import 'folder_create_modal.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';

@@ -39,6 +39,12 @@ class NoteModel {
   factory NoteModel.fromJson(Map<String, dynamic> json) {
     const String baseUrl = "https://note.piisiit.com";
     
+    // Support various naming conventions for ID and Title
+    final int id = json['NoteId'] ?? json['id'] ?? json['Id'] ?? 0;
+    final String title = (json['Title'] ?? json['title'] ?? json['Name'] ?? json['name'] ?? '').toString().trim();
+    final int folderId = json['FolderId'] ?? json['folderId'] ?? json['Folder_Id'] ?? 0;
+    final String folderName = (json['FolderName'] ?? json['folderName'] ?? '').toString().trim();
+
     // 1. Parse Content (Text, Checklists, etc.)
     var contentData = json['ContentJson'] ?? json['Content'] ?? json['content'] ?? json['NoteContent'] ?? json['blocks'] ?? json['data'];
     List<NoteBlock> parsedContent = [];
@@ -94,14 +100,14 @@ class NoteModel {
     }
 
     return NoteModel(
-      id: json['NoteId'] ?? json['id'] ?? 0, // Fallback to 'id' if 'NoteId' is missing
-      folderId: json['FolderId'] ?? json['folderId'] ?? 0,
-      folderName: (json['FolderName'] ?? json['folderName'] ?? '').toString().trim(),
-      title: (json['Title'] ?? json['title'] ?? '').toString().trim(),
+      id: id,
+      folderId: folderId,
+      folderName: folderName,
+      title: title,
       content: parsedContent,
-      isPinned: json['IsPinned'] ?? json['isPinned'] ?? false,
-      isArchived: json['IsArchived'] ?? json['isArchived'] ?? false,
-      isLocked: json['IsLocked'] ?? json['isLocked'] ?? false,
+      isPinned: json['IsPinned'] ?? json['isPinned'] ?? json['pinned'] ?? false,
+      isArchived: json['IsArchived'] ?? json['isArchived'] ?? json['archived'] ?? false,
+      isLocked: json['IsLocked'] ?? json['isLocked'] ?? json['locked'] ?? false,
       sortOrder: json['SortOrder'] ?? json['sortOrder'] ?? 0,
       attachmentCount: json['AttachmentCount'] ?? json['attachmentCount'] ?? 0,
       pinnedAt: _parseDate(json['PinnedAt'] ?? json['pinnedAt']),

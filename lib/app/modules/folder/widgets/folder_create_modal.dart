@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 
 import '../../../data/models/folder_model.dart';
 import '../../../theme/app_theme.dart';
-import '../folder_controller.dart';
+import '../controllers/folder_controller.dart';
 
 class FolderCreateModal extends StatefulWidget {
   final FolderModel? folder;
@@ -67,22 +67,38 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
   Future<void> _saveFolder() async {
     if (!_canSave) return;
 
-    setState(() => _isSaving = true);
-    final folder = widget.folder;
-    final success = await widget.controller.onSaveFolder(
-      id: folder?.id ?? 0,
-      name: _folderName,
-      iconName: folder?.iconName,
-      colorValue: folder?.colorValue,
-      sortOrder: folder?.sortOrder,
-    );
+    // Dismiss keyboard immediately
+    FocusScope.of(context).unfocus();
 
-    if (!mounted) return;
-    if (success) {
+    // If renaming and name hasn't changed, just close
+    if (_isRenaming && _folderName.trim() == widget.folder!.name.trim()) {
       Get.back<void>();
       return;
     }
-    setState(() => _isSaving = false);
+
+    setState(() => _isSaving = true);
+    
+    try {
+      final folder = widget.folder;
+      final success = await widget.controller.onSaveFolder(
+        id: folder?.id ?? 0,
+        name: _folderName.trim(),
+        iconName: folder?.iconName,
+        colorValue: folder?.colorValue,
+        sortOrder: folder?.sortOrder,
+      );
+
+      if (!mounted) return;
+      
+      if (success) {
+        // Use closeAllSnackbars if needed, but here we just want to close the bottom sheet
+        Get.back<void>(); 
+      } else {
+        setState(() => _isSaving = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
