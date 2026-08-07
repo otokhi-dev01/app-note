@@ -2,9 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
-import '../note_detail_controller.dart';
+import '../controllers/note_detail_controller.dart';
 
 class NoteDetailMorePopup extends StatelessWidget {
   final NoteDetailController controller;
@@ -52,6 +51,16 @@ class NoteDetailMorePopup extends StatelessWidget {
                         onTap: () {
                           Get.back();
                           controller.toggleArchive();
+                        },
+                      ),
+                      _buildDivider(context),
+                      _buildMenuItem(
+                        context,
+                        "Move",
+                        CupertinoIcons.folder_badge_plus,
+                        onTap: () {
+                          Get.back();
+                          controller.moveNote();
                         },
                       ),
                       _buildDivider(context),

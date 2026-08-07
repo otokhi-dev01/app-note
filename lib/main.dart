@@ -2,14 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'app/data/services/initial_binding.dart';
+import 'app/data/providers/initial_binding.dart';
 import 'app/routes/app_pages.dart';
 import 'app/theme/app_theme.dart';
-import 'app/data/services/theme_service.dart';
+import 'app/data/providers/theme_service.dart';
 
 /*
   App: Otokhi Notes
-  Date: 08.05.2026 update by nona in the morning at 11:10am
+  Date: 08.07.2026 update by nona in the morning at 11:10am
   Update by: branch nona_developer
   Update by: branch nona
   Feature: dark mode and light mode, rebranding to Otokhi

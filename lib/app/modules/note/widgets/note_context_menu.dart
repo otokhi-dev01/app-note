@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
-import 'package:Note/app/modules/note/note_controller.dart';
+import 'package:Note/app/modules/note/controllers/note_controller.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 class NoteContextMenu extends StatelessWidget {
@@ -29,13 +29,13 @@ class NoteContextMenu extends StatelessWidget {
                   borderRadius: 16,
                   opacity: 0.98,
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Column(
+                  child: Obx(() => Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildMenuItem(
                         context,
-                        "View as Gallery",
-                        Icons.grid_view_rounded,
+                        controller.viewMode.value == "list" ? "View as Gallery" : "View as List",
+                        controller.viewMode.value == "list" ? Icons.grid_view_rounded : Icons.list_rounded,
                         onTap: () {
                           Get.back();
                           controller.toggleViewMode();
@@ -97,6 +97,7 @@ class NoteContextMenu extends StatelessWidget {
           ),
         ),
       ),
+      )
     );
   }
 

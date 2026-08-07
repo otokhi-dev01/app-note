@@ -1,0 +1,315 @@
+import 'package:Note/app/modules/note/widgets/note_list_bottom_bars.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import '../../../data/models/folder_model.dart';
+import '../../../data/models/note_model.dart';
+import '../../../widgets/glass_widgets.dart';
+import '../controllers/note_controller.dart';
+import '../../../theme/app_theme.dart';
+import '../widgets/note_context_menu.dart';
+import '../widgets/note_list_tile.dart';
+import '../widgets/note_grid_tile.dart';
+
+
+
+class NoteListView extends GetView<NoteController> {
+  const NoteListView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final FolderModel? folder = Get.arguments is FolderModel ? Get.arguments : null;
+    final theme = Theme.of(context);
+    final folderName = folder?.name ?? "All Notes";
+    final int folderId = folder?.id ?? 0;
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: theme.brightness == Brightness.dark 
+          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
+          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      child: Scaffold(
+        extendBody: true,
+        backgroundColor: theme.scaffoldBackgroundColor,
+        extendBodyBehindAppBar: true,
+        body: RefreshIndicator(
+          onRefresh: () => controller.fetchNotes(folderId: folder?.id, refresh: true),
+          color: theme.primaryColor,
+          backgroundColor: theme.scaffoldBackgroundColor,
+          edgeOffset: 140,
+          child: Obx(() => CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              _buildAppBar(context, folderName),
+              if (controller.viewMode.value == "gallery")
+                _buildNoteGrid(context, folderId)
+              else
+                _buildNoteList(context, folderId),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          )),
+        ),
+        bottomNavigationBar: Obx(() {
+          if (controller.isEditing.value) {
+            return NoteListEditBar(folderId: folderId, controller: controller);
+          }
+          return NoteListBottomBar(folderId: folderId, controller: controller);
+        }),
+      ),
+    );
+  }
+
+  Widget _buildAppBar(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return SliverAppBar(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      pinned: true,
+      expandedHeight: 140.0,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      centerTitle: true,
+      systemOverlayStyle: theme.brightness == Brightness.dark 
+          ? SystemUiOverlayStyle.light 
+          : SystemUiOverlayStyle.dark,
+      title: LayoutBuilder(
+        builder: (context, constraints) {
+          final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+          final opacity = (1.0 - percentage).clamp(0.0, 1.0);
+          return Opacity(
+            opacity: opacity > 0.8 ? 1.0 : 0.0,
+            child: Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          );
+        },
+      ),
+      leading: Center(
+        child: LiquidGlassContainer(
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          child: IconButton(
+            onPressed: () => Get.back(),
+            icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 20, fontWeight: FontWeight.bold,),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ),
+      ),
+      leadingWidth: 70,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Obx(() => _buildActionIcon(context)),
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+            return Opacity(
+              opacity: percentage.clamp(0.0, 1.0),
+              child: Text(
+                title,
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionIcon(BuildContext context) {
+    if (controller.isEditing.value) {
+      return LiquidGlassContainer(
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        child: GestureDetector(
+          onTap: controller.toggleEditing,
+          child: Center(
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.folderYellow,
+              ),
+              child: const Icon(Icons.check, color: Colors.white, size: 20),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => Get.dialog(
+        NoteContextMenu(controller: controller),
+        barrierColor: Colors.black.withValues(alpha: 0.1),
+      ),
+      child: const LiquidGlassContainer(
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        child: Center(
+          child: Icon(
+            Icons.more_horiz,
+            color: AppTheme.textSecondary,
+            size: 24,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoteGrid(BuildContext context, int folderId) {
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const SliverFillRemaining(
+          child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+        );
+      }
+      
+      if (controller.notes.isEmpty) {
+        return const SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(child: Text("No Notes")),
+        );
+      }
+
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.85,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return NoteGridTile(
+                note: controller.notes[index],
+                folderId: folderId,
+                controller: controller,
+              );
+            },
+            childCount: controller.notes.length,
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _buildNoteList(BuildContext context, int folderId) {
+    final theme = Theme.of(context);
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const SliverFillRemaining(
+          child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+        );
+      }
+      
+      if (controller.hasError.value) {
+        return SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.wifi_off_rounded, size: 64, color: AppTheme.textSecondary),
+                const SizedBox(height: 16),
+                Text(controller.errorMessage.value, style: theme.textTheme.bodyLarge),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => controller.fetchNotes(),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.folderYellow),
+                  child: const Text("Retry"),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      if (controller.notes.isEmpty) {
+        return const SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(child: Text("No Notes")),
+        );
+      }
+
+      final groupedNotes = _groupNotesByDate(controller.notes);
+
+      return SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final section = groupedNotes.keys.elementAt(index);
+          final sectionNotes = groupedNotes[section]!;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, bottom: 8),
+                  child: Text(section, style: theme.textTheme.titleLarge),
+                ),
+                GlassCard(
+                  borderRadius: 20,
+                  padding: EdgeInsets.zero,
+                  children: [
+                    for (int i = 0; i < sectionNotes.length; i++) ...[
+                      NoteListTile(note: sectionNotes[i], folderId: folderId, controller: controller),
+                      if (i < sectionNotes.length - 1)
+                        const Divider(indent: 56, height: 1),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          );
+        }, childCount: groupedNotes.length),
+      );
+    });
+  }
+
+  Map<String, List<NoteModel>> _groupNotesByDate(List<NoteModel> notes) {
+    Map<String, List<NoteModel>> groups = {};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final sevenDaysAgo = today.subtract(const Duration(days: 7));
+
+    for (var note in notes) {
+      final date = note.updatedAt ?? now;
+      final noteDate = DateTime(date.year, date.month, date.day);
+      
+      String key;
+      if (noteDate == today) {
+        key = "Today";
+      } else if (noteDate == yesterday) {
+        key = "Yesterday";
+      } else if (noteDate.isAfter(sevenDaysAgo)) {
+        key = "Previous 7 Days";
+      } else {
+        key = DateFormat('MMMM').format(date);
+      }
+
+      if (!groups.containsKey(key)) groups[key] = [];
+      groups[key]!.add(note);
+    }
+    return groups;
+  }
+}
