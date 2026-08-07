@@ -43,15 +43,20 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 ),
               ],
             ),
-          ],
-        ),
-        bottomNavigationBar: Obx(
-          () => controller.isLoading.value || controller.isReadOnly.value
-              ? const SizedBox.shrink()
-              : NoteEditorToolbar(
+            // Floating Toolbar that follows keyboard
+            Obx(() {
+              if (controller.isLoading.value || controller.isReadOnly.value) {
+                return const SizedBox.shrink();
+              }
+              return Align(
+                alignment: Alignment.bottomCenter,
+                child: NoteEditorToolbar(
                   controller: controller,
                   onShowAttachmentPopup: () => _showAttachmentPopup(context),
                 ),
+              );
+            }),
+          ],
         ),
       ),
     );

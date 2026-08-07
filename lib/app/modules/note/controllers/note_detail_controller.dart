@@ -27,6 +27,7 @@ class NoteDetailController extends GetxController {
   final isReadOnly = false.obs;
   final isPinned = false.obs;
   final isArchived = false.obs;
+  final isLocked = false.obs;
 
   // --- UI Controllers ---
   final titleController = TextEditingController();
@@ -35,8 +36,13 @@ class NoteDetailController extends GetxController {
 
   // --- State ---
   final _history = <List<NoteBlock>>[];
-  static const int _maxHistory = 20;
+  final _redoStack = <List<NoteBlock>>[];
+  static const int _maxHistory = 30;
   int activeBlockIndex = -1;
+
+  final isSearchVisible = false.obs;
+  final searchQuery = "".obs;
+  final searchFocusNode = FocusNode();
 
   @override
   void onInit() {
@@ -94,6 +100,7 @@ class NoteDetailController extends GetxController {
     titleController.text = note.title;
     isPinned.value = note.isPinned;
     isArchived.value = note.isArchived;
+    isLocked.value = note.isLocked;
 
     _clearControllers();
     blocks.assignAll(note.content);
@@ -108,6 +115,7 @@ class NoteDetailController extends GetxController {
     currentNote.value = NoteModel(id: 0, folderId: folderId, title: '', folderName: '');
     isPinned.value = false;
     isArchived.value = false;
+    isLocked.value = false;
     titleController.clear();
     blocks.clear();
     _history.clear();
@@ -144,7 +152,31 @@ class NoteDetailController extends GetxController {
 
     final items = List<ChecklistItem>.from(block.items);
     final oldItem = items[itemIndex];
+    if (oldItem.text == text) return;
+
     items[itemIndex] = ChecklistItem(id: oldItem.id, text: text, checked: oldItem.checked);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: items);
+  }
+
+  void addChecklistItem(int blockIndex) {
+    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value) return;
+    _recordHistory();
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+
+    final items = List<ChecklistItem>.from(block.items);
+    items.add(ChecklistItem(id: _generateBlockId(), text: ''));
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: items);
+  }
+
+  void deleteChecklistItem(int blockIndex, int itemIndex) {
+    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value) return;
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock || block.items.length <= 1) return;
+    _recordHistory();
+
+    final items = List<ChecklistItem>.from(block.items);
+    items.removeAt(itemIndex);
     blocks[blockIndex] = ChecklistBlock(id: block.id, items: items);
   }
 
@@ -169,13 +201,25 @@ class NoteDetailController extends GetxController {
   void addChecklistBlock() {
     if (isReadOnly.value) return;
     _recordHistory();
-    _insertBlock(ChecklistBlock(id: _generateBlockId(), items: [ChecklistItem(id: _generateBlockId(), text: '')]));
+    
+    final newId = _generateBlockId();
+    final itemId = _generateBlockId();
+    
+    _insertBlock(ChecklistBlock(
+      id: newId, 
+      items: [ChecklistItem(id: itemId, text: '')]
+    ));
+    
+    // Logic to request focus could be added here if we had focus nodes
   }
 
   void addTableBlock() {
     if (isReadOnly.value) return;
     _recordHistory();
+    
     _insertBlock(TableBlock(id: _generateBlockId(), rows: [['', ''], ['', '']]));
+    
+    // We add a text block after table for easier navigation
     addTextBlock();
   }
 
@@ -327,9 +371,36 @@ class NoteDetailController extends GetxController {
 
   void undo() {
     if (_history.isEmpty || isReadOnly.value) return;
+    
+    // Capture current state to redo stack before undoing
+    _syncTextBlocks();
+    _redoStack.add(blocks.map((b) => b).toList());
+    
     final lastState = _history.removeLast();
     blocks.assignAll(lastState);
     _restoreBlockControllers(lastState);
+  }
+
+  void redo() {
+    if (_redoStack.isEmpty || isReadOnly.value) return;
+
+    // Capture current state to history before redoing
+    _syncTextBlocks();
+    _history.add(blocks.map((b) => b).toList());
+
+    final nextState = _redoStack.removeLast();
+    blocks.assignAll(nextState);
+    _restoreBlockControllers(nextState);
+  }
+
+  void toggleSearch() {
+    isSearchVisible.value = !isSearchVisible.value;
+    if (isSearchVisible.value) {
+      searchFocusNode.requestFocus();
+    } else {
+      searchQuery.value = "";
+      searchFocusNode.unfocus();
+    }
   }
 
   Future<void> togglePin() async {
@@ -359,6 +430,20 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  Future<void> toggleLock() async {
+    final note = currentNote.value;
+    if (note == null || note.id == 0) return;
+    try {
+      final newState = !isLocked.value;
+      await _noteService.updateNoteState(note.id, isLocked: newState);
+      isLocked.value = newState;
+      Get.snackbar("Success", newState ? "Note Locked" : "Note Unlocked",
+          snackPosition: SnackPosition.BOTTOM);
+    } catch (e) {
+      Get.snackbar("Error", "Failed to update lock status");
+    }
+  }
+
   Future<void> deleteNote() async {
     final note = currentNote.value;
     if (note == null || note.id == 0) return;
@@ -373,7 +458,8 @@ class NoteDetailController extends GetxController {
             try {
               await _noteService.deleteRestoreNote(note.id, true);
               Get.back(); Get.back(result: true);
-              Get.snackbar("Success", "Note moved to trash", snackPosition: SnackPosition.BOTTOM);
+              Get.snackbar("Success", "Note moved to trash",
+                  snackPosition: SnackPosition.BOTTOM);
             } catch (e) {
               Get.snackbar("Error", "Could not delete note. Please try again.");
             }
@@ -398,7 +484,8 @@ class NoteDetailController extends GetxController {
           Get.back();
           try {
             _syncTextBlocks();
-            await _noteService.saveNote(folder.id, titleController.text.trim(), noteId: note.id, content: blocks);
+            await _noteService.saveNote(folder.id, titleController.text.trim(),
+                noteId: note.id, content: blocks);
             Get.back(result: true);
             Get.snackbar("Success", "Moved note to ${folder.name}", snackPosition: SnackPosition.BOTTOM);
           } catch (e) { Get.snackbar("Error", "Failed to move note"); }
@@ -419,7 +506,9 @@ class NoteDetailController extends GetxController {
       content: SingleChildScrollView(child: Text(content)),
       actions: [
         TextButton(onPressed: () => Get.back(), child: const Text("Close")),
-        TextButton(onPressed: () { Clipboard.setData(ClipboardData(text: content)); Get.back(); Get.snackbar("Success", "Content copied", snackPosition: SnackPosition.BOTTOM); }, child: const Text("Copy Text")),
+        TextButton(onPressed: () { Clipboard.setData(ClipboardData(text: content)); Get.back();
+          Get.snackbar("Success", "Content copied",
+            snackPosition: SnackPosition.BOTTOM); }, child: const Text("Copy Text")),
       ],
     ));
   }
@@ -429,9 +518,34 @@ class NoteDetailController extends GetxController {
   void _syncTextBlocks() {
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
-      if (block is! TextBlock) continue;
-      final tc = blockControllers[block.id];
-      if (tc != null) blocks[i] = TextBlock(id: block.id, text: tc.text, style: block.style);
+      if (block is TextBlock) {
+        final tc = blockControllers[block.id];
+        if (tc != null) blocks[i] = TextBlock(id: block.id, text: tc.text, style: block.style);
+      } else if (block is ChecklistBlock) {
+        final items = List<ChecklistItem>.from(block.items);
+        bool changed = false;
+        for (int j = 0; j < items.length; j++) {
+          final tc = blockControllers['${block.id}_${items[j].id}'];
+          if (tc != null && tc.text != items[j].text) {
+            items[j] = ChecklistItem(id: items[j].id, text: tc.text, checked: items[j].checked);
+            changed = true;
+          }
+        }
+        if (changed) blocks[i] = ChecklistBlock(id: block.id, items: items);
+      } else if (block is TableBlock) {
+        final rows = List<List<String>>.from(block.rows.map((r) => List<String>.from(r)));
+        bool changed = false;
+        for (int r = 0; r < rows.length; r++) {
+          for (int c = 0; c < rows[r].length; c++) {
+            final tc = blockControllers['table_${block.id}_${r}_$c'];
+            if (tc != null && tc.text != rows[r][c]) {
+              rows[r][c] = tc.text;
+              changed = true;
+            }
+          }
+        }
+        if (changed) blocks[i] = TableBlock(id: block.id, rows: rows);
+      }
     }
   }
 
@@ -440,6 +554,9 @@ class NoteDetailController extends GetxController {
     final snapshot = blocks.map((b) => b).toList();
     _history.add(snapshot);
     if (_history.length > _maxHistory) _history.removeAt(0);
+    
+    // Clear redo stack whenever a new action is performed
+    _redoStack.clear();
   }
 
   void _restoreBlockControllers(List<NoteBlock> state) {

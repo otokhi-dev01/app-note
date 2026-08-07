@@ -133,8 +133,8 @@ class _SaveButton extends StatelessWidget {
                   )
                 : const Icon(
                     CupertinoIcons.checkmark,
-                    color: AppTheme.bodyColor,
-                    size: 18,
+                    color: Colors.white,
+                    size: 20,
                   ),
           ),
         ),
