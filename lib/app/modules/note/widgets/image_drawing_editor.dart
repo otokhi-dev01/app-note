@@ -103,6 +103,7 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
 
     final callbacks = ProImageEditorCallbacks(
       onImageEditingComplete: (Uint8List bytes) async {
+        if (_isSaving) return;
         setState(() => _isSaving = true);
         try {
           final directory = await getTemporaryDirectory();
@@ -110,31 +111,53 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
           final file = File(path);
           await file.writeAsBytes(bytes);
           
-          Get.back(); // Close editor
-          Get.back(result: path); // Return path to note detail
+          if (mounted) {
+            // Use a single pop with result if possible, but since ProImageEditor 
+            // is a separate route, we pop it first then the preview.
+            Get.back(); // Close editor
+            Get.back(result: path); // Return path to note detail
+          }
         } catch (e) {
+          debugPrint('Error saving edited image: $e');
           Get.snackbar("Error", "Could not save edited image", snackPosition: SnackPosition.BOTTOM);
         } finally {
-          setState(() => _isSaving = false);
+          if (mounted) setState(() => _isSaving = false);
         }
       },
       onCloseEditor: (editorMode) => Get.back(),
     );
 
-    if (widget.localPath != null && File(widget.localPath!).existsSync()) {
-      Get.to(() => ProImageEditor.file(
-        File(widget.localPath!),
-        configs: configs,
-        callbacks: callbacks,
-      ));
-    } else if (widget.url != null) {
-      Get.to(() => ProImageEditor.network(
-        widget.url!,
-        configs: configs,
-        callbacks: callbacks,
-      ));
-    } else {
-      Get.snackbar("Error", "Image source not available for editing", snackPosition: SnackPosition.BOTTOM);
+    try {
+      if (widget.localPath != null && File(widget.localPath!).existsSync()) {
+        Get.to(() => ProImageEditor.file(
+          File(widget.localPath!),
+          configs: configs,
+          callbacks: callbacks,
+        ));
+      } else if (widget.url != null && widget.url!.isNotEmpty) {
+        // Pre-verify network image to avoid crash in editor
+        final response = await HttpClient().getUrl(Uri.parse(widget.url!))
+            .then((request) => request.close())
+            .timeout(const Duration(seconds: 5));
+            
+        if (response.statusCode != 200) {
+          throw Exception("Image not reachable (Status: ${response.statusCode})");
+        }
+
+        Get.to(() => ProImageEditor.network(
+          widget.url!,
+          configs: configs,
+          callbacks: callbacks,
+        ));
+      } else {
+        throw Exception("Image source not available");
+      }
+    } catch (e) {
+      Get.snackbar(
+        "Error", 
+        "Could not open image for editing: ${e.toString().contains("404") ? "Not found" : "Connection error"}", 
+        snackPosition: SnackPosition.BOTTOM
+      );
     }
   }
 }

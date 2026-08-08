@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
 import '../../../routes/note_navigation.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/trash_controller.dart';
 
@@ -18,9 +17,13 @@ class TrashView extends GetView<TrashController> {
     final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
@@ -36,15 +39,17 @@ class TrashView extends GetView<TrashController> {
               elevation: 0,
               automaticallyImplyLeading: false,
               centerTitle: true,
-              systemOverlayStyle: theme.brightness == Brightness.dark 
-                  ? SystemUiOverlayStyle.light 
+              systemOverlayStyle: theme.brightness == Brightness.dark
+                  ? SystemUiOverlayStyle.light
                   : SystemUiOverlayStyle.dark,
               // Centered small title (visible when collapsed)
               title: LayoutBuilder(
                 builder: (context, constraints) {
-                  final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+                  final double percentage =
+                      (constraints.maxHeight - kToolbarHeight) /
+                      (140.0 - kToolbarHeight);
                   final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-                  
+
                   return Opacity(
                     opacity: opacity > 0.8 ? 1.0 : 0.0,
                     child: Text(
@@ -64,7 +69,11 @@ class TrashView extends GetView<TrashController> {
                   borderRadius: 22,
                   child: IconButton(
                     onPressed: () => Get.back(),
-                    icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 28),
+                    icon: Icon(
+                      CupertinoIcons.chevron_left,
+                      color: theme.colorScheme.onSurface,
+                      size: 28,
+                    ),
                     padding: EdgeInsets.zero,
                   ),
                 ),
@@ -73,47 +82,54 @@ class TrashView extends GetView<TrashController> {
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
-                  child: Obx(() => controller.isEditing.value
-                    ? LiquidGlassContainer(
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        child: GestureDetector(
-                          onTap: controller.toggleEditing,
-                          child: Center(
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: theme.primaryColor,
+                  child: Obx(
+                    () => controller.isEditing.value
+                        ? LiquidGlassContainer(
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            child: GestureDetector(
+                              onTap: controller.toggleEditing,
+                              child: Center(
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: theme.primaryColor,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
                               ),
-                              child: const Icon(Icons.check, color: Colors.white, size: 20),
+                            ),
+                          )
+                        : LiquidGlassContainer(
+                            height: 44,
+                            borderRadius: 22,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: TextButton(
+                              onPressed: controller.toggleEditing,
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                "Edit",
+                                style: TextStyle(
+                                  color: theme.colorScheme.onSurface,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      )
-                    : LiquidGlassContainer(
-                        height: 44,
-                        borderRadius: 22,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: TextButton(
-                          onPressed: controller.toggleEditing,
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            "Edit",
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurface,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ),
                   ),
                 ),
               ],
@@ -122,7 +138,9 @@ class TrashView extends GetView<TrashController> {
                 titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
                 title: LayoutBuilder(
                   builder: (context, constraints) {
-                    final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+                    final double percentage =
+                        (constraints.maxHeight - kToolbarHeight) /
+                        (140.0 - kToolbarHeight);
                     return Opacity(
                       opacity: percentage.clamp(0.0, 1.0),
                       child: Text(
@@ -137,24 +155,40 @@ class TrashView extends GetView<TrashController> {
                 ),
               ),
             ),
-            
+
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Obx(() => Text("${controller.trashNotes.length + controller.trashFolders.length} Items", 
-                  style: theme.textTheme.bodySmall)),
+                child: Obx(
+                  () => Text(
+                    "${controller.trashNotes.length + controller.trashFolders.length} Items",
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
               ),
             ),
 
             Obx(() {
               if (controller.isLoading.value) {
-                return SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: theme.primaryColor)));
+                return SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(color: theme.primaryColor),
+                  ),
+                );
               }
 
-              if (controller.trashNotes.isEmpty && controller.trashFolders.isEmpty) {
+              if (controller.trashNotes.isEmpty &&
+                  controller.trashFolders.isEmpty) {
                 return SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(child: Text("No items in trash", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+                  child: Center(
+                    child: Text(
+                      "No items in trash",
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 );
               }
 
@@ -164,11 +198,19 @@ class TrashView extends GetView<TrashController> {
                   child: GlassCard(
                     borderRadius: 20,
                     children: [
-                      for (int i = 0; i < controller.trashFolders.length; i++) ...[
+                      for (
+                        int i = 0;
+                        i < controller.trashFolders.length;
+                        i++
+                      ) ...[
                         _buildFolderTile(context, controller.trashFolders[i]),
                         const Divider(indent: 56, height: 1),
                       ],
-                      for (int i = 0; i < controller.trashNotes.length; i++) ...[
+                      for (
+                        int i = 0;
+                        i < controller.trashNotes.length;
+                        i++
+                      ) ...[
                         _buildNoteTile(context, controller.trashNotes[i]),
                         if (i < controller.trashNotes.length - 1)
                           const Divider(indent: 56, height: 1),
@@ -178,11 +220,15 @@ class TrashView extends GetView<TrashController> {
                 ),
               );
             }),
-            
+
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
-        bottomNavigationBar: Obx(() => controller.isEditing.value ? _buildEditBottomBar(context) : const SizedBox.shrink()),
+        bottomNavigationBar: Obx(
+          () => controller.isEditing.value
+              ? _buildEditBottomBar(context)
+              : const SizedBox.shrink(),
+        ),
       ),
     );
   }
@@ -192,15 +238,23 @@ class TrashView extends GetView<TrashController> {
     return Obx(() {
       final isSelected = controller.selectedFolderIds.contains(folder.id);
       return ListTile(
-        onTap: controller.isEditing.value ? () => controller.toggleSelectFolder(folder.id) : null,
+        onTap: controller.isEditing.value
+            ? () => controller.toggleSelectFolder(folder.id)
+            : null,
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (controller.isEditing.value) _buildSelectionIndicator(context, isSelected),
+            if (controller.isEditing.value)
+              _buildSelectionIndicator(context, isSelected),
             Icon(folder.icon, color: theme.primaryColor, size: 30),
           ],
         ),
-        title: Text(folder.name, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+        title: Text(
+          folder.name,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         subtitle: Text("Folder", style: theme.textTheme.bodySmall),
       );
     });
@@ -212,13 +266,27 @@ class TrashView extends GetView<TrashController> {
       final isSelected = controller.selectedNoteIds.contains(note.id);
       final isEditing = controller.isEditing.value;
       return ListTile(
-        onTap: isEditing 
-            ? () => controller.toggleSelectNote(note.id) 
+        onTap: isEditing
+            ? () => controller.toggleSelectNote(note.id)
             : () => NoteNavigation.toDetail(note),
-        leading: isEditing ? _buildSelectionIndicator(context, isSelected) : null,
-        title: Text(note.title.isEmpty ? "New Note" : note.title, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
-        subtitle: Text(DateFormat('MM/dd/yy').format(note.updatedAt ?? DateTime.now()), style: theme.textTheme.bodySmall),
-        trailing: Icon(Icons.chevron_right, color: theme.colorScheme.outline, size: 20),
+        leading: isEditing
+            ? _buildSelectionIndicator(context, isSelected)
+            : null,
+        title: Text(
+          note.title.isEmpty ? "New Note" : note.title,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Text(
+          DateFormat('MM/dd/yy').format(note.updatedAt ?? DateTime.now()),
+          style: theme.textTheme.bodySmall,
+        ),
+        trailing: Icon(
+          Icons.chevron_right,
+          color: theme.colorScheme.outline,
+          size: 20,
+        ),
       );
     });
   }
@@ -226,14 +294,22 @@ class TrashView extends GetView<TrashController> {
   Widget _buildSelectionIndicator(BuildContext context, bool isSelected) {
     final theme = Theme.of(context);
     return Container(
-      width: 22, height: 22,
+      width: 22,
+      height: 22,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isSelected ? theme.colorScheme.onSurface : Colors.transparent,
-        border: Border.all(color: isSelected ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: isSelected
+              ? theme.colorScheme.onSurface
+              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
       ),
-      child: isSelected ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14) : null,
+      child: isSelected
+          ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
+          : null,
     );
   }
 
@@ -241,18 +317,36 @@ class TrashView extends GetView<TrashController> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _actionButton(context, "Recover", onTap: controller.recoverSelectedItems),
-            _actionButton(context, "Delete", color: Colors.redAccent, onTap: controller.deletePermanently),
-          ],
-        ),
+        child: Obx(() {
+          final hasSelection = controller.selectedNoteIds.isNotEmpty || 
+                             controller.selectedFolderIds.isNotEmpty;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _actionButton(
+                context,
+                hasSelection ? "Recover" : "Recover All",
+                onTap: controller.recoverSelectedItems,
+              ),
+              _actionButton(
+                context,
+                hasSelection ? "Delete" : "Delete All",
+                color: Colors.redAccent,
+                onTap: controller.deletePermanently,
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
 
-  Widget _actionButton(BuildContext context, String label, {Color? color, required VoidCallback onTap}) {
+  Widget _actionButton(
+    BuildContext context,
+    String label, {
+    Color? color,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
     return GestureDetector(
       onTap: onTap,

@@ -47,4 +47,17 @@ class FolderService extends GetxService {
       rethrow;
     }
   }
+
+  Future<void> deleteFolderPermanently(int id) async {
+    try {
+      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteFolderPermanently ID: $id");
+      await _api.dio.post("/api/folder/permanent-delete", data: {
+        "FolderId": id,
+        "id": id,
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteFolderPermanently ERROR: $e");
+      rethrow;
+    }
+  }
 }

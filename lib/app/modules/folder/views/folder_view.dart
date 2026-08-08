@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 import '../widgets/folder_create_modal.dart';
@@ -18,9 +17,13 @@ class FolderView extends GetView<FolderController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBody: true,
@@ -33,10 +36,7 @@ class FolderView extends GetView<FolderController> {
           edgeOffset: 140,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              _buildAppBar(context),
-              _buildFolderList(context),
-            ],
+            slivers: [_buildAppBar(context), _buildFolderList(context)],
           ),
         ),
       ),
@@ -53,12 +53,14 @@ class FolderView extends GetView<FolderController> {
       elevation: 0,
       automaticallyImplyLeading: false,
       centerTitle: true,
-      systemOverlayStyle: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light 
+      systemOverlayStyle: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
           : SystemUiOverlayStyle.dark,
       title: LayoutBuilder(
         builder: (context, constraints) {
-          final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+          final double percentage =
+              (constraints.maxHeight - kToolbarHeight) /
+              (140.0 - kToolbarHeight);
           final opacity = (1.0 - percentage).clamp(0.0, 1.0);
           return Opacity(
             opacity: opacity > 0.8 ? 1.0 : 0.0,
@@ -100,7 +102,9 @@ class FolderView extends GetView<FolderController> {
         titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
         title: LayoutBuilder(
           builder: (context, constraints) {
-            final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+            final double percentage =
+                (constraints.maxHeight - kToolbarHeight) /
+                (140.0 - kToolbarHeight);
             return Opacity(
               opacity: percentage.clamp(0.0, 1.0),
               child: Text(
@@ -127,7 +131,12 @@ class FolderView extends GetView<FolderController> {
         child: GestureDetector(
           onTap: controller.toggleEditing,
           child: Center(
-            child: Icon(Icons.check, color: theme.colorScheme.onSurface, size: 20, fontWeight: FontWeight.bold),
+            child: Icon(
+              Icons.check,
+              color: theme.colorScheme.onSurface,
+              size: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       );
@@ -162,7 +171,9 @@ class FolderView extends GetView<FolderController> {
         if (controller.isLoading.value) {
           return SizedBox(
             height: 200,
-            child: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
+            child: Center(
+              child: CircularProgressIndicator(color: theme.primaryColor),
+            ),
           );
         }
         return Column(
@@ -174,9 +185,11 @@ class FolderView extends GetView<FolderController> {
                 isExpanded: controller.isICloudExpanded,
                 onTap: controller.toggleICloud,
               ),
-              Obx(() => controller.isICloudExpanded.value
-                  ? _buildFolderGroup(context, controller.iCloudFolders)
-                  : const SizedBox.shrink()),
+              Obx(
+                () => controller.isICloudExpanded.value
+                    ? _buildFolderGroup(context, controller.iCloudFolders)
+                    : const SizedBox.shrink(),
+              ),
               const SizedBox(height: 24),
             ],
             FolderSectionHeader(
@@ -184,9 +197,15 @@ class FolderView extends GetView<FolderController> {
               isExpanded: controller.isOnMyiPhoneExpanded,
               onTap: controller.toggleOnMyiPhone,
             ),
-            Obx(() => controller.isOnMyiPhoneExpanded.value
-                ? _buildFolderGroup(context, controller.onMyiPhoneFolders, includeSystem: true)
-                : const SizedBox.shrink()),
+            Obx(
+              () => controller.isOnMyiPhoneExpanded.value
+                  ? _buildFolderGroup(
+                      context,
+                      controller.onMyiPhoneFolders,
+                      includeSystem: true,
+                    )
+                  : const SizedBox.shrink(),
+            ),
             const SizedBox(height: 120),
           ],
         );
@@ -194,7 +213,11 @@ class FolderView extends GetView<FolderController> {
     );
   }
 
-  Widget _buildFolderGroup(BuildContext context, List folders, {bool includeSystem = false}) {
+  Widget _buildFolderGroup(
+    BuildContext context,
+    List folders, {
+    bool includeSystem = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GlassCard(
