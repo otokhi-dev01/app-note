@@ -32,6 +32,7 @@ class NoteNavigation {
         "folderId": note.folderId,
         "isArchived": note.isArchived,
         "isDeleted": isDeleted,
+        "note": note, // Pass full model to avoid 404 on deleted notes
       },
     );
   }

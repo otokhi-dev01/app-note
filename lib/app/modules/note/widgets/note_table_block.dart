@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/note_model.dart';
-import '../../../theme/app_theme.dart';
 import '../controllers/note_detail_controller.dart';
 
 class NoteTableBlock extends StatelessWidget {
@@ -31,10 +30,7 @@ class NoteTableBlock extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Table(
-              border: TableBorder.all(
-                color: theme.dividerColor,
-                width: 0.5,
-              ),
+              border: TableBorder.all(color: theme.dividerColor, width: 0.5),
               children: [
                 for (int r = 0; r < block.rows.length; r++)
                   TableRow(
@@ -63,7 +59,8 @@ class NoteTableBlock extends StatelessWidget {
                               isCollapsed: true,
                               contentPadding: EdgeInsets.all(8),
                               filled: false,
-                              fillColor: Colors.transparent, // Explicitly transparent
+                              fillColor:
+                                  Colors.transparent, // Explicitly transparent
                             ),
                           ),
                         ),
@@ -121,7 +118,7 @@ class _TableActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final effectiveColor = color ?? theme.primaryColor;
-    
+
     return GestureDetector(
       onTap: onTap,
       child: Container(

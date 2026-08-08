@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/note_detail_controller.dart';
 
@@ -48,19 +49,29 @@ class NoteEditorToolbar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _ToolbarButton(
+                          icon: Icons.text_fields_rounded,
+                          onTap: controller.toggleFormatPanel,
+                          semanticLabel: 'Format',
+                        ),
+                        _ToolbarButton(
                           icon: CupertinoIcons.list_bullet,
                           onTap: controller.addChecklistBlock,
                           semanticLabel: 'Checklist',
                         ),
                         _ToolbarButton(
-                          icon: CupertinoIcons.table,
-                          onTap: controller.addTableBlock,
-                          semanticLabel: 'Table',
-                        ),
-                        _ToolbarButton(
                           icon: CupertinoIcons.paperclip,
                           onTap: onShowAttachmentPopup,
                           semanticLabel: 'Attachment',
+                        ),
+                        _ToolbarButton(
+                          icon: CupertinoIcons.camera,
+                          onTap: () => controller.addAttachment(ImageSource.camera),
+                          semanticLabel: 'Camera',
+                        ),
+                        _ToolbarButton(
+                          icon: CupertinoIcons.photo,
+                          onTap: () => controller.addAttachment(ImageSource.gallery),
+                          semanticLabel: 'Photo',
                         ),
                       ],
                     ),

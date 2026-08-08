@@ -8,6 +8,7 @@ import '../widgets/note_content_editor.dart';
 import '../widgets/note_detail_more_popup.dart';
 import '../widgets/note_editor_toolbar.dart';
 import '../widgets/note_editor_top_bar.dart';
+import '../widgets/note_format_panel.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
   const NoteDetailView({super.key});
@@ -20,7 +21,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
       value: _systemUiStyle(theme),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         extendBody: true,
         extendBodyBehindAppBar: true,
         body: Stack(
@@ -56,6 +57,21 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 ),
               );
             }),
+            // Format Panel
+            Obx(() {
+              if (controller.isFormatPanelVisible.value) {
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: NoteFormatPanel(controller: controller),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
           ],
         ),
       ),
@@ -85,26 +101,35 @@ class NoteDetailView extends GetView<NoteDetailController> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (_) => CupertinoActionSheet(
-        title: const Text('Attachment'),
         actions: [
-          CupertinoActionSheetAction(
-            onPressed: () => _pickAttachment(ImageSource.camera),
-            child: const Text('Take Photo'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => _pickAttachment(ImageSource.gallery),
-            child: const Text('Photo Library'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => _pickAttachment(ImageSource.camera, isVideo: true),
-            child: const Text('Take Video'),
-          ),
+          _buildAction(context, CupertinoIcons.viewfinder, 'Scan Text', () {}),
+          _buildAction(context, CupertinoIcons.viewfinder_circle, 'Scan Documents', () {}),
+          _buildAction(context, CupertinoIcons.camera, 'Take Photo or Video', () => _pickAttachment(ImageSource.camera)),
+          _buildAction(context, CupertinoIcons.photo_on_rectangle, 'Choose Photo or Video', () => _pickAttachment(ImageSource.gallery)),
+          _buildAction(context, CupertinoIcons.mic, 'Record Audio', () {}),
+          _buildAction(context, CupertinoIcons.paperclip, 'Attach File', () {}),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: Get.back,
           isDefaultAction: true,
           child: const Text('Cancel'),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAction(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+    return CupertinoActionSheetAction(
+      onPressed: () {
+        Get.back();
+        onTap();
+      },
+      child: Row(
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontSize: 17)),
+        ],
       ),
     );
   }
