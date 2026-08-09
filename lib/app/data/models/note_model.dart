@@ -128,31 +128,36 @@ class NoteModel {
     }
 
     // 2. Parse Attachments (Images/Videos) and MERGE into content blocks
-    final List rawAttachments =
-        (json['Attachments'] ?? json['attachments'] ?? []) as List;
-    for (var att in rawAttachments) {
-      final map = Map<String, dynamic>.from(att);
+    final dynamic rawAttachmentsData =
+        json['Attachments'] ?? json['attachments'] ?? [];
+    final List attachmentsList = rawAttachmentsData is List
+        ? rawAttachmentsData
+        : [rawAttachmentsData];
+
+    for (var att in attachmentsList) {
+      if (att == null) continue;
+      final map = Map<String, dynamic>.from(att as Map);
       final String blockId = (map['BlockId'] ?? map['blockId'] ?? '')
           .toString();
 
-      String? relativePath =
-          map['FilePath'] ??
-          map['filePath'] ??
-          map['FileUrl'] ??
-          map['fileUrl'] ??
-          map['Path'] ??
-          map['path'] ??
-          map['Url'] ??
-          map['url'];
+      final String? relativePath = _normalizeAttachmentPath(
+        map['FilePath'] ??
+            map['filePath'] ??
+            map['FileUrl'] ??
+            map['fileUrl'] ??
+            map['Path'] ??
+            map['path'] ??
+            map['Url'] ??
+            map['url'],
+      );
+
       String? fullUrl;
-      if (relativePath != null && relativePath.toString().isNotEmpty) {
-        String p = relativePath.toString().trim().replaceAll('\\', '/');
-        if (p.startsWith('~/')) p = p.substring(2);
-        final u = Uri.tryParse(p);
+      if (relativePath != null && relativePath.isNotEmpty) {
+        final u = Uri.tryParse(relativePath);
         if (u != null && u.hasScheme) {
           fullUrl = u.toString();
         } else {
-          fullUrl = Uri.parse(baseUrl).resolve(p).toString();
+          fullUrl = Uri.parse(baseUrl).resolve(relativePath).toString();
         }
       }
 
@@ -218,6 +223,40 @@ class NoteModel {
         json['DeletedAt'] ?? json['deletedAt'] ?? json['deleted_at'],
       ),
     );
+  }
+
+  static String? _normalizeAttachmentPath(dynamic value) {
+    if (value == null) return null;
+
+    String? result;
+    if (value is List && value.isNotEmpty) {
+      result = value.first?.toString();
+    } else if (value is Map) {
+      result = value['path']?.toString() ?? value['url']?.toString();
+    } else {
+      result = value.toString();
+    }
+
+    result = result?.trim();
+    if (result == null || result.isEmpty) return null;
+
+    if (result.startsWith('[') && result.endsWith(']')) {
+      result = result.substring(1, result.length - 1).trim();
+    }
+    if (result.startsWith('(') && result.endsWith(')')) {
+      result = result.substring(1, result.length - 1).trim();
+    }
+
+    // Remove markdown-like wrapper tokens such as [path]() or path() if present.
+    result = result.replaceAll(RegExp(r'^\s*\[([^\]]+)\]\(\)\s* ?'), r'$1').trim();
+    result = result.replaceAll(RegExp(r'\s*\(([^\)]+)\)\s* ?'), r'$1').trim();
+
+    final match = RegExp(r'(/[^)\]\s]+\.[\w\d]+)').firstMatch(result);
+    if (match != null) {
+      result = match.group(0)!;
+    }
+
+    return result.isEmpty ? null : result;
   }
 
   static DateTime? _parseDate(dynamic value) {

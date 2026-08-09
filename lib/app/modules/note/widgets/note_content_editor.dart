@@ -22,88 +22,88 @@ class NoteContentEditor extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final horizontalInset = _editorInset(context);
-    final baseTopPadding = MediaQuery.paddingOf(context).top + _topBarControlSize + 16;
+    final baseTopPadding =
+        MediaQuery.paddingOf(context).top + _topBarControlSize + 16;
     final bottomPadding = MediaQuery.viewInsetsOf(context).bottom + 140;
 
     return Stack(
       children: [
         _PageContent(
-          child: Obx(
-            () {
-              final isReadOnly = controller.isReadOnly.value;
-              final topPadding = baseTopPadding + (isReadOnly ? 52 : 0);
-              final noteDate = controller.currentNote.value?.updatedAt ?? DateTime.now();
+          child: Obx(() {
+            final isReadOnly = controller.isReadOnly.value;
+            final topPadding = baseTopPadding + (isReadOnly ? 52 : 0);
+            final noteDate =
+                controller.currentNote.value?.updatedAt ?? DateTime.now();
 
-              return ListView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(
-                  horizontalInset,
-                  topPadding,
-                  horizontalInset,
-                  bottomPadding,
+            return ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                horizontalInset,
+                topPadding,
+                horizontalInset,
+                bottomPadding,
+              ),
+              children: [
+                Text(
+                  DateFormat("MMMM d, yyyy 'at' h:mm a").format(noteDate),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                    fontSize: 13,
+                  ),
                 ),
-                children: [
-                  Text(
-                    DateFormat("MMMM d, yyyy 'at' h:mm a").format(noteDate),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
-                      ),
-                      fontSize: 13,
-                    ),
+                const SizedBox(height: 16),
+                TextField(
+                  key: const ValueKey('note-title-field'),
+                  controller: controller.titleController,
+                  enabled: !isReadOnly,
+                  onTap: () => controller.activeBlockIndex.value = -1,
+                  cursorColor: AppTheme.folderYellow,
+                  cursorWidth: 1.5,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    key: const ValueKey('note-title-field'),
-                    controller: controller.titleController,
-                    enabled: !isReadOnly,
-                    onTap: () => controller.activeBlockIndex.value = -1,
-                    cursorColor: AppTheme.folderYellow,
-                    cursorWidth: 1.5,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    style: theme.textTheme.headlineLarge?.copyWith(
+                  decoration: InputDecoration(
+                    hintText: 'Title',
+                    hintStyle: theme.textTheme.headlineLarge?.copyWith(
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Title',
-                      hintStyle: theme.textTheme.headlineLarge?.copyWith(
-                        fontSize: 32,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.3,
-                        ),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.3,
                       ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isCollapsed: true,
-                      filled: false,
-                      fillColor: Colors.transparent,
                     ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isCollapsed: true,
+                    filled: false,
+                    fillColor: Colors.transparent,
                   ),
-                  const SizedBox(height: 12),
-                  ...controller.blocks.asMap().entries.map(
-                    (entry) => _buildBlock(context, entry.value, entry.key),
-                  ),
-                ],
-              );
-            },
-          ),
+                ),
+                const SizedBox(height: 12),
+                ..._buildAttachmentPreview(context),
+                ...controller.blocks.asMap().entries.map(
+                  (entry) => _buildBlock(context, entry.value, entry.key),
+                ),
+              ],
+            );
+          }),
         ),
         // Search Bar Overlay
-        Obx(
-          () {
-            final isReadOnly = controller.isReadOnly.value;
-            final searchTopPadding = MediaQuery.paddingOf(context).top + 60 + (isReadOnly ? 52 : 0);
-            return controller.isSearchVisible.value
-                ? _buildSearchBar(context, searchTopPadding)
-                : const SizedBox.shrink();
-          },
-        ),
+        Obx(() {
+          final isReadOnly = controller.isReadOnly.value;
+          final searchTopPadding =
+              MediaQuery.paddingOf(context).top + 60 + (isReadOnly ? 52 : 0);
+          return controller.isSearchVisible.value
+              ? _buildSearchBar(context, searchTopPadding)
+              : const SizedBox.shrink();
+        }),
       ],
     );
   }
@@ -155,6 +155,76 @@ class NoteContentEditor extends StatelessWidget {
     );
   }
 
+  List<Widget> _buildAttachmentPreview(BuildContext context) {
+    final theme = Theme.of(context);
+    final attachments = controller.blocks.whereType<AttachmentBlock>().toList();
+    if (attachments.isEmpty) return [];
+
+    return [
+      Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.15,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Attachments',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: attachments.map((attachment) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: SizedBox(
+                      width: 120,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: SizedBox(
+                              height: 90,
+                              width: 120,
+                              child: NoteAttachmentBlock(
+                                block: attachment,
+                                blockIndex: controller.blocks.indexOf(
+                                  attachment,
+                                ),
+                                controller: controller,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            attachment.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ];
+  }
+
   Widget _buildBlock(BuildContext context, NoteBlock block, int blockIndex) {
     if (block is TextBlock) {
       return _buildTextBlock(context, block, blockIndex);
@@ -199,10 +269,10 @@ class NoteContentEditor extends StatelessWidget {
   ) {
     final quillController = controller.getQuillController(block.id, block.text);
     final isReadOnly = controller.isReadOnly.value;
-    
+
     // Set readOnly on the controller for flutter_quill 10+
     quillController.readOnly = isReadOnly;
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Focus(
@@ -212,13 +282,10 @@ class NoteContentEditor extends StatelessWidget {
             controller.currentBlockStyle.value = block.style;
           }
         },
-        child: quill.QuillEditor.basic(
-          controller: quillController,
-        ),
+        child: quill.QuillEditor.basic(controller: quillController),
       ),
     );
   }
-
 
   double _editorInset(BuildContext context) {
     return (MediaQuery.sizeOf(context).width * 0.065).clamp(21.0, 32.0);

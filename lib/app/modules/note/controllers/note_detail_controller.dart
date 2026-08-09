@@ -184,7 +184,8 @@ class NoteDetailController extends GetxController {
     return quillControllers.putIfAbsent(blockId, () {
       quill.Document doc;
       try {
-        if (content.startsWith('[') || content.startsWith('{')) {
+        final trimmed = content.trimLeft();
+        if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
           doc = quill.Document.fromJson(jsonDecode(content));
         } else {
           doc = quill.Document()..insert(0, content);
@@ -532,11 +533,29 @@ class NoteDetailController extends GetxController {
         return;
       }
 
+      // Prepare a stable snapshot of blocks to send. Convert plain text blocks
+      // into Quill delta JSON if they are not already JSON so the backend
+      // consistently receives structured content.
+      final snapshot = blocks.map((b) => b).toList();
+      final List<NoteBlock> sendBlocks = snapshot.map((b) {
+        if (b is TextBlock) {
+          final txt = b.text.trim();
+          if (txt.isNotEmpty && !(txt.startsWith('[') || txt.startsWith('{'))) {
+            // Wrap plain text into a simple Delta insert
+            final delta = jsonEncode([
+              {"insert": txt.endsWith('\n') ? txt : '$txt\n'},
+            ]);
+            return TextBlock(id: b.id, text: delta, style: b.style);
+          }
+        }
+        return b;
+      }).toList();
+
       final savedNote = await _noteService.saveNote(
         folderIdToUse,
         finalTitle,
         noteId: currentNote.value!.id,
-        content: blocks.toList(), // Use toList() to send a static snapshot
+        content: sendBlocks, // send normalized snapshot
       );
 
       final confirmedNoteId = savedNote.id;
@@ -901,8 +920,35 @@ class NoteDetailController extends GetxController {
       if (block is TextBlock) {
         final qc = quillControllers[block.id];
         if (qc != null) {
-          final json = jsonEncode(qc.document.toDelta().toJson());
-          blocks[i] = TextBlock(id: block.id, text: json, style: block.style);
+          // Convert delta to JSON string. If the delta contains only a single newline
+          // (empty editor), fall back to any plain text controller value to avoid
+          // losing typed text when the Quill delta is empty.
+          final deltaJson = qc.document.toDelta().toJson();
+          final json = jsonEncode(deltaJson);
+          final isEffectivelyEmpty =
+              deltaJson is List &&
+              deltaJson.length == 1 &&
+              deltaJson.first is Map &&
+              (deltaJson.first['insert'] == '\n' ||
+                  deltaJson.first['insert'] == '');
+          if (isEffectivelyEmpty) {
+            final tc = blockControllers[block.id];
+            if (tc != null && tc.text.trim().isNotEmpty) {
+              blocks[i] = TextBlock(
+                id: block.id,
+                text: tc.text,
+                style: block.style,
+              );
+            } else {
+              blocks[i] = TextBlock(
+                id: block.id,
+                text: json,
+                style: block.style,
+              );
+            }
+          } else {
+            blocks[i] = TextBlock(id: block.id, text: json, style: block.style);
+          }
         } else {
           final tc = blockControllers[block.id];
           if (tc != null)

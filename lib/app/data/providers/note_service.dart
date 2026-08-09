@@ -166,9 +166,42 @@ class NoteService extends GetxService {
 
     List<dynamic>? contentList;
     if (content != null) {
-      contentList = content.map((e) => e.toJson()).toList();
+      // Normalize each block's JSON to include multiple common key variants
+      // so the backend can accept different shapes (Type/Text vs type/text).
+      contentList = content.map((e) {
+        final Map<String, dynamic> m = Map<String, dynamic>.from(e.toJson());
+        // Text blocks: ensure both 'Text' and 'text' and also store raw text
+        if (e.runtimeType.toString().contains('TextBlock')) {
+          final raw =
+              m['Text'] ??
+              m['text'] ??
+              m['content'] ??
+              m['Value'] ??
+              m['value'];
+          m['Type'] = m['Type'] ?? m['type'] ?? 'text';
+          m['type'] = m['type'] ?? m['Type'] ?? 'text';
+          m['Text'] = raw ?? m['Text'] ?? m['text'] ?? '';
+          m['text'] = m['Text'];
+        }
+        // Attachment blocks: normalize common fields
+        if (e.runtimeType.toString().contains('AttachmentBlock')) {
+          m['Type'] = m['Type'] ?? m['type'] ?? 'attachment';
+          m['type'] = m['type'] ?? m['Type'] ?? 'attachment';
+          m['Url'] = m['Url'] ?? m['url'] ?? m['FilePath'] ?? m['filePath'];
+          m['url'] = m['url'] ?? m['Url'];
+        }
+        return m;
+      }).toList();
+
+      // Send multiple variants for resilience. Prefer ContentJson as structured list.
       payload["Content"] = contentList;
-      payload["ContentJson"] = jsonEncode(contentList);
+      payload["ContentJson"] = contentList;
+      payload["ContentJsonString"] = jsonEncode(contentList);
+
+      if (kDebugMode)
+        debugPrint(
+          '[NOTE DEBUG] Sample content payload: ${contentList.isNotEmpty ? contentList.first : {}}',
+        );
     }
 
     dio.Response? response;

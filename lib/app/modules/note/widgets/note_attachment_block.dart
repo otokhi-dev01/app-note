@@ -186,6 +186,20 @@ class _AttachmentImage extends StatelessWidget {
     if (path.startsWith('~/')) {
       path = path.substring(2);
     }
+
+    path = path.trim();
+    if (path.startsWith('[') && path.endsWith(']')) {
+      path = path.substring(1, path.length - 1).trim();
+    }
+    if (path.startsWith('(') && path.endsWith(')')) {
+      path = path.substring(1, path.length - 1).trim();
+    }
+
+    final match = RegExp(r'(/[^)\]\s]+\.[\w\d]+)').firstMatch(path);
+    if (match != null) {
+      path = match.group(0)!;
+    }
+
     final uri = Uri.tryParse(path);
     if (uri != null && uri.hasScheme) {
       return uri.toString();
