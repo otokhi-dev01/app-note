@@ -31,6 +31,7 @@ class SearchView extends GetView<sc.SearchController> {
             children: [
               Column(
                 children: [
+                  _buildTopBar(context),
                   Expanded(
                     child: Obx(() {
                       if (controller.isSearching.value) {
@@ -68,13 +69,14 @@ class SearchView extends GetView<sc.SearchController> {
             shape: GlassShape.circle,
             showGlow: true,
             thickness: 8,
-            opacity: 0.15, // Standard glass icon opacity
+            opacity: 0.15,
+            blur: 10,
             child: IconButton(
               onPressed: () => Get.back(),
               icon: Icon(
-                Icons.chevron_left,
-                color: theme.colorScheme.onSurfaceVariant,
-                size: 30,
+                CupertinoIcons.chevron_left,
+                color: theme.colorScheme.onSurface,
+                size: 24,
               ),
               padding: EdgeInsets.zero,
             ),

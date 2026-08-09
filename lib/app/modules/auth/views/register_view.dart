@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -40,13 +41,17 @@ class RegisterView extends GetView<AuthController> {
                 child: LiquidGlassContainer(
                   width: 44,
                   height: 44,
-                  borderRadius: 22,
+                  shape: GlassShape.circle,
+                  showGlow: true,
+                  thickness: 8,
+                  opacity: 0.15,
+                  blur: 10,
                   child: IconButton(
                     onPressed: () => Get.back(),
                     icon: Icon(
-                      Icons.chevron_left, 
-                      color: theme.colorScheme.onSurfaceVariant, 
-                      size: 30,
+                      CupertinoIcons.chevron_left, 
+                      color: theme.colorScheme.onSurface, 
+                      size: 24,
                     ),
                     padding: EdgeInsets.zero,
                   ),

@@ -192,6 +192,19 @@ class FolderView extends GetView<FolderController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
+            if (controller.pinnedFolders.isNotEmpty) ...[
+              FolderSectionHeader(
+                title: "Pinned",
+                isExpanded: controller.isPinnedExpanded,
+                onTap: controller.togglePinned,
+              ),
+              Obx(
+                () => controller.isPinnedExpanded.value
+                    ? _buildFolderGroup(context, controller.pinnedFolders)
+                    : const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 24),
+            ],
             if (controller.iCloudFolders.isNotEmpty) ...[
               FolderSectionHeader(
                 title: "iCloud",
@@ -201,6 +214,19 @@ class FolderView extends GetView<FolderController> {
               Obx(
                 () => controller.isICloudExpanded.value
                     ? _buildFolderGroup(context, controller.iCloudFolders)
+                    : const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 24),
+            ],
+            if (controller.sharedFolders.isNotEmpty) ...[
+              FolderSectionHeader(
+                title: "Shared",
+                isExpanded: controller.isSharedExpanded,
+                onTap: controller.toggleShared,
+              ),
+              Obx(
+                () => controller.isSharedExpanded.value
+                    ? _buildFolderGroup(context, controller.sharedFolders)
                     : const SizedBox.shrink(),
               ),
               const SizedBox(height: 24),

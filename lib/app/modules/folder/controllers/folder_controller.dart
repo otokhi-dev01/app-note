@@ -22,6 +22,8 @@ class FolderController extends GetxController {
   // Section expanded states
   final isICloudExpanded = true.obs;
   final isOnMyiPhoneExpanded = true.obs;
+  final isSharedExpanded = true.obs;
+  final isPinnedExpanded = true.obs;
 
   @override
   void onInit() {
@@ -31,13 +33,25 @@ class FolderController extends GetxController {
 
   void toggleICloud() => isICloudExpanded.value = !isICloudExpanded.value;
   void toggleOnMyiPhone() => isOnMyiPhoneExpanded.value = !isOnMyiPhoneExpanded.value;
+  void toggleShared() => isSharedExpanded.value = !isSharedExpanded.value;
+  void togglePinned() => isPinnedExpanded.value = !isPinnedExpanded.value;
+
+  List<FolderModel> get pinnedFolders => folders.where((f) => 
+    f.name.toLowerCase().contains("pinned") || f.name.toLowerCase().contains("favorite")
+  ).toList();
 
   List<FolderModel> get iCloudFolders => folders.where((f) => 
-    f.name.toLowerCase().contains("icloud")
+    f.name.toLowerCase().contains("icloud") && !pinnedFolders.contains(f)
+  ).toList();
+  
+  List<FolderModel> get sharedFolders => folders.where((f) => 
+    f.name.toLowerCase().contains("shared") && !pinnedFolders.contains(f)
   ).toList();
   
   List<FolderModel> get onMyiPhoneFolders => folders.where((f) => 
-    !f.name.toLowerCase().contains("icloud")
+    !f.name.toLowerCase().contains("icloud") && 
+    !f.name.toLowerCase().contains("shared") && 
+    !pinnedFolders.contains(f)
   ).toList();
 
   void toggleEditing() => isEditing.value = !isEditing.value;

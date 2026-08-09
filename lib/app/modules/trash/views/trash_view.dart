@@ -77,7 +77,7 @@ class TrashView extends GetView<TrashController> {
                     icon: Icon(
                       CupertinoIcons.chevron_left,
                       color: theme.colorScheme.onSurface,
-                      size: 28,
+                      size: 24,
                     ),
                     padding: EdgeInsets.zero,
                   ),

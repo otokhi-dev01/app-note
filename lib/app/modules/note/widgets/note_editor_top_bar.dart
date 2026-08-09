@@ -82,8 +82,8 @@ class _GlassIconButton extends StatelessWidget {
   const _GlassIconButton({
     required this.icon,
     required this.onTap,
-    this.size = 40,
-    this.iconSize = 22,
+    this.size = 44,
+    this.iconSize = 24,
     this.color = AppTheme.textSecondary,
   }) : opacity = 0.15;
 
@@ -95,7 +95,8 @@ class _GlassIconButton extends StatelessWidget {
       shape: GlassShape.circle,
       opacity: opacity,
       showGlow: true,
-      thickness: 6,
+      thickness: 8,
+      blur: 10,
       child: IconButton(
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),

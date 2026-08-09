@@ -38,22 +38,39 @@ class NoteModel {
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
     const String baseUrl = "https://note.piisiit.com";
-    
+
     // Support various naming conventions for ID and Title
     final int id = json['NoteId'] ?? json['id'] ?? json['Id'] ?? 0;
-    final String title = (json['Title'] ?? json['title'] ?? json['Name'] ?? json['name'] ?? '').toString().trim();
-    final int folderId = json['FolderId'] ?? json['folderId'] ?? json['Folder_Id'] ?? 0;
-    final String folderName = (json['FolderName'] ?? json['folderName'] ?? '').toString().trim();
+    final String title =
+        (json['Title'] ?? json['title'] ?? json['Name'] ?? json['name'] ?? '')
+            .toString()
+            .trim();
+    final int folderId =
+        json['FolderId'] ?? json['folderId'] ?? json['Folder_Id'] ?? 0;
+    final String folderName = (json['FolderName'] ?? json['folderName'] ?? '')
+        .toString()
+        .trim();
 
     // 1. Parse Content (Text, Checklists, etc.)
     // Logic: Find the first field that has actual content (not null and not an empty list/string)
     dynamic contentData;
     final contentFields = [
-      'ContentJson', 'Content', 'content', 'NoteContent', 'blocks', 'data',
-      'Body', 'body', 'NoteText', 'text', 'Description', 'description', 
-      'NoteDescription', 'ContentText'
+      'ContentJson',
+      'Content',
+      'content',
+      'NoteContent',
+      'blocks',
+      'data',
+      'Body',
+      'body',
+      'NoteText',
+      'text',
+      'Description',
+      'description',
+      'NoteDescription',
+      'ContentText',
     ];
-    
+
     // Explicitly prioritize known JSON string fields
     for (var field in contentFields) {
       final value = json[field];
@@ -61,7 +78,10 @@ class NoteModel {
         if (value is List && value.isNotEmpty) {
           contentData = value;
           break;
-        } else if (value is String && value.trim().isNotEmpty && value != '[]' && value != '{}') {
+        } else if (value is String &&
+            value.trim().isNotEmpty &&
+            value != '[]' &&
+            value != '{}') {
           // If it's a string, we hope it's our JSON array string
           contentData = value;
           break;
@@ -70,13 +90,17 @@ class NoteModel {
     }
 
     List<NoteBlock> parsedContent = [];
-    
+
     if (contentData is List) {
-      parsedContent = contentData.map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e))).toList();
+      parsedContent = contentData
+          .map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
     } else if (contentData is Map) {
       // Handle single block object
       try {
-        parsedContent = [NoteBlock.fromJson(Map<String, dynamic>.from(contentData))];
+        parsedContent = [
+          NoteBlock.fromJson(Map<String, dynamic>.from(contentData)),
+        ];
       } catch (_) {
         if (kDebugMode) debugPrint("Failed to parse Content Map: $contentData");
       }
@@ -84,12 +108,18 @@ class NoteModel {
       try {
         final decoded = jsonDecode(contentData);
         if (decoded is List) {
-          parsedContent = decoded.map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e))).toList();
+          parsedContent = decoded
+              .map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e)))
+              .toList();
         } else if (decoded is Map) {
-          parsedContent = [NoteBlock.fromJson(Map<String, dynamic>.from(decoded))];
+          parsedContent = [
+            NoteBlock.fromJson(Map<String, dynamic>.from(decoded)),
+          ];
         } else {
           // If it's valid JSON but not a list/map (e.g. a string), handle as plain text
-          parsedContent = [TextBlock(id: 'text_initial', text: decoded.toString())];
+          parsedContent = [
+            TextBlock(id: 'text_initial', text: decoded.toString()),
+          ];
         }
       } catch (_) {
         // Fallback for plain text that isn't JSON
@@ -98,12 +128,22 @@ class NoteModel {
     }
 
     // 2. Parse Attachments (Images/Videos) and MERGE into content blocks
-    final List rawAttachments = (json['Attachments'] ?? json['attachments'] ?? []) as List;
+    final List rawAttachments =
+        (json['Attachments'] ?? json['attachments'] ?? []) as List;
     for (var att in rawAttachments) {
       final map = Map<String, dynamic>.from(att);
-      final String blockId = (map['BlockId'] ?? map['blockId'] ?? '').toString();
-      
-      String? relativePath = map['FilePath'] ?? map['filePath'] ?? map['FileUrl'] ?? map['fileUrl'] ?? map['Path'] ?? map['path'] ?? map['Url'] ?? map['url'];
+      final String blockId = (map['BlockId'] ?? map['blockId'] ?? '')
+          .toString();
+
+      String? relativePath =
+          map['FilePath'] ??
+          map['filePath'] ??
+          map['FileUrl'] ??
+          map['fileUrl'] ??
+          map['Path'] ??
+          map['path'] ??
+          map['Url'] ??
+          map['url'];
       String? fullUrl;
       if (relativePath != null && relativePath.toString().isNotEmpty) {
         String p = relativePath.toString().trim().replaceAll('\\', '/');
@@ -118,26 +158,42 @@ class NoteModel {
 
       // Check if this attachment is already represented in content blocks
       int existingIndex = parsedContent.indexWhere((b) => b.id == blockId);
-      
-      if (existingIndex != -1 && parsedContent[existingIndex] is AttachmentBlock) {
+
+      if (existingIndex != -1 &&
+          parsedContent[existingIndex] is AttachmentBlock) {
         // UPDATE existing block with full URL and server metadata
         final oldBlock = parsedContent[existingIndex] as AttachmentBlock;
         parsedContent[existingIndex] = AttachmentBlock(
           id: blockId,
-          attachmentId: map['AttachmentId'] ?? map['id'] ?? oldBlock.attachmentId,
-          displayName: map['OriginalFileName'] ?? map['fileName'] ?? map['Name'] ?? map['name'] ?? oldBlock.displayName,
+          attachmentId:
+              map['AttachmentId'] ?? map['id'] ?? oldBlock.attachmentId,
+          displayName:
+              map['OriginalFileName'] ??
+              map['fileName'] ??
+              map['Name'] ??
+              map['name'] ??
+              oldBlock.displayName,
           url: fullUrl ?? oldBlock.url,
           localPath: oldBlock.localPath,
         );
       } else {
         // ADD new block if not present
-        parsedContent.add(AttachmentBlock(
-          id: blockId.isEmpty ? DateTime.now().millisecondsSinceEpoch.toString() : blockId,
-          attachmentId: map['AttachmentId'] ?? map['id'] ?? 0,
-          displayName: map['OriginalFileName'] ?? map['fileName'] ?? map['Name'] ?? map['name'] ?? 'Attachment',
-          url: fullUrl,
-          localPath: null,
-        ));
+        parsedContent.add(
+          AttachmentBlock(
+            id: blockId.isEmpty
+                ? DateTime.now().millisecondsSinceEpoch.toString()
+                : blockId,
+            attachmentId: map['AttachmentId'] ?? map['id'] ?? 0,
+            displayName:
+                map['OriginalFileName'] ??
+                map['fileName'] ??
+                map['Name'] ??
+                map['name'] ??
+                'Attachment',
+            url: fullUrl,
+            localPath: null,
+          ),
+        );
       }
     }
 
@@ -148,14 +204,19 @@ class NoteModel {
       title: title,
       content: parsedContent,
       isPinned: json['IsPinned'] ?? json['isPinned'] ?? json['pinned'] ?? false,
-      isArchived: json['IsArchived'] ?? json['isArchived'] ?? json['archived'] ?? false,
+      isArchived:
+          json['IsArchived'] ?? json['isArchived'] ?? json['archived'] ?? false,
       isLocked: json['IsLocked'] ?? json['isLocked'] ?? json['locked'] ?? false,
       sortOrder: json['SortOrder'] ?? json['sortOrder'] ?? 0,
       attachmentCount: json['AttachmentCount'] ?? json['attachmentCount'] ?? 0,
       pinnedAt: _parseDate(json['PinnedAt'] ?? json['pinnedAt']),
       createdAt: _parseDate(json['CreatedAt'] ?? json['createdAt']),
-      updatedAt: _parseDate(json['UpdatedAt'] ?? json['updatedAt'] ?? json['updated_at']),
-      deletedAt: _parseDate(json['DeletedAt'] ?? json['deletedAt'] ?? json['deleted_at']),
+      updatedAt: _parseDate(
+        json['UpdatedAt'] ?? json['updatedAt'] ?? json['updated_at'],
+      ),
+      deletedAt: _parseDate(
+        json['DeletedAt'] ?? json['deletedAt'] ?? json['deleted_at'],
+      ),
     );
   }
 
@@ -226,7 +287,9 @@ class NoteData {
     }
 
     // 2. Extract and parse all potential locations
-    final activeItems = _parseList(json['note'] ?? json['notes'] ?? json['active']);
+    final activeItems = _parseList(
+      json['note'] ?? json['notes'] ?? json['active'],
+    );
     final archivedItems = _parseList(json['archive'] ?? json['archived']);
     final deletedItems = _parseList(json['trash'] ?? json['deleted']);
     final extraItems = _parseList(json['data'] is List ? json['data'] : null);
@@ -238,9 +301,10 @@ class NoteData {
 
     // If there are extra notes in 'data' list, add them to active if not already present elsewhere
     for (var n in extraItems) {
-      bool exists = finalActive.any((a) => a.id == n.id) || 
-                   finalArchive.any((a) => a.id == n.id) || 
-                   finalTrash.any((t) => t.id == n.id);
+      bool exists =
+          finalActive.any((a) => a.id == n.id) ||
+          finalArchive.any((a) => a.id == n.id) ||
+          finalTrash.any((t) => t.id == n.id);
       if (!exists) finalActive.add(n);
     }
 
@@ -261,8 +325,14 @@ abstract class NoteBlock {
   NoteBlock({required this.id, required this.type});
 
   factory NoteBlock.fromJson(Map<String, dynamic> json) {
-    final type = (json['type'] ?? json['Type'] ?? 'text').toString().toLowerCase();
-    final id = (json['id'] ?? json['Id'] ?? DateTime.now().microsecondsSinceEpoch.toString()).toString();
+    final type = (json['type'] ?? json['Type'] ?? 'text')
+        .toString()
+        .toLowerCase();
+    final id =
+        (json['id'] ??
+                json['Id'] ??
+                DateTime.now().microsecondsSinceEpoch.toString())
+            .toString();
     final data = Map<String, dynamic>.from(json)..['id'] = id;
 
     if (type == 'text') return TextBlock.fromJson(data);
@@ -270,12 +340,12 @@ abstract class NoteBlock {
     if (type == 'attachment') return AttachmentBlock.fromJson(data);
     if (type == 'table') return TableBlock.fromJson(data);
     if (type == 'drawing') return DrawingBlock.fromJson(data);
-    
+
     // Fallback for unknown types - treat as text to avoid crashing
     return TextBlock(
-      id: id, 
+      id: id,
       text: "Unknown block type ($type): ${json.toString()}",
-      style: 'body'
+      style: 'body',
     );
   }
 
@@ -286,8 +356,8 @@ class DrawingBlock extends NoteBlock {
   final String? localPath;
   final String? url;
 
-  DrawingBlock({required String id, this.localPath, this.url}) 
-      : super(id: id, type: BlockType.drawing);
+  DrawingBlock({required String id, this.localPath, this.url})
+    : super(id: id, type: BlockType.drawing);
 
   factory DrawingBlock.fromJson(Map<String, dynamic> json) {
     return DrawingBlock(
@@ -299,18 +369,18 @@ class DrawingBlock extends NoteBlock {
 
   @override
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "type": "drawing",
-    "localPath": localPath,
-    "url": url,
+    "Id": id, // Reverting to String
+    "Type": "drawing",
+    "LocalPath": localPath,
+    "Url": url,
   };
 }
 
 class TableBlock extends NoteBlock {
   final List<List<String>> rows;
 
-  TableBlock({required String id, required this.rows}) 
-      : super(id: id, type: BlockType.table);
+  TableBlock({required String id, required this.rows})
+    : super(id: id, type: BlockType.table);
 
   factory TableBlock.fromJson(Map<String, dynamic> json) {
     return TableBlock(
@@ -323,9 +393,9 @@ class TableBlock extends NoteBlock {
 
   @override
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "type": "table",
-    "rows": rows,
+    "Id": id, // Reverting to String
+    "Type": "table",
+    "Rows": rows,
   };
 }
 
@@ -333,31 +403,41 @@ class TextBlock extends NoteBlock {
   final String text; // Stores plain text or Delta JSON
   final String style; // 'title', 'heading', 'subheading', 'body'
 
-  TextBlock({required String id, required this.text, this.style = 'body'}) 
-      : super(id: id, type: BlockType.text);
+  TextBlock({required String id, required this.text, this.style = 'body'})
+    : super(id: id, type: BlockType.text);
 
   factory TextBlock.fromJson(Map<String, dynamic> json) {
+    final rawText = json['text'] ?? json['Text'] ?? '';
+    String textValue;
+    if (rawText is String) {
+      textValue = rawText;
+    } else {
+      // If server returned structured JSON, convert it back to String for our internal state
+      textValue = jsonEncode(rawText);
+    }
+
     return TextBlock(
-      id: json['id']?.toString() ?? '', 
-      text: json['text'] ?? '',
-      style: json['style'] ?? 'body',
+      id: (json['id'] ?? json['Id'] ?? '').toString(),
+      text: textValue,
+      style: (json['style'] ?? json['Style'] ?? 'body').toString(),
     );
   }
 
   @override
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "type": "text",
-    "text": text,
-    "style": style,
-  };
+  Map<String, dynamic> toJson() {
+    // Preserve text as a JSON string for server compatibility.
+    // The backend often expects Text to be the raw Delta string, not an already-decoded Dart object.
+    final String textValue = text;
+
+    return {"Id": id, "Type": "text", "Text": textValue, "Style": style};
+  }
 }
 
 class ChecklistBlock extends NoteBlock {
   final List<ChecklistItem> items;
 
-  ChecklistBlock({required String id, required this.items}) 
-      : super(id: id, type: BlockType.checklist);
+  ChecklistBlock({required String id, required this.items})
+    : super(id: id, type: BlockType.checklist);
 
   factory ChecklistBlock.fromJson(Map<String, dynamic> json) {
     return ChecklistBlock(
@@ -370,9 +450,9 @@ class ChecklistBlock extends NoteBlock {
 
   @override
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "type": "checklist",
-    "items": items.map((e) => e.toJson()).toList(),
+    "Id": id, // Reverting to String
+    "Type": "checklist",
+    "Items": items.map((e) => e.toJson()).toList(),
   };
 }
 
@@ -392,9 +472,9 @@ class ChecklistItem {
   }
 
   Map<String, dynamic> toJson() => {
-    "id": id,
-    "text": text,
-    "checked": checked,
+    "Id": id.toString(),
+    "Text": text.toString(),
+    "Checked": checked,
   };
 }
 
@@ -405,8 +485,8 @@ class AttachmentBlock extends NoteBlock {
   final String? localPath;
 
   AttachmentBlock({
-    required String id, 
-    required this.attachmentId, 
+    required String id,
+    required this.attachmentId,
     required this.displayName,
     this.url,
     this.localPath,
@@ -423,12 +503,14 @@ class AttachmentBlock extends NoteBlock {
   }
 
   @override
-  Map<String, dynamic> toJson() => {
-    "id": id,
-    "type": "attachment",
-    "attachmentId": attachmentId,
-    "displayName": displayName,
-    "url": url,
-    "localPath": localPath,
-  };
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {
+      "Id": id, // Reverting to String as required by server
+      "Type": "attachment",
+      "AttachmentId": attachmentId,
+      "DisplayName": displayName,
+    };
+    if (url != null) data["Url"] = url;
+    return data;
+  }
 }

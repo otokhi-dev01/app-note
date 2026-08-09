@@ -33,14 +33,18 @@ class FolderService extends GetxService {
   Future<void> deleteRestoreFolder(int id, bool isDelete) async {
     try {
       if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteRestoreFolder ID: $id, isDelete: $isDelete");
-      
-      final response = await _api.dio.post("/api/folder/delete-restore", data: {
-        "FolderId": id,
-        "id": id, // resilience
-        "isDelete": isDelete,
-        "IsDelete": isDelete, // resilience
-      });
-      
+
+      final response = await _api.dio.post(
+        "/api/folder/deleted-restore",
+        data: {
+          "FolderId": id,
+          "id": id,
+          "Id": id,
+          "isDelete": isDelete,
+          "IsDelete": isDelete,
+        },
+      );
+
       if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteRestoreFolder RESPONSE: ${response.statusCode}");
     } catch (e) {
       if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteRestoreFolder ERROR: $e");

@@ -219,20 +219,6 @@ class NoteContentEditor extends StatelessWidget {
     );
   }
 
-  TextStyle? _textBlockStyle(ThemeData theme, String style) {
-    switch (style) {
-      case 'title':
-        return theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-        );
-      case 'heading':
-        return theme.textTheme.titleLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-        );
-      default:
-        return theme.textTheme.bodyLarge?.copyWith(height: 1.45);
-    }
-  }
 
   double _editorInset(BuildContext context) {
     return (MediaQuery.sizeOf(context).width * 0.065).clamp(21.0, 32.0);

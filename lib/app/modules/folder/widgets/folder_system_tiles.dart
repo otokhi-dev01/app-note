@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
-import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 
 class FolderSystemTiles extends StatelessWidget {
@@ -112,19 +111,10 @@ class FolderSystemTiles extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.PROFILE),
-          leading: LiquidGlassContainer(
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            opacity: 0.08,
-            blur: 15,
-            child: Center(
-              child: Icon(
-                Icons.person_outline,
-                color: theme.primaryColor,
-                size: 24,
-              ),
-            ),
+          leading: Icon(
+            Icons.person_outline,
+            color: theme.primaryColor,
+            size: 30,
           ),
           title: Text("Profile", style: theme.textTheme.bodyLarge),
           trailing: Icon(
@@ -146,19 +136,10 @@ class FolderSystemTiles extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.TRASH),
-          leading: LiquidGlassContainer(
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            opacity: 0.08,
-            blur: 15,
-            child: Center(
-              child: Icon(
-                Icons.delete_sweep_rounded,
-                color: theme.primaryColor,
-                size: 24,
-              ),
-            ),
+          leading: Icon(
+            Icons.delete_sweep_rounded,
+            color: theme.primaryColor,
+            size: 30,
           ),
           title: Text("Trash", style: theme.textTheme.bodyLarge),
           trailing: Icon(

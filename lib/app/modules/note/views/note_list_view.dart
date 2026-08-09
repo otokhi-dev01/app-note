@@ -101,7 +101,7 @@ class NoteListView extends GetView<NoteController> {
           blur: 10,
           child: IconButton(
             onPressed: () => Get.back(),
-            icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 20, fontWeight: FontWeight.bold,),
+            icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 24, fontWeight: FontWeight.bold,),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

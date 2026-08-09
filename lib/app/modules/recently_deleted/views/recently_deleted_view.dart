@@ -74,13 +74,13 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                   thickness: 8,
                   refractiveIndex: 1.1,
                   opacity: 0.15,
-                  blur: 10, // Crisper glass icon
+                  blur: 10,
                   child: IconButton(
                     onPressed: () => Get.back(),
                     icon: Icon(
                       CupertinoIcons.chevron_left,
                       color: theme.colorScheme.onSurface,
-                      size: 28,
+                      size: 24,
                     ),
                     padding: EdgeInsets.zero,
                   ),

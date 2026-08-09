@@ -78,10 +78,11 @@ class ArchiveView extends GetView<NoteController> {
           showGlow: true,
           thickness: 8,
           refractiveIndex: 1.1,
-          opacity: 0.15, // Standard glass icon opacity
+          opacity: 0.15,
+          blur: 10,
           child: IconButton(
             onPressed: () => Get.back(),
-            icon: const Icon(CupertinoIcons.chevron_left, color: AppTheme.textSecondary, size: 28),
+            icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 24),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

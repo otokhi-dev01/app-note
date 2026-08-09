@@ -20,8 +20,8 @@ class NoteDetailController extends GetxController {
   NoteDetailController({
     required NoteService noteService,
     required FolderService folderService,
-  })  : _noteService = noteService,
-        _folderService = folderService;
+  }) : _noteService = noteService,
+       _folderService = folderService;
 
   // --- Observables ---
   final currentNote = Rxn<NoteModel>();
@@ -41,6 +41,7 @@ class NoteDetailController extends GetxController {
   // --- State ---
   final _history = <List<NoteBlock>>[];
   final _redoStack = <List<NoteBlock>>[];
+  int? _initialFolderId;
   static const int _maxHistory = 30;
   final activeBlockIndex = (-1).obs;
 
@@ -55,14 +56,14 @@ class NoteDetailController extends GetxController {
   void onInit() {
     super.onInit();
     _handleArguments(Get.arguments);
-    
+
     // Sync currentBlockStyle when activeBlockIndex changes
     ever(activeBlockIndex, (index) {
       if (index >= 0 && index < blocks.length) {
         final block = blocks[index];
         if (block is TextBlock) {
           currentBlockStyle.value = block.style;
-          
+
           // Also sync active attributes if Quill controller exists
           final qc = quillControllers[block.id];
           if (qc != null) {
@@ -95,6 +96,9 @@ class NoteDetailController extends GetxController {
     if (args is Map) {
       final noteId = _toInt(args['noteId']);
       final folderId = _toInt(args['folderId']);
+
+      // Keep initial folder id for fallback when saving
+      if (folderId != null && folderId != 0) _initialFolderId = folderId;
 
       isReadOnly.value = args['isDeleted'] == true;
 
@@ -152,7 +156,12 @@ class NoteDetailController extends GetxController {
   }
 
   void _initNewNote(int folderId) {
-    currentNote.value = NoteModel(id: 0, folderId: folderId, title: '', folderName: '');
+    currentNote.value = NoteModel(
+      id: 0,
+      folderId: folderId,
+      title: '',
+      folderName: '',
+    );
     isPinned.value = false;
     isArchived.value = false;
     isLocked.value = false;
@@ -165,7 +174,10 @@ class NoteDetailController extends GetxController {
 
   // --- Content Management ---
   TextEditingController getTextController(String blockId, String initialText) {
-    return blockControllers.putIfAbsent(blockId, () => TextEditingController(text: initialText));
+    return blockControllers.putIfAbsent(
+      blockId,
+      () => TextEditingController(text: initialText),
+    );
   }
 
   quill.QuillController getQuillController(String blockId, String content) {
@@ -199,7 +211,11 @@ class NoteDetailController extends GetxController {
     if (index < 0 || index >= blocks.length) return;
     final block = blocks[index];
     if (block is TextBlock) {
-      blocks[index] = TextBlock(id: block.id, text: jsonContent, style: block.style);
+      blocks[index] = TextBlock(
+        id: block.id,
+        text: jsonContent,
+        style: block.style,
+      );
     }
   }
 
@@ -209,16 +225,24 @@ class NoteDetailController extends GetxController {
     final block = blocks[index];
     if (block is TextBlock) {
       blocks[index] = TextBlock(id: block.id, text: block.text, style: style);
-      
+
       // Update Quill controller if exists to match style (Header)
       final controller = quillControllers[block.id];
       if (controller != null) {
         quill.Attribute? headerAttr;
         switch (style) {
-          case 'title': headerAttr = quill.Attribute.h1; break;
-          case 'heading': headerAttr = quill.Attribute.h2; break;
-          case 'subheading': headerAttr = quill.Attribute.h3; break;
-          default: headerAttr = quill.Attribute.header; break; // Remove header
+          case 'title':
+            headerAttr = quill.Attribute.h1;
+            break;
+          case 'heading':
+            headerAttr = quill.Attribute.h2;
+            break;
+          case 'subheading':
+            headerAttr = quill.Attribute.h3;
+            break;
+          default:
+            headerAttr = quill.Attribute.header;
+            break; // Remove header
         }
         controller.formatSelection(headerAttr);
       }
@@ -226,7 +250,8 @@ class NoteDetailController extends GetxController {
   }
 
   void applyInlineFormat(quill.Attribute attribute) {
-    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length) return;
+    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length)
+      return;
     final block = blocks[activeBlockIndex.value];
     final controller = quillControllers[block.id];
     if (controller != null) {
@@ -237,18 +262,26 @@ class NoteDetailController extends GetxController {
   void onUpdateChecklistItem(int blockIndex, int itemIndex, String text) {
     if (blockIndex < 0 || blockIndex >= blocks.length) return;
     final block = blocks[blockIndex];
-    if (block is! ChecklistBlock || itemIndex < 0 || itemIndex >= block.items.length) return;
+    if (block is! ChecklistBlock ||
+        itemIndex < 0 ||
+        itemIndex >= block.items.length)
+      return;
 
     final items = List<ChecklistItem>.from(block.items);
     final oldItem = items[itemIndex];
     if (oldItem.text == text) return;
 
-    items[itemIndex] = ChecklistItem(id: oldItem.id, text: text, checked: oldItem.checked);
+    items[itemIndex] = ChecklistItem(
+      id: oldItem.id,
+      text: text,
+      checked: oldItem.checked,
+    );
     blocks[blockIndex] = ChecklistBlock(id: block.id, items: items);
   }
 
   void addChecklistItem(int blockIndex) {
-    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value) return;
+    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value)
+      return;
     _recordHistory();
     final block = blocks[blockIndex];
     if (block is! ChecklistBlock) return;
@@ -259,7 +292,8 @@ class NoteDetailController extends GetxController {
   }
 
   void deleteChecklistItem(int blockIndex, int itemIndex) {
-    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value) return;
+    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value)
+      return;
     final block = blocks[blockIndex];
     if (block is! ChecklistBlock || block.items.length <= 1) return;
     _recordHistory();
@@ -273,11 +307,18 @@ class NoteDetailController extends GetxController {
     if (blockIndex < 0 || blockIndex >= blocks.length) return;
     _recordHistory();
     final block = blocks[blockIndex];
-    if (block is! ChecklistBlock || itemIndex < 0 || itemIndex >= block.items.length) return;
+    if (block is! ChecklistBlock ||
+        itemIndex < 0 ||
+        itemIndex >= block.items.length)
+      return;
 
     final items = List<ChecklistItem>.from(block.items);
     final oldItem = items[itemIndex];
-    items[itemIndex] = ChecklistItem(id: oldItem.id, text: oldItem.text, checked: !oldItem.checked);
+    items[itemIndex] = ChecklistItem(
+      id: oldItem.id,
+      text: oldItem.text,
+      checked: !oldItem.checked,
+    );
     blocks[blockIndex] = ChecklistBlock(id: block.id, items: items);
   }
 
@@ -290,24 +331,34 @@ class NoteDetailController extends GetxController {
   void addChecklistBlock() {
     if (isReadOnly.value) return;
     _recordHistory();
-    
+
     final newId = _generateBlockId();
     final itemId = _generateBlockId();
-    
-    _insertBlock(ChecklistBlock(
-      id: newId, 
-      items: [ChecklistItem(id: itemId, text: '')]
-    ));
-    
+
+    _insertBlock(
+      ChecklistBlock(
+        id: newId,
+        items: [ChecklistItem(id: itemId, text: '')],
+      ),
+    );
+
     // Logic to request focus could be added here if we had focus nodes
   }
 
   void addTableBlock() {
     if (isReadOnly.value) return;
     _recordHistory();
-    
-    _insertBlock(TableBlock(id: _generateBlockId(), rows: [['', ''], ['', '']]));
-    
+
+    _insertBlock(
+      TableBlock(
+        id: _generateBlockId(),
+        rows: [
+          ['', ''],
+          ['', ''],
+        ],
+      ),
+    );
+
     // We add a text block after table for easier navigation
     addTextBlock();
   }
@@ -315,16 +366,30 @@ class NoteDetailController extends GetxController {
   Future<void> addAttachment(ImageSource source, {bool isVideo = false}) async {
     if (isReadOnly.value) return;
     try {
-      final XFile? file = isVideo ? await _picker.pickVideo(source: source) : await _picker.pickImage(source: source, imageQuality: 90);
+      final XFile? file = isVideo
+          ? await _picker.pickVideo(source: source)
+          : await _picker.pickImage(source: source, imageQuality: 90);
       if (file == null || currentNote.value == null) return;
 
       if (!File(file.path).existsSync()) {
-        Get.snackbar('Error', 'The selected file could not be found', snackPosition: SnackPosition.BOTTOM);
+        Get.snackbar(
+          'Error',
+          'The selected file could not be found',
+          snackPosition: SnackPosition.BOTTOM,
+        );
         return;
       }
 
       _recordHistory();
-      _insertBlock(AttachmentBlock(id: _generateBlockId(), attachmentId: 0, displayName: file.name, localPath: file.path, url: null));
+      _insertBlock(
+        AttachmentBlock(
+          id: _generateBlockId(),
+          attachmentId: 0,
+          displayName: file.name,
+          localPath: file.path,
+          url: null,
+        ),
+      );
       blocks.refresh();
       addTextBlock();
     } catch (e, s) {
@@ -333,20 +398,34 @@ class NoteDetailController extends GetxController {
   }
 
   void updateAttachmentImage(int blockIndex, String editedPath) {
-    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) return;
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length)
+      return;
     final block = blocks[blockIndex];
     if (block is! AttachmentBlock || !File(editedPath).existsSync()) return;
 
     _recordHistory();
-    blocks[blockIndex] = AttachmentBlock(id: block.id, attachmentId: 0, displayName: '${block.id}_edited.png', localPath: editedPath, url: block.url);
+    blocks[blockIndex] = AttachmentBlock(
+      id: block.id,
+      attachmentId: 0,
+      displayName: '${block.id}_edited.png',
+      localPath: editedPath,
+      url: block.url,
+    );
     blocks.refresh();
   }
 
-  void updateTableCell(int blockIndex, int rowIndex, int colIndex, String value) {
+  void updateTableCell(
+    int blockIndex,
+    int rowIndex,
+    int colIndex,
+    String value,
+  ) {
     if (blockIndex < 0 || blockIndex >= blocks.length) return;
     final block = blocks[blockIndex];
     if (block is TableBlock) {
-      final rows = List<List<String>>.from(block.rows.map((r) => List<String>.from(r)));
+      final rows = List<List<String>>.from(
+        block.rows.map((r) => List<String>.from(r)),
+      );
       if (rows[rowIndex][colIndex] == value) return;
       rows[rowIndex][colIndex] = value;
       blocks[blockIndex] = TableBlock(id: block.id, rows: rows);
@@ -354,11 +433,14 @@ class NoteDetailController extends GetxController {
   }
 
   void addTableRow(int blockIndex) {
-    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value) return;
+    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value)
+      return;
     _recordHistory();
     final block = blocks[blockIndex];
     if (block is TableBlock) {
-      final rows = List<List<String>>.from(block.rows.map((r) => List<String>.from(r)));
+      final rows = List<List<String>>.from(
+        block.rows.map((r) => List<String>.from(r)),
+      );
       final colCount = rows.isNotEmpty ? rows[0].length : 2;
       rows.add(List.generate(colCount, (_) => ''));
       blocks[blockIndex] = TableBlock(id: block.id, rows: rows);
@@ -366,12 +448,17 @@ class NoteDetailController extends GetxController {
   }
 
   void addTableColumn(int blockIndex) {
-    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value) return;
+    if (blockIndex < 0 || blockIndex >= blocks.length || isReadOnly.value)
+      return;
     _recordHistory();
     final block = blocks[blockIndex];
     if (block is TableBlock) {
-      final rows = List<List<String>>.from(block.rows.map((r) => List<String>.from(r)));
-      for (var row in rows) { row.add(''); }
+      final rows = List<List<String>>.from(
+        block.rows.map((r) => List<String>.from(r)),
+      );
+      for (var row in rows) {
+        row.add('');
+      }
       blocks[blockIndex] = TableBlock(id: block.id, rows: rows);
     }
   }
@@ -395,56 +482,95 @@ class NoteDetailController extends GetxController {
 
   Future<void> saveNote() async {
     if (currentNote.value == null || isSaving.value || isReadOnly.value) return;
-    
+
     // Hide keyboard and remove focus to ensure all text is synced
     Get.focusScope?.unfocus();
-    
+
     isSaving.value = true;
     try {
       // 1. Sync data from controllers to the blocks list
       _syncTextBlocks();
-      
+
       String finalTitle = titleController.text.trim();
       if (finalTitle.isEmpty) {
         finalTitle = _generateFallbackTitle();
         titleController.text = finalTitle;
       }
 
-      if (kDebugMode) debugPrint("[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}");
+      if (kDebugMode)
+        debugPrint(
+          "[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}",
+        );
 
+      if (kDebugMode)
+        debugPrint(
+          "[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}",
+        );
 
-      if (kDebugMode) debugPrint("[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}");
+      // 2. First Save: Ensure we have a valid FolderId and send Title/content to server
+      int folderIdToUse = currentNote.value!.folderId;
+      if (folderIdToUse == 0) {
+        // Try initial argument
+        if (_initialFolderId != null && _initialFolderId! > 0) {
+          folderIdToUse = _initialFolderId!;
+        } else {
+          // Fallback to first available folder from server
+          try {
+            final foldersRes = await _folderService.getFolders();
+            if (foldersRes.folders.isNotEmpty)
+              folderIdToUse = foldersRes.folders.first.id;
+          } catch (_) {}
+        }
+      }
 
-      // 2. First Save: Send Title and serialized Text content to server
+      if (folderIdToUse == 0) {
+        Get.snackbar(
+          'Error',
+          'No target folder selected for this note',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
       final savedNote = await _noteService.saveNote(
-        currentNote.value!.folderId, 
-        finalTitle, 
+        folderIdToUse,
+        finalTitle,
         noteId: currentNote.value!.id,
         content: blocks.toList(), // Use toList() to send a static snapshot
       );
-      
+
       final confirmedNoteId = savedNote.id;
       currentNote.value = savedNote;
 
       // 3. Attachment Handling: If there are new local images, upload them
-      bool hasNewAttachments = blocks.any((b) => b is AttachmentBlock && b.attachmentId == 0 && b.localPath != null);
+      bool hasNewAttachments = blocks.any(
+        (b) =>
+            b is AttachmentBlock && b.attachmentId == 0 && b.localPath != null,
+      );
       if (hasNewAttachments) {
-        if (kDebugMode) debugPrint("[NOTE DEBUG] Starting attachment uploads for NoteId: $confirmedNoteId");
-        
+        if (kDebugMode)
+          debugPrint(
+            "[NOTE DEBUG] Starting attachment uploads for NoteId: $confirmedNoteId",
+          );
+
         await _handleAttachments(confirmedNoteId);
-        
+
         // 4. Final Sync: Update the server with the new Attachment URLs in the ContentJson
         if (kDebugMode) debugPrint("[NOTE DEBUG] Final sync after uploads");
         await _noteService.saveNote(
-          currentNote.value!.folderId, 
-          finalTitle, 
-          noteId: confirmedNoteId, 
-          content: blocks.toList()
+          confirmedNoteId == 0
+              ? currentNote.value!.folderId
+              : currentNote.value!.folderId,
+          finalTitle,
+          noteId: confirmedNoteId,
+          content: blocks.toList(),
         );
       }
-      
+
       Get.back(result: true); // Return to list view and trigger refresh
-      Get.snackbar("Success", "Note saved successfully", 
+      Get.snackbar(
+        "Success",
+        "Note saved successfully",
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.withValues(alpha: 0.1),
       );
@@ -468,7 +594,9 @@ class NoteDetailController extends GetxController {
         }
         final trimmed = plainText.trim().replaceAll('\n', ' ');
         if (trimmed.isNotEmpty) {
-          return trimmed.length > 30 ? '${trimmed.substring(0, 27)}...' : trimmed;
+          return trimmed.length > 30
+              ? '${trimmed.substring(0, 27)}...'
+              : trimmed;
         }
       }
     }
@@ -478,19 +606,49 @@ class NoteDetailController extends GetxController {
   Future<void> _handleAttachments(int noteId) async {
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
-      if (block is! AttachmentBlock || block.attachmentId != 0 || block.localPath == null || block.localPath!.isEmpty) continue;
-      
+      if (block is! AttachmentBlock ||
+          block.attachmentId != 0 ||
+          block.localPath == null ||
+          block.localPath!.isEmpty)
+        continue;
+
       try {
-        final result = await _noteService.uploadAttachment(noteId, block.localPath!, block.id, i);
-        final uploadedPath = _getUploadValue(result, ['Url', 'url', 'FileUrl', 'fileUrl', 'FilePath', 'filePath', 'Path', 'path']);
-        final uploadedId = _getUploadValue(result, ['AttachmentId', 'attachmentId', 'Id', 'id']);
+        final result = await _noteService.uploadAttachment(
+          noteId,
+          block.localPath!,
+          block.id,
+          i,
+        );
+        final uploadedPath = _getUploadValue(result, [
+          'Url',
+          'url',
+          'FileUrl',
+          'fileUrl',
+          'FilePath',
+          'filePath',
+          'Path',
+          'path',
+        ]);
+        final uploadedId = _getUploadValue(result, [
+          'AttachmentId',
+          'attachmentId',
+          'Id',
+          'id',
+        ]);
         final fullUrl = _buildAttachmentUrl(uploadedPath);
 
         if (fullUrl != null) {
-          blocks[i] = AttachmentBlock(id: block.id, attachmentId: int.tryParse(uploadedId?.toString() ?? '') ?? 0, displayName: block.displayName, url: fullUrl, localPath: null);
+          blocks[i] = AttachmentBlock(
+            id: block.id,
+            attachmentId: int.tryParse(uploadedId?.toString() ?? '') ?? 0,
+            displayName: block.displayName,
+            url: fullUrl,
+            localPath: null,
+          );
         }
       } catch (e) {
-        if (kDebugMode) debugPrint('Failed to upload attachment at index $i: $e');
+        if (kDebugMode)
+          debugPrint('Failed to upload attachment at index $i: $e');
       }
     }
   }
@@ -499,11 +657,11 @@ class NoteDetailController extends GetxController {
 
   void undo() {
     if (_history.isEmpty || isReadOnly.value) return;
-    
+
     // Capture current state to redo stack before undoing
     _syncTextBlocks();
     _redoStack.add(blocks.map((b) => b).toList());
-    
+
     final lastState = _history.removeLast();
     blocks.assignAll(lastState);
     _restoreBlockControllers(lastState);
@@ -538,14 +696,19 @@ class NoteDetailController extends GetxController {
 
   void _updateActiveAttributes(quill.QuillController qc) {
     final styles = qc.getSelectionStyle();
-    if (styles.containsKey(quill.Attribute.h1.key)) currentBlockStyle.value = 'title';
-    else if (styles.containsKey(quill.Attribute.h2.key)) currentBlockStyle.value = 'heading';
-    else if (styles.containsKey(quill.Attribute.h3.key)) currentBlockStyle.value = 'subheading';
-    else currentBlockStyle.value = 'body';
+    if (styles.containsKey(quill.Attribute.h1.key))
+      currentBlockStyle.value = 'title';
+    else if (styles.containsKey(quill.Attribute.h2.key))
+      currentBlockStyle.value = 'heading';
+    else if (styles.containsKey(quill.Attribute.h3.key))
+      currentBlockStyle.value = 'subheading';
+    else
+      currentBlockStyle.value = 'body';
   }
 
   void toggleInlineFormat(quill.Attribute attribute) {
-    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length) return;
+    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length)
+      return;
     final block = blocks[activeBlockIndex.value];
     final controller = quillControllers[block.id];
     if (controller != null) {
@@ -570,7 +733,11 @@ class NoteDetailController extends GetxController {
       final newState = !isPinned.value;
       await _noteService.updateNoteState(note.id, isPinned: newState);
       isPinned.value = newState;
-      Get.snackbar("Success", newState ? "Note Pinned" : "Note Unpinned", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Success",
+        newState ? "Note Pinned" : "Note Unpinned",
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar("Error", "Failed to update pin status");
     }
@@ -583,7 +750,11 @@ class NoteDetailController extends GetxController {
       final newState = !isArchived.value;
       await _noteService.updateNoteState(note.id, isArchived: newState);
       isArchived.value = newState;
-      Get.snackbar("Success", newState ? "Note Archived" : "Note Unarchived", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Success",
+        newState ? "Note Archived" : "Note Unarchived",
+        snackPosition: SnackPosition.BOTTOM,
+      );
       if (newState) Get.back(result: true);
     } catch (e) {
       Get.snackbar("Error", "Failed to update archive status");
@@ -597,8 +768,11 @@ class NoteDetailController extends GetxController {
       final newState = !isLocked.value;
       await _noteService.updateNoteState(note.id, isLocked: newState);
       isLocked.value = newState;
-      Get.snackbar("Success", newState ? "Note Locked" : "Note Unlocked",
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Success",
+        newState ? "Note Locked" : "Note Unlocked",
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar("Error", "Failed to update lock status");
     }
@@ -608,26 +782,38 @@ class NoteDetailController extends GetxController {
     final note = currentNote.value;
     if (note == null || note.id == 0) return;
 
-    Get.dialog(AlertDialog(
-      title: const Text("Delete Note?"),
-      content: const Text("This note will be moved to Recently Deleted."),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
-        TextButton(
-          onPressed: () async {
-            try {
-              await _noteService.deleteRestoreNote(note.id, true);
-              Get.back(); Get.back(result: true);
-              Get.snackbar("Success", "Note moved to trash",
-                  snackPosition: SnackPosition.BOTTOM);
-            } catch (e) {
-              Get.snackbar("Error", "Could not delete note. Please try again.");
-            }
-          },
-          child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
-        ),
-      ],
-    ));
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Delete Note?"),
+        content: const Text("This note will be moved to Recently Deleted."),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () async {
+              try {
+                await _noteService.deleteRestoreNote(note.id, true);
+                Get.back();
+                Get.back(result: true);
+                Get.snackbar(
+                  "Success",
+                  "Note moved to trash",
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } catch (e) {
+                Get.snackbar(
+                  "Error",
+                  "Could not delete note. Please try again.",
+                );
+              }
+            },
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> moveNote() async {
@@ -635,42 +821,76 @@ class NoteDetailController extends GetxController {
     if (note == null || note.id == 0) return;
     try {
       final folderRes = await _folderService.getFolders();
-      if (folderRes.folders.isEmpty) { Get.snackbar("Info", "No destination folders available"); return; }
+      if (folderRes.folders.isEmpty) {
+        Get.snackbar("Info", "No destination folders available");
+        return;
+      }
 
-      Get.bottomSheet(NoteMoveFolderModal(
-        folders: folderRes.folders,
-        currentFolderId: note.folderId,
-        onFolderSelected: (folder) async {
-          Get.back();
-          try {
-            _syncTextBlocks();
-            await _noteService.saveNote(folder.id, titleController.text.trim(),
-                noteId: note.id, content: blocks);
-            Get.back(result: true);
-            Get.snackbar("Success", "Moved note to ${folder.name}", snackPosition: SnackPosition.BOTTOM);
-          } catch (e) { Get.snackbar("Error", "Failed to move note"); }
-        },
-      ), isScrollControlled: true);
-    } catch (e) { Get.snackbar("Error", "Could not fetch folders"); }
+      Get.bottomSheet(
+        NoteMoveFolderModal(
+          folders: folderRes.folders,
+          currentFolderId: note.folderId,
+          onFolderSelected: (folder) async {
+            Get.back();
+            try {
+              _syncTextBlocks();
+              await _noteService.saveNote(
+                folder.id,
+                titleController.text.trim(),
+                noteId: note.id,
+                content: blocks,
+              );
+              Get.back(result: true);
+              Get.snackbar(
+                "Success",
+                "Moved note to ${folder.name}",
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            } catch (e) {
+              Get.snackbar("Error", "Failed to move note");
+            }
+          },
+        ),
+        isScrollControlled: true,
+      );
+    } catch (e) {
+      Get.snackbar("Error", "Could not fetch folders");
+    }
   }
 
   void shareNote() {
     _syncTextBlocks();
     String content = "${titleController.text}\n\n";
     for (final block in blocks) {
-      if (block is TextBlock) { content += "${block.text}\n"; }
-      else if (block is ChecklistBlock) { for (final item in block.items) { content += "[${item.checked ? 'x' : ' '}] ${item.text}\n"; } }
+      if (block is TextBlock) {
+        content += "${block.text}\n";
+      } else if (block is ChecklistBlock) {
+        for (final item in block.items) {
+          content += "[${item.checked ? 'x' : ' '}] ${item.text}\n";
+        }
+      }
     }
-    Get.dialog(AlertDialog(
-      title: const Text("Share Note"),
-      content: SingleChildScrollView(child: Text(content)),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text("Close")),
-        TextButton(onPressed: () { Clipboard.setData(ClipboardData(text: content)); Get.back();
-          Get.snackbar("Success", "Content copied",
-            snackPosition: SnackPosition.BOTTOM); }, child: const Text("Copy Text")),
-      ],
-    ));
+    Get.dialog(
+      AlertDialog(
+        title: const Text("Share Note"),
+        content: SingleChildScrollView(child: Text(content)),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text("Close")),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: content));
+              Get.back();
+              Get.snackbar(
+                "Success",
+                "Content copied",
+                snackPosition: SnackPosition.BOTTOM,
+              );
+            },
+            child: const Text("Copy Text"),
+          ),
+        ],
+      ),
+    );
   }
 
   // --- Private Helpers ---
@@ -685,7 +905,12 @@ class NoteDetailController extends GetxController {
           blocks[i] = TextBlock(id: block.id, text: json, style: block.style);
         } else {
           final tc = blockControllers[block.id];
-          if (tc != null) blocks[i] = TextBlock(id: block.id, text: tc.text, style: block.style);
+          if (tc != null)
+            blocks[i] = TextBlock(
+              id: block.id,
+              text: tc.text,
+              style: block.style,
+            );
         }
       } else if (block is ChecklistBlock) {
         final items = List<ChecklistItem>.from(block.items);
@@ -693,13 +918,19 @@ class NoteDetailController extends GetxController {
         for (int j = 0; j < items.length; j++) {
           final tc = blockControllers['${block.id}_${items[j].id}'];
           if (tc != null && tc.text != items[j].text) {
-            items[j] = ChecklistItem(id: items[j].id, text: tc.text, checked: items[j].checked);
+            items[j] = ChecklistItem(
+              id: items[j].id,
+              text: tc.text,
+              checked: items[j].checked,
+            );
             changed = true;
           }
         }
         if (changed) blocks[i] = ChecklistBlock(id: block.id, items: items);
       } else if (block is TableBlock) {
-        final rows = List<List<String>>.from(block.rows.map((r) => List<String>.from(r)));
+        final rows = List<List<String>>.from(
+          block.rows.map((r) => List<String>.from(r)),
+        );
         bool changed = false;
         for (int r = 0; r < rows.length; r++) {
           for (int c = 0; c < rows[r].length; c++) {
@@ -720,7 +951,7 @@ class NoteDetailController extends GetxController {
     final snapshot = blocks.map((b) => b).toList();
     _history.add(snapshot);
     if (_history.length > _maxHistory) _history.removeAt(0);
-    
+
     // Clear redo stack whenever a new action is performed
     _redoStack.clear();
   }
@@ -738,7 +969,9 @@ class NoteDetailController extends GetxController {
   }
 
   void _clearControllers() {
-    for (final controller in blockControllers.values) { controller.dispose(); }
+    for (final controller in blockControllers.values) {
+      controller.dispose();
+    }
     blockControllers.clear();
   }
 
@@ -754,8 +987,11 @@ class NoteDetailController extends GetxController {
 
   void _handleError(String msg, dynamic e, StackTrace s) {
     if (e is dio.DioException && e.response?.statusCode == 404) {
-      Get.snackbar('Error', 'Note not found. It may have been deleted.',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Error',
+        'Note not found. It may have been deleted.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
       Future.delayed(const Duration(seconds: 1), () => Get.back());
     } else {
       Get.snackbar('Error', msg, snackPosition: SnackPosition.BOTTOM);
@@ -768,9 +1004,21 @@ class NoteDetailController extends GetxController {
 
   dynamic _getUploadValue(dynamic result, List<String> keys) {
     if (result is! Map) return null;
-    for (final key in keys) { final v = result[key]; if (v != null && v.toString().isNotEmpty) return v; }
-    final nested = result['data'] ?? result['Data'] ?? result['result'] ?? result['Result'];
-    if (nested is Map) { for (final key in keys) { final v = nested[key]; if (v != null && v.toString().isNotEmpty) return v; } }
+    for (final key in keys) {
+      final v = result[key];
+      if (v != null && v.toString().isNotEmpty) return v;
+    }
+    final nested =
+        result['data'] ??
+        result['Data'] ??
+        result['result'] ??
+        result['Result'];
+    if (nested is Map) {
+      for (final key in keys) {
+        final v = nested[key];
+        if (v != null && v.toString().isNotEmpty) return v;
+      }
+    }
     return null;
   }
 
@@ -785,5 +1033,6 @@ class NoteDetailController extends GetxController {
   }
 
   int? _toInt(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '');
+
   String _generateBlockId() => DateTime.now().microsecondsSinceEpoch.toString();
 }
