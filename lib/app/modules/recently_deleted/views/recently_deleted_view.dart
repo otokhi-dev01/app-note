@@ -69,7 +69,12 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                 child: LiquidGlassContainer(
                   width: 44,
                   height: 44,
-                  borderRadius: 22,
+                  shape: GlassShape.circle,
+                  showGlow: true,
+                  thickness: 8,
+                  refractiveIndex: 1.1,
+                  opacity: 0.15,
+                  blur: 10, // Crisper glass icon
                   child: IconButton(
                     onPressed: () => Get.back(),
                     icon: Icon(
@@ -90,7 +95,11 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                         ? LiquidGlassContainer(
                             width: 44,
                             height: 44,
-                            borderRadius: 22,
+                            shape: GlassShape.circle,
+                            showGlow: true,
+                            thickness: 8,
+                            opacity: 0.15,
+                            blur: 10,
                             child: GestureDetector(
                               onTap: controller.toggleEditing,
                               child: Center(
@@ -114,6 +123,10 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                             height: 44,
                             borderRadius: 22,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
+                            showGlow: true,
+                            thickness: 8,
+                            opacity: 0.15,
+                            blur: 10,
                             child: TextButton(
                               onPressed: controller.toggleEditing,
                               style: TextButton.styleFrom(
@@ -426,7 +439,11 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             LiquidGlassContainer(
               width: 50,
               height: 50,
-              borderRadius: 25,
+              shape: GlassShape.circle,
+              showGlow: true,
+              thickness: 10,
+              refractiveIndex: 1.3,
+              opacity: 0.15, // Standard glass icon opacity
               child: IconButton(
                 onPressed: () {},
                 icon: Icon(
@@ -482,6 +499,8 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: LiquidGlassContainer(
         borderRadius: 25,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        thickness: 6,
+        showGlow: true,
         child: Text(
           label,
           style: TextStyle(

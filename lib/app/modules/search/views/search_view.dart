@@ -65,7 +65,10 @@ class SearchView extends GetView<sc.SearchController> {
           LiquidGlassContainer(
             width: 44,
             height: 44,
-            borderRadius: 22,
+            shape: GlassShape.circle,
+            showGlow: true,
+            thickness: 8,
+            opacity: 0.15, // Standard glass icon opacity
             child: IconButton(
               onPressed: () => Get.back(),
               icon: Icon(

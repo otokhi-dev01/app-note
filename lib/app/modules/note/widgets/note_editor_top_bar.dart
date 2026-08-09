@@ -92,8 +92,10 @@ class _GlassIconButton extends StatelessWidget {
     return LiquidGlassContainer(
       width: size,
       height: size,
-      borderRadius: size / 2,
+      shape: GlassShape.circle,
       opacity: opacity,
+      showGlow: true,
+      thickness: 6,
       child: IconButton(
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),

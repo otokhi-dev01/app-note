@@ -37,6 +37,8 @@ class NoteEditorToolbar extends StatelessWidget {
             borderRadius: 30,
             blur: 25,
             opacity: isDark ? 0.8 : 0.98, // Professional iOS feel
+            showGlow: true,
+            thickness: 8,
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 10,

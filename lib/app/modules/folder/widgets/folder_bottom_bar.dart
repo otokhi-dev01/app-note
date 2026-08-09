@@ -51,7 +51,11 @@ class FolderBottomBar extends StatelessWidget {
             LiquidGlassContainer(
               width: 50,
               height: 50,
-              borderRadius: 25,
+              shape: GlassShape.circle,
+              showGlow: true,
+              thickness: 10,
+              refractiveIndex: 1.3,
+              opacity: 0.15, // Standard glass icon opacity
               child: IconButton(
                 onPressed: () => controller.createNewNote(),
                 icon: Icon(Icons.open_in_new, color: theme.colorScheme.onSurface, size: 28),

@@ -14,6 +14,7 @@ class AppTheme {
   static const Color textGrey = Color(0xFF8E8E93);
 
   static const Color folderPink = Color(0xFFFF69B4);
+  static const Color folderYellow = folderPink; // Alias for Otokhi branding compatibility
 
   static const Color dividerColor = Color(0xFFE5E5EA);
 
@@ -31,6 +32,7 @@ class AppTheme {
 
   // iOS Notes yellow (Renamed to Pink)
   static const Color darkFolderPink = Color(0xFFFF1493);
+  static const Color darkFolderYellow = darkFolderPink; // Alias for Otokhi branding compatibility
 
   // Primary text
   static const Color darkTextPrimary = Color(0xFFF2F2F7);

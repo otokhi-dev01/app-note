@@ -93,7 +93,12 @@ class NoteListView extends GetView<NoteController> {
         child: LiquidGlassContainer(
           width: 44,
           height: 44,
-          borderRadius: 22,
+          shape: GlassShape.circle,
+          showGlow: true,
+          thickness: 8,
+          refractiveIndex: 1.1,
+          opacity: 0.15,
+          blur: 10,
           child: IconButton(
             onPressed: () => Get.back(),
             icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 20, fontWeight: FontWeight.bold,),
@@ -137,7 +142,11 @@ class NoteListView extends GetView<NoteController> {
       return LiquidGlassContainer(
         width: 44,
         height: 44,
-        borderRadius: 22,
+        shape: GlassShape.circle,
+        showGlow: true,
+        thickness: 8,
+        opacity: 0.15,
+        blur: 10,
         child: GestureDetector(
           onTap: controller.toggleEditing,
           child: Center(
@@ -163,7 +172,11 @@ class NoteListView extends GetView<NoteController> {
       child: LiquidGlassContainer(
         width: 44,
         height: 44,
-        borderRadius: 22,
+        shape: GlassShape.circle,
+        showGlow: true,
+        thickness: 8,
+        opacity: 0.15,
+        blur: 10,
         child: Center(
           child: Icon(
             Icons.more_horiz,

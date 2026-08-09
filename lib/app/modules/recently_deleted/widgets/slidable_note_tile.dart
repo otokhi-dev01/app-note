@@ -138,7 +138,8 @@ class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerPr
               LiquidGlassContainer(
                 width: 44,
                 height: 44,
-                borderRadius: 22,
+                shape: GlassShape.circle,
+                thickness: 5,
                 child: Container(
                   decoration: BoxDecoration(
                     color: color,

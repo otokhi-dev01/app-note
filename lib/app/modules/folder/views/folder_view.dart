@@ -82,7 +82,11 @@ class FolderView extends GetView<FolderController> {
               LiquidGlassContainer(
                 width: 44,
                 height: 44,
-                borderRadius: 22,
+                shape: GlassShape.circle,
+                showGlow: true,
+                thickness: 8,
+                opacity: 0.15, // Lower opacity for high-fidelity glass look
+                blur: 10,     // Crisper refraction
                 child: IconButton(
                   onPressed: () => Get.bottomSheet(
                     FolderCreateModal(controller: controller),
@@ -127,7 +131,11 @@ class FolderView extends GetView<FolderController> {
       return LiquidGlassContainer(
         width: 44,
         height: 44,
-        borderRadius: 22,
+        shape: GlassShape.circle,
+        showGlow: true,
+        thickness: 8,
+        opacity: 0.15, // Lower opacity for high-fidelity glass look
+        blur: 10,
         child: GestureDetector(
           onTap: controller.toggleEditing,
           child: Center(
@@ -145,6 +153,10 @@ class FolderView extends GetView<FolderController> {
       height: 44,
       borderRadius: 22,
       padding: const EdgeInsets.symmetric(horizontal: 4),
+      showGlow: true,
+      thickness: 8,
+      opacity: 0.15, // Lower opacity for high-fidelity glass look
+      blur: 10,
       child: TextButton(
         onPressed: controller.toggleEditing,
         style: TextButton.styleFrom(
@@ -177,6 +189,7 @@ class FolderView extends GetView<FolderController> {
           );
         }
         return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
             if (controller.iCloudFolders.isNotEmpty) ...[
@@ -222,7 +235,6 @@ class FolderView extends GetView<FolderController> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GlassCard(
         borderRadius: 30,
-        padding: EdgeInsets.zero,
         children: [
           if (includeSystem) ...[
             FolderAllNotesTile(controller: controller),

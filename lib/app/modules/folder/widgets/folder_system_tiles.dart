@@ -12,6 +12,7 @@ class FolderSystemTiles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         _buildArchiveTile(context),
         const Divider(indent: 56, height: 1),

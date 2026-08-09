@@ -58,7 +58,11 @@ class ProfileView extends GetView<ProfileController> {
                 child: LiquidGlassContainer(
                   width: 44,
                   height: 44,
-                  borderRadius: 30,
+                  shape: GlassShape.circle,
+                  showGlow: true,
+                  thickness: 8,
+                  refractiveIndex: 1.1,
+                  opacity: 0.15, // Standard glass icon opacity
                   child: IconButton(
                     onPressed: () => Get.back(),
                     icon: Icon(

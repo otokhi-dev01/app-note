@@ -66,7 +66,12 @@ class TrashView extends GetView<TrashController> {
                 child: LiquidGlassContainer(
                   width: 44,
                   height: 44,
-                  borderRadius: 22,
+                  shape: GlassShape.circle,
+                  showGlow: true,
+                  thickness: 8,
+                  refractiveIndex: 1.1,
+                  opacity: 0.15,
+                  blur: 10,
                   child: IconButton(
                     onPressed: () => Get.back(),
                     icon: Icon(
@@ -87,7 +92,11 @@ class TrashView extends GetView<TrashController> {
                         ? LiquidGlassContainer(
                             width: 44,
                             height: 44,
-                            borderRadius: 22,
+                            shape: GlassShape.circle,
+                            showGlow: true,
+                            thickness: 8,
+                            opacity: 0.15,
+                            blur: 10,
                             child: GestureDetector(
                               onTap: controller.toggleEditing,
                               child: Center(
@@ -111,6 +120,10 @@ class TrashView extends GetView<TrashController> {
                             height: 44,
                             borderRadius: 22,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
+                            showGlow: true,
+                            thickness: 8,
+                            opacity: 0.15,
+                            blur: 10,
                             child: TextButton(
                               onPressed: controller.toggleEditing,
                               style: TextButton.styleFrom(
@@ -353,6 +366,8 @@ class TrashView extends GetView<TrashController> {
       child: LiquidGlassContainer(
         borderRadius: 25,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        thickness: 6,
+        showGlow: true,
         child: Text(
           label,
           style: TextStyle(

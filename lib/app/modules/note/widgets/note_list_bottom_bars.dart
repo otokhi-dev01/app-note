@@ -51,7 +51,11 @@ class NoteListBottomBar extends StatelessWidget {
             LiquidGlassContainer(
               width: 50,
               height: 50,
-              borderRadius: 25,
+              shape: GlassShape.circle,
+              showGlow: true,
+              thickness: 10,
+              refractiveIndex: 1.3,
+              opacity: 0.15, // Standard glass icon opacity
               child: IconButton(
                 onPressed: () => NoteNavigation.toNewNote(folderId)
                     ?.then((value) => controller.fetchNotes(folderId: folderId)),
@@ -112,6 +116,8 @@ class _ActionButton extends StatelessWidget {
       child: LiquidGlassContainer(
         borderRadius: 25,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        thickness: 6,
+        showGlow: true,
         child: Text(
           label,
           style: TextStyle(

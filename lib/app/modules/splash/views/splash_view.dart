@@ -53,7 +53,7 @@ class SplashView extends GetView<SplashController> {
                               padding: const EdgeInsets.all(10),
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/icons/otokhi_note_app_1.jpg',
+                                  'assets/icons/otokhi_logo_cover.jpg',
                                   fit: BoxFit.contain,
                                 ),
                               ),
@@ -129,6 +129,9 @@ class SplashView extends GetView<SplashController> {
                     const SizedBox(height: 16),
                     LiquidGlassContainer(
                       width: 230,
+                      borderRadius: 15,
+                      thickness: 5,
+                      opacity: 0.1,
                       child: Center(
                         child: Text(
                           "High Fidelity Note Taking",

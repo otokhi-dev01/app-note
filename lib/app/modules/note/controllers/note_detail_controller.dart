@@ -226,8 +226,8 @@ class NoteDetailController extends GetxController {
   }
 
   void applyInlineFormat(quill.Attribute attribute) {
-    if (activeBlockIndex < 0 || activeBlockIndex >= blocks.length) return;
-    final block = blocks[activeBlockIndex];
+    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length) return;
+    final block = blocks[activeBlockIndex.value];
     final controller = quillControllers[block.id];
     if (controller != null) {
       controller.formatSelection(attribute);
@@ -532,9 +532,24 @@ class NoteDetailController extends GetxController {
   void updateActiveBlockStyle(String style) {
     if (activeBlockIndex.value >= 0 && activeBlockIndex.value < blocks.length) {
       updateTextBlockStyle(activeBlockIndex.value, style);
-    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
-      updateTextBlockStyle(activeBlockIndex, style);
       currentBlockStyle.value = style;
+    }
+  }
+
+  void _updateActiveAttributes(quill.QuillController qc) {
+    final styles = qc.getSelectionStyle();
+    if (styles.containsKey(quill.Attribute.h1.key)) currentBlockStyle.value = 'title';
+    else if (styles.containsKey(quill.Attribute.h2.key)) currentBlockStyle.value = 'heading';
+    else if (styles.containsKey(quill.Attribute.h3.key)) currentBlockStyle.value = 'subheading';
+    else currentBlockStyle.value = 'body';
+  }
+
+  void toggleInlineFormat(quill.Attribute attribute) {
+    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length) return;
+    final block = blocks[activeBlockIndex.value];
+    final controller = quillControllers[block.id];
+    if (controller != null) {
+      controller.formatSelection(attribute);
     }
   }
 

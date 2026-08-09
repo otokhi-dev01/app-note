@@ -58,7 +58,7 @@ class NoteContentEditor extends StatelessWidget {
                     key: const ValueKey('note-title-field'),
                     controller: controller.titleController,
                     enabled: !isReadOnly,
-                    onTap: () => controller.activeBlockIndex = -1,
+                    onTap: () => controller.activeBlockIndex.value = -1,
                     cursorColor: AppTheme.folderYellow,
                     cursorWidth: 1.5,
                     maxLines: null,
@@ -208,7 +208,7 @@ class NoteContentEditor extends StatelessWidget {
       child: Focus(
         onFocusChange: (hasFocus) {
           if (hasFocus) {
-            controller.activeBlockIndex = blockIndex;
+            controller.activeBlockIndex.value = blockIndex;
             controller.currentBlockStyle.value = block.style;
           }
         },
