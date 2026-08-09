@@ -72,7 +72,7 @@ class ProfileController extends GetxController {
                 Get.snackbar("Success", "Name updated");
               }
             },
-            child: const Text("Save", style: TextStyle(color: AppTheme.folderYellow)),
+            child: const Text("Save", style: TextStyle(color: AppTheme.folderPink)),
           ),
         ],
       ),

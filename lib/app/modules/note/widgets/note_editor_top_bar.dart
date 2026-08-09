@@ -84,9 +84,8 @@ class _GlassIconButton extends StatelessWidget {
     required this.onTap,
     this.size = 40,
     this.iconSize = 22,
-    this.opacity = 0.15,
     this.color = AppTheme.textSecondary,
-  });
+  }) : opacity = 0.15;
 
   @override
   Widget build(BuildContext context) {
@@ -112,35 +111,32 @@ class _SaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LiquidGlassContainer(
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: controller.saveNote,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor,
-            shape: BoxShape.circle,
-          ),
-          alignment: Alignment.center,
-          child: Obx(
-            () => controller.isSaving.value
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Icon(
-                    CupertinoIcons.checkmark,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: controller.saveNote,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: const BoxDecoration(
+          color: AppTheme.folderPink,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Obx(
+          () => controller.isSaving.value
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
                     color: Colors.white,
-                    size: 20,
+                    strokeWidth: 2,
                   ),
-          ),
+                )
+              : const Icon(
+                  CupertinoIcons.checkmark,
+                  color: Colors.white,
+                  size: 24,
+                ),
         ),
       ),
     );

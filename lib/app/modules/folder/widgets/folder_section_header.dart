@@ -28,7 +28,7 @@ class FolderSectionHeader extends StatelessWidget {
             Text(title, style: theme.textTheme.titleLarge),
             Obx(() => Icon(
                   isExpanded.value ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                  color: AppTheme.folderYellow,
+                  color: AppTheme.folderPink,
                   size: 28,
                   fontWeight: FontWeight.bold,
                 )),

@@ -27,7 +27,7 @@ class FolderAllNotesTile extends StatelessWidget {
             colorValue: "#FFB703",
             sortOrder: 0,
           )),
-          leading: const Icon(Icons.folder_special_outlined, color: AppTheme.folderYellow, size: 30),
+          leading: const Icon(Icons.folder_special_outlined, color: AppTheme.folderPink, size: 30),
           title: Text("All on My iphone", style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16)),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,

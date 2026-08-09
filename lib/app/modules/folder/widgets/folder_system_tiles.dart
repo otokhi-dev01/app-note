@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 
@@ -34,14 +33,29 @@ class FolderSystemTiles extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
-          leading: Icon(Icons.delete_outline_rounded, color: theme.primaryColor, size: 30),
+          leading: Icon(
+            Icons.delete_outline_rounded,
+            color: theme.primaryColor,
+            size: 30,
+          ),
           title: Text("Recently Deleted", style: theme.textTheme.bodyLarge),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("${controller.deletedCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                "${controller.deletedCount.value}",
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -58,14 +72,29 @@ class FolderSystemTiles extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE),
-          leading: Icon(Icons.archive_outlined, color: theme.primaryColor, size: 30),
+          leading: Icon(
+            Icons.archive_outlined,
+            color: theme.primaryColor,
+            size: 30,
+          ),
           title: Text("Archive", style: theme.textTheme.bodyLarge),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("${controller.archivedCount.value}", style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                "${controller.archivedCount.value}",
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
+              Icon(
+                Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -89,11 +118,19 @@ class FolderSystemTiles extends StatelessWidget {
             opacity: 0.08,
             blur: 15,
             child: Center(
-              child: Icon(Icons.person_outline, color: theme.primaryColor, size: 24),
+              child: Icon(
+                Icons.person_outline,
+                color: theme.primaryColor,
+                size: 24,
+              ),
             ),
           ),
           title: Text("Profile", style: theme.textTheme.bodyLarge),
-          trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            size: 20,
+          ),
         ),
       );
     });
@@ -115,11 +152,19 @@ class FolderSystemTiles extends StatelessWidget {
             opacity: 0.08,
             blur: 15,
             child: Center(
-              child: Icon(Icons.delete_sweep_rounded, color: theme.primaryColor, size: 24),
+              child: Icon(
+                Icons.delete_sweep_rounded,
+                color: theme.primaryColor,
+                size: 24,
+              ),
             ),
           ),
           title: Text("Trash", style: theme.textTheme.bodyLarge),
-          trailing: Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3), size: 20),
+          trailing: Icon(
+            Icons.chevron_right,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+            size: 20,
+          ),
         ),
       );
     });

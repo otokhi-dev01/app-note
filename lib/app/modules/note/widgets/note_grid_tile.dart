@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/note_model.dart';
 import '../../../routes/note_navigation.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/note_controller.dart';
 
@@ -24,7 +23,9 @@ class NoteGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final attachment = note.content.firstWhereOrNull((b) => b is AttachmentBlock) as AttachmentBlock?;
+    final attachment =
+        note.content.firstWhereOrNull((b) => b is AttachmentBlock)
+            as AttachmentBlock?;
 
     return Obx(() {
       final isEditing = controller.isEditing.value;
@@ -54,7 +55,9 @@ class NoteGridTile extends StatelessWidget {
                     Expanded(
                       flex: 3,
                       child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                         child: _GridImage(attachment: attachment),
                       ),
                     )
@@ -65,12 +68,16 @@ class NoteGridTile extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(20),
+                          ),
                           color: Colors.white10,
                         ),
                         child: Text(
                           _getContentSnippet(note),
-                          style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                          ),
                           maxLines: 6,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -95,7 +102,9 @@ class NoteGridTile extends StatelessWidget {
                           ),
                           Text(
                             _formatTime(note.updatedAt),
-                            style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -112,14 +121,17 @@ class NoteGridTile extends StatelessWidget {
                     height: 22,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isSelected ? theme.colorScheme.onSurface : Colors.black26,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1.5,
-                      ),
+                      color: isSelected
+                          ? theme.colorScheme.onSurface
+                          : Colors.black26,
+                      border: Border.all(color: Colors.white, width: 1.5),
                     ),
                     child: isSelected
-                        ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
+                        ? Icon(
+                            Icons.check,
+                            color: theme.colorScheme.surface,
+                            size: 14,
+                          )
                         : null,
                   ),
                 )
@@ -127,7 +139,11 @@ class NoteGridTile extends StatelessWidget {
                 Positioned(
                   top: 8,
                   left: 8,
-                  child: Icon(Icons.push_pin, color: theme.primaryColor, size: 16),
+                  child: Icon(
+                    Icons.push_pin,
+                    color: theme.primaryColor,
+                    size: 16,
+                  ),
                 ),
             ],
           ),
@@ -139,15 +155,18 @@ class NoteGridTile extends StatelessWidget {
   String _formatTime(DateTime? date) {
     if (date == null) return "";
     final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
       return DateFormat('HH:mm').format(date);
     }
-    return DateFormat('MMM d').format(date); 
+    return DateFormat('MMM d').format(date);
   }
 
   String _getContentSnippet(NoteModel note) {
     if (note.content.isEmpty) return "No additional text";
-    final firstBlock = note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
+    final firstBlock =
+        note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
     return firstBlock != null ? firstBlock.text : "Attachment/Checklist";
   }
 }
@@ -189,7 +208,8 @@ class _GridImage extends StatelessWidget {
                 strokeWidth: 2,
                 color: theme.primaryColor,
                 value: progress.expectedTotalBytes != null
-                    ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                    ? progress.cumulativeBytesLoaded /
+                          progress.expectedTotalBytes!
                     : null,
               ),
             ),
@@ -210,7 +230,7 @@ class _GridPlaceholder extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: theme.colorScheme.surfaceVariant.withValues(alpha: 0.3),
+      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       child: Icon(
         CupertinoIcons.photo,
         size: 30,

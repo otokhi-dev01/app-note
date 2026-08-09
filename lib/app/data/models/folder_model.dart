@@ -59,12 +59,12 @@ class FolderModel {
   }
 
   Color get color {
-    if (colorValue.isEmpty) return const Color(0xFFFFCC00);
+    if (colorValue.isEmpty) return const Color(0xFFFF69B4);
     if (colorValue.startsWith('#')) {
       return Color(int.parse(colorValue.replaceFirst('#', '0xFF')));
     }
     // Handle large decimal strings from API
-    return Color(int.tryParse(colorValue) ?? 0xFFFFCC00);
+    return Color(int.tryParse(colorValue) ?? 0xFFFF69B4);
   }
 }
 

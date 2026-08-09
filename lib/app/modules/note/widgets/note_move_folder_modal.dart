@@ -102,9 +102,9 @@ class NoteMoveFolderModal extends StatelessWidget {
                         // New Folder Action
                         ListTile(
                           onTap: () {},
-                          leading: const Icon(Icons.create_new_folder_outlined, color: AppTheme.folderYellow),
+                          leading: const Icon(Icons.create_new_folder_outlined, color: AppTheme.folderPink),
                           title: const Text("New Folder", 
-                            style: TextStyle(color: AppTheme.folderYellow, fontWeight: FontWeight.w500)),
+                            style: TextStyle(color: AppTheme.folderPink, fontWeight: FontWeight.w500)),
                         ),
                         const Divider(indent: 56, height: 1),
                         
@@ -142,7 +142,7 @@ class NoteMoveFolderModal extends StatelessWidget {
                 height: 24,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.folderYellow,
+                  color: AppTheme.folderPink,
                 ),
                 child: const Icon(Icons.check, color: Colors.white, size: 16),
               )

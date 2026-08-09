@@ -65,7 +65,7 @@ class OnboardingView extends GetView<OnboardingController> {
         children: [
             ClipOval(
               child: Image.asset(
-                'assets/icons/otokhi_note_app_1.jpg',
+                'assets/icons/otokhi_logo_cover.jpg',
                 width: 60,
                 height: 60,
                 // fit: BoxFit.contain,
@@ -220,7 +220,7 @@ class OnboardingView extends GetView<OnboardingController> {
               width: size * 0.58,
               height: size * 0.68,
               decoration: BoxDecoration(
-                color: AppTheme.folderYellow.withValues(
+                color: AppTheme.folderPink.withValues(
                   alpha: isDark ? 0.14 : 0.18,
                 ),
                 borderRadius: BorderRadius.circular(30),
@@ -255,13 +255,13 @@ class OnboardingView extends GetView<OnboardingController> {
                   width: size * 0.24,
                   height: size * 0.24,
                   decoration: BoxDecoration(
-                    color: AppTheme.folderYellow.withValues(alpha: 0.16),
+                    color: AppTheme.folderPink.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Icon(
                     icon,
                     size: size * 0.13,
-                    color: AppTheme.folderYellow,
+                    color: AppTheme.folderPink,
                   ),
                 ),
                 const Spacer(),
@@ -289,7 +289,7 @@ class OnboardingView extends GetView<OnboardingController> {
               width: size * 0.17,
               height: size * 0.17,
               decoration: BoxDecoration(
-                color: AppTheme.folderYellow,
+                color: AppTheme.folderPink,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: theme.scaffoldBackgroundColor,
@@ -297,7 +297,7 @@ class OnboardingView extends GetView<OnboardingController> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.folderYellow.withValues(alpha: 0.22),
+                    color: AppTheme.folderPink.withValues(alpha: 0.22),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   ),
@@ -366,7 +366,7 @@ class OnboardingView extends GetView<OnboardingController> {
                       height: 8,
                       decoration: BoxDecoration(
                         color: isActive
-                            ? AppTheme.folderYellow
+                            ? AppTheme.folderPink
                             : theme.colorScheme.onSurfaceVariant
                             .withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(10),
@@ -388,7 +388,7 @@ class OnboardingView extends GetView<OnboardingController> {
                   minimumSize: const Size(138, 56),
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   elevation: 0,
-                  backgroundColor: AppTheme.folderYellow,
+                  backgroundColor: AppTheme.folderPink,
                   foregroundColor: AppTheme.bodyColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28),

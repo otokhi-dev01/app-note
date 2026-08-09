@@ -30,7 +30,7 @@ class ArchiveNoteTile extends StatelessWidget {
         });
       },
       leading: note.isPinned 
-          ? const Icon(Icons.push_pin, color: AppTheme.folderYellow, size: 16) 
+          ? const Icon(Icons.push_pin, color: AppTheme.folderPink, size: 16) 
           : null,
       title: Text(
         note.displayTitle,

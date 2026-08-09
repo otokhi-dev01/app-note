@@ -79,7 +79,7 @@ class LoginView extends GetView<AuthController> {
                   children: [
                        ClipOval(
                         child: Image.asset(
-                          'assets/icons/otokhi_note_app_1.jpg',
+                          'assets/icons/otokhi_logo_cover.jpg',
                           width: 100,
                           height: 100,
                           fit: BoxFit.contain,
@@ -133,7 +133,7 @@ class LoginView extends GetView<AuthController> {
                             child: ElevatedButton(
                               onPressed: controller.isLoading.value ? null : controller.login,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.folderYellow,
+                                backgroundColor: AppTheme.folderPink,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 elevation: 0,
@@ -164,10 +164,10 @@ class LoginView extends GetView<AuthController> {
                         ),
                         TextButton(
                           onPressed: () => Get.toNamed(Routes.REGISTER),
-                          style: TextButton.styleFrom(foregroundColor: AppTheme.folderYellow, padding: const EdgeInsets.symmetric(horizontal: 5)),
+                          style: TextButton.styleFrom(foregroundColor: AppTheme.folderPink, padding: const EdgeInsets.symmetric(horizontal: 5)),
                           child: Text(
                             "Register",
-                            style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.folderYellow, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.folderPink, fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                         ),
                       ],

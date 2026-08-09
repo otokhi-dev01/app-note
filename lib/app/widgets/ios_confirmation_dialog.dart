@@ -98,7 +98,7 @@ class IOSConfirmationDialog extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w400,
-                              color: isDestructive ? Colors.redAccent : AppTheme.folderYellow,
+                              color: isDestructive ? Colors.redAccent : AppTheme.folderPink,
                             ),
                           ),
                         ),

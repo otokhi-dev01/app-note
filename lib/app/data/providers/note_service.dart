@@ -72,6 +72,8 @@ class NoteService extends GetxService {
       
       final response = await _api.dio.get("/api/note/$id");
       
+      if (kDebugMode) debugPrint("[NOTE DEBUG] Raw Detail Data: ${response.data}");
+
       if (response.statusCode == 200) {
         final note = _parseNoteFromResponse(response.data);
         if (note != null) {
@@ -85,7 +87,13 @@ class NoteService extends GetxService {
       
       throw Exception("Failed to load note detail for ID: $id");
     } catch (e) {
-      if (kDebugMode) debugPrint("[NOTE DETAIL ERROR] $e");
+      if (kDebugMode) {
+        if (e is dio.DioException && e.response?.statusCode == 404) {
+          debugPrint("[NOTE DETAIL ERROR] 404 - Note Not Found: $id");
+        } else {
+          debugPrint("[NOTE DETAIL ERROR] $e");
+        }
+      }
       rethrow;
     }
   }
@@ -141,16 +149,33 @@ class NoteService extends GetxService {
     };
     
     if (content != null) {
-      payload["Content"] = jsonEncode(content.map((e) => e.toJson()).toList());
+      final List<Map<String, dynamic>> rawList = content.map((e) => e.toJson()).toList();
+      final String jsonString = jsonEncode(rawList);
+      
+      // EXTREME RESILIENCE: Send content to every possible field name
+      payload["ContentJson"] = jsonString; // Change back to String to see if server prefers it
+      payload["Content"] = jsonString;
+      payload["Body"] = jsonString;
+      payload["NoteText"] = jsonString;
+      payload["Description"] = jsonString;
+      payload["NoteDescription"] = jsonString;
+      payload["NoteContent"] = jsonString;
     }
 
-    final response = await _api.dio.post("/api/note/save", data: payload);
+    final response = await _api.dio.post("/api/note/save-content", data: payload);
     
     if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote RESPONSE: ${response.data}");
     
     final note = _parseNoteFromResponse(response.data);
     if (note == null) {
-      if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote FAILED to parse response. Attempting fallback fetch.");
+      // If it's a 200 OK and code 200, but data is null, it's a success without content
+      final responseData = response.data;
+      if (responseData is Map && (responseData['code'] == 200 || responseData['Code'] == 200)) {
+        if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote SUCCESS (code 200) with empty data.");
+        if (noteId != 0) return await getNoteDetail(noteId);
+      }
+
+      if (kDebugMode) debugPrint("[NOTE DEBUG] saveNote FAILED to parse response. Data: ${response.data}");
       
       if (noteId != 0) {
         return await getNoteDetail(noteId);
@@ -203,6 +228,29 @@ class NoteService extends GetxService {
       if (kDebugMode) debugPrint("[NOTE DEBUG] deleteRestoreNote RESPONSE: ${response.statusCode} ${response.data}");
     } catch (e) {
       if (kDebugMode) debugPrint("[NOTE DEBUG] deleteRestoreNote FATAL ERROR: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deleteNotePermanently(int id) async {
+    try {
+      if (kDebugMode) debugPrint("[NOTE DEBUG] deleteNotePermanently ID: $id");
+      await _api.dio.post("/api/note/permanent-delete", data: {
+        "NoteId": id,
+        "id": id,
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint("[NOTE DEBUG] deleteNotePermanently ERROR: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> emptyTrash() async {
+    try {
+      if (kDebugMode) debugPrint("[NOTE DEBUG] emptyTrash START");
+      await _api.dio.post("/api/note/empty-trash");
+    } catch (e) {
+      if (kDebugMode) debugPrint("[NOTE DEBUG] emptyTrash ERROR: $e");
       rethrow;
     }
   }

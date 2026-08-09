@@ -269,7 +269,7 @@ class ProfileView extends GetView<ProfileController> {
                 height: 24,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.folderYellow,
+                  color: AppTheme.folderPink,
                 ),
                 child: const Icon(Icons.check, color: Colors.white, size: 16),
               )

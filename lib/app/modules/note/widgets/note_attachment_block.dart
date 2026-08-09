@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../theme/app_theme.dart';
 import '../../../data/models/note_model.dart';
 import '../controllers/note_detail_controller.dart';
 import 'image_drawing_editor.dart';
@@ -51,45 +50,6 @@ class NoteAttachmentBlock extends StatelessWidget {
                     child: _AttachmentImage(block: block),
                   ),
                 ),
-                if (!controller.isReadOnly.value) ...[
-                  Positioned(
-                    right: 6,
-                    top: 6,
-                    child: GestureDetector(
-                      onTap: () => controller.deleteBlock(blockIndex),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          CupertinoIcons.xmark,
-                          color: Theme.of(context).colorScheme.onSurface,
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.62),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        CupertinoIcons.pencil,
-                        color: Theme.of(context).colorScheme.onSurface,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -128,12 +88,10 @@ class NoteAttachmentBlock extends StatelessWidget {
       return;
     }
 
-    if (!canEdit || result == null || result is! String || result.isEmpty) return;
+    if (!canEdit || result == null || result is! String || result.isEmpty)
+      return;
 
-    controller.updateAttachmentImage(
-      blockIndex,
-      result,
-    );
+    controller.updateAttachmentImage(blockIndex, result);
   }
 
   ImageProvider? _resolveAttachmentImageProvider() {
@@ -171,6 +129,7 @@ class NoteAttachmentBlock extends StatelessWidget {
     try {
       return _attachmentBaseUri.resolve(path).toString();
     } catch (error) {
+      if (kDebugMode) debugPrint('Error normalizing URL $path: $error');
       return null;
     }
   }
@@ -234,6 +193,7 @@ class _AttachmentImage extends StatelessWidget {
     try {
       return Uri.parse('https://note.piisiit.com/').resolve(path).toString();
     } catch (error) {
+      if (kDebugMode) debugPrint('Error resolving URL $path: $error');
       return null;
     }
   }
@@ -258,7 +218,9 @@ class _NetworkAttachmentImage extends StatelessWidget {
       loadingBuilder: (_, child, progress) {
         if (progress == null) return child;
         final totalBytes = progress.expectedTotalBytes;
-        final value = totalBytes == null ? null : progress.cumulativeBytesLoaded / totalBytes;
+        final value = totalBytes == null
+            ? null
+            : progress.cumulativeBytesLoaded / totalBytes;
         return Center(
           child: SizedBox(
             width: 24,

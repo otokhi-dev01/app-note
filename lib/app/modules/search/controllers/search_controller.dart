@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
@@ -17,13 +18,13 @@ class SearchController extends GetxController {
   final searchController = TextEditingController();
 
   final suggestions = [
-    {"title": "Shared Notes", "icon": Icons.account_circle_outlined},
-    {"title": "Locked Notes", "icon": Icons.lock_outline},
-    {"title": "Notes with Checklists", "icon": Icons.checklist_rtl_rounded},
-    {"title": "Notes with Tags", "icon": Icons.tag_rounded},
-    {"title": "Notes with Drawings", "icon": Icons.draw_outlined},
-    {"title": "Notes with Scanned Documents", "icon": Icons.document_scanner_outlined},
-    {"title": "Notes with Attachments", "icon": Icons.attach_file_rounded},
+    {"title": "Shared Notes", "icon": CupertinoIcons.person_crop_circle},
+    {"title": "Locked Notes", "icon": CupertinoIcons.lock},
+    {"title": "Notes with Checklists", "icon": CupertinoIcons.list_bullet_indent},
+    {"title": "Notes with Tags", "icon": CupertinoIcons.number},
+    {"title": "Notes with Drawings", "icon": CupertinoIcons.pencil_outline},
+    {"title": "Notes with Scanned Documents", "icon": CupertinoIcons.doc_text_viewfinder},
+    {"title": "Notes with Attachments", "icon": CupertinoIcons.paperclip},
   ];
 
   void onSearchChanged(String query) {

@@ -42,7 +42,7 @@ class NoteListTile extends StatelessWidget {
         },
         leading: isEditing
             ? _buildSelectionIndicator(theme, isSelected)
-            : (note.isPinned ? const Icon(Icons.push_pin, color: AppTheme.folderYellow, size: 16) : null),
+            : (note.isPinned ? const Icon(Icons.push_pin, color: AppTheme.folderPink, size: 16) : null),
         title: Text(
           note.displayTitle,
           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),

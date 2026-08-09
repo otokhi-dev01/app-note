@@ -111,7 +111,7 @@ class ArchiveView extends GetView<NoteController> {
     return Obx(() {
       if (controller.isLoading.value) {
         return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator(color: AppTheme.folderYellow)),
+          child: Center(child: CircularProgressIndicator(color: AppTheme.folderPink)),
         );
       }
       
@@ -127,7 +127,7 @@ class ArchiveView extends GetView<NoteController> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => controller.fetchNotes(),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.folderYellow),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.folderPink),
                   child: const Text("Retry"),
                 ),
               ],

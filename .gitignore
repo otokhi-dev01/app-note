@@ -1,0 +1,62 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.idea/
+.vscode/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode/ directory contains launch.json and settings.json for the workspace.
+# These files are often precious and should be committed.
+# .vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android related
+**/android/app/src/main/res/drawable-*/
+**/android/app/src/main/res/mipmap-*/
+
+# iOS related
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner/GeneratedPluginRegistrant.[mh]
+**/ios/DerivedData/
+*.moved-aside
+*.xcuserstate
+*.xcworkspace
+!**/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
+
+# Web related
+lib/generated_plugin_registrant.dart
+
+# Symbol database path
+.symbols/
+
+# Executable distributions
+*.apk
+*.aab
+*.app
+*.ipa

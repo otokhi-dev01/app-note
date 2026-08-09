@@ -8,6 +8,9 @@ import '../widgets/note_content_editor.dart';
 import '../widgets/note_detail_more_popup.dart';
 import '../widgets/note_editor_toolbar.dart';
 import '../widgets/note_editor_top_bar.dart';
+import '../widgets/note_format_panel.dart';
+
+import '../widgets/note_attachment_popup.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
   const NoteDetailView({super.key});
@@ -20,7 +23,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
       value: _systemUiStyle(theme),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        resizeToAvoidBottomInset: true,
+        resizeToAvoidBottomInset: false,
         extendBody: true,
         extendBodyBehindAppBar: true,
         body: Stack(
@@ -56,6 +59,21 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 ),
               );
             }),
+            // Format Panel
+            Obx(() {
+              if (controller.isFormatPanelVisible.value) {
+                return Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
+                    ),
+                    child: NoteFormatPanel(controller: controller),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
           ],
         ),
       ),
@@ -82,36 +100,23 @@ class NoteDetailView extends GetView<NoteDetailController> {
   }
 
   void _showAttachmentPopup(BuildContext context) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (_) => CupertinoActionSheet(
-        title: const Text('Attachment'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () => _pickAttachment(ImageSource.camera),
-            child: const Text('Take Photo'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => _pickAttachment(ImageSource.gallery),
-            child: const Text('Photo Library'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () => _pickAttachment(ImageSource.camera, isVideo: true),
-            child: const Text('Take Video'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: Get.back,
-          isDefaultAction: true,
-          child: const Text('Cancel'),
-        ),
+    Get.dialog(
+      NoteAttachmentPopup(
+        onAction: (type) {
+          switch (type) {
+            case 'camera':
+              controller.addAttachment(ImageSource.camera);
+              break;
+            case 'gallery':
+              controller.addAttachment(ImageSource.gallery);
+              break;
+            default:
+              Get.snackbar('Info', 'Feature coming soon');
+          }
+        },
       ),
+      barrierColor: Colors.black.withValues(alpha: 0.3),
     );
-  }
-
-  void _pickAttachment(ImageSource source, {bool isVideo = false}) {
-    Get.back();
-    controller.addAttachment(source, isVideo: isVideo);
   }
 
   Widget _buildReadOnlyBanner(BuildContext context) {

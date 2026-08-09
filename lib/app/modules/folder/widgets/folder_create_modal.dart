@@ -203,9 +203,9 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
                 size: controlSize,
                 semanticLabel: _isRenaming ? 'Save folder name' : 'Create folder',
                 onTap: _canSave ? _saveFolder : null,
-                backgroundColor: _canSave ? AppTheme.folderYellow : AppTheme.folderYellow.withValues(alpha: 0.4),
+                backgroundColor: _canSave ? AppTheme.folderPink : AppTheme.folderPink.withValues(alpha: 0.4),
                 borderColor: Colors.white.withValues(alpha: 0.2),
-                shadowColor: AppTheme.folderYellow.withValues(alpha: _canSave ? 0.2 : 0),
+                shadowColor: AppTheme.folderPink.withValues(alpha: _canSave ? 0.2 : 0),
                 child: _isSaving
                     ? const CupertinoActivityIndicator(color: Colors.white, radius: 8)
                     : const Icon(
@@ -238,9 +238,9 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
         ),
         child: TextSelectionTheme(
           data: TextSelectionThemeData(
-            cursorColor: AppTheme.folderYellow,
-            selectionColor: AppTheme.folderYellow.withValues(alpha: 0.28),
-            selectionHandleColor: AppTheme.folderYellow,
+            cursorColor: AppTheme.folderPink,
+            selectionColor: AppTheme.folderPink.withValues(alpha: 0.28),
+            selectionHandleColor: AppTheme.folderPink,
           ),
           child: TextField(
             key: const ValueKey('folder-name-field'),
@@ -249,7 +249,7 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
             autofocus: true,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _saveFolder(),
-            cursorColor: AppTheme.folderYellow,
+            cursorColor: AppTheme.folderPink,
             textAlignVertical: TextAlignVertical.center,
             style: TextStyle(
               color: _primaryTextColor(context),
@@ -329,7 +329,7 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: AppTheme.folderYellow,
+                    color: AppTheme.folderPink,
                     borderRadius: BorderRadius.circular(7),
                   ),
                   child: const Icon(

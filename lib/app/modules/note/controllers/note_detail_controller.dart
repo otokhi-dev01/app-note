@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
@@ -33,21 +36,42 @@ class NoteDetailController extends GetxController {
   final titleController = TextEditingController();
   final blocks = <NoteBlock>[].obs;
   final Map<String, TextEditingController> blockControllers = {};
+  final Map<String, quill.QuillController> quillControllers = {};
 
   // --- State ---
   final _history = <List<NoteBlock>>[];
   final _redoStack = <List<NoteBlock>>[];
   static const int _maxHistory = 30;
-  int activeBlockIndex = -1;
+  final activeBlockIndex = (-1).obs;
 
   final isSearchVisible = false.obs;
   final searchQuery = "".obs;
   final searchFocusNode = FocusNode();
 
+  final isFormatPanelVisible = false.obs;
+  final currentBlockStyle = "body".obs;
+  final activeAttributes = <String, dynamic>{}.obs;
+
   @override
   void onInit() {
     super.onInit();
     _handleArguments(Get.arguments);
+    
+    // Sync currentBlockStyle when activeBlockIndex changes
+    ever(activeBlockIndex, (index) {
+      if (index >= 0 && index < blocks.length) {
+        final block = blocks[index];
+        if (block is TextBlock) {
+          currentBlockStyle.value = block.style;
+          
+          // Also sync active attributes if Quill controller exists
+          final qc = quillControllers[block.id];
+          if (qc != null) {
+            _updateActiveAttributes(qc);
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -57,6 +81,10 @@ class NoteDetailController extends GetxController {
       controller.dispose();
     }
     blockControllers.clear();
+    for (final controller in quillControllers.values) {
+      controller.dispose();
+    }
+    quillControllers.clear();
     super.onClose();
   }
 
@@ -72,7 +100,13 @@ class NoteDetailController extends GetxController {
       isReadOnly.value = args['isDeleted'] == true;
 
       if (noteId != null && noteId != 0) {
-        fetchNoteDetail(noteId);
+        final note = args['note'];
+        if (isReadOnly.value && note is NoteModel) {
+          _setupNoteState(note);
+          isLoading.value = false;
+        } else {
+          fetchNoteDetail(noteId);
+        }
       } else if (folderId != null) {
         _initNewNote(folderId);
       } else {
@@ -106,6 +140,13 @@ class NoteDetailController extends GetxController {
     blocks.assignAll(note.content);
     _history.clear();
 
+    if (kDebugMode) {
+      debugPrint('[NOTE DETAIL] Blocks parsed: ${blocks.length}');
+      for (var i = 0; i < blocks.length; i++) {
+        debugPrint('  Block $i: ${blocks[i].type} (ID: ${blocks[i].id})');
+      }
+    }
+
     if (blocks.isEmpty && !isReadOnly.value) {
       addTextBlock();
     }
@@ -128,6 +169,43 @@ class NoteDetailController extends GetxController {
     return blockControllers.putIfAbsent(blockId, () => TextEditingController(text: initialText));
   }
 
+  quill.QuillController getQuillController(String blockId, String content) {
+    return quillControllers.putIfAbsent(blockId, () {
+      quill.Document doc;
+      try {
+        if (content.startsWith('[') || content.startsWith('{')) {
+          doc = quill.Document.fromJson(jsonDecode(content));
+        } else {
+          doc = quill.Document()..insert(0, content);
+        }
+      } catch (_) {
+        doc = quill.Document()..insert(0, content);
+      }
+      final controller = quill.QuillController(
+        document: doc,
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      
+      // Listen to selection changes to update formatting UI
+      controller.addListener(() {
+        if (activeBlockIndex.value != -1 && blocks[activeBlockIndex.value].id == blockId) {
+          _updateActiveAttributes(controller);
+        }
+      });
+      
+      return controller;
+    });
+  }
+
+  void _updateActiveAttributes(quill.QuillController controller) {
+    final attrs = controller.getSelectionStyle().attributes;
+    final Map<String, dynamic> newAttrs = {};
+    attrs.forEach((key, value) {
+      newAttrs[key] = value.value;
+    });
+    activeAttributes.assignAll(newAttrs);
+  }
+
   void updateTextBlock(int index, String text) {
     if (index < 0 || index >= blocks.length) return;
     final block = blocks[index];
@@ -136,12 +214,44 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  void updateQuillBlock(int index, String jsonContent) {
+    if (index < 0 || index >= blocks.length) return;
+    final block = blocks[index];
+    if (block is TextBlock) {
+      blocks[index] = TextBlock(id: block.id, text: jsonContent, style: block.style);
+    }
+  }
+
   void updateTextBlockStyle(int index, String style) {
     if (isReadOnly.value || index < 0 || index >= blocks.length) return;
     _recordHistory();
     final block = blocks[index];
     if (block is TextBlock) {
-      blocks[index] = TextBlock(id: block.id, text: blockControllers[block.id]?.text ?? block.text, style: style);
+      blocks[index] = TextBlock(id: block.id, text: block.text, style: style);
+      
+      // Update Quill controller if exists to match style (Header)
+      final controller = quillControllers[block.id];
+      if (controller != null) {
+        quill.Attribute? headerAttr;
+        switch (style) {
+          case 'title': headerAttr = quill.Attribute.h1; break;
+          case 'heading': headerAttr = quill.Attribute.h2; break;
+          case 'subheading': headerAttr = quill.Attribute.h3; break;
+          default: headerAttr = quill.Attribute.header; break; // Remove header
+        }
+        controller.formatSelection(headerAttr);
+      }
+    }
+  }
+
+  void applyInlineFormat(quill.Attribute attribute) {
+    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length) return;
+    final block = blocks[activeBlockIndex.value];
+    final controller = quillControllers[block.id];
+    if (controller != null) {
+      controller.formatSelection(attribute);
+      // Force update attributes after applying
+      _updateActiveAttributes(controller);
     }
   }
 
@@ -307,44 +417,80 @@ class NoteDetailController extends GetxController {
   Future<void> saveNote() async {
     if (currentNote.value == null || isSaving.value || isReadOnly.value) return;
     
+    // Hide keyboard and remove focus to ensure all text is synced
+    Get.focusScope?.unfocus();
+    
     isSaving.value = true;
     try {
+      // 1. Sync data from controllers to the blocks list
       _syncTextBlocks();
       
-      if (kDebugMode) debugPrint("[NOTE DEBUG] PRE-SAVE Title: ${titleController.text}");
+      String finalTitle = titleController.text.trim();
+      if (finalTitle.isEmpty) {
+        finalTitle = _generateFallbackTitle();
+        titleController.text = finalTitle;
+      }
 
-      // 1. Initial save to get Note ID if it's new
+      if (kDebugMode) debugPrint("[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}");
+
+      // 2. First Save: Send Title and serialized Text content to server
       final savedNote = await _noteService.saveNote(
         currentNote.value!.folderId, 
-        titleController.text.trim(), 
+        finalTitle, 
         noteId: currentNote.value!.id,
-        content: blocks, // Save initial content too
+        content: blocks.toList(), // Use toList() to send a static snapshot
       );
       
       final confirmedNoteId = savedNote.id;
       currentNote.value = savedNote;
 
-      // 2. Upload any new attachments
+      // 3. Attachment Handling: If there are new local images, upload them
       bool hasNewAttachments = blocks.any((b) => b is AttachmentBlock && b.attachmentId == 0 && b.localPath != null);
       if (hasNewAttachments) {
+        if (kDebugMode) debugPrint("[NOTE DEBUG] Starting attachment uploads for NoteId: $confirmedNoteId");
+        
         await _handleAttachments(confirmedNoteId);
         
-        // 3. Final save with updated attachment URLs and server IDs
+        // 4. Final Sync: Update the server with the new Attachment URLs in the ContentJson
+        if (kDebugMode) debugPrint("[NOTE DEBUG] Final sync after uploads");
         await _noteService.saveNote(
           currentNote.value!.folderId, 
-          titleController.text.trim(), 
+          finalTitle, 
           noteId: confirmedNoteId, 
-          content: blocks
+          content: blocks.toList()
         );
       }
       
-      Get.back(result: true);
-      Get.snackbar("Success", "Note saved", snackPosition: SnackPosition.BOTTOM);
+      Get.back(result: true); // Return to list view and trigger refresh
+      Get.snackbar("Success", "Note saved successfully", 
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.withValues(alpha: 0.1),
+      );
     } catch (e, s) {
       _handleError('Failed to save note. Please check your connection.', e, s);
     } finally {
       isSaving.value = false;
     }
+  }
+
+  String _generateFallbackTitle() {
+    for (final block in blocks) {
+      if (block is TextBlock && block.text.isNotEmpty) {
+        String plainText = block.text;
+        // Simple extraction for Quill Delta JSON
+        if (plainText.contains('"insert"')) {
+          try {
+            final matches = RegExp(r'"insert":"([^"]+)"').allMatches(plainText);
+            plainText = matches.map((m) => m.group(1)).join(' ');
+          } catch (_) {}
+        }
+        final trimmed = plainText.trim().replaceAll('\n', ' ');
+        if (trimmed.isNotEmpty) {
+          return trimmed.length > 30 ? '${trimmed.substring(0, 27)}...' : trimmed;
+        }
+      }
+    }
+    return "Untitled Note";
   }
 
   Future<void> _handleAttachments(int noteId) async {
@@ -391,6 +537,21 @@ class NoteDetailController extends GetxController {
     final nextState = _redoStack.removeLast();
     blocks.assignAll(nextState);
     _restoreBlockControllers(nextState);
+  }
+
+  void toggleFormatPanel() {
+    if (isReadOnly.value) return;
+    isFormatPanelVisible.value = !isFormatPanelVisible.value;
+    if (isFormatPanelVisible.value) {
+      isSearchVisible.value = false; // Hide search if formatting
+    }
+  }
+
+  void updateActiveBlockStyle(String style) {
+    if (activeBlockIndex.value >= 0 && activeBlockIndex.value < blocks.length) {
+      updateTextBlockStyle(activeBlockIndex.value, style);
+      currentBlockStyle.value = style;
+    }
   }
 
   void toggleSearch() {
@@ -519,8 +680,14 @@ class NoteDetailController extends GetxController {
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
       if (block is TextBlock) {
-        final tc = blockControllers[block.id];
-        if (tc != null) blocks[i] = TextBlock(id: block.id, text: tc.text, style: block.style);
+        final qc = quillControllers[block.id];
+        if (qc != null) {
+          final json = jsonEncode(qc.document.toDelta().toJson());
+          blocks[i] = TextBlock(id: block.id, text: json, style: block.style);
+        } else {
+          final tc = blockControllers[block.id];
+          if (tc != null) blocks[i] = TextBlock(id: block.id, text: tc.text, style: block.style);
+        }
       } else if (block is ChecklistBlock) {
         final items = List<ChecklistItem>.from(block.items);
         bool changed = false;
@@ -577,18 +744,27 @@ class NoteDetailController extends GetxController {
   }
 
   void _insertBlock(NoteBlock block) {
-    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
-      blocks.insert(activeBlockIndex + 1, block);
-      activeBlockIndex++;
+    if (activeBlockIndex.value >= 0 && activeBlockIndex.value < blocks.length) {
+      blocks.insert(activeBlockIndex.value + 1, block);
+      activeBlockIndex.value++;
     } else {
       blocks.add(block);
-      activeBlockIndex = blocks.length - 1;
+      activeBlockIndex.value = blocks.length - 1;
     }
   }
 
   void _handleError(String msg, dynamic e, StackTrace s) {
-    Get.snackbar('Error', msg, snackPosition: SnackPosition.BOTTOM);
-    if (kDebugMode) { debugPrint('$msg: $e'); debugPrintStack(stackTrace: s); }
+    if (e is dio.DioException && e.response?.statusCode == 404) {
+      Get.snackbar('Error', 'Note not found. It may have been deleted.',
+          snackPosition: SnackPosition.BOTTOM);
+      Future.delayed(const Duration(seconds: 1), () => Get.back());
+    } else {
+      Get.snackbar('Error', msg, snackPosition: SnackPosition.BOTTOM);
+    }
+    if (kDebugMode) {
+      debugPrint('$msg: $e');
+      debugPrintStack(stackTrace: s);
+    }
   }
 
   dynamic _getUploadValue(dynamic result, List<String> keys) {

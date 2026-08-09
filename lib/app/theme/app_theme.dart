@@ -13,7 +13,7 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF3C3C43);
   static const Color textGrey = Color(0xFF8E8E93);
 
-  static const Color folderYellow = Color(0xFFFFCC00);
+  static const Color folderPink = Color(0xFFFF69B4);
 
   static const Color dividerColor = Color(0xFFE5E5EA);
 
@@ -29,8 +29,8 @@ class AppTheme {
   // iOS-style dark card / surface
   static const Color darkCardColor = Color(0xFF1C1C1E);
 
-  // iOS Notes yellow
-  static const Color darkFolderYellow = Color(0xFFFFD60A);
+  // iOS Notes yellow (Renamed to Pink)
+  static const Color darkFolderPink = Color(0xFFFF1493);
 
   // Primary text
   static const Color darkTextPrimary = Color(0xFFF2F2F7);
@@ -51,13 +51,13 @@ class AppTheme {
   static final light = ThemeData(
     brightness: Brightness.light,
 
-    primaryColor: folderYellow,
+    primaryColor: folderPink,
 
     scaffoldBackgroundColor: bodyColor,
 
     colorScheme: ColorScheme.fromSeed(
-      seedColor: folderYellow,
-      primary: folderYellow,
+      seedColor: folderPink,
+      primary: folderPink,
       surface: cardColor,
       onSurface: textPrimary,
       onSurfaceVariant: textSecondary,
@@ -80,7 +80,7 @@ class AppTheme {
       ),
 
       iconTheme: IconThemeData(
-        color: folderYellow,
+        color: folderPink,
       ),
     ),
 
@@ -109,17 +109,17 @@ class AppTheme {
     // Main Colors
     // ------------------------------------------------------------
 
-    primaryColor: darkFolderYellow,
+    primaryColor: darkFolderPink,
 
     scaffoldBackgroundColor: darkBackground,
 
     colorScheme: const ColorScheme.dark(
       // Main accent
-      primary: darkFolderYellow,
+      primary: darkFolderPink,
       onPrimary: Colors.black,
 
       // Secondary accent
-      secondary: darkFolderYellow,
+      secondary: darkFolderPink,
       onSecondary: Colors.black,
 
       // Background
@@ -165,7 +165,7 @@ class AppTheme {
       ),
 
       iconTheme: IconThemeData(
-        color: darkFolderYellow,
+        color: darkFolderPink,
         size: 24,
       ),
     ),
@@ -222,7 +222,7 @@ class AppTheme {
     // ------------------------------------------------------------
 
     iconTheme: const IconThemeData(
-      color: darkFolderYellow,
+      color: darkFolderPink,
     ),
 
     // ------------------------------------------------------------

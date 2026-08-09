@@ -33,7 +33,7 @@ class NoteChecklistBlock extends StatelessWidget {
                 onTap: () => controller.addChecklistItem(blockIndex),
                 child: Row(
                   children: [
-                    const Icon(CupertinoIcons.add, size: 18, color: AppTheme.folderYellow),
+                    const Icon(CupertinoIcons.add, size: 18, color: AppTheme.folderPink),
                     const SizedBox(width: 8),
                     Text(
                       "Add Item",

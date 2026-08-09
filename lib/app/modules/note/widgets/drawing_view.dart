@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:io';
@@ -22,7 +21,10 @@ class _DrawingViewState extends State<DrawingView> {
     }
 
     final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder, Rect.fromPoints(Offset.zero, const Offset(1000, 1000)));
+    final canvas = Canvas(
+      recorder,
+      Rect.fromPoints(Offset.zero, const Offset(1000, 1000)),
+    );
     final paint = Paint()
       ..color = Colors.black
       ..strokeCap = StrokeCap.round
@@ -40,7 +42,8 @@ class _DrawingViewState extends State<DrawingView> {
     final buffer = byteData!.buffer.asUint8List();
 
     final directory = await getApplicationDocumentsDirectory();
-    final path = '${directory.path}/drawing_${DateTime.now().millisecondsSinceEpoch}.png';
+    final path =
+        '${directory.path}/drawing_${DateTime.now().millisecondsSinceEpoch}.png';
     final file = File(path);
     await file.writeAsBytes(buffer);
 
@@ -62,7 +65,14 @@ class _DrawingViewState extends State<DrawingView> {
         actions: [
           TextButton(
             onPressed: _saveDrawing,
-            child: const Text("Done", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.orange)),
+            child: const Text(
+              "Done",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: Colors.orange,
+              ),
+            ),
           ),
         ],
       ),
