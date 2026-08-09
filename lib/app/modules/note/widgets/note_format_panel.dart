@@ -34,11 +34,12 @@ class NoteFormatPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 "Format",
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
                 ),
               ),
               IconButton(
@@ -64,87 +65,91 @@ class NoteFormatPanel extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StyleButton(label: "Title", style: "title", controller: controller),
-                _StyleButton(label: "Heading", style: "heading", controller: controller),
-                _StyleButton(label: "Subheading", style: "subheading", controller: controller),
-                _StyleButton(label: "Body", style: "body", controller: controller),
+                _StyleButton(
+                  label: "Title",
+                  style: "title",
+                  controller: controller,
+                ),
+                _StyleButton(
+                  label: "Heading",
+                  style: "heading",
+                  controller: controller,
+                ),
+                _StyleButton(
+                  label: "Subheading",
+                  style: "subheading",
+                  controller: controller,
+                ),
+                _StyleButton(
+                  label: "Body",
+                  style: "body",
+                  controller: controller,
+                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          // Formatting Options Row 1 (B I U S)
-          Obx(() => Row(
+          // Formatting Options Row 1
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _FormatButton(
-                label: "B",
-                isBold: true,
-                isSelected: controller.activeAttributes.containsKey(quill.Attribute.bold.key),
+              _IconButton(
+                icon: CupertinoIcons.bold,
                 onTap: () => controller.applyInlineFormat(quill.Attribute.bold),
               ),
-              _FormatButton(
-                label: "I",
-                isItalic: true,
-                isSelected: controller.activeAttributes.containsKey(quill.Attribute.italic.key),
-                onTap: () => controller.applyInlineFormat(quill.Attribute.italic),
-              ),
-              _FormatButton(
-                label: "U",
-                isUnderline: true,
-                isSelected: controller.activeAttributes.containsKey(quill.Attribute.underline.key),
-                onTap: () => controller.applyInlineFormat(quill.Attribute.underline),
-              ),
-              _FormatButton(
-                label: "S",
-                isStrikethrough: true,
-                isSelected: controller.activeAttributes.containsKey(quill.Attribute.strikeThrough.key),
-                onTap: () => controller.applyInlineFormat(quill.Attribute.strikeThrough),
+              _IconButton(
+                icon: CupertinoIcons.italic,
+                onTap: () =>
+                    controller.applyInlineFormat(quill.Attribute.italic),
               ),
               _IconButton(
-                icon: Icons.notes_rounded, // Similar to screenshot next to S
-                isSelected: controller.activeAttributes[quill.Attribute.align.key] == 'center',
-                onTap: () => controller.applyInlineFormat(quill.Attribute.centerAlignment),
+                icon: CupertinoIcons.underline,
+                onTap: () =>
+                    controller.applyInlineFormat(quill.Attribute.underline),
               ),
-              _ColorCircle(color: AppTheme.folderPink),
+              _IconButton(
+                icon: CupertinoIcons.strikethrough,
+                onTap: () =>
+                    controller.applyInlineFormat(quill.Attribute.strikeThrough),
+              ),
+              _IconButton(
+                icon: Icons.edit_note_rounded,
+                onTap: () {}, // Highlighter logic could go here
+              ),
+              _ColorCircle(color: Colors.purpleAccent),
             ],
-          )),
+          ),
           const SizedBox(height: 12),
-          // Formatting Options Row 2 (Lists, Alignments, etc.)
-          Obx(() => Row(
+          // Formatting Options Row 2
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _IconButton(
                 icon: Icons.format_list_bulleted_rounded,
-                isSelected: controller.activeAttributes[quill.Attribute.list.key] == 'bullet',
                 onTap: () => controller.applyInlineFormat(quill.Attribute.ul),
               ),
               _IconButton(
-                icon: Icons.checklist_rounded, // Checklist icon
-                isSelected: controller.activeAttributes[quill.Attribute.list.key] == 'checked' || controller.activeAttributes[quill.Attribute.list.key] == 'unchecked',
-                onTap: () => controller.applyInlineFormat(quill.Attribute.unchecked),
+                icon: Icons.list_alt_rounded,
+                onTap: () =>
+                    controller.applyInlineFormat(quill.Attribute.unchecked),
               ),
               _IconButton(
                 icon: Icons.format_list_numbered_rounded,
-                isSelected: controller.activeAttributes[quill.Attribute.list.key] == 'ordered',
                 onTap: () => controller.applyInlineFormat(quill.Attribute.ol),
               ),
               _IconButton(
                 icon: Icons.format_align_left_rounded,
-                isSelected: controller.activeAttributes[quill.Attribute.align.key] == null || controller.activeAttributes[quill.Attribute.align.key] == 'left',
-                onTap: () => controller.applyInlineFormat(quill.Attribute.leftAlignment),
+                onTap: () =>
+                    controller.applyInlineFormat(quill.Attribute.leftAlignment),
               ),
               _IconButton(
                 icon: Icons.format_indent_increase_rounded,
-                isSelected: controller.activeAttributes.containsKey(quill.Attribute.indent.key),
-                onTap: () => controller.applyInlineFormat(quill.Attribute.indent),
+                onTap: () =>
+                    controller.applyInlineFormat(quill.Attribute.indent),
               ),
-              _IconButton(
-                icon: Icons.grid_view_rounded, // For table/columns
-                isSelected: false,
-                onTap: () => controller.addTableBlock(),
-              ),
+              _IconButton(icon: Icons.view_column_rounded, onTap: () {}),
             ],
-          )),
+          ),
         ],
       ),
     );
@@ -174,7 +179,7 @@ class _StyleButton extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.folderPink : Colors.transparent,
+              color: isSelected ? AppTheme.folderYellow : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
             ),
             alignment: Alignment.center,
@@ -195,93 +200,30 @@ class _StyleButton extends StatelessWidget {
   }
 }
 
-class _FormatButton extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final bool isBold;
-  final bool isItalic;
-  final bool isUnderline;
-  final bool isStrikethrough;
-
-  const _FormatButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-    this.isBold = false,
-    this.isItalic = false,
-    this.isUnderline = false,
-    this.isStrikethrough = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 44,
-        decoration: BoxDecoration(
-          color: isSelected 
-              ? AppTheme.folderPink 
-              : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF2F2F7)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 18,
-            fontFamily: 'Serif',
-            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
-            decoration: isUnderline 
-                ? TextDecoration.underline 
-                : (isStrikethrough ? TextDecoration.lineThrough : TextDecoration.none),
-            color: isSelected 
-                ? Colors.white 
-                : (isDark ? Colors.white : Colors.black87),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _IconButton extends StatelessWidget {
   final IconData icon;
-  final bool isSelected;
   final VoidCallback onTap;
 
-  const _IconButton({
-    required this.icon, 
-    required this.isSelected, 
-    required this.onTap
-  });
+  const _IconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 48,
         height: 44,
         decoration: BoxDecoration(
-          color: isSelected 
-              ? AppTheme.folderPink 
-              : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFF2F2F7)),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : const Color(0xFFF2F2F7),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
           icon,
           size: 22,
-          color: isSelected 
-              ? Colors.white 
-              : (isDark ? Colors.white : Colors.black87),
+          color: isDark ? Colors.white : Colors.black87,
         ),
       ),
     );

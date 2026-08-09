@@ -50,7 +50,6 @@ class NoteDetailController extends GetxController {
 
   final isFormatPanelVisible = false.obs;
   final currentBlockStyle = "body".obs;
-  final activeAttributes = <String, dynamic>{}.obs;
 
   @override
   void onInit() {
@@ -181,29 +180,11 @@ class NoteDetailController extends GetxController {
       } catch (_) {
         doc = quill.Document()..insert(0, content);
       }
-      final controller = quill.QuillController(
+      return quill.QuillController(
         document: doc,
         selection: const TextSelection.collapsed(offset: 0),
       );
-      
-      // Listen to selection changes to update formatting UI
-      controller.addListener(() {
-        if (activeBlockIndex.value != -1 && blocks[activeBlockIndex.value].id == blockId) {
-          _updateActiveAttributes(controller);
-        }
-      });
-      
-      return controller;
     });
-  }
-
-  void _updateActiveAttributes(quill.QuillController controller) {
-    final attrs = controller.getSelectionStyle().attributes;
-    final Map<String, dynamic> newAttrs = {};
-    attrs.forEach((key, value) {
-      newAttrs[key] = value.value;
-    });
-    activeAttributes.assignAll(newAttrs);
   }
 
   void updateTextBlock(int index, String text) {
@@ -245,13 +226,11 @@ class NoteDetailController extends GetxController {
   }
 
   void applyInlineFormat(quill.Attribute attribute) {
-    if (activeBlockIndex.value < 0 || activeBlockIndex.value >= blocks.length) return;
-    final block = blocks[activeBlockIndex.value];
+    if (activeBlockIndex < 0 || activeBlockIndex >= blocks.length) return;
+    final block = blocks[activeBlockIndex];
     final controller = quillControllers[block.id];
     if (controller != null) {
       controller.formatSelection(attribute);
-      // Force update attributes after applying
-      _updateActiveAttributes(controller);
     }
   }
 
@@ -433,6 +412,9 @@ class NoteDetailController extends GetxController {
 
       if (kDebugMode) debugPrint("[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}");
 
+
+      if (kDebugMode) debugPrint("[NOTE DEBUG] PRE-SAVE Title: $finalTitle, Blocks: ${blocks.length}");
+
       // 2. First Save: Send Title and serialized Text content to server
       final savedNote = await _noteService.saveNote(
         currentNote.value!.folderId, 
@@ -550,6 +532,8 @@ class NoteDetailController extends GetxController {
   void updateActiveBlockStyle(String style) {
     if (activeBlockIndex.value >= 0 && activeBlockIndex.value < blocks.length) {
       updateTextBlockStyle(activeBlockIndex.value, style);
+    if (activeBlockIndex >= 0 && activeBlockIndex < blocks.length) {
+      updateTextBlockStyle(activeBlockIndex, style);
       currentBlockStyle.value = style;
     }
   }

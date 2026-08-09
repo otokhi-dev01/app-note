@@ -147,19 +147,19 @@ class SearchView extends GetView<sc.SearchController> {
     return ListTile(
       onTap: () => controller.applyFilter(title),
       dense: true,
-      hoverColor: AppTheme.folderPink.withValues(alpha: 0.05),
-      splashColor: AppTheme.folderPink.withValues(alpha: 0.1),
+      hoverColor: AppTheme.folderYellow.withValues(alpha: 0.05),
+      splashColor: AppTheme.folderYellow.withValues(alpha: 0.1),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: AppTheme.folderPink.withValues(alpha: 0.12),
+          color: AppTheme.folderYellow.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
-          color: AppTheme.folderPink,
+          color: AppTheme.folderYellow,
           size: 20,
         ),
       ),
@@ -309,7 +309,7 @@ class SearchView extends GetView<sc.SearchController> {
                       controller: controller.searchController,
                       onChanged: controller.onSearchChanged,
                       autofocus: true,
-                      cursorColor: AppTheme.folderPink,
+                      cursorColor: AppTheme.folderYellow,
                       style: theme.textTheme.bodyLarge?.copyWith(fontSize: 17),
                       decoration: InputDecoration(
                         hintText: "Search",

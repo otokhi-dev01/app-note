@@ -72,7 +72,7 @@ class TrashController extends GetxController {
           id: e as int,
           name: "Deleted Folder",
           iconName: "folder",
-          colorValue: "0xFFFF69B4",
+          colorValue: "0xFFFFCC00",
           sortOrder: 0,
         );
       }).toList();

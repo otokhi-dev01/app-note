@@ -78,7 +78,7 @@ class RecentlyDeletedController extends GetxController {
           id: 0,
           name: "Unknown Folder",
           iconName: "folder",
-          colorValue: "0xFFFF69B4",
+          colorValue: "0xFFFFCC00",
           sortOrder: 0,
         );
       }).toList();

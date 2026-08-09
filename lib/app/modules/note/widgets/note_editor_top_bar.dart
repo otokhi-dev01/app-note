@@ -118,7 +118,7 @@ class _SaveButton extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: const BoxDecoration(
-          color: AppTheme.folderPink,
+          color: AppTheme.folderYellow,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,

@@ -53,7 +53,7 @@ class SplashView extends GetView<SplashController> {
                               padding: const EdgeInsets.all(10),
                               child: ClipOval(
                                 child: Image.asset(
-                                  'assets/icons/otokhi_logo_app.jpg',
+                                  'assets/icons/otokhi_note_app_1.jpg',
                                   fit: BoxFit.contain,
                                 ),
                               ),
@@ -64,7 +64,7 @@ class SplashView extends GetView<SplashController> {
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.folderPink,
+                                  color: AppTheme.folderYellow,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: theme.colorScheme.surface,
@@ -122,7 +122,7 @@ class SplashView extends GetView<SplashController> {
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          AppTheme.folderPink,
+                          AppTheme.folderYellow,
                         ),
                       ),
                     ).animate().fadeIn(delay: 1200.ms),
