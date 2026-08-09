@@ -104,11 +104,18 @@ class NoteDetailController extends GetxController {
 
       if (noteId != null && noteId != 0) {
         final note = args['note'];
-        if (isReadOnly.value && note is NoteModel) {
+        if (note is NoteModel) {
           _setupNoteState(note);
           isLoading.value = false;
+        }
+
+        if (isReadOnly.value && note is NoteModel) {
+          // Do not fetch detail for deleted notes when we already have a safe copy.
         } else {
-          fetchNoteDetail(noteId);
+          fetchNoteDetail(
+            noteId,
+            showLoading: note is NoteModel ? false : true,
+          );
         }
       } else if (folderId != null) {
         _initNewNote(folderId);
@@ -120,19 +127,25 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  Future<void> fetchNoteDetail(int id) async {
-    isLoading.value = true;
+  Future<void> fetchNoteDetail(int id, {bool showLoading = true}) async {
+    if (showLoading) {
+      isLoading.value = true;
+    }
     try {
       final note = await _noteService.getNoteDetail(id);
       _setupNoteState(note);
     } catch (error, stackTrace) {
       _handleError('Could not load note detail', error, stackTrace);
     } finally {
-      isLoading.value = false;
+      if (showLoading) {
+        isLoading.value = false;
+      }
     }
   }
 
   void _setupNoteState(NoteModel note) {
+    final previousBlocks = List<NoteBlock>.from(blocks);
+
     currentNote.value = note;
     titleController.text = note.title;
     isPinned.value = note.isPinned;
@@ -141,6 +154,14 @@ class NoteDetailController extends GetxController {
 
     _clearControllers();
     blocks.assignAll(note.content);
+    if (blocks.isEmpty && previousBlocks.isNotEmpty) {
+      if (kDebugMode) {
+        debugPrint(
+          '[NOTE DETAIL] Retaining previous blocks because server detail returned empty content.',
+        );
+      }
+      blocks.assignAll(previousBlocks);
+    }
     _history.clear();
 
     if (kDebugMode) {
@@ -926,9 +947,7 @@ class NoteDetailController extends GetxController {
           final deltaJson = qc.document.toDelta().toJson();
           final json = jsonEncode(deltaJson);
           final isEffectivelyEmpty =
-              deltaJson is List &&
               deltaJson.length == 1 &&
-              deltaJson.first is Map &&
               (deltaJson.first['insert'] == '\n' ||
                   deltaJson.first['insert'] == '');
           if (isEffectivelyEmpty) {

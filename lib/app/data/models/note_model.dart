@@ -56,6 +56,7 @@ class NoteModel {
     dynamic contentData;
     final contentFields = [
       'ContentJson',
+      'ContentJsonString',
       'Content',
       'content',
       'NoteContent',
@@ -92,9 +93,35 @@ class NoteModel {
     List<NoteBlock> parsedContent = [];
 
     if (contentData is List) {
-      parsedContent = contentData
-          .map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
+      parsedContent = contentData.map((e) {
+        if (e is Map) {
+          return NoteBlock.fromJson(Map<String, dynamic>.from(e));
+        }
+        if (e is String) {
+          try {
+            final decoded = jsonDecode(e);
+            if (decoded is Map) {
+              return NoteBlock.fromJson(Map<String, dynamic>.from(decoded));
+            }
+            if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
+              return NoteBlock.fromJson(
+                Map<String, dynamic>.from(decoded.first),
+              );
+            }
+          } catch (_) {
+            // Ignore decode errors and treat the string as text.
+          }
+          return TextBlock(
+            id: DateTime.now().microsecondsSinceEpoch.toString(),
+            text: e,
+          );
+        }
+
+        return TextBlock(
+          id: DateTime.now().microsecondsSinceEpoch.toString(),
+          text: e?.toString() ?? '',
+        );
+      }).toList();
     } else if (contentData is Map) {
       // Handle single block object
       try {
@@ -124,6 +151,22 @@ class NoteModel {
       } catch (_) {
         // Fallback for plain text that isn't JSON
         parsedContent = [TextBlock(id: 'text_initial', text: contentData)];
+      }
+    }
+
+    if (parsedContent.isEmpty) {
+      final altText =
+          (json['Text'] ??
+                  json['text'] ??
+                  json['Body'] ??
+                  json['body'] ??
+                  json['NoteText'] ??
+                  json['noteText'] ??
+                  json['ContentText'] ??
+                  json['contentText'])
+              ?.toString();
+      if (altText != null && altText.trim().isNotEmpty) {
+        parsedContent = [TextBlock(id: 'text_initial', text: altText.trim())];
       }
     }
 
@@ -248,7 +291,9 @@ class NoteModel {
     }
 
     // Remove markdown-like wrapper tokens such as [path]() or path() if present.
-    result = result.replaceAll(RegExp(r'^\s*\[([^\]]+)\]\(\)\s* ?'), r'$1').trim();
+    result = result
+        .replaceAll(RegExp(r'^\s*\[([^\]]+)\]\(\)\s* ?'), r'$1')
+        .trim();
     result = result.replaceAll(RegExp(r'\s*\(([^\)]+)\)\s* ?'), r'$1').trim();
 
     final match = RegExp(r'(/[^)\]\s]+\.[\w\d]+)').firstMatch(result);
