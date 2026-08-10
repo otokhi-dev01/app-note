@@ -98,18 +98,23 @@ class NoteModel {
           return NoteBlock.fromJson(Map<String, dynamic>.from(e));
         }
         if (e is String) {
-          try {
-            final decoded = jsonDecode(e);
-            if (decoded is Map) {
-              return NoteBlock.fromJson(Map<String, dynamic>.from(decoded));
+          final trimmed = e.trim();
+          if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+            try {
+              final decoded = jsonDecode(trimmed);
+              if (decoded is Map) {
+                return NoteBlock.fromJson(Map<String, dynamic>.from(decoded));
+              }
+              if (decoded is List &&
+                  decoded.isNotEmpty &&
+                  decoded.first is Map) {
+                return NoteBlock.fromJson(
+                  Map<String, dynamic>.from(decoded.first),
+                );
+              }
+            } catch (_) {
+              // Ignore decode errors and treat the string as text.
             }
-            if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
-              return NoteBlock.fromJson(
-                Map<String, dynamic>.from(decoded.first),
-              );
-            }
-          } catch (_) {
-            // Ignore decode errors and treat the string as text.
           }
           return TextBlock(
             id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -132,24 +137,27 @@ class NoteModel {
         if (kDebugMode) debugPrint("Failed to parse Content Map: $contentData");
       }
     } else if (contentData is String && contentData.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(contentData);
-        if (decoded is List) {
-          parsedContent = decoded
-              .map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e)))
-              .toList();
-        } else if (decoded is Map) {
-          parsedContent = [
-            NoteBlock.fromJson(Map<String, dynamic>.from(decoded)),
-          ];
-        } else {
-          // If it's valid JSON but not a list/map (e.g. a string), handle as plain text
-          parsedContent = [
-            TextBlock(id: 'text_initial', text: decoded.toString()),
-          ];
+      final trimmed = contentData.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          final decoded = jsonDecode(trimmed);
+          if (decoded is List) {
+            parsedContent = decoded
+                .map((e) => NoteBlock.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+          } else if (decoded is Map) {
+            parsedContent = [
+              NoteBlock.fromJson(Map<String, dynamic>.from(decoded)),
+            ];
+          } else {
+            parsedContent = [
+              TextBlock(id: 'text_initial', text: decoded.toString()),
+            ];
+          }
+        } catch (_) {
+          parsedContent = [TextBlock(id: 'text_initial', text: contentData)];
         }
-      } catch (_) {
-        // Fallback for plain text that isn't JSON
+      } else {
         parsedContent = [TextBlock(id: 'text_initial', text: contentData)];
       }
     }
@@ -409,12 +417,19 @@ abstract class NoteBlock {
   NoteBlock({required this.id, required this.type});
 
   factory NoteBlock.fromJson(Map<String, dynamic> json) {
-    final type = (json['type'] ?? json['Type'] ?? 'text')
-        .toString()
-        .toLowerCase();
+    final type =
+        (json['type'] ??
+                json['Type'] ??
+                json['blockType'] ??
+                json['BlockType'] ??
+                'text')
+            .toString()
+            .toLowerCase();
     final id =
         (json['id'] ??
                 json['Id'] ??
+                json['blockId'] ??
+                json['BlockId'] ??
                 DateTime.now().microsecondsSinceEpoch.toString())
             .toString();
     final data = Map<String, dynamic>.from(json)..['id'] = id;
@@ -491,7 +506,14 @@ class TextBlock extends NoteBlock {
     : super(id: id, type: BlockType.text);
 
   factory TextBlock.fromJson(Map<String, dynamic> json) {
-    final rawText = json['text'] ?? json['Text'] ?? '';
+    final rawText =
+        json['text'] ??
+        json['Text'] ??
+        json['content'] ??
+        json['Content'] ??
+        json['Value'] ??
+        json['value'] ??
+        '';
     String textValue;
     if (rawText is String) {
       textValue = rawText;
@@ -581,7 +603,7 @@ class AttachmentBlock extends NoteBlock {
       id: json['id']?.toString() ?? '',
       attachmentId: json['attachmentId'] ?? json['Id'] ?? 0,
       displayName: json['displayName'] ?? json['DisplayName'] ?? '',
-      url: json['url'] ?? json['Url'],
+      url: json['url'] ?? json['Url'] ?? json['FilePath'] ?? json['filePath'],
       localPath: json['localPath'],
     );
   }

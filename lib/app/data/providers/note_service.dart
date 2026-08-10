@@ -170,7 +170,8 @@ class NoteService extends GetxService {
       // so the backend can accept different shapes (Type/Text vs type/text).
       contentList = content.map((e) {
         final Map<String, dynamic> m = Map<String, dynamic>.from(e.toJson());
-        // Text blocks: ensure both 'Text' and 'text' and also store raw text
+        // Text blocks: ensure both 'Text' and 'text' are present and support
+        // string-encoded Delta JSON for backend compatibility.
         if (e.runtimeType.toString().contains('TextBlock')) {
           final raw =
               m['Text'] ??
@@ -178,10 +179,37 @@ class NoteService extends GetxService {
               m['content'] ??
               m['Value'] ??
               m['value'];
+          final String textValue;
+          if (raw is List || raw is Map) {
+            textValue = jsonEncode(raw);
+          } else {
+            textValue = raw?.toString() ?? '';
+          }
+
+          dynamic parsedText = textValue;
+          if (textValue.trimLeft().startsWith('[') ||
+              textValue.trimLeft().startsWith('{')) {
+            try {
+              parsedText = jsonDecode(textValue);
+            } catch (_) {
+              parsedText = textValue;
+            }
+          }
+
+          final plainText = _extractPlainTextFromDelta(parsedText);
+
           m['Type'] = m['Type'] ?? m['type'] ?? 'text';
           m['type'] = m['type'] ?? m['Type'] ?? 'text';
-          m['Text'] = raw ?? m['Text'] ?? m['text'] ?? '';
-          m['text'] = m['Text'];
+          m['Text'] = textValue;
+          m['text'] = textValue;
+          m['Content'] = textValue;
+          m['content'] = textValue;
+          m['Body'] = plainText;
+          m['body'] = plainText;
+          m['NoteText'] = plainText;
+          m['noteText'] = plainText;
+          m['ContentText'] = plainText;
+          m['contentText'] = plainText;
         }
         // Attachment blocks: normalize common fields
         if (e.runtimeType.toString().contains('AttachmentBlock')) {
@@ -193,10 +221,24 @@ class NoteService extends GetxService {
         return m;
       }).toList();
 
-      // Send multiple variants for resilience. Prefer ContentJson as structured list.
+      // Send multiple variants for resilience. Prefer ContentJson as an encoded string
+      // because some backend endpoints expect ContentJson to be a JSON string.
       payload["Content"] = contentList;
-      payload["ContentJson"] = contentList;
+      payload["ContentJson"] = jsonEncode(contentList);
       payload["ContentJsonString"] = jsonEncode(contentList);
+      payload["Body"] = contentList
+          .whereType<Map<String, dynamic>>()
+          .where(
+            (m) => (m["Type"] ?? m["type"])?.toString().toLowerCase() == 'text',
+          )
+          .map(
+            (m) => (m['Body'] ?? m['body'] ?? m['Text'] ?? m['text'] ?? '')
+                .toString(),
+          )
+          .join('\n')
+          .trim();
+      payload["NoteText"] = payload["Body"];
+      payload["ContentText"] = payload["Body"];
 
       if (kDebugMode)
         debugPrint(
@@ -231,13 +273,30 @@ class NoteService extends GetxService {
     // Variant A: Content list + ContentJson as encoded string (current)
     response = await tryPost('/api/note/save-content', payload);
 
-    // If backend returned 404 or null response, try alternative variants
+    // Variant B: If save-content gives a 400 due to Content validation, retry
+    // without Content and with ContentJson only.
+    if (response != null && response.statusCode == 400) {
+      final altPayload = Map<String, dynamic>.from(payload)
+        ..remove('Content')
+        ..remove('ContentJson')
+        ..remove('ContentJsonString');
+      if (contentList != null) {
+        altPayload['ContentJson'] = jsonEncode(contentList);
+        altPayload['ContentJsonString'] = jsonEncode(contentList);
+      }
+      if (kDebugMode)
+        debugPrint('[NOTE DEBUG] Retrying save-content without Content');
+      response = await tryPost('/api/note/save-content', altPayload);
+    }
+
+    // If backend returned 404, null response, or still failed, try alternative variants
     if (response == null ||
         response.statusCode == 404 ||
+        response.statusCode == 400 ||
         (response.data is Map &&
             (response.data['code'] == 404 ||
                 response.data['message'] == 'Note not found.'))) {
-      // Variant B: ContentJson as actual List (not string)
+      // Variant C: ContentJson as actual list (not string)
       final altPayload = Map<String, dynamic>.from(payload);
       if (contentList != null) altPayload['ContentJson'] = contentList;
       if (kDebugMode)
@@ -247,11 +306,12 @@ class NoteService extends GetxService {
 
     if (response == null ||
         response.statusCode == 404 ||
+        response.statusCode == 400 ||
         (response.data is Map &&
             (response.data['code'] == 404 ||
                 response.data['message'] == 'Note not found.' ||
                 response.data['message'] == 'Folder not found.'))) {
-      // Variant C: Try legacy endpoint '/api/note/save' with Content list
+      // Variant D: Try legacy endpoint '/api/note/save' with ContentJson list.
       final legacyPayload = Map<String, dynamic>.from(payload);
       if (contentList != null) legacyPayload['ContentJson'] = contentList;
       if (kDebugMode)
@@ -309,6 +369,27 @@ class NoteService extends GetxService {
     }
 
     throw Exception("Failed to parse saved note and no fallback found");
+  }
+
+  String _extractPlainTextFromDelta(dynamic value) {
+    if (value is String) {
+      return value;
+    }
+    if (value is List) {
+      return value.map((item) {
+        if (item is Map && item.containsKey('insert')) {
+          return item['insert']?.toString() ?? '';
+        }
+        return item?.toString() ?? '';
+      }).join();
+    }
+    if (value is Map) {
+      if (value.containsKey('insert')) {
+        return value['insert']?.toString() ?? '';
+      }
+      return value.values.map((v) => _extractPlainTextFromDelta(v)).join();
+    }
+    return value?.toString() ?? '';
   }
 
   Future<void> updateNoteState(
