@@ -188,6 +188,10 @@ class FolderView extends GetView<FolderController> {
             ),
           );
         }
+
+        // Apply sorting based on user preference
+        controller.sortFolders();
+
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -45,10 +45,10 @@ class FolderService extends GetxService {
 
   Future<void> deleteRestoreFolder(int folderId, bool isDelete) async {
     try {
-      debugPrint('[FOLDER DELETE] POST /api/folder/delete-restore');
-      // Standardized contract for delete-restore
+      debugPrint('[FOLDER DELETE] POST /api/folder/deleted-restore');
+      // Standardized contract for deleted-restore
       await _api.dio.post(
-        "/api/folder/delete-restore",
+        "/api/folder/deleted-restore",
         data: {"FolderId": folderId, "IsDelete": isDelete},
       );
     } catch (e, s) {

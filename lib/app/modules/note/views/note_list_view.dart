@@ -341,7 +341,9 @@ class NoteListView extends GetView<NoteController> {
 
       final pinnedNotes = controller.pinnedNotes;
       final otherNotes = controller.otherNotes;
-      final groupedNotes = _groupNotesByDate(otherNotes);
+      final groupedNotes = controller.isGroupedByDate.value 
+          ? _groupNotesByDate(otherNotes) 
+          : {"Notes": otherNotes};
 
       return SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
@@ -379,7 +381,7 @@ class NoteListView extends GetView<NoteController> {
               );
             }
 
-            // Adjust index for date groups
+            // Adjust index for groups
             final groupIndex = index - 1;
             if (groupIndex < groupedNotes.length) {
               return _buildDateGroup(
@@ -390,7 +392,7 @@ class NoteListView extends GetView<NoteController> {
               );
             }
           } else {
-            // No pinned notes, just date groups
+            // No pinned notes, just groups
             if (index < groupedNotes.length) {
               return _buildDateGroup(context, groupedNotes, index, folderId);
             }

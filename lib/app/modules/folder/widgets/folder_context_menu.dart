@@ -49,8 +49,10 @@ class FolderContextMenu extends StatelessWidget {
         ),
         IOSMenuAction(
           label: "Group By Date",
-          icon: Icons.calendar_view_day_outlined,
-          subtitle: "Default (On)",
+          icon: controller.isGroupedByDate.value 
+            ? Icons.calendar_view_day_rounded 
+            : Icons.calendar_view_day_outlined,
+          subtitle: controller.isGroupedByDate.value ? "On" : "Off",
           onTap: () {
             Get.back();
             controller.onToggleGroupByDate(folder);

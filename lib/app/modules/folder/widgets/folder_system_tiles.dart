@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
@@ -34,11 +35,11 @@ class FolderSystemTiles extends StatelessWidget {
         opacity: isEditing ? 0.15 : 1.0,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          onTap: isEditing ? null : () => Get.toNamed(Routes.PINNED),
+          onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE), // Re-using archive for now or creating a pinned view if needed
           leading: Icon(
-            Icons.push_pin_outlined,
+            CupertinoIcons.pin,
             color: theme.primaryColor,
-            size: 30,
+            size: 26,
           ),
           title: Text("Pinned", style: theme.textTheme.bodyLarge),
           trailing: Row(
