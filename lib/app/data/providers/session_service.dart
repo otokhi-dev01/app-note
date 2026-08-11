@@ -5,10 +5,10 @@ import '../models/auth_model.dart';
 
 class SessionService extends GetxService {
   final _storage = const FlutterSecureStorage();
-  
+
   final user = Rxn<UserData>();
   final token = RxnString();
-  
+
   bool get isLoggedIn => token.value != null;
 
   @override

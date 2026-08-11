@@ -30,8 +30,8 @@ class IOSConfirmationDialog extends StatelessWidget {
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Material(
-              color: isDark 
-                  ? const Color(0xFF252525).withValues(alpha: 0.85) 
+              color: isDark
+                  ? const Color(0xFF252525).withValues(alpha: 0.85)
                   : Colors.white.withValues(alpha: 0.9),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -51,9 +51,11 @@ class IOSConfirmationDialog extends StatelessWidget {
                     ),
                   ),
                   Divider(
-                    height: 1, 
-                    thickness: 0.5, 
-                    color: isDark ? const Color(0xFF38383A) : AppTheme.dividerColor,
+                    height: 1,
+                    thickness: 0.5,
+                    color: isDark
+                        ? const Color(0xFF38383A)
+                        : AppTheme.dividerColor,
                   ),
                   Row(
                     children: [
@@ -71,15 +73,19 @@ class IOSConfirmationDialog extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : AppTheme.textPrimary,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppTheme.textPrimary,
                             ),
                           ),
                         ),
                       ),
                       Container(
-                        width: 0.5, 
-                        height: 50, 
-                        color: isDark ? const Color(0xFF38383A) : AppTheme.dividerColor,
+                        width: 0.5,
+                        height: 50,
+                        color: isDark
+                            ? const Color(0xFF38383A)
+                            : AppTheme.dividerColor,
                       ),
                       Expanded(
                         child: TextButton(
@@ -98,7 +104,9 @@ class IOSConfirmationDialog extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w400,
-                              color: isDestructive ? Colors.redAccent : AppTheme.folderPink,
+                              color: isDestructive
+                                  ? Colors.redAccent
+                                  : AppTheme.folderPink,
                             ),
                           ),
                         ),

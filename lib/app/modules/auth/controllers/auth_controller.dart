@@ -20,29 +20,41 @@ class AuthController extends GetxController {
 
   void login() async {
     if (phoneController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar("Error", "Please fill all fields", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Error",
+        "Please fill all fields",
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
 
     isLoading.value = true;
     try {
-      final response = await _authService.login(phoneController.text, passwordController.text);
+      final response = await _authService.login(
+        phoneController.text,
+        passwordController.text,
+      );
       if (response.code == 200) {
         await _sessionService.saveSession(response.token, response.user);
         Get.offAllNamed(Routes.FOLDER);
       } else {
-        Get.snackbar("Error", response.message, snackPosition: SnackPosition.BOTTOM);
+        Get.snackbar(
+          "Error",
+          response.message,
+          snackPosition: SnackPosition.BOTTOM,
+        );
       }
     } catch (e) {
       String errorMsg = "Login failed";
       if (e is dio.DioException) {
-        errorMsg = e.response?.data['message'] ?? e.message ?? "Connection Error";
+        errorMsg =
+            e.response?.data['message'] ?? e.message ?? "Connection Error";
       }
-      
+
       if (kDebugMode) {
         debugPrint("Login failed: $errorMsg");
       }
-      
+
       Get.snackbar("Error", errorMsg, snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;
@@ -50,32 +62,44 @@ class AuthController extends GetxController {
   }
 
   void register() async {
-    if (nameController.text.isEmpty || phoneController.text.isEmpty || passwordController.text.isEmpty) {
-      Get.snackbar("Error", "Please fill all fields", snackPosition: SnackPosition.BOTTOM);
+    if (nameController.text.isEmpty ||
+        phoneController.text.isEmpty ||
+        passwordController.text.isEmpty) {
+      Get.snackbar(
+        "Error",
+        "Please fill all fields",
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return;
     }
 
     isLoading.value = true;
     try {
-      await _authService.register(RegisterRequest(
-        fullName: nameController.text,
-        phone: phoneController.text,
-        password: passwordController.text,
-        deviceName: "Mobile App",
-        deviceType: Platform.isAndroid ? "Android" : "iOS",
-      ));
-      Get.snackbar("Success", "Account created! Please login.", snackPosition: SnackPosition.BOTTOM);
+      await _authService.register(
+        RegisterRequest(
+          fullName: nameController.text,
+          phone: phoneController.text,
+          password: passwordController.text,
+          deviceName: "Mobile App",
+          deviceType: Platform.isAndroid ? "Android" : "iOS",
+        ),
+      );
+      Get.snackbar(
+        "Success",
+        "Account created! Please login.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
       Get.back();
     } catch (e) {
       String errorMsg = "Registration failed.";
       if (e is dio.DioException) {
         errorMsg = e.response?.data['message'] ?? e.message ?? errorMsg;
       }
-      
+
       if (kDebugMode) {
         debugPrint("Registration failed: $errorMsg");
       }
-      
+
       Get.snackbar("Error", errorMsg, snackPosition: SnackPosition.BOTTOM);
     } finally {
       isLoading.value = false;

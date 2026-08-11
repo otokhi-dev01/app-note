@@ -26,12 +26,16 @@ class FolderSectionHeader extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(title, style: theme.textTheme.titleLarge),
-            Obx(() => Icon(
-                  isExpanded.value ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-                  color: AppTheme.folderPink,
-                  size: 28,
-                  fontWeight: FontWeight.bold,
-                )),
+            Obx(
+              () => Icon(
+                isExpanded.value
+                    ? Icons.keyboard_arrow_down
+                    : Icons.keyboard_arrow_right,
+                color: AppTheme.folderPink,
+                size: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),

@@ -1,5 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
@@ -9,12 +9,12 @@ import '../../../data/providers/note_service.dart';
 class SearchController extends GetxController {
   final _noteService = Get.find<NoteService>();
   final _folderService = Get.find<FolderService>();
-  
+
   final noteResults = <NoteModel>[].obs;
   final pinnedNoteResults = <NoteModel>[].obs;
   final otherNoteResults = <NoteModel>[].obs;
   final folderResults = <FolderModel>[].obs;
-  
+
   final searchQuery = "".obs;
   final isSearching = false.obs;
   final searchController = TextEditingController();
@@ -22,10 +22,16 @@ class SearchController extends GetxController {
   final suggestions = [
     {"title": "Shared Notes", "icon": CupertinoIcons.person_crop_circle},
     {"title": "Locked Notes", "icon": CupertinoIcons.lock},
-    {"title": "Notes with Checklists", "icon": CupertinoIcons.list_bullet_indent},
+    {
+      "title": "Notes with Checklists",
+      "icon": CupertinoIcons.list_bullet_indent,
+    },
     {"title": "Notes with Tags", "icon": CupertinoIcons.number},
     {"title": "Notes with Drawings", "icon": CupertinoIcons.pencil_outline},
-    {"title": "Notes with Scanned Documents", "icon": CupertinoIcons.doc_text_viewfinder},
+    {
+      "title": "Notes with Scanned Documents",
+      "icon": CupertinoIcons.doc_text_viewfinder,
+    },
     {"title": "Notes with Attachments", "icon": CupertinoIcons.paperclip},
   ];
 
@@ -41,11 +47,11 @@ class SearchController extends GetxController {
       folderResults.clear();
       return;
     }
-    
+
     try {
       // Fetch both notes and folders
       final results = await Future.wait([
-        _noteService.getNotes(),
+        _noteService.getNotes(refresh: true),
         _folderService.getFolders(),
       ]);
 
@@ -54,22 +60,69 @@ class SearchController extends GetxController {
       final folderResponse = results[1] as FolderResponse;
       final List<FolderModel> allFolders = folderResponse.folders;
 
-      // Filter notes
-      final notes = allNotes.where((n) => 
-        n.title.toLowerCase().contains(query.toLowerCase())
-      ).toList();
-      
-      noteResults.assignAll(notes);
-      pinnedNoteResults.assignAll(notes.where((n) => n.isPinned).toList());
-      otherNoteResults.assignAll(notes.where((n) => !n.isPinned).toList());
+      final lowerQuery = query.toLowerCase();
+      List<NoteModel> filteredNotes = [];
 
-      // Filter folders
-      folderResults.assignAll(allFolders.where((f) => 
-        f.name.toLowerCase().contains(query.toLowerCase())
-      ).toList());
-      
+      // Check if query matches a suggested filter
+      if (lowerQuery == "shared notes") {
+        filteredNotes = allNotes
+            .where((n) => n.folderName.toLowerCase().contains("shared"))
+            .toList();
+        folderResults.clear();
+      } else if (lowerQuery == "locked notes") {
+        filteredNotes = allNotes.where((n) => n.isLocked).toList();
+        folderResults.clear();
+      } else if (lowerQuery == "notes with checklists") {
+        filteredNotes = allNotes
+            .where((n) => n.content.any((b) => b is ChecklistBlock))
+            .toList();
+        folderResults.clear();
+      } else if (lowerQuery == "notes with tags") {
+        filteredNotes = allNotes.where((n) => n.title.contains("#")).toList();
+        folderResults.clear();
+      } else if (lowerQuery == "notes with drawings") {
+        filteredNotes = allNotes
+            .where((n) => n.content.any((b) => b is DrawingBlock))
+            .toList();
+        folderResults.clear();
+      } else if (lowerQuery == "notes with scanned documents") {
+        filteredNotes = allNotes.where((n) => n.attachmentCount > 0).toList();
+        folderResults.clear();
+      } else if (lowerQuery == "notes with attachments") {
+        filteredNotes = allNotes
+            .where(
+              (n) =>
+                  n.attachmentCount > 0 ||
+                  n.content.any((b) => b is AttachmentBlock),
+            )
+            .toList();
+        folderResults.clear();
+      } else {
+        // Regular search
+        filteredNotes = allNotes
+            .where(
+              (n) =>
+                  n.title.toLowerCase().contains(lowerQuery) ||
+                  n.folderName.toLowerCase().contains(lowerQuery),
+            )
+            .toList();
+
+        folderResults.assignAll(
+          allFolders
+              .where((f) => f.name.toLowerCase().contains(lowerQuery))
+              .toList(),
+        );
+      }
+
+      noteResults.assignAll(filteredNotes);
+      pinnedNoteResults.assignAll(
+        filteredNotes.where((n) => n.isPinned).toList(),
+      );
+      otherNoteResults.assignAll(
+        filteredNotes.where((n) => !n.isPinned).toList(),
+      );
     } catch (e) {
-      // Handle error
+      if (kDebugMode) debugPrint("SEARCH ERROR: $e");
     }
   }
 

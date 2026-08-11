@@ -13,42 +13,49 @@ import '../widgets/note_context_menu.dart';
 import '../widgets/note_list_tile.dart';
 import '../widgets/note_grid_tile.dart';
 
-
-
 class NoteListView extends GetView<NoteController> {
   const NoteListView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final FolderModel? folder = Get.arguments is FolderModel ? Get.arguments : null;
+    final FolderModel? folder = Get.arguments is FolderModel
+        ? Get.arguments
+        : null;
     final theme = Theme.of(context);
     final folderName = folder?.name ?? "All Notes";
     final int folderId = folder?.id ?? 0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
       child: Scaffold(
         extendBody: true,
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         body: RefreshIndicator(
-          onRefresh: () => controller.fetchNotes(folderId: folder?.id, refresh: true),
+          onRefresh: () =>
+              controller.fetchNotes(folderId: folder?.id, refresh: true),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
           edgeOffset: 140,
-          child: Obx(() => CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              _buildAppBar(context, folderName),
-              if (controller.viewMode.value == "gallery")
-                _buildNoteGrid(context, folderId)
-              else
-                _buildNoteList(context, folderId),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          )),
+          child: Obx(
+            () => CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                _buildAppBar(context, folderName),
+                if (controller.viewMode.value == "gallery")
+                  _buildNoteGrid(context, folderId)
+                else
+                  _buildNoteList(context, folderId),
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
+          ),
         ),
         bottomNavigationBar: Obx(() {
           if (controller.isEditing.value) {
@@ -70,12 +77,14 @@ class NoteListView extends GetView<NoteController> {
       elevation: 0,
       automaticallyImplyLeading: false,
       centerTitle: true,
-      systemOverlayStyle: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light 
+      systemOverlayStyle: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
           : SystemUiOverlayStyle.dark,
       title: LayoutBuilder(
         builder: (context, constraints) {
-          final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+          final double percentage =
+              (constraints.maxHeight - kToolbarHeight) /
+              (140.0 - kToolbarHeight);
           final opacity = (1.0 - percentage).clamp(0.0, 1.0);
           return Opacity(
             opacity: opacity > 0.8 ? 1.0 : 0.0,
@@ -101,7 +110,12 @@ class NoteListView extends GetView<NoteController> {
           blur: 10,
           child: IconButton(
             onPressed: () => Get.back(),
-            icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 24, fontWeight: FontWeight.bold,),
+            icon: Icon(
+              CupertinoIcons.chevron_left,
+              color: theme.colorScheme.onSurface,
+              size: 24,
+              fontWeight: FontWeight.bold,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -119,7 +133,9 @@ class NoteListView extends GetView<NoteController> {
         titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
         title: LayoutBuilder(
           builder: (context, constraints) {
-            final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+            final double percentage =
+                (constraints.maxHeight - kToolbarHeight) /
+                (140.0 - kToolbarHeight);
             return Opacity(
               opacity: percentage.clamp(0.0, 1.0),
               child: Text(
@@ -221,7 +237,10 @@ class NoteListView extends GetView<NoteController> {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
@@ -247,7 +266,10 @@ class NoteListView extends GetView<NoteController> {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 16,
@@ -327,7 +349,10 @@ class NoteListView extends GetView<NoteController> {
           if (pinnedNotes.isNotEmpty) {
             if (index == 0) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -353,11 +378,16 @@ class NoteListView extends GetView<NoteController> {
                 ),
               );
             }
-            
+
             // Adjust index for date groups
             final groupIndex = index - 1;
             if (groupIndex < groupedNotes.length) {
-              return _buildDateGroup(context, groupedNotes, groupIndex, folderId);
+              return _buildDateGroup(
+                context,
+                groupedNotes,
+                groupIndex,
+                folderId,
+              );
             }
           } else {
             // No pinned notes, just date groups
@@ -419,7 +449,7 @@ class NoteListView extends GetView<NoteController> {
     for (var note in notes) {
       final date = note.updatedAt ?? now;
       final noteDate = DateTime(date.year, date.month, date.day);
-      
+
       String key;
       if (noteDate == today) {
         key = "Today";

@@ -24,7 +24,7 @@ class NoteController extends GetxController {
   final isEditing = false.obs;
   final viewMode = "list".obs; // 'list' or 'gallery'
   final selectedNoteIds = <int>{}.obs;
-  
+
   void toggleEditing() {
     isEditing.value = !isEditing.value;
     if (!isEditing.value) {
@@ -56,17 +56,26 @@ class NoteController extends GetxController {
       selectedNoteIds.clear();
       isEditing.value = false;
       await fetchNotes(folderId: folderId, refresh: true);
-      Get.snackbar("Success", "Notes moved to Recently Deleted",
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Success",
+        "Notes moved to Recently Deleted",
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       if (kDebugMode) debugPrint("[NOTE DEBUG] Delete notes error: $e");
-      Get.snackbar("Error", "Could not delete notes. Please check your connection.");
+      Get.snackbar(
+        "Error",
+        "Could not delete notes. Please check your connection.",
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> moveSelectedNotes(BuildContext context, int currentFolderId) async {
+  Future<void> moveSelectedNotes(
+    BuildContext context,
+    int currentFolderId,
+  ) async {
     final targets = selectedNoteIds.isNotEmpty
         ? selectedNoteIds.toList()
         : notes.map((n) => n.id).toList();
@@ -93,7 +102,10 @@ class NoteController extends GetxController {
               for (final noteId in targets) {
                 final note = notes.firstWhereOrNull((n) => n.id == noteId);
                 if (note != null) {
-                  if (kDebugMode) debugPrint("[NOTE DEBUG] Moving NoteId: $noteId to FolderId: ${folder.id}");
+                  if (kDebugMode)
+                    debugPrint(
+                      "[NOTE DEBUG] Moving NoteId: $noteId to FolderId: ${folder.id}",
+                    );
                   await _noteService.saveNote(
                     folder.id,
                     note.title,
@@ -140,8 +152,10 @@ class NoteController extends GetxController {
     isLoading.value = true;
     hasError.value = false;
     try {
-      final response =
-          await _noteService.getNotes(folderId: folderId, refresh: refresh);
+      final response = await _noteService.getNotes(
+        folderId: folderId,
+        refresh: refresh,
+      );
       final allNotes = _sortNotes(response.notes);
       final pinned = allNotes.where((n) => n.isPinned).toList();
       final others = allNotes.where((n) => !n.isPinned).toList();
@@ -152,11 +166,16 @@ class NoteController extends GetxController {
 
       final allArchived = _sortNotes(response.archive);
       archivedNotes.assignAll(allArchived);
-      pinnedArchivedNotes.assignAll(allArchived.where((n) => n.isPinned).toList());
-      otherArchivedNotes.assignAll(allArchived.where((n) => !n.isPinned).toList());
+      pinnedArchivedNotes.assignAll(
+        allArchived.where((n) => n.isPinned).toList(),
+      );
+      otherArchivedNotes.assignAll(
+        allArchived.where((n) => !n.isPinned).toList(),
+      );
     } catch (e) {
       hasError.value = true;
-      errorMessage.value = "Unable to load notes. Please check your connection.";
+      errorMessage.value =
+          "Unable to load notes. Please check your connection.";
       Get.snackbar("Error", "Could not load notes");
     } finally {
       isLoading.value = false;
@@ -188,6 +207,3 @@ class NoteController extends GetxController {
     Get.snackbar("Info", "Viewing all attachments");
   }
 }
-
-
-

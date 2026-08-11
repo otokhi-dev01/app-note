@@ -44,6 +44,30 @@ class NoteContentEditor extends StatelessWidget {
                 bottomPadding,
               ),
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.folder_open_rounded,
+                      size: 12,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      controller.currentNote.value?.folderName ?? "Notes",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text(
                   DateFormat("MMMM d, yyyy 'at' h:mm a").format(noteDate),
                   textAlign: TextAlign.center,
@@ -87,7 +111,6 @@ class NoteContentEditor extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                ..._buildAttachmentPreview(context),
                 ...controller.blocks.asMap().entries.map(
                   (entry) => _buildBlock(context, entry.value, entry.key),
                 ),
@@ -153,76 +176,6 @@ class NoteContentEditor extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  List<Widget> _buildAttachmentPreview(BuildContext context) {
-    final theme = Theme.of(context);
-    final attachments = controller.blocks.whereType<AttachmentBlock>().toList();
-    if (attachments.isEmpty) return [];
-
-    return [
-      Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.15,
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Attachments',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: attachments.map((attachment) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: SizedBox(
-                      width: 120,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: SizedBox(
-                              height: 90,
-                              width: 120,
-                              child: NoteAttachmentBlock(
-                                block: attachment,
-                                blockIndex: controller.blocks.indexOf(
-                                  attachment,
-                                ),
-                                controller: controller,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            attachment.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ];
   }
 
   Widget _buildBlock(BuildContext context, NoteBlock block, int blockIndex) {

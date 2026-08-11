@@ -80,13 +80,17 @@ class NoteDetailView extends GetView<NoteDetailController> {
 
   SystemUiOverlayStyle _systemUiStyle(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
-    final style = isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark;
+    final style = isDark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
 
     return style.copyWith(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       systemNavigationBarColor: theme.scaffoldBackgroundColor,
-      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarIconBrightness: isDark
+          ? Brightness.light
+          : Brightness.dark,
     );
   }
 
@@ -103,9 +107,24 @@ class NoteDetailView extends GetView<NoteDetailController> {
       builder: (_) => CupertinoActionSheet(
         actions: [
           _buildAction(context, CupertinoIcons.viewfinder, 'Scan Text', () {}),
-          _buildAction(context, CupertinoIcons.viewfinder_circle, 'Scan Documents', () {}),
-          _buildAction(context, CupertinoIcons.camera, 'Take Photo or Video', () => _pickAttachment(ImageSource.camera)),
-          _buildAction(context, CupertinoIcons.photo_on_rectangle, 'Choose Photo or Video', () => _pickAttachment(ImageSource.gallery)),
+          _buildAction(
+            context,
+            CupertinoIcons.viewfinder_circle,
+            'Scan Documents',
+            () {},
+          ),
+          _buildAction(
+            context,
+            CupertinoIcons.camera,
+            'Take Photo or Video',
+            () => _pickAttachment(ImageSource.camera),
+          ),
+          _buildAction(
+            context,
+            CupertinoIcons.photo_on_rectangle,
+            'Choose Photo or Video',
+            () => _pickAttachment(ImageSource.gallery),
+          ),
           _buildAction(context, CupertinoIcons.mic, 'Record Audio', () {}),
           _buildAction(context, CupertinoIcons.paperclip, 'Attach File', () {}),
         ],
@@ -119,7 +138,12 @@ class NoteDetailView extends GetView<NoteDetailController> {
     );
   }
 
-  Widget _buildAction(BuildContext context, IconData icon, String label, VoidCallback onTap) {
+  Widget _buildAction(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
     return CupertinoActionSheetAction(
       onPressed: () {
         Get.back();

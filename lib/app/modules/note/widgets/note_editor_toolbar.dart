@@ -19,7 +19,7 @@ class NoteEditorToolbar extends StatelessWidget {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardVisible = bottomInset > 0;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Smooth animation for following the keyboard
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -40,10 +40,7 @@ class NoteEditorToolbar extends StatelessWidget {
             showGlow: true,
             thickness: 8,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 10,
-                vertical: 6,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Row(
                 children: [
                   Expanded(
@@ -67,12 +64,14 @@ class NoteEditorToolbar extends StatelessWidget {
                         ),
                         _ToolbarButton(
                           icon: CupertinoIcons.camera,
-                          onTap: () => controller.addAttachment(ImageSource.camera),
+                          onTap: () =>
+                              controller.addAttachment(ImageSource.camera),
                           semanticLabel: 'Camera',
                         ),
                         _ToolbarButton(
                           icon: CupertinoIcons.photo,
-                          onTap: () => controller.addAttachment(ImageSource.gallery),
+                          onTap: () =>
+                              controller.addAttachment(ImageSource.gallery),
                           semanticLabel: 'Photo',
                         ),
                       ],
@@ -107,16 +106,16 @@ class _ToolbarButton extends StatelessWidget {
       child: Container(
         width: 46,
         height: 46,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-        ),
+        decoration: const BoxDecoration(shape: BoxShape.circle),
         child: IconButton(
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(),
           onPressed: onTap,
           icon: Icon(
-            icon, 
-            color: Theme.of(context).colorScheme.onSurface, // Uses adaptive theme color
+            icon,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface, // Uses adaptive theme color
             size: 26,
           ),
         ),

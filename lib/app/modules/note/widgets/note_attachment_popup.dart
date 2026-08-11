@@ -10,7 +10,7 @@ class NoteAttachmentPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Get.theme.primaryColor;
-    
+
     return IOSActionMenu(
       type: IOSMenuType.bottomSheet,
       actions: [

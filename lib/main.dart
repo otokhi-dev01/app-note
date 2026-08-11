@@ -9,11 +9,10 @@ import 'app/data/providers/theme_service.dart';
 
 /*
   App: Otokhi Notes
-  Date: 08.10.2026 update by nona_developer in the morning at 12:00am
+  Date: 08.11.2026 update by nona in the morning at 5:00am
   Update by: branch nona_developer
   Update by: branch nona
   Feature: dark mode and light mode, rebranding to Otokhi
-
  */
 
 void main() async {
@@ -29,7 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     // Ensure we use the ThemeService to load the saved preference or system default
     final themeService = ThemeService();
-    
+
     return GetMaterialApp(
       title: "Otokhi Note",
       debugShowCheckedModeBanner: false,

@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
 import '../../../routes/app_pages.dart';
 import '../../../routes/note_navigation.dart';
@@ -164,11 +163,7 @@ class SearchView extends GetView<sc.SearchController> {
           color: AppTheme.folderYellow.withValues(alpha: 0.12),
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          icon,
-          color: AppTheme.folderYellow,
-          size: 20,
-        ),
+        child: Icon(icon, color: AppTheme.folderYellow, size: 20),
       ),
       title: Text(
         title,
@@ -312,7 +307,7 @@ class SearchView extends GetView<sc.SearchController> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? 10 : 20),
       child: Row(
@@ -336,7 +331,9 @@ class SearchView extends GetView<sc.SearchController> {
                 children: [
                   Icon(
                     CupertinoIcons.search,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
                     size: 22,
                   ),
                   const SizedBox(width: 8),
@@ -350,7 +347,9 @@ class SearchView extends GetView<sc.SearchController> {
                       decoration: InputDecoration(
                         hintText: "Search",
                         hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
                           fontSize: 17,
                         ),
                         border: InputBorder.none,
@@ -361,7 +360,9 @@ class SearchView extends GetView<sc.SearchController> {
                   ),
                   Icon(
                     CupertinoIcons.mic_fill,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
                     size: 20,
                   ),
                 ],

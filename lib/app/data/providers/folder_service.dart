@@ -7,61 +7,87 @@ class FolderService extends GetxService {
   final ApiService _api = Get.find<ApiService>();
 
   Future<FolderResponse> getFolders() async {
-    final response = await _api.dio.get("/api/folder");
-    return FolderResponse.fromJson(response.data);
+    try {
+      final response = await _api.dio.get("/api/folder");
+      return FolderResponse.fromJson(response.data);
+    } catch (e, s) {
+      debugPrint('[FOLDER SERVICE] getFolders Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> saveFolder(FolderModel folder) async {
     try {
-      final response = await _api.dio.post("/api/folder/save", data: folder.toJson());
-      
-      // Handle both {code: 200, ...} and raw data with HTTP 200
-      if (response.data is Map) {
-        final Map<String, dynamic> data = Map<String, dynamic>.from(response.data);
-        if (!data.containsKey('code')) {
-          data['code'] = response.statusCode;
-        }
-        return data;
-      }
-      
-      return {'code': response.statusCode, 'message': 'Success'};
-    } catch (e) {
+      // Backend expects 'Name' as confirmed by the 400 error response field.
+      // Casing: 'FolderId', 'Name', 'IconName', 'ColorValue', 'SortOrder'
+      final payload = {
+        "FolderId": folder.id,
+        "Name": folder.name,
+        "IconName": folder.iconName,
+        "ColorValue": folder.colorValue,
+        "SortOrder": folder.sortOrder,
+      };
+
+      debugPrint('[FOLDER SAVE] POST /api/folder/save');
+      debugPrint('[FOLDER SAVE] Payload: $payload');
+
+      final response = await _api.dio.post("/api/folder/save", data: payload);
+
+      debugPrint('[FOLDER SAVE] Response: ${response.data}');
+      return Map<String, dynamic>.from(response.data);
+    } catch (e, s) {
+      debugPrint('[FOLDER SERVICE] saveFolder Error: $e');
+      debugPrintStack(stackTrace: s);
       rethrow;
     }
   }
 
-  Future<void> deleteRestoreFolder(int id, bool isDelete) async {
+  Future<void> deleteRestoreFolder(int folderId, bool isDelete) async {
     try {
-      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteRestoreFolder ID: $id, isDelete: $isDelete");
-
-      final response = await _api.dio.post(
-        "/api/folder/deleted-restore",
-        data: {
-          "FolderId": id,
-          "id": id,
-          "Id": id,
-          "isDelete": isDelete,
-          "IsDelete": isDelete,
-        },
+      debugPrint('[FOLDER DELETE] POST /api/folder/delete-restore');
+      // Standardized contract for delete-restore
+      await _api.dio.post(
+        "/api/folder/delete-restore",
+        data: {"FolderId": folderId, "IsDelete": isDelete},
       );
-
-      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteRestoreFolder RESPONSE: ${response.statusCode}");
-    } catch (e) {
-      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteRestoreFolder ERROR: $e");
+    } catch (e, s) {
+      debugPrint('[FOLDER SERVICE] deleteRestoreFolder Error: $e');
+      debugPrintStack(stackTrace: s);
       rethrow;
     }
   }
 
-  Future<void> deleteFolderPermanently(int id) async {
+  Future<void> deleteFolderPermanently(int folderId) async {
     try {
-      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteFolderPermanently ID: $id");
-      await _api.dio.post("/api/folder/permanent-delete", data: {
-        "FolderId": id,
-        "id": id,
-      });
-    } catch (e) {
-      if (kDebugMode) debugPrint("[FOLDER DEBUG] deleteFolderPermanently ERROR: $e");
+      await _api.dio.post(
+        "/api/folder/permanent-delete",
+        data: {"FolderId": folderId},
+      );
+    } catch (e, s) {
+      debugPrint('[FOLDER SERVICE] deleteFolderPermanently Error: $e');
+      debugPrintStack(stackTrace: s);
       rethrow;
     }
+  }
+
+  /// Extracts a user-friendly error message from the API response
+  static String getApiErrorMessage(dynamic responseData) {
+    if (responseData is! Map) {
+      return 'An unexpected error occurred.';
+    }
+
+    final data = responseData['data'];
+
+    // If 'data' contains field-specific validation lists
+    if (data is Map) {
+      for (final value in data.values) {
+        if (value is List && value.isNotEmpty) {
+          return value.first.toString();
+        }
+      }
+    }
+
+    return responseData['message']?.toString() ?? 'Something went wrong.';
   }
 }

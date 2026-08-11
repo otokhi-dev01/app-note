@@ -9,7 +9,11 @@ class FolderContextMenu extends StatelessWidget {
   final FolderModel folder;
   final FolderController controller;
 
-  const FolderContextMenu({super.key, required this.folder, required this.controller});
+  const FolderContextMenu({
+    super.key,
+    required this.folder,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,35 +27,51 @@ class FolderContextMenu extends StatelessWidget {
             Get.bottomSheet(
               FolderCreateModal(controller: controller),
               isScrollControlled: true,
+              backgroundColor: Colors.transparent,
             );
           },
         ),
         IOSMenuAction(
-          label: "Move This Folder",
-          icon: Icons.folder_open_outlined,
-          onTap: () => controller.onMoveFolder(folder),
+          label: "Move Folder",
+          icon: Icons.drive_file_move_outlined,
+          onTap: () {
+            Get.back();
+            controller.onMoveFolder(folder);
+          },
         ),
         IOSMenuAction(
-          label: "Rename",
-          icon: Icons.edit_outlined,
-          onTap: () => controller.onRenameFolder(folder),
+          label: "Rename Folder",
+          icon: Icons.edit_note_rounded,
+          onTap: () {
+            Get.back();
+            controller.onRenameFolder(folder);
+          },
         ),
         IOSMenuAction(
           label: "Group By Date",
           icon: Icons.calendar_view_day_outlined,
           subtitle: "Default (On)",
-          onTap: () => controller.onToggleGroupByDate(folder),
+          onTap: () {
+            Get.back();
+            controller.onToggleGroupByDate(folder);
+          },
         ),
         IOSMenuAction(
-          label: "Delete",
-          icon: Icons.delete_outline,
+          label: "Delete Folder",
+          icon: Icons.delete_outline_rounded,
           isDestructive: true,
-          onTap: () => controller.onDeleteFolder(folder),
+          onTap: () {
+            Get.back();
+            controller.onDeleteFolder(folder);
+          },
         ),
         IOSMenuAction(
           label: "Convert to Smart Folder",
-          icon: Icons.settings_outlined,
-          onTap: () => controller.onConvertToSmartFolder(folder),
+          icon: Icons.auto_fix_high_rounded,
+          onTap: () {
+            Get.back();
+            controller.onConvertToSmartFolder(folder);
+          },
         ),
       ],
     );

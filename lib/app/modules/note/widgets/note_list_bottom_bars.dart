@@ -31,16 +31,24 @@ class NoteListBottomBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(25),
-                    boxShadow: theme.brightness == Brightness.dark ? null : [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5)),
-                    ],
+                    boxShadow: theme.brightness == Brightness.dark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: const Row(
                     children: [
                       Icon(Icons.search, size: 22),
                       SizedBox(width: 8),
-                      Expanded(child: Text("Search", style: TextStyle(fontSize: 17))),
+                      Expanded(
+                        child: Text("Search", style: TextStyle(fontSize: 17)),
+                      ),
                       Icon(Icons.mic, size: 22),
                     ],
                   ),
@@ -57,9 +65,14 @@ class NoteListBottomBar extends StatelessWidget {
               refractiveIndex: 1.3,
               opacity: 0.15, // Standard glass icon opacity
               child: IconButton(
-                onPressed: () => NoteNavigation.toNewNote(folderId)
-                    ?.then((value) => controller.fetchNotes(folderId: folderId)),
-                icon: Icon(Icons.open_in_new, color: theme.colorScheme.onSurface, size: 28),
+                onPressed: () => NoteNavigation.toNewNote(
+                  folderId,
+                )?.then((value) => controller.fetchNotes(folderId: folderId)),
+                icon: Icon(
+                  Icons.open_in_new,
+                  color: theme.colorScheme.onSurface,
+                  size: 28,
+                ),
               ),
             ),
           ],
@@ -86,14 +99,28 @@ class NoteListEditBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Obx(() {
           final selectedCount = controller.selectedNoteIds.length;
-          final moveText = selectedCount == 0 ? "Move All" : selectedCount == 1 ? "Move" : "Move ($selectedCount)";
-          final deleteText = selectedCount == 0 ? "Delete All" : selectedCount == 1 ? "Delete" : "Delete ($selectedCount)";
+          final moveText = selectedCount == 0
+              ? "Move All"
+              : selectedCount == 1
+              ? "Move"
+              : "Move ($selectedCount)";
+          final deleteText = selectedCount == 0
+              ? "Delete All"
+              : selectedCount == 1
+              ? "Delete"
+              : "Delete ($selectedCount)";
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _ActionButton(label: moveText, onTap: () => controller.moveSelectedNotes(context, folderId)),
-              _ActionButton(label: deleteText, onTap: () => controller.deleteSelectedNotes(folderId)),
+              _ActionButton(
+                label: moveText,
+                onTap: () => controller.moveSelectedNotes(context, folderId),
+              ),
+              _ActionButton(
+                label: deleteText,
+                onTap: () => controller.deleteSelectedNotes(folderId),
+              ),
             ],
           );
         }),

@@ -30,7 +30,7 @@ class ProfileController extends GetxController {
     final user = _sessionService.user.value;
     userName.value = user?.fullName ?? "User Name";
     userPhone.value = user?.phone ?? "";
-    
+
     final savedPath = user?.profileImage ?? "";
     if (savedPath.isNotEmpty && File(savedPath).existsSync()) {
       userImagePath.value = savedPath;
@@ -47,15 +47,10 @@ class ProfileController extends GetxController {
         content: TextField(
           controller: nameController,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: "Enter your name",
-          ),
+          decoration: const InputDecoration(hintText: "Enter your name"),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text("Cancel"),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
           TextButton(
             onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
@@ -63,7 +58,7 @@ class ProfileController extends GetxController {
                 // Update local session
                 final currentUser = _sessionService.user.value;
                 if (currentUser != null) {
-                   await _sessionService.saveSession(
+                  await _sessionService.saveSession(
                     _sessionService.token.value ?? "",
                     currentUser.copyWith(fullName: userName.value),
                   );
@@ -72,7 +67,10 @@ class ProfileController extends GetxController {
                 Get.snackbar("Success", "Name updated");
               }
             },
-            child: const Text("Save", style: TextStyle(color: AppTheme.folderPink)),
+            child: const Text(
+              "Save",
+              style: TextStyle(color: AppTheme.folderPink),
+            ),
           ),
         ],
       ),
@@ -85,7 +83,7 @@ class ProfileController extends GetxController {
         source: ImageSource.gallery,
         imageQuality: 50,
       );
-      
+
       if (image != null) {
         userImagePath.value = image.path;
         final currentUser = _sessionService.user.value;

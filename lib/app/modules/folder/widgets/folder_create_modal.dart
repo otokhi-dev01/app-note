@@ -77,7 +77,7 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
     }
 
     setState(() => _isSaving = true);
-    
+
     try {
       final folder = widget.folder;
       final success = await widget.controller.onSaveFolder(
@@ -89,10 +89,10 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
       );
 
       if (!mounted) return;
-      
+
       if (success) {
         // Use closeAllSnackbars if needed, but here we just want to close the bottom sheet
-        Get.back<void>(); 
+        Get.back<void>();
       } else {
         setState(() => _isSaving = false);
       }
@@ -160,7 +160,8 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
   Widget _buildHeader(BuildContext context) {
     final scale = MediaQuery.textScalerOf(context).scale(1);
     final growth = (scale - 1).clamp(0.0, 1.0);
-    final controlSize = 38 + (growth * 10); // Slightly smaller as seen in screenshot
+    final controlSize =
+        38 + (growth * 10); // Slightly smaller as seen in screenshot
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -201,13 +202,22 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
               child: _RoundActionButton(
                 key: const ValueKey('save-folder-button'),
                 size: controlSize,
-                semanticLabel: _isRenaming ? 'Save folder name' : 'Create folder',
+                semanticLabel: _isRenaming
+                    ? 'Save folder name'
+                    : 'Create folder',
                 onTap: _canSave ? _saveFolder : null,
-                backgroundColor: _canSave ? AppTheme.folderPink : AppTheme.folderPink.withValues(alpha: 0.4),
+                backgroundColor: _canSave
+                    ? AppTheme.folderPink
+                    : AppTheme.folderPink.withValues(alpha: 0.4),
                 borderColor: Colors.white.withValues(alpha: 0.2),
-                shadowColor: AppTheme.folderPink.withValues(alpha: _canSave ? 0.2 : 0),
+                shadowColor: AppTheme.folderPink.withValues(
+                  alpha: _canSave ? 0.2 : 0,
+                ),
                 child: _isSaving
-                    ? const CupertinoActivityIndicator(color: Colors.white, radius: 8)
+                    ? const CupertinoActivityIndicator(
+                        color: Colors.white,
+                        radius: 8,
+                      )
                     : const Icon(
                         CupertinoIcons.checkmark,
                         color: Colors.white,
@@ -407,8 +417,6 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
   Color _secondaryTextColor(BuildContext context) {
     return _isDark(context) ? const Color(0xFF98989D) : const Color(0xFF7C7C80);
   }
-
-
 
   Color _cardBorderColor(BuildContext context) {
     return _isDark(context)

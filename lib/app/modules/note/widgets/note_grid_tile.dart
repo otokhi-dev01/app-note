@@ -23,9 +23,12 @@ class NoteGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final attachment =
-        note.content.firstWhereOrNull((b) => b is AttachmentBlock)
-            as AttachmentBlock?;
+
+    // Find the first visual attachment (Image or Drawing)
+    // NoteModel.fromJson now ensures these exist even if blockId was missing
+    final visualBlock = note.content.firstWhereOrNull(
+      (b) => b is AttachmentBlock || b is DrawingBlock,
+    );
 
     return Obx(() {
       final isEditing = controller.isEditing.value;
@@ -51,42 +54,29 @@ class NoteGridTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (attachment != null)
-                    Expanded(
-                      flex: 3,
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                        child: _GridImage(attachment: attachment),
+                  // Top Section: Image or Text Preview
+                  Expanded(
+                    flex: 3,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
                       ),
-                    )
-                  else
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                          color: Colors.white10,
-                        ),
-                        child: Text(
-                          _getContentSnippet(note),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                          ),
-                          maxLines: 6,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
+                      child: _buildTopPreview(context, visualBlock),
                     ),
+                  ),
+
+                  // Bottom Section: Title and Metadata
                   Expanded(
                     flex: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(alpha: 0.3),
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(20),
+                        ),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -100,11 +90,23 @@ class NoteGridTile extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          Text(
-                            _formatTime(note.updatedAt),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 11,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _formatTime(note.updatedAt),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              if (note.attachmentCount > 0)
+                                Icon(
+                                  CupertinoIcons.paperclip,
+                                  size: 12,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                            ],
                           ),
                         ],
                       ),
@@ -112,6 +114,8 @@ class NoteGridTile extends StatelessWidget {
                   ),
                 ],
               ),
+
+              // Selection Overlay
               if (isEditing)
                 Positioned(
                   top: 8,
@@ -152,6 +156,24 @@ class NoteGridTile extends StatelessWidget {
     });
   }
 
+  Widget _buildTopPreview(BuildContext context, NoteBlock? visualBlock) {
+    if (visualBlock != null) {
+      return _GridVisualPreview(block: visualBlock);
+    }
+
+    // Even if visualBlock is null, if the count > 0, we might have an image not yet parsed
+    // (though NoteModel fix should have caught it)
+    if (note.attachmentCount > 0) {
+      return const _GridPlaceholder(
+        icon: CupertinoIcons.photo,
+        label: "Loading Image...",
+      );
+    }
+
+    // Default to text preview
+    return _GridTextPreview(note: note);
+  }
+
   String _formatTime(DateTime? date) {
     if (date == null) return "";
     final now = DateTime.now();
@@ -162,33 +184,35 @@ class NoteGridTile extends StatelessWidget {
     }
     return DateFormat('MMM d').format(date);
   }
-
-  String _getContentSnippet(NoteModel note) {
-    if (note.content.isEmpty) return "No additional text";
-    final firstBlock =
-        note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
-    return firstBlock != null ? firstBlock.text : "Attachment/Checklist";
-  }
 }
 
-class _GridImage extends StatelessWidget {
-  final AttachmentBlock attachment;
+class _GridVisualPreview extends StatelessWidget {
+  final NoteBlock block;
 
-  const _GridImage({required this.attachment});
+  const _GridVisualPreview({required this.block});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final url = attachment.url;
-    final localPath = attachment.localPath;
+    String? localPath;
+    String? url;
+
+    if (block is AttachmentBlock) {
+      final b = block as AttachmentBlock;
+      localPath = b.localPath;
+      url = b.url;
+    } else if (block is DrawingBlock) {
+      final b = block as DrawingBlock;
+      localPath = b.localPath;
+      url = b.url;
+    }
 
     if (localPath != null && File(localPath).existsSync()) {
       return Image.file(
         File(localPath),
         width: double.infinity,
         height: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _GridPlaceholder(),
+        fit: BoxFit.cover, // Ensures the picture fills the top area fully
+        errorBuilder: (_, __, ___) => const _GridPlaceholder(),
       );
     }
 
@@ -197,7 +221,7 @@ class _GridImage extends StatelessWidget {
         url,
         width: double.infinity,
         height: double.infinity,
-        fit: BoxFit.cover,
+        fit: BoxFit.cover, // Show the picture as the primary visual
         loadingBuilder: (_, child, progress) {
           if (progress == null) return child;
           return Center(
@@ -206,7 +230,7 @@ class _GridImage extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: theme.primaryColor,
+                color: Theme.of(context).primaryColor,
                 value: progress.expectedTotalBytes != null
                     ? progress.cumulativeBytesLoaded /
                           progress.expectedTotalBytes!
@@ -215,26 +239,99 @@ class _GridImage extends StatelessWidget {
             ),
           );
         },
-        errorBuilder: (_, __, ___) => _GridPlaceholder(),
+        errorBuilder: (_, __, ___) => const _GridPlaceholder(),
       );
     }
 
-    return _GridPlaceholder();
+    return const _GridPlaceholder();
+  }
+}
+
+class _GridTextPreview extends StatelessWidget {
+  final NoteModel note;
+
+  const _GridTextPreview({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final snippet = _getContentSnippet(note);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+      child: Text(
+        snippet,
+        style: theme.textTheme.bodySmall?.copyWith(
+          fontSize: 11,
+          height: 1.3,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+        maxLines: 8,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
+  String _getContentSnippet(NoteModel note) {
+    if (note.content.isEmpty) return "";
+
+    List<String> textParts = [];
+    for (var block in note.content) {
+      if (block is TextBlock) {
+        final text = NoteModel.extractPlainText(block.text);
+        if (text.isNotEmpty) textParts.add(text);
+      } else if (block is ChecklistBlock) {
+        for (var item in block.items) {
+          if (item.text.isNotEmpty) textParts.add("• ${item.text}");
+        }
+      } else if (block is TableBlock) {
+        textParts.add("[Table Content]");
+      }
+
+      if (textParts.length > 5) break; 
+    }
+
+    return textParts.join("\n");
   }
 }
 
 class _GridPlaceholder extends StatelessWidget {
+  final IconData icon;
+  final String? label;
+
+  const _GridPlaceholder({
+    this.icon = CupertinoIcons.photo,
+    this.label,
+  });
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-      child: Icon(
-        CupertinoIcons.photo,
-        size: 30,
-        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: 32,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+          if (label != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              label!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontSize: 10,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

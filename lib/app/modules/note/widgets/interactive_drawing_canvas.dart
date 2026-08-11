@@ -4,7 +4,8 @@ class InteractiveDrawingCanvas extends StatefulWidget {
   final ValueChanged<String>? onSave;
   const InteractiveDrawingCanvas({super.key, this.onSave});
   @override
-  State<InteractiveDrawingCanvas> createState() => _InteractiveDrawingCanvasState();
+  State<InteractiveDrawingCanvas> createState() =>
+      _InteractiveDrawingCanvasState();
 }
 
 class _InteractiveDrawingCanvasState extends State<InteractiveDrawingCanvas> {
@@ -20,11 +21,16 @@ class _InteractiveDrawingCanvasState extends State<InteractiveDrawingCanvas> {
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onPanStart: (details) => setState(() => _points.add(details.localPosition)),
-              onPanUpdate: (details) => setState(() => _points.add(details.localPosition)),
+              onPanStart: (details) =>
+                  setState(() => _points.add(details.localPosition)),
+              onPanUpdate: (details) =>
+                  setState(() => _points.add(details.localPosition)),
               onPanEnd: (_) => setState(() => _points.add(null)),
               child: CustomPaint(
-                painter: _DrawingPainter(points: _points, color: theme.colorScheme.onSurface),
+                painter: _DrawingPainter(
+                  points: _points,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
           ),
@@ -49,13 +55,20 @@ class _DrawingPainter extends CustomPainter {
   _DrawingPainter({required this.points, required this.color});
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round..strokeWidth = 3..isAntiAlias = true;
+    final paint = Paint()
+      ..color = color
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 3
+      ..isAntiAlias = true;
     for (int index = 0; index < points.length - 1; index++) {
       final currentPoint = points[index];
       final nextPoint = points[index + 1];
-      if (currentPoint != null && nextPoint != null) canvas.drawLine(currentPoint, nextPoint, paint);
+      if (currentPoint != null && nextPoint != null)
+        canvas.drawLine(currentPoint, nextPoint, paint);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
