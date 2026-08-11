@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
@@ -9,12 +8,12 @@ import '../../../data/providers/note_service.dart';
 class SearchController extends GetxController {
   final _noteService = Get.find<NoteService>();
   final _folderService = Get.find<FolderService>();
-  
+
   final noteResults = <NoteModel>[].obs;
   final pinnedNoteResults = <NoteModel>[].obs;
   final otherNoteResults = <NoteModel>[].obs;
   final folderResults = <FolderModel>[].obs;
-  
+
   final searchQuery = "".obs;
   final isSearching = false.obs;
   final searchController = TextEditingController();
@@ -22,10 +21,16 @@ class SearchController extends GetxController {
   final suggestions = [
     {"title": "Shared Notes", "icon": CupertinoIcons.person_crop_circle},
     {"title": "Locked Notes", "icon": CupertinoIcons.lock},
-    {"title": "Notes with Checklists", "icon": CupertinoIcons.list_bullet_indent},
+    {
+      "title": "Notes with Checklists",
+      "icon": CupertinoIcons.list_bullet_indent,
+    },
     {"title": "Notes with Tags", "icon": CupertinoIcons.number},
     {"title": "Notes with Drawings", "icon": CupertinoIcons.pencil_outline},
-    {"title": "Notes with Scanned Documents", "icon": CupertinoIcons.doc_text_viewfinder},
+    {
+      "title": "Notes with Scanned Documents",
+      "icon": CupertinoIcons.doc_text_viewfinder,
+    },
     {"title": "Notes with Attachments", "icon": CupertinoIcons.paperclip},
   ];
 
@@ -41,7 +46,7 @@ class SearchController extends GetxController {
       folderResults.clear();
       return;
     }
-    
+
     try {
       // Fetch both notes and folders
       final results = await Future.wait([
@@ -55,19 +60,20 @@ class SearchController extends GetxController {
       final List<FolderModel> allFolders = folderResponse.folders;
 
       // Filter notes
-      final notes = allNotes.where((n) => 
-        n.title.toLowerCase().contains(query.toLowerCase())
-      ).toList();
-      
+      final notes = allNotes
+          .where((n) => n.title.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+
       noteResults.assignAll(notes);
       pinnedNoteResults.assignAll(notes.where((n) => n.isPinned).toList());
       otherNoteResults.assignAll(notes.where((n) => !n.isPinned).toList());
 
       // Filter folders
-      folderResults.assignAll(allFolders.where((f) => 
-        f.name.toLowerCase().contains(query.toLowerCase())
-      ).toList());
-      
+      folderResults.assignAll(
+        allFolders
+            .where((f) => f.name.toLowerCase().contains(query.toLowerCase()))
+            .toList(),
+      );
     } catch (e) {
       // Handle error
     }
