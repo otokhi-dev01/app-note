@@ -23,6 +23,7 @@ class NoteController extends GetxController {
   // View and editing modes
   final isEditing = false.obs;
   final viewMode = "list".obs; // 'list' or 'gallery'
+  final isGroupedByDate = true.obs;
   final selectedNoteIds = <int>{}.obs;
 
   void toggleEditing() {

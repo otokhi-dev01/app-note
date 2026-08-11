@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
 import '../../../routes/note_navigation.dart';
 import '../../../widgets/ios_confirmation_dialog.dart';
+import '../../../widgets/ios_action_menu.dart';
 import '../widgets/folder_create_modal.dart';
 
 class FolderController extends GetxController {
@@ -20,6 +22,7 @@ class FolderController extends GetxController {
   final pinnedNotesCount = 0.obs;
   final isLoading = true.obs;
   final isEditing = false.obs;
+  final isGroupedByDate = false.obs;
 
   // Section expanded states
   final isICloudExpanded = true.obs;
@@ -41,6 +44,32 @@ class FolderController extends GetxController {
   void togglePinned() => isPinnedExpanded.value = !isPinnedExpanded.value;
   void toggleNotesSection() =>
       isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
+
+  void toggleDateGrouping() {
+    isGroupedByDate.value = !isGroupedByDate.value;
+    sortFolders();
+    Get.snackbar(
+      "Grouping Updated",
+      "Folders are now ${isGroupedByDate.value ? 'grouped' : 'sorted'} by date.",
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  void sortFolders() {
+    if (isGroupedByDate.value) {
+      folders.sort((a, b) {
+        final dateA = a.updatedAt ?? DateTime(0);
+        final dateB = b.updatedAt ?? DateTime(0);
+        return dateB.compareTo(dateA);
+      });
+    } else {
+      folders.sort((a, b) {
+        int cmp = a.sortOrder.compareTo(b.sortOrder);
+        if (cmp != 0) return cmp;
+        return a.name.compareTo(b.name);
+      });
+    }
+  }
 
   List<FolderModel> get pinnedFolders => folders
       .where(
@@ -91,13 +120,8 @@ class FolderController extends GetxController {
     isLoading.value = true;
     try {
       final response = await _folderService.getFolders();
-      // Sort by sortOrder then name
-      response.folders.sort((a, b) {
-        int cmp = a.sortOrder.compareTo(b.sortOrder);
-        if (cmp != 0) return cmp;
-        return a.name.compareTo(b.name);
-      });
       folders.assignAll(response.folders);
+      sortFolders();
       deletedCount.value = response.trash.length;
 
       // Fetch all notes count
@@ -188,11 +212,65 @@ class FolderController extends GetxController {
   }
 
   void onMoveFolder(FolderModel folder) {
-    Get.snackbar(
-      "Info",
-      "Move Folder functionality is currently being implemented.",
-      snackPosition: SnackPosition.BOTTOM,
+    Get.dialog(
+      IOSActionMenu(
+        type: IOSMenuType.bottomSheet,
+        title: "Move '${folder.name}' to Section",
+        actions: [
+          IOSMenuAction(
+            label: "iCloud",
+            icon: CupertinoIcons.cloud,
+            onTap: () => _updateFolderSection(folder, "iCloud"),
+          ),
+          IOSMenuAction(
+            label: "Shared",
+            icon: CupertinoIcons.person_2,
+            onTap: () => _updateFolderSection(folder, "Shared"),
+          ),
+          IOSMenuAction(
+            label: "On My iPhone",
+            icon: CupertinoIcons.device_phone_portrait,
+            onTap: () => _updateFolderSection(folder, ""),
+          ),
+          IOSMenuAction(
+            label: "Pinned",
+            icon: CupertinoIcons.pin,
+            onTap: () => _updateFolderSection(folder, "Pinned"),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _updateFolderSection(FolderModel folder, String section) async {
+    String newName = folder.name;
+    // Remove existing keywords (case insensitive)
+    newName = newName
+        .replaceAll(RegExp(r'icloud', caseSensitive: false), '')
+        .replaceAll(RegExp(r'shared', caseSensitive: false), '')
+        .replaceAll(RegExp(r'pinned', caseSensitive: false), '')
+        .replaceAll(RegExp(r'favorite', caseSensitive: false), '')
+        .trim();
+
+    if (section.isNotEmpty) {
+      newName = "$section $newName";
+    }
+
+    isLoading.value = true;
+    try {
+      final success = await onSaveFolder(
+        id: folder.id,
+        name: newName,
+        iconName: folder.iconName,
+        colorValue: folder.colorValue,
+        sortOrder: folder.sortOrder,
+      );
+      if (success) {
+        Get.snackbar("Success", "Moved to $section", snackPosition: SnackPosition.BOTTOM);
+      }
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void onRenameFolder(FolderModel folder) {
@@ -205,7 +283,7 @@ class FolderController extends GetxController {
   }
 
   void onToggleGroupByDate(FolderModel folder) {
-    Get.snackbar("Info", "Grouping updated");
+    toggleDateGrouping();
   }
 
   void onDeleteFolder(FolderModel folder) {
