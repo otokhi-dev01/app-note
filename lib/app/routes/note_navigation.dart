@@ -7,7 +7,9 @@ class NoteNavigation {
   static Future<T?>? toDetail<T>(NoteModel note) {
     if (note.id <= 0) {
       if (kDebugMode) {
-        debugPrint("[NOTE NAVIGATION ERROR] Attempted to open note with invalid ID: ${note.id}");
+        debugPrint(
+          "[NOTE NAVIGATION ERROR] Attempted to open note with invalid ID: ${note.id}",
+        );
         debugPrint("Title: ${note.title}, FolderId: ${note.folderId}");
       }
       Get.snackbar("Error", "Invalid Note ID");

@@ -19,38 +19,106 @@ class NoteAttachmentBlock extends StatelessWidget {
     required this.controller,
   });
 
-  static const double _attachmentWidth = 150;
-  static const double _attachmentHeight = 200;
   static final Uri _attachmentBaseUri = Uri.parse('https://note.piisiit.com/');
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final semanticsLabel = block.displayName.trim().isEmpty
         ? 'Note attachment'
         : 'Attachment: ${block.displayName}';
 
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 16),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Semantics(
-          button: true,
-          image: true,
-          label: '$semanticsLabel. Tap to preview and edit.',
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _openImageEditor(context),
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SizedBox(
-                    width: _attachmentWidth,
-                    height: _attachmentHeight,
-                    child: _AttachmentImage(block: block),
-                  ),
+      child: Semantics(
+        button: true,
+        image: true,
+        label: '$semanticsLabel. Tap to edit and save.',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _openImageEditor(context),
+          child: Container(
+            constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.black.withValues(alpha: 0.08),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                fit: StackFit.passthrough,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    height: 240,
+                    child: _AttachmentImage(block: block),
+                  ),
+                  // "Tap to Edit" overlay hint
+                  if (!controller.isReadOnly.value)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          CupertinoIcons.pencil,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  if (block.displayName.trim().isNotEmpty)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.7),
+                              Colors.black.withValues(alpha: 0.0),
+                            ],
+                          ),
+                        ),
+                        child: Text(
+                          block.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -77,7 +145,7 @@ class NoteAttachmentBlock extends StatelessWidget {
         url: block.url,
         imageProvider: imageProvider,
         title: block.displayName.trim().isEmpty
-            ? 'Image Preview'
+            ? 'Edit Image'
             : block.displayName,
         canEdit: canEdit,
       ),
@@ -91,6 +159,7 @@ class NoteAttachmentBlock extends StatelessWidget {
     if (!canEdit || result == null || result is! String || result.isEmpty)
       return;
 
+    // This updates the local block and automatically saves the note
     controller.updateAttachmentImage(blockIndex, result);
   }
 

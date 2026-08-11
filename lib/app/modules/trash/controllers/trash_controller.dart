@@ -69,7 +69,7 @@ class TrashController extends GetxController {
           return FolderModel.fromJson(e);
         }
         return FolderModel(
-          id: e as int,
+          id: e is int ? e : 0,
           name: "Deleted Folder",
           iconName: "folder",
           colorValue: "0xFFFFCC00",

@@ -21,7 +21,9 @@ class NoteListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final attachment = note.content.firstWhereOrNull((b) => b is AttachmentBlock) as AttachmentBlock?;
+    final attachment =
+        note.content.firstWhereOrNull((b) => b is AttachmentBlock)
+            as AttachmentBlock?;
 
     return Obx(() {
       final isEditing = controller.isEditing.value;
@@ -42,10 +44,18 @@ class NoteListTile extends StatelessWidget {
         },
         leading: isEditing
             ? _buildSelectionIndicator(theme, isSelected)
-            : (note.isPinned ? const Icon(Icons.push_pin, color: AppTheme.folderPink, size: 16) : null),
+            : (note.isPinned
+                  ? const Icon(
+                      Icons.push_pin,
+                      color: AppTheme.folderPink,
+                      size: 16,
+                    )
+                  : null),
         title: Text(
           note.displayTitle,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -60,7 +70,13 @@ class NoteListTile extends StatelessWidget {
         ),
         trailing: attachment != null
             ? _buildAttachmentThumbnail(attachment)
-            : (isEditing ? null : Icon(Icons.chevron_right, color: theme.colorScheme.outline, size: 20)),
+            : (isEditing
+                  ? null
+                  : Icon(
+                      Icons.chevron_right,
+                      color: theme.colorScheme.outline,
+                      size: 20,
+                    )),
       );
     });
   }
@@ -73,11 +89,15 @@ class NoteListTile extends StatelessWidget {
         shape: BoxShape.circle,
         color: isSelected ? theme.colorScheme.onSurface : Colors.transparent,
         border: Border.all(
-          color: isSelected ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          color: isSelected
+              ? theme.colorScheme.onSurface
+              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           width: 1.5,
         ),
       ),
-      child: isSelected ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14) : null,
+      child: isSelected
+          ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
+          : null,
     );
   }
 
@@ -88,9 +108,10 @@ class NoteListTile extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         image: DecorationImage(
-          image: attachment.url != null 
-            ? NetworkImage(attachment.url!) 
-            : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+          image: attachment.url != null
+              ? NetworkImage(attachment.url!)
+              : const AssetImage('assets/images/placeholder.png')
+                    as ImageProvider,
           fit: BoxFit.cover,
         ),
       ),
@@ -100,18 +121,24 @@ class NoteListTile extends StatelessWidget {
   String _formatTime(DateTime? date) {
     if (date == null) return "";
     final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
       return DateFormat('HH:mm').format(date);
     }
-    return DateFormat('EEEE').format(date); 
+    return DateFormat('EEEE').format(date);
   }
 
   String _getContentSnippet(NoteModel note) {
     if (note.content.isEmpty) {
-      if (note.attachmentCount > 0) return "${note.attachmentCount} attachment${note.attachmentCount > 1 ? 's' : ''}";
+      if (note.attachmentCount > 0)
+        return "${note.attachmentCount} attachment${note.attachmentCount > 1 ? 's' : ''}";
       return "No additional text";
     }
-    final firstBlock = note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
-    return firstBlock != null ? firstBlock.text : "Attachment/Checklist";
+    final firstBlock =
+        note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
+    if (firstBlock == null) return "Attachment/Checklist";
+
+    return NoteModel.extractPlainText(firstBlock.text);
   }
 }

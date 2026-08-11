@@ -19,7 +19,8 @@ class SlidableNoteTile extends StatefulWidget {
   State<SlidableNoteTile> createState() => _SlidableNoteTileState();
 }
 
-class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerProviderStateMixin {
+class _SlidableNoteTileState extends State<SlidableNoteTile>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   double _dragExtent = 0;
   static const double _actionWidth = 80;
@@ -44,7 +45,8 @@ class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerPr
     setState(() {
       _dragExtent += details.primaryDelta!;
       if (_dragExtent > 0) _dragExtent = 0; // Prevent dragging to the right
-      if (_dragExtent < -_totalActionsWidth - 20) _dragExtent = -_totalActionsWidth - 20; // Limit left drag
+      if (_dragExtent < -_totalActionsWidth - 20)
+        _dragExtent = -_totalActionsWidth - 20; // Limit left drag
     });
   }
 
@@ -57,9 +59,10 @@ class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerPr
   }
 
   void _openActions() {
-    final animation = Tween<double>(begin: _dragExtent, end: -_totalActionsWidth).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    final animation = Tween<double>(
+      begin: _dragExtent,
+      end: -_totalActionsWidth,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     animation.addListener(() {
       setState(() => _dragExtent = animation.value);
     });
@@ -67,9 +70,10 @@ class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerPr
   }
 
   void _closeActions() {
-    final animation = Tween<double>(begin: _dragExtent, end: 0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    final animation = Tween<double>(
+      begin: _dragExtent,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     animation.addListener(() {
       setState(() => _dragExtent = animation.value);
     });
@@ -107,7 +111,7 @@ class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerPr
               ),
             ),
           ),
-          
+
           // Foreground Content
           Transform.translate(
             offset: Offset(_dragExtent, 0),
@@ -121,7 +125,12 @@ class _SlidableNoteTileState extends State<SlidableNoteTile> with SingleTickerPr
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: () {
         _closeActions();

@@ -24,37 +24,44 @@ class FolderModel {
   factory FolderModel.fromJson(Map<String, dynamic> json) {
     return FolderModel(
       id: json['FolderId'] ?? json['id'] ?? json['Id'] ?? 0,
-      name: (json['FolderName'] ?? json['Name'] ?? json['name'] ?? '').toString().trim(),
+      name: (json['FolderName'] ?? json['Name'] ?? json['name'] ?? '')
+          .toString()
+          .trim(),
       iconName: json['IconName'] ?? json['iconName'] ?? '',
       colorValue: json['ColorValue'] ?? json['colorValue'] ?? '',
       sortOrder: json['SortOrder'] ?? json['sortOrder'] ?? 0,
       noteCount: json['NoteCount'] ?? json['noteCount'] ?? 0,
-      createdAt: json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt']) : null,
-      updatedAt: json['UpdatedAt'] != null ? DateTime.tryParse(json['UpdatedAt']) : null,
+      createdAt: json['CreatedAt'] != null
+          ? DateTime.tryParse(json['CreatedAt'])
+          : null,
+      updatedAt: json['UpdatedAt'] != null
+          ? DateTime.tryParse(json['UpdatedAt'])
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
     "FolderId": id,
-    "FolderName": name,
-    "Name": name, 
-    "name": name,
+    "Name": name,
     "IconName": iconName,
-    "iconName": iconName,
     "ColorValue": colorValue,
-    "colorValue": colorValue,
     "SortOrder": sortOrder,
-    "sortOrder": sortOrder,
   };
 
   IconData get icon {
     switch (iconName.toLowerCase()) {
-      case 'work': return Icons.work_outline;
-      case 'school': return Icons.school_outlined;
-      case 'favorite': return Icons.favorite_border;
-      case '5': return Icons.code_rounded;
-      case 'folder': return Icons.folder_open_rounded;
-      default: return Icons.folder_open_rounded;
+      case 'work':
+        return Icons.work_outline;
+      case 'school':
+        return Icons.school_outlined;
+      case 'favorite':
+        return Icons.favorite_border;
+      case '5':
+        return Icons.code_rounded;
+      case 'folder':
+        return Icons.folder_open_rounded;
+      default:
+        return Icons.folder_open_rounded;
     }
   }
 
@@ -82,17 +89,27 @@ class FolderResponse {
   });
 
   factory FolderResponse.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>? ?? {};
-    final List folderList = data['folder'] as List? ?? [];
-    final List archiveList = data['archive'] as List? ?? [];
-    final List trashList = data['trash'] as List? ?? [];
-    
+    final dynamic rawData = json['data'];
+    Map<String, dynamic> data = {};
+    List folderList = [];
+    List archiveList = [];
+    List trashList = [];
+
+    if (rawData is Map) {
+      data = Map<String, dynamic>.from(rawData);
+      folderList = data['folder'] as List? ?? [];
+      archiveList = data['archive'] as List? ?? [];
+      trashList = data['trash'] as List? ?? [];
+    } else if (rawData is List) {
+      folderList = rawData;
+    }
+
     // Combine folder and archive for active display
     final List combinedFolders = [...folderList, ...archiveList];
 
     return FolderResponse(
       folders: combinedFolders
-          .map((e) => FolderModel.fromJson(e))
+          .map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e)))
           .toList(),
       trash: trashList,
       code: json['code'] ?? 0,

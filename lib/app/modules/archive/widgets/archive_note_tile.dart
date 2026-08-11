@@ -20,7 +20,9 @@ class ArchiveNoteTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final attachment = note.content.firstWhereOrNull((b) => b is AttachmentBlock) as AttachmentBlock?;
+    final attachment =
+        note.content.firstWhereOrNull((b) => b is AttachmentBlock)
+            as AttachmentBlock?;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -29,12 +31,14 @@ class ArchiveNoteTile extends StatelessWidget {
           if (value == true) controller.fetchNotes();
         });
       },
-      leading: note.isPinned 
-          ? const Icon(Icons.push_pin, color: AppTheme.folderPink, size: 16) 
+      leading: note.isPinned
+          ? const Icon(Icons.push_pin, color: AppTheme.folderPink, size: 16)
           : null,
       title: Text(
         note.displayTitle,
-        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -54,24 +58,31 @@ class ArchiveNoteTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 image: DecorationImage(
-                  image: attachment.url != null 
-                    ? NetworkImage(attachment.url!) 
-                    : const AssetImage('assets/images/placeholder.png') as ImageProvider,
+                  image: attachment.url != null
+                      ? NetworkImage(attachment.url!)
+                      : const AssetImage('assets/images/placeholder.png')
+                            as ImageProvider,
                   fit: BoxFit.cover,
                 ),
               ),
             )
-          : Icon(Icons.chevron_right, color: theme.colorScheme.outline, size: 20),
+          : Icon(
+              Icons.chevron_right,
+              color: theme.colorScheme.outline,
+              size: 20,
+            ),
     );
   }
 
   String _formatTime(DateTime? date) {
     if (date == null) return "";
     final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+    if (date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day) {
       return DateFormat('HH:mm').format(date);
     }
-    return DateFormat('EEEE').format(date); 
+    return DateFormat('EEEE').format(date);
   }
 
   String _getContentSnippet(NoteModel note) {
@@ -81,7 +92,8 @@ class ArchiveNoteTile extends StatelessWidget {
       }
       return "No additional text";
     }
-    final firstBlock = note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
+    final firstBlock =
+        note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
     if (firstBlock != null) return firstBlock.text;
     return "Attachment/Checklist";
   }

@@ -86,7 +86,7 @@ class FolderView extends GetView<FolderController> {
                 showGlow: true,
                 thickness: 8,
                 opacity: 0.15, // Lower opacity for high-fidelity glass look
-                blur: 10,     // Crisper refraction
+                blur: 10, // Crisper refraction
                 child: IconButton(
                   onPressed: () => Get.bottomSheet(
                     FolderCreateModal(controller: controller),
@@ -251,7 +251,7 @@ class FolderView extends GetView<FolderController> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // User Created Folders Container
                         if (controller.onMyiPhoneFolders.isNotEmpty) ...[
                           Padding(
@@ -259,9 +259,17 @@ class FolderView extends GetView<FolderController> {
                             child: GlassCard(
                               borderRadius: 30,
                               children: [
-                                for (int i = 0; i < controller.onMyiPhoneFolders.length; i++) ...[
-                                  FolderTile(folder: controller.onMyiPhoneFolders[i], controller: controller),
-                                  if (i < controller.onMyiPhoneFolders.length - 1)
+                                for (
+                                  int i = 0;
+                                  i < controller.onMyiPhoneFolders.length;
+                                  i++
+                                ) ...[
+                                  FolderTile(
+                                    folder: controller.onMyiPhoneFolders[i],
+                                    controller: controller,
+                                  ),
+                                  if (i <
+                                      controller.onMyiPhoneFolders.length - 1)
                                     const Divider(indent: 56, height: 1),
                                 ],
                               ],
@@ -275,18 +283,21 @@ class FolderView extends GetView<FolderController> {
                           isExpanded: controller.isNotesSectionExpanded,
                           onTap: controller.toggleNotesSection,
                         ),
-                        
-                        Obx(() => controller.isNotesSectionExpanded.value 
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: GlassCard(
-                                borderRadius: 30,
-                                children: [
-                                  FolderSystemTiles(controller: controller),
-                                ],
-                              ),
-                            )
-                          : const SizedBox.shrink()
+
+                        Obx(
+                          () => controller.isNotesSectionExpanded.value
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: GlassCard(
+                                    borderRadius: 30,
+                                    children: [
+                                      FolderSystemTiles(controller: controller),
+                                    ],
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
                         ),
                       ],
                     )

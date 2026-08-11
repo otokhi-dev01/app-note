@@ -25,23 +25,39 @@ class FolderBottomBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(25),
-                    boxShadow: theme.brightness == Brightness.dark ? null : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
+                    boxShadow: theme.brightness == Brightness.dark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: theme.colorScheme.onSurfaceVariant, size: 22),
+                      Icon(
+                        Icons.search,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        size: 22,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text("Search", style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 17)),
+                        child: Text(
+                          "Search",
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 17,
+                          ),
+                        ),
                       ),
-                      Icon(Icons.mic, color: theme.colorScheme.onSurfaceVariant, size: 22),
+                      Icon(
+                        Icons.mic,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        size: 22,
+                      ),
                     ],
                   ),
                 ),
@@ -58,7 +74,11 @@ class FolderBottomBar extends StatelessWidget {
               opacity: 0.15, // Standard glass icon opacity
               child: IconButton(
                 onPressed: () => controller.createNewNote(),
-                icon: Icon(Icons.open_in_new, color: theme.colorScheme.onSurface, size: 28),
+                icon: Icon(
+                  Icons.open_in_new,
+                  color: theme.colorScheme.onSurface,
+                  size: 28,
+                ),
               ),
             ),
           ],

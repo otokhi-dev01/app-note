@@ -37,7 +37,7 @@ class PinnedController extends GetxController {
     try {
       final response = await _noteService.getNotes(refresh: true);
       pinnedNotes.assignAll(response.notes.where((n) => n.isPinned).toList());
-      
+
       // Sort by updatedAt descending
       pinnedNotes.sort((a, b) {
         if (a.updatedAt == null) return 1;
@@ -56,7 +56,11 @@ class PinnedController extends GetxController {
     try {
       await _noteService.updateNoteState(id, isPinned: false);
       pinnedNotes.removeWhere((n) => n.id == id);
-      Get.snackbar("Success", "Note unpinned", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Success",
+        "Note unpinned",
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar("Error", "Could not unpin note");
     }
@@ -64,14 +68,18 @@ class PinnedController extends GetxController {
 
   Future<void> unpinSelectedNotes() async {
     if (selectedNoteIds.isEmpty) return;
-    
+
     try {
       for (final id in selectedNoteIds) {
         await _noteService.updateNoteState(id, isPinned: false);
       }
       fetchPinnedNotes();
       toggleEditing();
-      Get.snackbar("Success", "Selected notes unpinned", snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        "Success",
+        "Selected notes unpinned",
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } catch (e) {
       Get.snackbar("Error", "Could not unpin some notes");
     }

@@ -19,67 +19,80 @@ class FolderTile extends StatelessWidget {
       final isSystem = controller.isSystemFolder(folder);
 
       return Opacity(
-        opacity: (isEditing && isSystem) ? 0.15 : 1.0,
+        opacity: (isEditing && isSystem) ? 0.3 : 1.0,
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: (isEditing && isSystem)
               ? null
-              : () => Get.toNamed(
-                  Routes.NOTE_LIST,
-                  arguments: folder,
-                )?.then((value) => controller.fetchFolders()),
-          leading: Icon(folder.icon, color: theme.primaryColor, size: 30),
-          title: Text(folder.name, style: theme.textTheme.bodyLarge),
+              : () {
+                  if (isEditing && !isSystem) {
+                    _showContextMenu(context);
+                  } else {
+                    Get.toNamed(
+                      Routes.NOTE_LIST,
+                      arguments: folder,
+                    )?.then((value) => controller.fetchFolders());
+                  }
+                },
+          onLongPress: isSystem ? null : () => _showContextMenu(context),
+          leading: Icon(
+            folder.icon,
+            color: theme.primaryColor,
+            size: 28,
+          ),
+          title: Text(
+            folder.name,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              fontSize: 17,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
           trailing: isEditing && !isSystem
               ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    GestureDetector(
-                      onTap: () => Get.dialog(
-                        FolderContextMenu(
-                          folder: folder,
-                          controller: controller,
-                        ),
-                        barrierColor: Colors.black.withValues(alpha: 0.1),
-                      ),
-                      child: Container(
+                    IconButton(
+                      onPressed: () => _showContextMenu(context),
+                      icon: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: theme.primaryColor,
-                            width: 1.5,
+                            width: 1.2,
                           ),
                         ),
                         child: Icon(
                           Icons.more_horiz,
                           color: theme.primaryColor,
-                          size: 18,
+                          size: 16,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 4),
                     Icon(
                       Icons.reorder,
-                      color: theme.colorScheme.onSurfaceVariant,
-                      size: 24,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      size: 22,
                     ),
                   ],
                 )
               : Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      "${folder.noteCount}",
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (!isEditing)
+                      Text(
+                        "${folder.noteCount}",
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                          fontSize: 17,
+                        ),
                       ),
-                    ),
                     const SizedBox(width: 4),
                     Icon(
                       Icons.chevron_right,
                       color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.3,
+                        alpha: 0.2,
                       ),
                       size: 20,
                     ),
@@ -88,5 +101,12 @@ class FolderTile extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _showContextMenu(BuildContext context) {
+    Get.dialog(
+      FolderContextMenu(folder: folder, controller: controller),
+      barrierColor: Colors.black.withValues(alpha: 0.1),
+    );
   }
 }

@@ -33,7 +33,11 @@ class NoteChecklistBlock extends StatelessWidget {
                 onTap: () => controller.addChecklistItem(blockIndex),
                 child: Row(
                   children: [
-                    const Icon(CupertinoIcons.add, size: 18, color: AppTheme.folderPink),
+                    const Icon(
+                      CupertinoIcons.add,
+                      size: 18,
+                      color: AppTheme.folderPink,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       "Add Item",
@@ -51,7 +55,11 @@ class NoteChecklistBlock extends StatelessWidget {
     );
   }
 
-  Widget _buildChecklistItem(BuildContext context, ChecklistItem item, int itemIndex) {
+  Widget _buildChecklistItem(
+    BuildContext context,
+    ChecklistItem item,
+    int itemIndex,
+  ) {
     final theme = Theme.of(context);
 
     return Row(
@@ -65,10 +73,7 @@ class NoteChecklistBlock extends StatelessWidget {
               : 'Mark checklist item complete',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () => controller.toggleChecklistItem(
-              blockIndex,
-              itemIndex,
-            ),
+            onTap: () => controller.toggleChecklistItem(blockIndex, itemIndex),
             child: SizedBox(
               width: 31,
               height: 31,
@@ -89,19 +94,14 @@ class NoteChecklistBlock extends StatelessWidget {
         ),
         Expanded(
           child: TextField(
-            key: ValueKey(
-              'checklist-${block.id}-${item.id}',
-            ),
+            key: ValueKey('checklist-${block.id}-${item.id}'),
             controller: controller.getTextController(
               '${block.id}_${item.id}',
               item.text,
             ),
             enabled: !controller.isReadOnly.value,
-            onChanged: (value) => controller.onUpdateChecklistItem(
-              blockIndex,
-              itemIndex,
-              value,
-            ),
+            onChanged: (value) =>
+                controller.onUpdateChecklistItem(blockIndex, itemIndex, value),
             cursorColor: theme.primaryColor,
             cursorWidth: 1.5,
             maxLines: null,
@@ -109,9 +109,7 @@ class NoteChecklistBlock extends StatelessWidget {
             textCapitalization: TextCapitalization.sentences,
             style: theme.textTheme.bodyLarge?.copyWith(
               height: 1.45,
-              decoration: item.checked
-                  ? TextDecoration.lineThrough
-                  : null,
+              decoration: item.checked ? TextDecoration.lineThrough : null,
               decorationColor: theme.colorScheme.onSurfaceVariant,
             ),
             decoration: const InputDecoration(
@@ -127,7 +125,8 @@ class NoteChecklistBlock extends StatelessWidget {
         if (!controller.isReadOnly.value && block.items.length > 1)
           IconButton(
             icon: const Icon(CupertinoIcons.xmark, size: 16),
-            onPressed: () => controller.deleteChecklistItem(blockIndex, itemIndex),
+            onPressed: () =>
+                controller.deleteChecklistItem(blockIndex, itemIndex),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),

@@ -33,7 +33,6 @@ class AppTheme {
   // Search bar
   static const Color darkSearchBarColor = Color(0xFF1C1C1E);
 
-
   // LIGHT THEME
   static final light = ThemeData(
     brightness: Brightness.light,
@@ -46,10 +45,7 @@ class AppTheme {
       onSurface: textPrimary,
       onSurfaceVariant: textSecondary,
     ),
-    dividerTheme: const DividerThemeData(
-      color: dividerColor,
-      thickness: 0.5,
-    ),
+    dividerTheme: const DividerThemeData(color: dividerColor, thickness: 0.5),
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
@@ -59,21 +55,14 @@ class AppTheme {
         fontSize: 17,
         fontWeight: FontWeight.w600,
       ),
-      iconTheme: IconThemeData(
-        color: folderPink,
-      ),
+      iconTheme: IconThemeData(color: folderPink),
     ),
     textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-      bodyLarge: const TextStyle(
-        color: textPrimary,
-      ),
-      bodyMedium: const TextStyle(
-        color: textSecondary,
-      ),
+      bodyLarge: const TextStyle(color: textPrimary),
+      bodyMedium: const TextStyle(color: textSecondary),
     ),
     useMaterial3: true,
   );
-
 
   // DARK THEME
   static final dark = ThemeData(
@@ -110,7 +99,6 @@ class AppTheme {
     // ------------------------------------------------------------
     // AppBar
     // ------------------------------------------------------------
-
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
@@ -121,76 +109,56 @@ class AppTheme {
         fontSize: 17,
         fontWeight: FontWeight.w600,
       ),
-      iconTheme: IconThemeData(
-        color: darkFolderPink,
-        size: 24,
-      ),
+      iconTheme: IconThemeData(color: darkFolderPink, size: 24),
     ),
 
     // ------------------------------------------------------------
     // Text
     // ------------------------------------------------------------
+    textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme)
+        .copyWith(
+          bodyLarge: const TextStyle(color: darkTextPrimary, fontSize: 17),
 
-    textTheme: GoogleFonts.poppinsTextTheme(
-      ThemeData.dark().textTheme,
-    ).copyWith(
-      bodyLarge: const TextStyle(
-        color: darkTextPrimary,
-        fontSize: 17,
-      ),
+          bodyMedium: const TextStyle(color: darkTextSecondary, fontSize: 15),
 
-      bodyMedium: const TextStyle(
-        color: darkTextSecondary,
-        fontSize: 15,
-      ),
+          bodySmall: const TextStyle(color: darkTextSecondary, fontSize: 13),
 
-      bodySmall: const TextStyle(
-        color: darkTextSecondary,
-        fontSize: 13,
-      ),
+          titleLarge: const TextStyle(
+            color: darkTextPrimary,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+          ),
 
-      titleLarge: const TextStyle(
-        color: darkTextPrimary,
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-      ),
+          titleMedium: const TextStyle(
+            color: darkTextPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w500,
+          ),
 
-      titleMedium: const TextStyle(
-        color: darkTextPrimary,
-        fontSize: 17,
-        fontWeight: FontWeight.w500,
-      ),
+          headlineLarge: const TextStyle(
+            color: darkTextPrimary,
+            fontSize: 34,
+            fontWeight: FontWeight.w700,
+          ),
 
-      headlineLarge: const TextStyle(
-        color: darkTextPrimary,
-        fontSize: 34,
-        fontWeight: FontWeight.w700,
-      ),
-
-      headlineMedium: const TextStyle(
-        color: darkTextPrimary,
-        fontSize: 28,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+          headlineMedium: const TextStyle(
+            color: darkTextPrimary,
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
     // Icon
-    iconTheme: const IconThemeData(
-      color: darkFolderPink,
-    ),
+    iconTheme: const IconThemeData(color: darkFolderPink),
 
     // ------------------------------------------------------------
     // Search / TextField
     // ------------------------------------------------------------
-
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
 
       fillColor: darkSearchBarColor,
 
-      hintStyle: const TextStyle(
-        color: darkTextSecondary,
-        fontSize: 17,
-      ),
+      hintStyle: const TextStyle(color: darkTextSecondary, fontSize: 17),
 
       prefixIconColor: darkTextSecondary,
 
@@ -211,16 +179,12 @@ class AppTheme {
         borderSide: BorderSide.none,
       ),
 
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
 
     // ------------------------------------------------------------
     // Card
     // ------------------------------------------------------------
-
     cardTheme: const CardThemeData(
       color: darkCardColor,
       elevation: 0,
@@ -231,7 +195,6 @@ class AppTheme {
     // ------------------------------------------------------------
     // Bottom Sheet
     // ------------------------------------------------------------
-
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: darkCardColor,
       surfaceTintColor: Colors.transparent,
@@ -241,7 +204,6 @@ class AppTheme {
     // ------------------------------------------------------------
     // Dialog
     // ------------------------------------------------------------
-
     dialogTheme: const DialogThemeData(
       backgroundColor: darkCardColor,
       surfaceTintColor: Colors.transparent,

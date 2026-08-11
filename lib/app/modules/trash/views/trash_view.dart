@@ -331,8 +331,9 @@ class TrashView extends GetView<TrashController> {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Obx(() {
-          final hasSelection = controller.selectedNoteIds.isNotEmpty || 
-                             controller.selectedFolderIds.isNotEmpty;
+          final hasSelection =
+              controller.selectedNoteIds.isNotEmpty ||
+              controller.selectedFolderIds.isNotEmpty;
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

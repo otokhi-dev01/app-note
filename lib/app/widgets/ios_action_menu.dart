@@ -61,28 +61,34 @@ class IOSActionMenu extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(40, 60, 20, 0),
           child: Align(
             alignment: effectiveAlignment,
-            child: GestureDetector(
-              onTap: () {}, // Prevent taps on the menu itself from closing it
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 250),
-                child: _MenuContainer(
-                  children: [
-                    if (title != null) ...[
-                      _buildHeader(context, title!),
-                      _buildDivider(context),
-                    ],
-                    for (int i = 0; i < actions.length; i++) ...[
-                      _buildMenuItem(context, actions[i]),
-                      if (i < actions.length - 1) _buildDivider(context),
-                    ],
-                  ],
-                ),
-              ),
-            ).animate().scale(
-                  duration: 200.ms,
-                  curve: Curves.easeOutBack,
-                  alignment: effectiveAlignment,
-                ).fadeIn(duration: 150.ms),
+            child:
+                GestureDetector(
+                      onTap:
+                          () {}, // Prevent taps on the menu itself from closing it
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 250),
+                        child: _MenuContainer(
+                          children: [
+                            if (title != null) ...[
+                              _buildHeader(context, title!),
+                              _buildDivider(context),
+                            ],
+                            for (int i = 0; i < actions.length; i++) ...[
+                              _buildMenuItem(context, actions[i]),
+                              if (i < actions.length - 1)
+                                _buildDivider(context),
+                            ],
+                          ],
+                        ),
+                      ),
+                    )
+                    .animate()
+                    .scale(
+                      duration: 200.ms,
+                      curve: Curves.easeOutBack,
+                      alignment: effectiveAlignment,
+                    )
+                    .fadeIn(duration: 150.ms),
           ),
         ),
       ),
@@ -91,56 +97,55 @@ class IOSActionMenu extends StatelessWidget {
 
   Widget _buildBottomSheet(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: GestureDetector(
-        onTap: () => Get.back(),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _MenuContainer(
+          backgroundColor: Colors.transparent,
+          body: GestureDetector(
+            onTap: () => Get.back(),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (title != null) ...[
-                    _buildHeader(context, title!),
-                    _buildDivider(context),
-                  ],
-                  for (int i = 0; i < actions.length; i++) ...[
-                    _buildMenuItem(context, actions[i]),
-                    if (i < actions.length - 1) _buildDivider(context),
+                  _MenuContainer(
+                    children: [
+                      if (title != null) ...[
+                        _buildHeader(context, title!),
+                        _buildDivider(context),
+                      ],
+                      for (int i = 0; i < actions.length; i++) ...[
+                        _buildMenuItem(context, actions[i]),
+                        if (i < actions.length - 1) _buildDivider(context),
+                      ],
+                    ],
+                  ),
+                  if (showCancel) ...[
+                    const SizedBox(height: 8),
+                    _MenuContainer(
+                      children: [
+                        ListTile(
+                          onTap: () => Get.back(),
+                          title: Center(
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ],
               ),
-              if (showCancel) ...[
-                const SizedBox(height: 8),
-                _MenuContainer(
-                  children: [
-                    ListTile(
-                      onTap: () => Get.back(),
-                      title: Center(
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
-      ),
-    ).animate().fadeIn(duration: 200.ms).slideY(
-          begin: 0.1,
-          end: 0,
-          curve: Curves.easeOutCubic,
-        );
+        )
+        .animate()
+        .fadeIn(duration: 200.ms)
+        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
   }
 
   Widget _buildHeader(BuildContext context, String text) {
@@ -150,7 +155,9 @@ class IOSActionMenu extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          color: Theme.of(
+            context,
+          ).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
@@ -184,7 +191,10 @@ class IOSActionMenu extends StatelessWidget {
       subtitle: action.subtitle != null
           ? Text(
               action.subtitle!,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
             )
           : null,
     );
@@ -214,10 +224,7 @@ class _MenuContainer extends StatelessWidget {
       blur: 30,
       child: Material(
         color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: children,
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
       ),
     );
   }

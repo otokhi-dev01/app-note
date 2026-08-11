@@ -17,9 +17,13 @@ class ArchiveView extends GetView<NoteController> {
     final theme = Theme.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
@@ -51,12 +55,14 @@ class ArchiveView extends GetView<NoteController> {
       elevation: 0,
       automaticallyImplyLeading: false,
       centerTitle: true,
-      systemOverlayStyle: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light 
+      systemOverlayStyle: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
           : SystemUiOverlayStyle.dark,
       title: LayoutBuilder(
         builder: (context, constraints) {
-          final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+          final double percentage =
+              (constraints.maxHeight - kToolbarHeight) /
+              (140.0 - kToolbarHeight);
           final opacity = (1.0 - percentage).clamp(0.0, 1.0);
           return Opacity(
             opacity: opacity > 0.8 ? 1.0 : 0.0,
@@ -82,7 +88,11 @@ class ArchiveView extends GetView<NoteController> {
           blur: 10,
           child: IconButton(
             onPressed: () => Get.back(),
-            icon: Icon(CupertinoIcons.chevron_left, color: theme.colorScheme.onSurface, size: 24),
+            icon: Icon(
+              CupertinoIcons.chevron_left,
+              color: theme.colorScheme.onSurface,
+              size: 24,
+            ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -94,7 +104,9 @@ class ArchiveView extends GetView<NoteController> {
         titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
         title: LayoutBuilder(
           builder: (context, constraints) {
-            final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+            final double percentage =
+                (constraints.maxHeight - kToolbarHeight) /
+                (140.0 - kToolbarHeight);
             return Opacity(
               opacity: percentage.clamp(0.0, 1.0),
               child: Text(
@@ -116,23 +128,34 @@ class ArchiveView extends GetView<NoteController> {
     return Obx(() {
       if (controller.isLoading.value) {
         return const SliverFillRemaining(
-          child: Center(child: CircularProgressIndicator(color: AppTheme.folderPink)),
+          child: Center(
+            child: CircularProgressIndicator(color: AppTheme.folderPink),
+          ),
         );
       }
-      
+
       if (controller.hasError.value) {
         return SliverFillRemaining(
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.wifi_off_rounded, size: 64, color: AppTheme.textSecondary),
+                const Icon(
+                  Icons.wifi_off_rounded,
+                  size: 64,
+                  color: AppTheme.textSecondary,
+                ),
                 const SizedBox(height: 16),
-                Text(controller.errorMessage.value, style: theme.textTheme.bodyLarge),
+                Text(
+                  controller.errorMessage.value,
+                  style: theme.textTheme.bodyLarge,
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => controller.fetchNotes(),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.folderPink),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.folderPink,
+                  ),
                   child: const Text("Retry"),
                 ),
               ],
@@ -153,46 +176,55 @@ class ArchiveView extends GetView<NoteController> {
       final groupedNotes = _groupNotesByDate(otherArchived);
 
       return SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          if (pinnedArchived.isNotEmpty) {
-            if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Pinned", style: theme.textTheme.titleLarge),
-                    ),
-                    GlassCard(
-                      borderRadius: 30,
-                      children: [
-                        for (int i = 0; i < pinnedArchived.length; i++) ...[
-                          ArchiveNoteTile(
-                            note: pinnedArchived[i],
-                            controller: controller,
-                          ),
-                          if (i < pinnedArchived.length - 1)
-                            const Divider(indent: 56, height: 1),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (pinnedArchived.isNotEmpty) {
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 8),
+                        child: Text(
+                          "Pinned",
+                          style: theme.textTheme.titleLarge,
+                        ),
+                      ),
+                      GlassCard(
+                        borderRadius: 30,
+                        children: [
+                          for (int i = 0; i < pinnedArchived.length; i++) ...[
+                            ArchiveNoteTile(
+                              note: pinnedArchived[i],
+                              controller: controller,
+                            ),
+                            if (i < pinnedArchived.length - 1)
+                              const Divider(indent: 56, height: 1),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
-                ),
-              );
+                      ),
+                    ],
+                  ),
+                );
+              }
+              final groupIndex = index - 1;
+              if (groupIndex < groupedNotes.length) {
+                return _buildDateGroup(context, groupedNotes, groupIndex);
+              }
+            } else {
+              if (index < groupedNotes.length) {
+                return _buildDateGroup(context, groupedNotes, index);
+              }
             }
-            final groupIndex = index - 1;
-            if (groupIndex < groupedNotes.length) {
-              return _buildDateGroup(context, groupedNotes, groupIndex);
-            }
-          } else {
-            if (index < groupedNotes.length) {
-              return _buildDateGroup(context, groupedNotes, index);
-            }
-          }
-          return null;
-        }, childCount: (pinnedArchived.isNotEmpty ? 1 : 0) + groupedNotes.length),
+            return null;
+          },
+          childCount: (pinnedArchived.isNotEmpty ? 1 : 0) + groupedNotes.length,
+        ),
       );
     });
   }
@@ -240,7 +272,7 @@ class ArchiveView extends GetView<NoteController> {
     for (var note in notes) {
       final date = note.updatedAt ?? now;
       final noteDate = DateTime(date.year, date.month, date.day);
-      
+
       String key;
       if (noteDate == today) {
         key = "Today";

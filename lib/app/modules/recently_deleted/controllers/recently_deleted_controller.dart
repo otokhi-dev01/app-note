@@ -75,7 +75,7 @@ class RecentlyDeletedController extends GetxController {
           return FolderModel.fromJson(e);
         }
         return FolderModel(
-          id: 0,
+          id: e is int ? e : 0,
           name: "Unknown Folder",
           iconName: "folder",
           colorValue: "0xFFFFCC00",
@@ -156,7 +156,7 @@ class RecentlyDeletedController extends GetxController {
   Future<void> recoverSelectedItems() async {
     final noteIds = selectedNoteIds.toList();
     final folderIds = selectedFolderIds.toList();
-    
+
     // If nothing selected but in edit mode, recover all
     if (noteIds.isEmpty && folderIds.isEmpty && isEditing.value) {
       await recoverAll();
@@ -258,7 +258,8 @@ class RecentlyDeletedController extends GetxController {
   Future<void> deleteAll() async {
     Get.dialog(
       IOSConfirmationDialog(
-        title: "All notes and folders in Recently Deleted will be permanently removed.",
+        title:
+            "All notes and folders in Recently Deleted will be permanently removed.",
         confirmLabel: "Empty Trash",
         onConfirm: () async {
           isLoading.value = true;

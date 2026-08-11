@@ -8,9 +8,12 @@ class NoteBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut(() => NoteController());
-    Get.lazyPut(() => NoteDetailController(
-          noteService: Get.find<NoteService>(),
-          folderService: Get.find<FolderService>(),
-        ), fenix: true);
+    Get.lazyPut(
+      () => NoteDetailController(
+        noteService: Get.find<NoteService>(),
+        folderService: Get.find<FolderService>(),
+      ),
+      fenix: true,
+    );
   }
 }

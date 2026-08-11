@@ -8,13 +8,7 @@ import 'api_service.dart';
 class NoteService extends GetxService {
   final ApiService _api = Get.find<ApiService>();
 
-  NoteResponse? _cachedResponse;
-
   Future<NoteResponse> getNotes({int? folderId, bool refresh = false}) async {
-    if (_cachedResponse != null && !refresh && folderId == null) {
-      return _cachedResponse!;
-    }
-
     try {
       final response = await _api.dio.get(
         "/api/note",
@@ -22,459 +16,167 @@ class NoteService extends GetxService {
           if (folderId != null && folderId != 0) "FolderId": folderId,
         },
       );
-
-      // Safely handle data decoding
-      final responseData = response.data;
-      Map<String, dynamic> mappedData;
-      if (responseData is String) {
-        mappedData = jsonDecode(responseData);
-      } else if (responseData is Map) {
-        mappedData = Map<String, dynamic>.from(responseData);
-      } else {
-        throw Exception("Invalid response format: ${responseData.runtimeType}");
-      }
-
-      final noteResponse = NoteResponse.fromJson(mappedData);
-
-      // Cache the full response if it's not a filtered request
-      if (folderId == null || folderId == 0) {
-        _cachedResponse = noteResponse;
-      }
-
-      if (kDebugMode) {
-        debugPrint("API Code: ${noteResponse.code}");
-        debugPrint("API Message: ${noteResponse.message}");
-        debugPrint("Active Notes: ${noteResponse.notes.length}");
-        debugPrint("Archived Notes: ${noteResponse.archive.length}");
-        debugPrint("Trash Notes: ${noteResponse.trash.length}");
-      }
-
-      return noteResponse;
-    } catch (e) {
-      if (kDebugMode) debugPrint("GET TRASH Error: $e");
-      return NoteResponse(
-        code: 0,
-        message: 'Failed to load notes',
-        data: NoteData(notes: [], archive: [], trash: []),
-      );
-    }
-  }
-
-  Future<List<NoteModel>> getTrashNotes({bool refresh = false}) async {
-    try {
-      final noteResponse = await getNotes(refresh: refresh);
-      return noteResponse.trash;
-    } catch (e) {
-      if (kDebugMode) debugPrint("GET TRASH NOTES Error: $e");
-      return [];
+      return NoteResponse.fromJson(response.data);
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] getNotes Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
     }
   }
 
   Future<NoteModel> getNoteDetail(int id) async {
     try {
-      if (kDebugMode) debugPrint("[NOTE DETAIL API] GET /api/note/$id");
-
+      debugPrint('[NOTE DETAIL] GET NoteId=$id');
       final response = await _api.dio.get("/api/note/$id");
 
-      if (kDebugMode)
-        debugPrint("[NOTE DEBUG] Raw Detail Data: ${response.data}");
-
-      if (response.statusCode == 200) {
-        final note = _parseNoteFromResponse(response.data);
-        if (note != null) {
-          if (kDebugMode) {
-            debugPrint("[NOTE DETAIL API] 200 OK");
-            debugPrint("[NOTE DETAIL] Loaded NoteId: ${note.id}");
-          }
-          return note;
-        }
+      final body = response.data;
+      if (body is! Map) {
+        throw Exception('Invalid note detail response.');
       }
 
-      throw Exception("Failed to load note detail for ID: $id");
-    } catch (e) {
-      if (kDebugMode) {
-        if (e is dio.DioException && e.response?.statusCode == 404) {
-          debugPrint("[NOTE DETAIL ERROR] 404 - Note Not Found: $id");
-        } else {
-          debugPrint("[NOTE DETAIL ERROR] $e");
+      final dynamic rawData = body['data'] ?? body['Data'];
+      debugPrint('[NOTE DETAIL] data type=${rawData.runtimeType}');
+
+      dynamic rawNote;
+      if (rawData is List) {
+        if (rawData.isEmpty) {
+          throw Exception('Note detail data list is empty.');
         }
+        rawNote = rawData.first;
+      } else if (rawData is Map) {
+        rawNote = rawData;
+      } else {
+        throw Exception(
+          'Unexpected note detail data type: ${rawData.runtimeType}',
+        );
       }
+
+      if (rawNote is! Map) {
+        throw Exception('Invalid note object format.');
+      }
+
+      final note = NoteModel.fromJson(Map<String, dynamic>.from(rawNote));
+      debugPrint(
+        '[NOTE DETAIL] parsed NoteId=${note.id} blocks=${note.content.length}',
+      );
+      return note;
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] getNoteDetail Error: $e');
+      debugPrintStack(stackTrace: s);
       rethrow;
     }
   }
 
-  NoteModel? _parseNoteFromResponse(dynamic data) {
-    if (data == null) return null;
-
-    // Handle String response
-    if (data is String) {
-      try {
-        return _parseNoteFromResponse(jsonDecode(data));
-      } catch (_) {
-        return null;
-      }
-    }
-
-    // Handle wrapping in { "data": ... } or { "note": ... }
-    if (data is Map) {
-      final map = Map<String, dynamic>.from(data);
-
-      // If it has a 'data' field, recurse into it
-      if (map.containsKey('data') && map['data'] != null) {
-        return _parseNoteFromResponse(map['data']);
-      }
-
-      // If it has a 'note' field, recurse into it
-      if (map.containsKey('note') && map['note'] != null) {
-        return _parseNoteFromResponse(map['note']);
-      }
-
-      // Check for NoteId or id to identify it as a Note object
-      if (map.containsKey('NoteId') || map.containsKey('id')) {
-        return NoteModel.fromJson(map);
-      }
-    }
-
-    // Handle List response (pick first item)
-    if (data is List) {
-      if (data.isEmpty) return null;
-      return _parseNoteFromResponse(data.first);
-    }
-
-    return null;
-  }
-
+  /// Full save flow: Metadata -> Uploads -> Content Sync
   Future<NoteModel> saveNote(
     int folderId,
     String title, {
     int noteId = 0,
     List<NoteBlock>? content,
   }) async {
-    if (kDebugMode)
-      debugPrint("[NOTE DEBUG] saveNote START for NoteId: $noteId");
+    // 1. Metadata Save
+    final confirmedId = await saveNoteMetadata(
+      folderId: folderId,
+      title: title,
+      noteId: noteId,
+    );
 
-    if (folderId == 0) {
-      throw ArgumentError(
-        'FolderId must be provided and non-zero when saving a note',
+    // 2. Upload Attachments and update blocks
+    if (content != null) {
+      final detailController = Get.find<GetxController>(
+        tag: 'NoteDetailController',
+      );
+      // If we are in the context of NoteDetailController, it handles uploads.
+      // But if NoteService is used directly, we should ideally handle it here or in controller.
+      // The current logic in NoteDetailController is better as it updates observables.
+    }
+
+    if (content != null && content.isNotEmpty) {
+      // 3. Final Content Sync
+      await saveNoteContent(
+        noteId: confirmedId,
+        title: title,
+        content: content,
       );
     }
 
-    // Build payload but omit NoteId when creating a new note (server expects it absent or null)
-    final Map<String, dynamic> payload = {"FolderId": folderId, "Title": title};
-
-    if (noteId != 0) payload["NoteId"] = noteId;
-
-    List<dynamic>? contentList;
-    if (content != null) {
-      // Normalize each block's JSON to include multiple common key variants
-      // so the backend can accept different shapes (Type/Text vs type/text).
-      contentList = content.map((e) {
-        final Map<String, dynamic> m = Map<String, dynamic>.from(e.toJson());
-        // Text blocks: ensure both 'Text' and 'text' are present and support
-        // string-encoded Delta JSON for backend compatibility.
-        if (e.runtimeType.toString().contains('TextBlock')) {
-          final raw =
-              m['Text'] ??
-              m['text'] ??
-              m['content'] ??
-              m['Value'] ??
-              m['value'];
-          final String textValue;
-          if (raw is List || raw is Map) {
-            textValue = jsonEncode(raw);
-          } else {
-            textValue = raw?.toString() ?? '';
-          }
-
-          dynamic parsedText = textValue;
-          if (textValue.trimLeft().startsWith('[') ||
-              textValue.trimLeft().startsWith('{')) {
-            try {
-              parsedText = jsonDecode(textValue);
-            } catch (_) {
-              parsedText = textValue;
-            }
-          }
-
-          final plainText = _extractPlainTextFromDelta(parsedText);
-
-          m['Type'] = m['Type'] ?? m['type'] ?? 'text';
-          m['type'] = m['type'] ?? m['Type'] ?? 'text';
-          m['Text'] = textValue;
-          m['text'] = textValue;
-          m['Content'] = textValue;
-          m['content'] = textValue;
-          m['Body'] = plainText;
-          m['body'] = plainText;
-          m['NoteText'] = plainText;
-          m['noteText'] = plainText;
-          m['ContentText'] = plainText;
-          m['contentText'] = plainText;
-        }
-        // Attachment blocks: normalize common fields
-        if (e.runtimeType.toString().contains('AttachmentBlock')) {
-          m['Type'] = m['Type'] ?? m['type'] ?? 'attachment';
-          m['type'] = m['type'] ?? m['Type'] ?? 'attachment';
-          m['Url'] = m['Url'] ?? m['url'] ?? m['FilePath'] ?? m['filePath'];
-          m['url'] = m['url'] ?? m['Url'];
-        }
-        return m;
-      }).toList();
-
-      // Send multiple variants for resilience. Prefer ContentJson as an encoded string
-      // because some backend endpoints expect ContentJson to be a JSON string.
-      payload["Content"] = contentList;
-      payload["ContentJson"] = jsonEncode(contentList);
-      payload["ContentJsonString"] = jsonEncode(contentList);
-      payload["Body"] = contentList
-          .whereType<Map<String, dynamic>>()
-          .where(
-            (m) => (m["Type"] ?? m["type"])?.toString().toLowerCase() == 'text',
-          )
-          .map(
-            (m) => (m['Body'] ?? m['body'] ?? m['Text'] ?? m['text'] ?? '')
-                .toString(),
-          )
-          .join('\n')
-          .trim();
-      payload["NoteText"] = payload["Body"];
-      payload["ContentText"] = payload["Body"];
-
-      if (kDebugMode)
-        debugPrint(
-          '[NOTE DEBUG] Sample content payload: ${contentList.isNotEmpty ? contentList.first : {}}',
-        );
-    }
-
-    dio.Response? response;
-
-    // Helper to attempt a POST and return response or null on DioException
-    Future<dio.Response?> tryPost(
-      String path,
-      Map<String, dynamic> body,
-    ) async {
-      try {
-        if (kDebugMode)
-          debugPrint(
-            '[NOTE DEBUG] POST $path payload variant: ${body.keys.toList()}',
-          );
-        final r = await _api.dio.post(path, data: body);
-        return r;
-      } on dio.DioException catch (e) {
-        if (kDebugMode)
-          debugPrint(
-            '[NOTE DEBUG] POST $path failed: ${e.response?.statusCode} ${e.response?.data}',
-          );
-        return e.response;
-      }
-    }
-
-    // Try multiple payload variants to be resilient to backend expectations
-    // Variant A: Content list + ContentJson as encoded string (current)
-    response = await tryPost('/api/note/save-content', payload);
-
-    // Variant B: If save-content gives a 400 due to Content validation, retry
-    // without Content and with ContentJson only.
-    if (response != null && response.statusCode == 400) {
-      final altPayload = Map<String, dynamic>.from(payload)
-        ..remove('Content')
-        ..remove('ContentJson')
-        ..remove('ContentJsonString');
-      if (contentList != null) {
-        altPayload['ContentJson'] = jsonEncode(contentList);
-        altPayload['ContentJsonString'] = jsonEncode(contentList);
-      }
-      if (kDebugMode)
-        debugPrint('[NOTE DEBUG] Retrying save-content without Content');
-      response = await tryPost('/api/note/save-content', altPayload);
-    }
-
-    // If backend returned 404, null response, or still failed, try alternative variants
-    if (response == null ||
-        response.statusCode == 404 ||
-        response.statusCode == 400 ||
-        (response.data is Map &&
-            (response.data['code'] == 404 ||
-                response.data['message'] == 'Note not found.'))) {
-      // Variant C: ContentJson as actual list (not string)
-      final altPayload = Map<String, dynamic>.from(payload);
-      if (contentList != null) altPayload['ContentJson'] = contentList;
-      if (kDebugMode)
-        debugPrint('[NOTE DEBUG] Retrying with ContentJson as list');
-      response = await tryPost('/api/note/save-content', altPayload);
-    }
-
-    if (response == null ||
-        response.statusCode == 404 ||
-        response.statusCode == 400 ||
-        (response.data is Map &&
-            (response.data['code'] == 404 ||
-                response.data['message'] == 'Note not found.' ||
-                response.data['message'] == 'Folder not found.'))) {
-      // Variant D: Try legacy endpoint '/api/note/save' with ContentJson list.
-      final legacyPayload = Map<String, dynamic>.from(payload);
-      if (contentList != null) legacyPayload['ContentJson'] = contentList;
-      if (kDebugMode)
-        debugPrint('[NOTE DEBUG] Retrying legacy endpoint /api/note/save');
-      response = await tryPost('/api/note/save', legacyPayload);
-    }
-
-    if (response == null) {
-      throw Exception('No response from server when attempting to save note');
-    }
-
-    if (kDebugMode)
-      debugPrint("[NOTE DEBUG] saveNote RESPONSE: ${response.data}");
-
-    // Try to parse the note from the response
-    final note = _parseNoteFromResponse(response.data);
-    if (note != null && note.id != 0) return note;
-
-    // Fallback: check API code field for success and resolve created/updated note
-    final responseData = response.data;
-    bool isSuccess = false;
-    if (responseData is Map) {
-      final dynamic code = responseData['code'] ?? responseData['Code'];
-      if (code == 200 || code == 201 || code.toString() == "200")
-        isSuccess = true;
-    }
-
-    if (isSuccess) {
-      if (noteId != 0) {
-        try {
-          await Future.delayed(const Duration(milliseconds: 500));
-          return await getNoteDetail(noteId);
-        } catch (e) {
-          if (kDebugMode)
-            debugPrint(
-              "[NOTE DEBUG] saveNote fallback getNoteDetail failed: $e",
-            );
-          return NoteModel(
-            id: noteId,
-            folderId: folderId,
-            folderName: '',
-            title: title,
-            content: content ?? [],
-          );
-        }
-      } else {
-        await Future.delayed(const Duration(milliseconds: 800));
-        final allNotes = await getNotes(folderId: folderId, refresh: true);
-        if (allNotes.notes.isNotEmpty) {
-          final sorted = List<NoteModel>.from(allNotes.notes);
-          sorted.sort((a, b) => b.id.compareTo(a.id));
-          return sorted.first;
-        }
-      }
-    }
-
-    throw Exception("Failed to parse saved note and no fallback found");
+    return await getNoteDetail(confirmedId);
   }
 
-  String _extractPlainTextFromDelta(dynamic value) {
-    if (value is String) {
-      return value;
-    }
-    if (value is List) {
-      return value.map((item) {
-        if (item is Map && item.containsKey('insert')) {
-          return item['insert']?.toString() ?? '';
-        }
-        return item?.toString() ?? '';
-      }).join();
-    }
-    if (value is Map) {
-      if (value.containsKey('insert')) {
-        return value['insert']?.toString() ?? '';
-      }
-      return value.values.map((v) => _extractPlainTextFromDelta(v)).join();
-    }
-    return value?.toString() ?? '';
-  }
-
-  Future<void> updateNoteState(
-    int id, {
-    bool? isPinned,
-    bool? isArchived,
-    bool? isLocked,
+  /// Saves metadata (Title, FolderId) and returns the created/updated NoteId
+  Future<int> saveNoteMetadata({
+    required int folderId,
+    required String title,
+    int noteId = 0,
   }) async {
     try {
-      if (kDebugMode)
-        debugPrint(
-          "[NOTE DEBUG] updateNoteState ID: $id, pinned: $isPinned, archived: $isArchived",
-        );
+      debugPrint('[NOTE CREATE] POST /api/note/save');
+      final Map<String, dynamic> payload = {
+        "FolderId": folderId,
+        "Title": title,
+      };
+      if (noteId > 0) payload["NoteId"] = noteId;
 
-      final response = await _api.dio.post(
-        "/api/note/update-state",
-        data: {
-          "NoteId": id,
-          "id": id, // resilience
-          if (isPinned != null) "IsPinned": isPinned,
-          if (isArchived != null) "IsArchived": isArchived,
-          if (isLocked != null) "IsLocked": isLocked,
-        },
+      final response = await _api.dio.post("/api/note/save", data: payload);
+      final data = response.data;
+
+      if (data is Map) {
+        // Preferred: Backend returns NoteId in data
+        final extractedId = _toInt(
+          data['data']?['NoteId'] ??
+              data['data']?['id'] ??
+              data['NoteId'] ??
+              data['id'],
+        );
+        if (extractedId > 0) {
+          debugPrint('[NOTE CREATE] Created/Updated NoteId=$extractedId');
+          return extractedId;
+        }
+      }
+
+      if (noteId > 0) return noteId;
+
+      // Temporary Workaround: Fetch list if backend returns null data on create
+      debugPrint(
+        '[NOTE CREATE] Backend returned null data. Attempting to resolve NoteId from list.',
       );
+      final list = await getNotes(folderId: folderId, refresh: true);
+      if (list.notes.isNotEmpty) {
+        final sorted = List<NoteModel>.from(list.notes)
+          ..sort((a, b) => b.id.compareTo(a.id));
+        return sorted.first.id;
+      }
 
-      if (kDebugMode)
-        debugPrint(
-          "[NOTE DEBUG] updateNoteState RESPONSE: ${response.statusCode}",
-        );
-    } catch (e) {
-      if (kDebugMode) debugPrint("[NOTE DEBUG] updateNoteState ERROR: $e");
+      throw Exception("Failed to resolve NoteId after save");
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] saveNoteMetadata Error: $e');
+      debugPrintStack(stackTrace: s);
       rethrow;
     }
   }
 
-  Future<void> deleteRestoreNote(int id, bool isDelete) async {
+  /// Saves the structured content blocks for an existing NoteId
+  Future<void> saveNoteContent({
+    required int noteId,
+    required String title,
+    required List<NoteBlock> content,
+  }) async {
     try {
-      if (kDebugMode)
-        debugPrint(
-          "[NOTE DEBUG] deleteRestoreNote ID: $id, isDelete: $isDelete",
-        );
-
-      // We send multiple ID variants to be resilient to backend naming inconsistencies
-      final response = await _api.dio.post(
-        "/api/note/delete-restore",
-        data: {
-          "NoteId": id,
-          "id": id,
-          "Id": id,
-          "isDelete": isDelete,
-          "IsDelete": isDelete,
-        },
+      debugPrint(
+        '[NOTE CONTENT] Saving NoteId=$noteId blocks=${content.length}',
       );
 
-      if (kDebugMode)
-        debugPrint(
-          "[NOTE DEBUG] deleteRestoreNote RESPONSE: ${response.statusCode} ${response.data}",
-        );
-    } catch (e) {
-      if (kDebugMode)
-        debugPrint("[NOTE DEBUG] deleteRestoreNote FATAL ERROR: $e");
-      rethrow;
-    }
-  }
+      final payload = {
+        "id": noteId,
+        "title": title,
+        "content": content.map((e) => e.toJson()).toList(),
+      };
 
-  Future<void> deleteNotePermanently(int id) async {
-    try {
-      if (kDebugMode) debugPrint("[NOTE DEBUG] deleteNotePermanently ID: $id");
-      await _api.dio.post(
-        "/api/note/permanent-delete",
-        data: {"NoteId": id, "id": id},
-      );
-    } catch (e) {
-      if (kDebugMode)
-        debugPrint("[NOTE DEBUG] deleteNotePermanently ERROR: $e");
-      rethrow;
-    }
-  }
-
-  Future<void> emptyTrash() async {
-    try {
-      if (kDebugMode) debugPrint("[NOTE DEBUG] emptyTrash START");
-      await _api.dio.post("/api/note/empty-trash");
-    } catch (e) {
-      if (kDebugMode) debugPrint("[NOTE DEBUG] emptyTrash ERROR: $e");
+      await _api.dio.post("/api/note/save-content", data: payload);
+      debugPrint('[NOTE CONTENT] Success');
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] saveNoteContent Error: $e');
+      debugPrintStack(stackTrace: s);
       rethrow;
     }
   }
@@ -485,33 +187,211 @@ class NoteService extends GetxService {
     String blockId,
     int displayOrder,
   ) async {
-    dio.FormData formData = dio.FormData.fromMap({
-      "Id": noteId.toString(),
-      "File": await dio.MultipartFile.fromFile(filePath),
-      "BlockId": blockId,
-      "DisplayOrder": displayOrder.toString(),
-    });
+    try {
+      debugPrint('[ATTACHMENT] Upload BlockId=$blockId for NoteId=$noteId');
+      dio.FormData formData = dio.FormData.fromMap({
+        "Id": noteId.toString(),
+        "File": await dio.MultipartFile.fromFile(filePath),
+        "BlockId": blockId,
+        "DisplayOrder": displayOrder.toString(),
+      });
 
-    if (kDebugMode) {
-      debugPrint("[NOTE DEBUG] UPLOAD ATTACHMENT START");
-      debugPrint("[NOTE DEBUG] NoteId: $noteId, BlockId: $blockId");
-    }
+      final response = await _api.dio.post(
+        "/api/note/attachment",
+        data: formData,
+      );
 
-    final response = await _api.dio.post(
-      "/api/note/attachment",
-      data: formData,
-    );
+      debugPrint('[ATTACHMENT RAW RESPONSE] ${response.data}');
+      final body = response.data;
+      if (body is! Map) throw Exception('Invalid upload response');
 
-    if (kDebugMode)
-      debugPrint("[NOTE DEBUG] UPLOAD RESPONSE: ${response.data}");
+      final outerData = body['data'];
+      if (outerData is! Map) throw Exception('Invalid upload response data');
 
-    final responseData = response.data;
-    if (responseData is Map) {
-      if (responseData['data'] != null) {
-        return Map<String, dynamic>.from(responseData['data']);
+      final records = outerData['data'];
+      if (records is List && records.isNotEmpty) {
+        final record = Map<String, dynamic>.from(records.first);
+
+        final attachmentId = _toInt(
+          record['AttachmentId'] ?? record['attachmentId'] ?? record['id'],
+        );
+        final path = _toString(
+          record['FilePath'] ?? record['filePath'] ?? record['url'],
+        );
+
+        debugPrint(
+          '[ATTACHMENT] Upload Success. AttachmentId=$attachmentId FilePath=$path',
+        );
+        return {
+          'AttachmentId': attachmentId,
+          'FilePath': path,
+          'BlockId': blockId,
+        };
       }
-      return Map<String, dynamic>.from(responseData);
+
+      // Fallback for different response shape
+      final attachmentId = _toInt(
+        outerData['AttachmentId'] ?? body['AttachmentId'],
+      );
+      final path = _toString(outerData['FilePath'] ?? body['FilePath']);
+
+      debugPrint(
+        '[ATTACHMENT] Upload Success (Fallback). AttachmentId=$attachmentId',
+      );
+      return {
+        'AttachmentId': attachmentId,
+        'FilePath': path,
+        'BlockId': blockId,
+      };
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] uploadAttachment Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
     }
-    return {};
   }
+
+  Future<void> deleteRestoreNote(int id, bool isDelete) async {
+    try {
+      final Map<String, dynamic> payload = {"id": id, "isDelete": isDelete};
+      await _api.dio.post("/api/note/update-state", data: payload);
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] deleteRestoreNote Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
+    }
+  }
+
+  Future<void> updateNoteState(
+    int id, {
+    bool? isPinned,
+    bool? isArchived,
+    bool? isLocked,
+  }) async {
+    try {
+      final Map<String, dynamic> payload = {"id": id};
+      if (isPinned != null) payload["IsPinned"] = isPinned;
+      if (isArchived != null) payload["IsArchived"] = isArchived;
+      if (isLocked != null) payload["IsLocked"] = isLocked;
+
+      await _api.dio.post("/api/note/update-state", data: payload);
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] updateNoteState Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteNotePermanently(int id) async {
+    try {
+      final Map<String, dynamic> payload = {"id": id};
+      await _api.dio.post("/api/note/permanent-delete", data: payload);
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] deleteNotePermanently Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
+    }
+  }
+
+  Future<void> emptyTrash() async {
+    try {
+      await _api.dio.post("/api/note/empty-trash");
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] emptyTrash Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
+    }
+  }
+
+  Future<List<NoteModel>> getTrashNotes() async {
+    try {
+      final response = await getNotes();
+      return response.trash;
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+class NoteResponse {
+  final int code;
+  final String message;
+  final List<NoteModel> notes;
+  final List<NoteModel> archive;
+  final List<NoteModel> trash;
+
+  NoteResponse({
+    required this.code,
+    required this.message,
+    required this.notes,
+    required this.archive,
+    required this.trash,
+  });
+
+  factory NoteResponse.fromJson(Map<String, dynamic> json) {
+    final dynamic rawData = json['data'];
+    List<NoteModel> active = [];
+    List<NoteModel> archived = [];
+    List<NoteModel> deleted = [];
+
+    void categorize(List<NoteModel> all) {
+      active = all.where((n) => !n.isArchived && n.deletedAt == null).toList();
+      archived = all.where((n) => n.isArchived && n.deletedAt == null).toList();
+      deleted = all.where((n) => n.deletedAt != null).toList();
+    }
+
+    if (rawData is List) {
+      categorize(
+        rawData
+            .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList(),
+      );
+    } else if (rawData is Map) {
+      final List rawNotes = (rawData['note'] ?? rawData['notes'] ?? []) as List;
+      final List rawArchive =
+          (rawData['archive'] ?? rawData['archived'] ?? []) as List;
+      final List rawTrash =
+          (rawData['trash'] ?? rawData['deleted'] ?? []) as List;
+
+      if (rawNotes.isNotEmpty || rawArchive.isNotEmpty || rawTrash.isNotEmpty) {
+        active = rawNotes
+            .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        archived = rawArchive
+            .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+        deleted = rawTrash
+            .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+            .toList();
+      } else {
+        final List allData = (rawData['data'] ?? []) as List;
+        categorize(
+          allData
+              .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+              .toList(),
+        );
+      }
+    }
+
+    return NoteResponse(
+      code: _toInt(json['code'] ?? json['Code']),
+      message: _toString(json['message'] ?? json['Message']),
+      notes: active,
+      archive: archived,
+      trash: deleted,
+    );
+  }
+}
+
+// --- Internal Safe Parsers ---
+
+int _toInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? 0;
+}
+
+String _toString(dynamic value) {
+  if (value == null) return '';
+  return value.toString();
 }

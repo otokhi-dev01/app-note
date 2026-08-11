@@ -13,7 +13,7 @@ class LiquidGlassContainer extends StatefulWidget {
   final EdgeInsetsGeometry? padding;
   final double? width;
   final double? height;
-  
+
   final double thickness;
   final double refractiveIndex;
   final double chromaticAberration;
@@ -48,7 +48,8 @@ class LiquidGlassContainer extends StatefulWidget {
   State<LiquidGlassContainer> createState() => _LiquidGlassContainerState();
 }
 
-class _LiquidGlassContainerState extends State<LiquidGlassContainer> with SingleTickerProviderStateMixin {
+class _LiquidGlassContainerState extends State<LiquidGlassContainer>
+    with SingleTickerProviderStateMixin {
   late AnimationController? _controller;
 
   @override
@@ -73,9 +74,9 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> with Single
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final Color glassColor = isDark 
-        ? Colors.white.withValues(alpha: 0.1) 
+
+    final Color glassColor = isDark
+        ? Colors.white.withValues(alpha: 0.1)
         : AppTheme.cardColor.withValues(alpha: widget.opacity);
 
     Widget buildContent() {
@@ -85,8 +86,12 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> with Single
         padding: widget.padding,
         decoration: BoxDecoration(
           border: widget.border,
-          borderRadius: widget.shape == GlassShape.circle ? null : BorderRadius.circular(widget.borderRadius),
-          shape: widget.shape == GlassShape.circle ? BoxShape.circle : BoxShape.rectangle,
+          borderRadius: widget.shape == GlassShape.circle
+              ? null
+              : BorderRadius.circular(widget.borderRadius),
+          shape: widget.shape == GlassShape.circle
+              ? BoxShape.circle
+              : BoxShape.rectangle,
         ),
         child: widget.child,
       );
@@ -101,9 +106,7 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> with Single
         liquidShape = const LiquidOval();
         break;
       case GlassShape.roundedRectangle:
-        liquidShape = LiquidRoundedRectangle(
-          borderRadius: widget.borderRadius,
-        );
+        liquidShape = LiquidRoundedRectangle(borderRadius: widget.borderRadius);
         break;
     }
 
@@ -113,15 +116,13 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer> with Single
         blur: widget.blur,
         refractiveIndex: widget.refractiveIndex,
         chromaticAberration: widget.chromaticAberration,
-        lightAngle: currentAngle * (3.14159 / 180), 
+        lightAngle: currentAngle * (3.14159 / 180),
         glassColor: glassColor,
       );
 
       Widget content = buildContent();
       if (widget.showGlow) {
-        content = GlassGlow(
-          child: content,
-        );
+        content = GlassGlow(child: content);
       }
 
       return LiquidGlass.withOwnLayer(
@@ -170,7 +171,7 @@ class GlassCard extends StatelessWidget {
     return LiquidGlassContainer(
       borderRadius: borderRadius,
       padding: padding ?? const EdgeInsets.symmetric(vertical: 12),
-      opacity: opacity, 
+      opacity: opacity,
       thickness: thickness,
       refractiveIndex: refractiveIndex,
       animateLiquid: animateLiquid,
@@ -179,7 +180,9 @@ class GlassCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ...children,
-          const SizedBox(height: 4), // Small extra buffer to prevent flex overflow
+          const SizedBox(
+            height: 4,
+          ), // Small extra buffer to prevent flex overflow
         ],
       ),
     );

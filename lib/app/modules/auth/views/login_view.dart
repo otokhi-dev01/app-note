@@ -14,9 +14,13 @@ class LoginView extends GetView<AuthController> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: theme.brightness == Brightness.dark 
-          ? SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent) 
-          : SystemUiOverlayStyle.dark.copyWith(statusBarColor: Colors.transparent),
+      value: theme.brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+            ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
@@ -30,14 +34,16 @@ class LoginView extends GetView<AuthController> {
               elevation: 0,
               automaticallyImplyLeading: false,
               centerTitle: true,
-              systemOverlayStyle: theme.brightness == Brightness.dark 
-                  ? SystemUiOverlayStyle.light 
+              systemOverlayStyle: theme.brightness == Brightness.dark
+                  ? SystemUiOverlayStyle.light
                   : SystemUiOverlayStyle.dark,
               title: LayoutBuilder(
                 builder: (context, constraints) {
-                  final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+                  final double percentage =
+                      (constraints.maxHeight - kToolbarHeight) /
+                      (140.0 - kToolbarHeight);
                   final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-                  
+
                   return Opacity(
                     opacity: opacity > 0.8 ? 1.0 : 0.0,
                     child: Text(
@@ -55,7 +61,9 @@ class LoginView extends GetView<AuthController> {
                 titlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
                 title: LayoutBuilder(
                   builder: (context, constraints) {
-                    final double percentage = (constraints.maxHeight - kToolbarHeight) / (140.0 - kToolbarHeight);
+                    final double percentage =
+                        (constraints.maxHeight - kToolbarHeight) /
+                        (140.0 - kToolbarHeight);
                     return Opacity(
                       opacity: percentage.clamp(0.0, 1.0),
                       child: Text(
@@ -77,19 +85,28 @@ class LoginView extends GetView<AuthController> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                       ClipOval(
-                        child: Image.asset(
-                          'assets/icons/otokhi_logo_cover.jpg',
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.contain,
-                        ),
-                      ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
+                    ClipOval(
+                      child: Image.asset(
+                        'assets/icons/otokhi_logo_cover.jpg',
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.contain,
+                      ),
+                    ).animate().scale(
+                      duration: 600.ms,
+                      curve: Curves.easeOutBack,
+                    ),
                     const SizedBox(height: 32),
                     Text(
-                      "Welcome Back",
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, fontSize: 30),
-                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+                          "Welcome Back",
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 30,
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(delay: 200.ms)
+                        .slideY(begin: 0.2, end: 0),
                     const SizedBox(height: 8),
                     Text(
                       "Login to your account",
@@ -98,76 +115,104 @@ class LoginView extends GetView<AuthController> {
                     const SizedBox(height: 40),
                     // Login Card
                     Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _buildTextField(
-                            context,
-                            controller: controller.phoneController,
-                            hint: "Phone Number",
-                            icon: FontAwesomeIcons.phone,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            context,
-                            controller: controller.passwordController,
-                            hint: "Password",
-                            icon: FontAwesomeIcons.lock,
-                            isPassword: true,
-                          ),
-                          const SizedBox(height: 32),
-                          
-                          Obx(() => SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: controller.isLoading.value ? null : controller.login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.folderPink,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                          child: Column(
+                            children: [
+                              _buildTextField(
+                                context,
+                                controller: controller.phoneController,
+                                hint: "Phone Number",
+                                icon: FontAwesomeIcons.phone,
+                              ),
+                              const SizedBox(height: 20),
+                              _buildTextField(
+                                context,
+                                controller: controller.passwordController,
+                                hint: "Password",
+                                icon: FontAwesomeIcons.lock,
+                                isPassword: true,
+                              ),
+                              const SizedBox(height: 32),
+
+                              Obx(
+                                () => SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: controller.isLoading.value
+                                        ? null
+                                        : controller.login,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.folderPink,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: controller.isLoading.value
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : const Text(
+                                            "LOGIN",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 20,
+                                            ),
+                                          ),
+                                  ),
                                 ),
                               ),
-                              child: controller.isLoading.value 
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                    )
-                                  : const Text("LOGIN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                            ),
-                          )),
-                        ],
-                      ),
-                    ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
-                    
+                            ],
+                          ),
+                        )
+                        .animate()
+                        .fadeIn(delay: 400.ms)
+                        .slideY(begin: 0.1, end: 0),
+
                     const SizedBox(height: 28),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
                           "Don't have an account?",
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500, fontSize: 15),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 15,
+                          ),
                         ),
                         TextButton(
                           onPressed: () => Get.toNamed(Routes.REGISTER),
-                          style: TextButton.styleFrom(foregroundColor: AppTheme.folderPink, padding: const EdgeInsets.symmetric(horizontal: 5)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.folderPink,
+                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                          ),
                           child: Text(
                             "Register",
-                            style: theme.textTheme.bodyMedium?.copyWith(color: AppTheme.folderPink, fontWeight: FontWeight.bold, fontSize: 15),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppTheme.folderPink,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ],
@@ -201,15 +246,24 @@ class LoginView extends GetView<AuthController> {
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          prefixIcon: icon is IconData 
+          hintStyle: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          prefixIcon: icon is IconData
               ? Icon(icon, color: theme.colorScheme.onSurfaceVariant)
               : Padding(
                   padding: const EdgeInsets.all(14.0),
-                  child: FaIcon(icon, color: theme.colorScheme.onSurfaceVariant, size: 18),
+                  child: FaIcon(
+                    icon,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    size: 18,
+                  ),
                 ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );

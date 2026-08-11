@@ -18,8 +18,10 @@ class NoteMoveFolderModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentFolder = folders.firstWhereOrNull((f) => f.id == currentFolderId);
-    
+    final currentFolder = folders.firstWhereOrNull(
+      (f) => f.id == currentFolderId,
+    );
+
     return Material(
       color: AppTheme.bodyColor,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -42,14 +44,22 @@ class NoteMoveFolderModal extends StatelessWidget {
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close, color: Colors.black, size: 20),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.black,
+                        size: 20,
+                      ),
                     ),
                   ),
                   const Expanded(
                     child: Center(
                       child: Text(
                         "Select a Folder",
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -72,16 +82,30 @@ class NoteMoveFolderModal extends StatelessWidget {
                             width: 60,
                             height: 60,
                             borderRadius: 12,
-                            child: Icon(currentFolder.icon, color: currentFolder.color, size: 36),
+                            child: Icon(
+                              currentFolder.icon,
+                              color: currentFolder.color,
+                              size: 36,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(currentFolder.name, 
-                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                              Text("${currentFolder.noteCount} Notes", 
-                                style: const TextStyle(color: AppTheme.textGrey, fontSize: 15)),
+                              Text(
+                                currentFolder.name,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                "${currentFolder.noteCount} Notes",
+                                style: const TextStyle(
+                                  color: AppTheme.textGrey,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -92,22 +116,35 @@ class NoteMoveFolderModal extends StatelessWidget {
                     // On My iPhone Section
                     const Padding(
                       padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("On My iPhone", 
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        "On My iPhone",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
 
                     GlassCard(
-            borderRadius: 30,
-            children: [
+                      borderRadius: 30,
+                      children: [
                         // New Folder Action
                         ListTile(
                           onTap: () {},
-                          leading: const Icon(Icons.create_new_folder_outlined, color: AppTheme.folderPink),
-                          title: const Text("New Folder", 
-                            style: TextStyle(color: AppTheme.folderPink, fontWeight: FontWeight.w500)),
+                          leading: const Icon(
+                            Icons.create_new_folder_outlined,
+                            color: AppTheme.folderPink,
+                          ),
+                          title: const Text(
+                            "New Folder",
+                            style: TextStyle(
+                              color: AppTheme.folderPink,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                         const Divider(indent: 56, height: 1),
-                        
+
                         // Folder List
                         for (int i = 0; i < folders.length; i++) ...[
                           _buildFolderTile(folders[i]),
@@ -136,7 +173,7 @@ class NoteMoveFolderModal extends StatelessWidget {
         onTap: (isCurrent || isSystem) ? null : () => onFolderSelected(folder),
         leading: Icon(folder.icon, color: folder.color, size: 24),
         title: Text(folder.name, style: const TextStyle(fontSize: 17)),
-        trailing: isCurrent 
+        trailing: isCurrent
             ? Container(
                 width: 24,
                 height: 24,
@@ -146,7 +183,11 @@ class NoteMoveFolderModal extends StatelessWidget {
                 ),
                 child: const Icon(Icons.check, color: Colors.white, size: 16),
               )
-            : const Icon(Icons.chevron_right, color: AppTheme.textGrey, size: 20),
+            : const Icon(
+                Icons.chevron_right,
+                color: AppTheme.textGrey,
+                size: 20,
+              ),
       ),
     );
   }
