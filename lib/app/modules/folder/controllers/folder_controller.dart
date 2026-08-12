@@ -1,9 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
-import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
 import '../../../routes/note_navigation.dart';
@@ -129,6 +127,8 @@ class FolderController extends GetxController {
     }
   }
 
+  /// FEATURE: Logic for the "Check" button.
+  /// Logic: On success, "clears screen" by exiting edit mode and refreshing data.
   Future<bool> onSaveFolder({
     required int id,
     required String name,
@@ -163,7 +163,7 @@ class FolderController extends GetxController {
       if (code == 200 || code == 201) {
         await fetchFolders(refresh: true);
         
-        // Exiting edit mode on success to clear UI state
+        // FEATURE Logic: "Clear screen back" - Exit edit mode so UI resets to normal state
         isEditing.value = false;
         
         Get.snackbar(
@@ -175,12 +175,20 @@ class FolderController extends GetxController {
         return true;
       } else {
         final errorMessage = FolderService.getApiErrorMessage(result);
-        Get.snackbar("Unable to save folder", errorMessage, snackPosition: SnackPosition.BOTTOM);
+        Get.snackbar(
+          "Unable to save folder",
+          errorMessage,
+          snackPosition: SnackPosition.BOTTOM,
+        );
         return false;
       }
     } catch (e) {
-      if (kDebugMode) debugPrint("[FOLDER SAVE ERROR] $e");
-      Get.snackbar("Error", "Server error. Please try again later.", snackPosition: SnackPosition.BOTTOM);
+      if (kDebugMode) debugPrint("[FOLDER DEBUG] onSaveFolder FATAL: $e");
+      Get.snackbar(
+        "Error",
+        "Server error. Please try again later.",
+        snackPosition: SnackPosition.BOTTOM,
+      );
       return false;
     } finally {
       isSaving.value = false;
@@ -227,6 +235,7 @@ class FolderController extends GetxController {
 
   Future<void> _updateFolderSection(FolderModel folder, String section) async {
     String newName = folder.name;
+    // Remove existing keywords (case insensitive)
     newName = newName
         .replaceAll(RegExp(r'icloud', caseSensitive: false), '')
         .replaceAll(RegExp(r'shared', caseSensitive: false), '')
@@ -256,9 +265,10 @@ class FolderController extends GetxController {
   }
 
   void onRenameFolder(FolderModel folder) {
-    Get.dialog(
-      FolderCreateModal(folder: folder, controller: this),
-      barrierColor: Colors.black.withValues(alpha: 0.5),
+    Get.to(
+      () => FolderCreateModal(folder: folder, controller: this),
+      fullscreenDialog: false,
+      transition: Transition.cupertino,
     );
   }
 
