@@ -40,8 +40,6 @@ class FolderModel {
   }
 
   Map<String, dynamic> toJson() => {
-        "id": id,
-        "Id": id,
         "FolderId": id,
         "Name": name,
         "IconName": iconName,

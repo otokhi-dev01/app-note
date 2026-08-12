@@ -88,9 +88,9 @@ class FolderView extends GetView<FolderController> {
                 opacity: 0.15, // Lower opacity for high-fidelity glass look
                 blur: 10, // Crisper refraction
                 child: IconButton(
-                  onPressed: () => Get.bottomSheet(
+                  onPressed: () => Get.dialog(
                     FolderCreateModal(controller: controller),
-                    isScrollControlled: true,
+                    barrierColor: Colors.black.withValues(alpha: 0.5),
                   ),
                   icon: const Icon(Icons.create_new_folder_outlined, size: 24),
                 ),
