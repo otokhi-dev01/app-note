@@ -5,7 +5,9 @@ import '../../../data/models/folder_model.dart';
 import '../../../theme/app_theme.dart';
 import '../controllers/folder_controller.dart';
 
-/// Local controller to manage the creation/rename state and lifecycle.
+// ─────────────────────────────────────────────────────────────────────────────
+// Local controller: manages text, save state, and lifecycle
+// ─────────────────────────────────────────────────────────────────────────────
 class FolderCreateLogic extends GetxController {
   final FolderModel? folder;
   final FolderController mainController;
@@ -24,15 +26,22 @@ class FolderCreateLogic extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final initialName = folder?.name ?? '';
+    final initialName = folder?.name ?? 'New Folder';
     folderName.value = initialName;
     nameController = TextEditingController(text: initialName);
     nameController.addListener(() => folderName.value = nameController.text);
     nameFocusNode = FocusNode();
 
-    // Auto-focus after the transition
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (nameFocusNode.canRequestFocus) nameFocusNode.requestFocus();
+    // Auto-focus + select all text after screen transition completes
+    Future.delayed(const Duration(milliseconds: 380), () {
+      if (nameFocusNode.canRequestFocus) {
+        nameFocusNode.requestFocus();
+        // Select all text so user can immediately start typing a new name
+        nameController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: nameController.text.length,
+        );
+      }
     });
   }
 
@@ -43,20 +52,32 @@ class FolderCreateLogic extends GetxController {
     super.onClose();
   }
 
+  /// FEATURE: ✓ button tapped → save folder → navigate back to folder view
   Future<void> save() async {
-    if (!canSave) return;
+    final name = folderName.value.trim();
+    if (name.isEmpty || isSaving.value) return;
+
     FocusManager.instance.primaryFocus?.unfocus();
     isSaving.value = true;
 
     try {
+      // Reset controller isSaving in case it was stuck from a prior call
+      mainController.isSaving.value = false;
+
       final success = await mainController.onSaveFolder(
         id: folder?.id ?? 0,
-        name: folderName.value.trim(),
+        name: name,
         iconName: folder?.iconName,
         colorValue: folder?.colorValue,
         sortOrder: folder?.sortOrder,
       );
-      if (success) Get.back();
+
+      if (success) {
+        // Use Get.until() to pop back to /folder route.
+        // This is more reliable than Get.back() when snackbars are showing,
+        // because Get.back() can accidentally dismiss the snackbar overlay instead.
+        Get.until((route) => route.settings.name == '/folder');
+      }
     } finally {
       isSaving.value = false;
     }
@@ -64,105 +85,154 @@ class FolderCreateLogic extends GetxController {
 
   void cancel() {
     FocusManager.instance.primaryFocus?.unfocus();
-    Get.back();
+    // Navigate back to folder view — same as save() for consistency
+    Get.until((route) => route.settings.name == '/folder');
+  }
+
+  void clearName() {
+    nameController.clear();
+    nameFocusNode.requestFocus();
   }
 }
 
-class FolderCreateModal extends StatelessWidget {
+// ─────────────────────────────────────────────────────────────────────────────
+// Main screen widget
+// ─────────────────────────────────────────────────────────────────────────────
+class FolderCreateModal extends StatefulWidget {
   final FolderModel? folder;
   final FolderController controller;
 
   const FolderCreateModal({super.key, this.folder, required this.controller});
 
   @override
+  State<FolderCreateModal> createState() => _FolderCreateModalState();
+}
+
+class _FolderCreateModalState extends State<FolderCreateModal> {
+  late final FolderCreateLogic _c;
+
+  @override
+  void initState() {
+    super.initState();
+    final tag = widget.folder != null ? 'rename_${widget.folder!.id}' : 'create';
+    _c = Get.put(
+      FolderCreateLogic(folder: widget.folder, mainController: widget.controller),
+      tag: tag,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Initialize the local logic controller
-    final c = Get.put(FolderCreateLogic(folder: folder, mainController: controller));
-    final theme = Theme.of(context);
-    final mediaQuery = MediaQuery.of(context);
-    
-    // UI logic: Full screen height handling keyboard
+    final mq = MediaQuery.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: _sheetColor(context),
-      resizeToAvoidBottomInset: false, // We handle padding manually for immersion
-      body: GestureDetector(
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: Column(
-          children: [
-            // Top Safe Area
-            SizedBox(height: mediaQuery.padding.top),
-            
-            // Header Section
-            _buildHeader(context, c),
-            
-            // Main Content Area (Full screen scrollable)
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  20, 
-                  12, 
-                  20, 
-                  mediaQuery.viewInsets.bottom + 40, // Logic: Dynamic bottom padding to follow keyboard
+      backgroundColor: isDark ? const Color(0xFF1C1C1E) : AppTheme.bodyColor,
+      resizeToAvoidBottomInset: false, // We manage keyboard inset manually
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Top safe area ────────────────────────────────────
+          SizedBox(height: mq.padding.top),
+
+          // ── Header: [X]  Title  [✓] ──────────────────────────
+          _buildHeader(context, _c, isDark),
+
+          // ── Scrollable content, keyboard-aware ───────────────
+          Expanded(
+            child: GestureDetector(
+              // Tap empty area to dismiss keyboard
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(
+                  bottom: mq.viewInsets.bottom > 0
+                      ? mq.viewInsets.bottom + 16
+                      : mq.padding.bottom + 16,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildNameField(context, c),
-                    const SizedBox(height: 20),
-                    _buildSmartFolderRow(context, c),
-                  ],
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    children: [
+                      _buildNameField(context, _c, isDark),
+                      const SizedBox(height: 16),
+                      _buildSmartFolderRow(context, _c, isDark),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, FolderCreateLogic c) {
+  // ── Header ──────────────────────────────────────────────────────────────────
+  Widget _buildHeader(BuildContext context, FolderCreateLogic c, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _ActionButton(
-            icon: CupertinoIcons.xmark,
-            onTap: c.cancel,
-            backgroundColor: _isDark(context) ? Colors.white12 : Colors.white,
+          // ✕ Cancel button — always tappable, clears screen on tap
+          _CircleButton(
+            size: 36,
+            backgroundColor: isDark ? Colors.white12 : Colors.white,
+            onTap: c.cancel, // → unfocus + Get.back() → back to folder view
+            child: Icon(
+              CupertinoIcons.xmark,
+              size: 16,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
           ),
+
+          // Title
           Text(
             c.isRenaming ? 'Rename Folder' : 'New Folder',
             style: TextStyle(
-              color: _primaryTextColor(context), // Logic: Fixed color for visibility
               fontSize: 17,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.4,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.3,
+              color: isDark ? Colors.white : Colors.black,
             ),
           ),
-          Obx(() => _ActionButton(
-                icon: CupertinoIcons.checkmark,
-                onTap: c.canSave ? c.save : null,
-                isLoading: c.isSaving.value,
-                backgroundColor: c.canSave 
-                    ? AppTheme.folderPink 
-                    : AppTheme.folderPink.withValues(alpha: 0.4),
-                iconColor: Colors.white,
+
+          // ✓ Save button — pink circle, saves folder then clears screen
+          Obx(() => _CircleButton(
+                size: 40,
+                backgroundColor: c.canSave
+                    ? AppTheme.folderPink
+                    : AppTheme.folderPink.withValues(alpha: 0.35),
+                onTap: c.save, // guard is inside save() — only acts when canSave
+                child: c.isSaving.value
+                    ? const CupertinoActivityIndicator(color: Colors.white, radius: 9)
+                    : const Icon(CupertinoIcons.checkmark, size: 18, color: Colors.white),
               )),
         ],
       ),
     );
   }
 
-  Widget _buildNameField(BuildContext context, FolderCreateLogic c) {
+  // ── Name text field card ─────────────────────────────────────────────────────
+  Widget _buildNameField(BuildContext context, FolderCreateLogic c, bool isDark) {
+    final cardColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
+    final textColor = isDark ? Colors.white : Colors.black;
+
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: _cardColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _cardBorderColor(context), width: 0.5),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: borderColor, width: 0.5),
       ),
       child: Row(
         children: [
@@ -173,15 +243,20 @@ class FolderCreateModal extends StatelessWidget {
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => c.save(),
               cursorColor: AppTheme.folderPink,
+              cursorWidth: 2,
               style: TextStyle(
-                color: _primaryTextColor(context),
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+                color: textColor,
+                fontSize: 17,
+                fontWeight: FontWeight.w400,
+                letterSpacing: -0.2,
               ),
               decoration: InputDecoration(
                 hintText: 'Name',
                 hintStyle: TextStyle(
-                  color: _secondaryTextColor(context).withValues(alpha: 0.5),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.35)
+                      : Colors.black.withValues(alpha: 0.3),
+                  fontSize: 17,
                 ),
                 border: InputBorder.none,
                 isDense: true,
@@ -189,10 +264,15 @@ class FolderCreateModal extends StatelessWidget {
               ),
             ),
           ),
+          // Clear (×) button — visible only when there is text
           Obx(() => c.folderName.value.isNotEmpty
               ? GestureDetector(
-                  onTap: c.nameController.clear,
-                  child: const Icon(CupertinoIcons.clear_circled_solid, color: Colors.grey, size: 20),
+                  onTap: c.clearName,
+                  child: Icon(
+                    CupertinoIcons.clear_circled_solid,
+                    color: isDark ? Colors.white38 : Colors.black26,
+                    size: 20,
+                  ),
                 )
               : const SizedBox.shrink()),
         ],
@@ -200,30 +280,44 @@ class FolderCreateModal extends StatelessWidget {
     );
   }
 
-  Widget _buildSmartFolderRow(BuildContext context, FolderCreateLogic c) {
+  // ── Smart Folder option row ──────────────────────────────────────────────────
+  Widget _buildSmartFolderRow(BuildContext context, FolderCreateLogic c, bool isDark) {
+    final cardColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
+    final primaryText = isDark ? Colors.white : Colors.black;
+    final secondaryText = isDark ? Colors.white54 : Colors.black45;
+
     return Container(
       decoration: BoxDecoration(
-        color: _cardColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _cardBorderColor(context), width: 0.5),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: borderColor, width: 0.5),
       ),
       child: Material(
         color: Colors.transparent,
+        borderRadius: BorderRadius.circular(13),
         child: InkWell(
-          onTap: () => c.folder != null ? c.mainController.onConvertToSmartFolder(c.folder!) : null,
-          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            if (c.folder != null) {
+              c.mainController.onConvertToSmartFolder(c.folder!);
+            }
+          },
+          borderRadius: BorderRadius.circular(13),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
+                // Pink rounded square with gear icon
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: 34,
+                  height: 34,
                   decoration: BoxDecoration(
                     color: AppTheme.folderPink,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(CupertinoIcons.gear_alt, color: Colors.white, size: 20),
+                  child: const Icon(CupertinoIcons.gear_alt_fill, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -233,23 +327,25 @@ class FolderCreateModal extends StatelessWidget {
                       Text(
                         'Make Into Smart Folder',
                         style: TextStyle(
-                          color: _primaryTextColor(context),
-                          fontSize: 17,
+                          color: primaryText,
+                          fontSize: 16,
                           fontWeight: FontWeight.w500,
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Organize using tags and other filters',
-                        style: TextStyle(
-                          color: _secondaryTextColor(context),
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: secondaryText, fontSize: 13),
                       ),
                     ],
                   ),
                 ),
-                const Icon(CupertinoIcons.chevron_forward, color: Colors.grey, size: 16),
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  color: isDark ? Colors.white30 : Colors.black26,
+                  size: 15,
+                ),
               ],
             ),
           ),
@@ -257,46 +353,51 @@ class FolderCreateModal extends StatelessWidget {
       ),
     );
   }
-
-  bool _isDark(BuildContext context) => Theme.of(context).brightness == Brightness.dark;
-  Color _sheetColor(BuildContext context) => _isDark(context) ? const Color(0xFF1C1C1E) : AppTheme.bodyColor;
-  Color _cardColor(BuildContext context) => _isDark(context) ? const Color(0xFF2C2C2E) : AppTheme.cardColor;
-  Color _primaryTextColor(BuildContext context) => _isDark(context) ? Colors.white : AppTheme.textPrimary;
-  Color _secondaryTextColor(BuildContext context) => const Color(0xFF8E8E93);
-  Color _cardBorderColor(BuildContext context) => _isDark(context) ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.72);
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable animated circular button
+// Uses Material+InkWell so taps are never swallowed by parent GestureDetectors
+// ─────────────────────────────────────────────────────────────────────────────
+class _CircleButton extends StatelessWidget {
+  final double size;
   final Color backgroundColor;
-  final Color? iconColor;
-  final bool isLoading;
+  final Widget child;
+  final VoidCallback? onTap;
 
-  const _ActionButton({required this.icon, this.onTap, required this.backgroundColor, this.iconColor, this.isLoading = false});
+  const _CircleButton({
+    required this.size,
+    required this.backgroundColor,
+    required this.child,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: backgroundColor,
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.10),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
+        shape: const CircleBorder(),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Center(
-            child: isLoading
-                ? const CupertinoActivityIndicator(color: Colors.white, radius: 8)
-                : Icon(icon, color: iconColor ?? Colors.grey, size: 18),
-          ),
+          customBorder: const CircleBorder(),
+          splashColor: Colors.white24,
+          highlightColor: Colors.white10,
+          child: Center(child: child),
         ),
       ),
     );
