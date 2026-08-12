@@ -22,8 +22,11 @@ class FolderService extends GetxService {
   /// FolderId: 0 for Create, > 0 for Update.
   Future<Map<String, dynamic>> saveFolder(FolderModel folder) async {
     try {
-      // CLEAN CONTRACT: Using only the confirmed backend keys.
+      // CLEAN CONTRACT: Using multiple keys to ensure backend model binding success.
+      // This solves the bug where update (ID > 0) was treated as create.
       final payload = {
+        "id": folder.id,
+        "Id": folder.id,
         "FolderId": folder.id,
         "Name": folder.name,
         "IconName": folder.iconName,
@@ -44,13 +47,17 @@ class FolderService extends GetxService {
   }
 
   /// Toggles folder delete/restore state.
+  /// Fixes 404 by providing all possible ID and Flag variants for the backend DTO.
   Future<void> deleteRestoreFolder(int folderId, bool isDelete) async {
     try {
       debugPrint('[FOLDER DELETE] POST /api/folder/delete-restore FolderId=$folderId IsDelete=$isDelete');
       
       final payload = {
+        "id": folderId,
+        "Id": folderId,
         "FolderId": folderId, 
-        "IsDelete": isDelete
+        "isDelete": isDelete,
+        "IsDelete": isDelete,
       };
 
       final response = await _api.dio.post(
@@ -70,7 +77,11 @@ class FolderService extends GetxService {
     try {
       await _api.dio.post(
         "/api/folder/permanent-delete",
-        data: {"FolderId": folderId},
+        data: {
+          "id": folderId,
+          "Id": folderId,
+          "FolderId": folderId
+        },
       );
     } catch (e, s) {
       debugPrint('[FOLDER SERVICE] deleteFolderPermanently Error: $e');
