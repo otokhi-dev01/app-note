@@ -136,12 +136,9 @@ class FolderController extends GetxController {
     String? colorValue,
     int? sortOrder,
   }) async {
-    if (name.trim().isEmpty) {
-      Get.snackbar(
-        "Error",
-        "Folder name cannot be empty",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) {
+      Get.snackbar("Error", "Folder name cannot be empty", snackPosition: SnackPosition.BOTTOM);
       return false;
     }
 
@@ -149,13 +146,12 @@ class FolderController extends GetxController {
     isSaving.value = true;
 
     try {
-      if (kDebugMode)
-        debugPrint("[FOLDER DEBUG] onSaveFolder ID: $id, Name: $name");
+      if (kDebugMode) debugPrint("[FOLDER] ${id == 0 ? 'CREATE' : 'UPDATE'} FolderId=$id Name=$cleanName");
 
       final result = await _folderService.saveFolder(
         FolderModel(
           id: id,
-          name: name.trim(),
+          name: cleanName,
           iconName: iconName ?? "folder",
           colorValue: colorValue ?? "#FFB703",
           sortOrder: sortOrder ?? 0,
@@ -167,32 +163,24 @@ class FolderController extends GetxController {
       if (code == 200 || code == 201) {
         await fetchFolders(refresh: true);
         
-        // Root Cause Fix: "Clear screen back" - Exit edit mode and selection UI
+        // Exiting edit mode on success to clear UI state
         isEditing.value = false;
         
         Get.snackbar(
           "Success",
-          id == 0 ? "Folder created" : "Folder renamed",
+          id == 0 ? "Folder created successfully" : "Folder updated successfully",
           snackPosition: SnackPosition.BOTTOM,
           duration: const Duration(milliseconds: 1500),
         );
         return true;
       } else {
         final errorMessage = FolderService.getApiErrorMessage(result);
-        Get.snackbar(
-          "Unable to save folder",
-          errorMessage,
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        Get.snackbar("Unable to save folder", errorMessage, snackPosition: SnackPosition.BOTTOM);
         return false;
       }
     } catch (e) {
-      if (kDebugMode) debugPrint("[FOLDER DEBUG] onSaveFolder FATAL: $e");
-      Get.snackbar(
-        "Error",
-        "Server error. Please try again later.",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      if (kDebugMode) debugPrint("[FOLDER SAVE ERROR] $e");
+      Get.snackbar("Error", "Server error. Please try again later.", snackPosition: SnackPosition.BOTTOM);
       return false;
     } finally {
       isSaving.value = false;
@@ -239,7 +227,6 @@ class FolderController extends GetxController {
 
   Future<void> _updateFolderSection(FolderModel folder, String section) async {
     String newName = folder.name;
-    // Remove existing keywords (case insensitive)
     newName = newName
         .replaceAll(RegExp(r'icloud', caseSensitive: false), '')
         .replaceAll(RegExp(r'shared', caseSensitive: false), '')
@@ -269,11 +256,9 @@ class FolderController extends GetxController {
   }
 
   void onRenameFolder(FolderModel folder) {
-    Get.bottomSheet(
+    Get.dialog(
       FolderCreateModal(folder: folder, controller: this),
-      isScrollControlled: true,
-      enableDrag: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
     );
   }
 

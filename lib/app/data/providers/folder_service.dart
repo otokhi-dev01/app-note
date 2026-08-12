@@ -18,13 +18,12 @@ class FolderService extends GetxService {
     }
   }
 
+  /// Saves or updates a folder.
+  /// FolderId: 0 for Create, > 0 for Update.
   Future<Map<String, dynamic>> saveFolder(FolderModel folder) async {
     try {
-      // Root Cause Fix: Sending multiple ID variations (id, Id, FolderId) 
-      // to ensure the backend update logic is triggered instead of create.
+      // CLEAN CONTRACT: Using only the confirmed backend keys.
       final payload = {
-        "id": folder.id,
-        "Id": folder.id,
         "FolderId": folder.id,
         "Name": folder.name,
         "IconName": folder.iconName,
@@ -33,8 +32,6 @@ class FolderService extends GetxService {
       };
 
       debugPrint('[FOLDER SAVE] POST /api/folder/save ID=${folder.id}');
-      debugPrint('[FOLDER SAVE] Payload: $payload');
-
       final response = await _api.dio.post("/api/folder/save", data: payload);
       
       debugPrint('[FOLDER SAVE] Response: ${response.data}');
@@ -52,11 +49,8 @@ class FolderService extends GetxService {
       debugPrint('[FOLDER DELETE] POST /api/folder/delete-restore FolderId=$folderId IsDelete=$isDelete');
       
       final payload = {
-        "id": folderId,
-        "Id": folderId,
         "FolderId": folderId, 
-        "IsDelete": isDelete,
-        "isDelete": isDelete
+        "IsDelete": isDelete
       };
 
       final response = await _api.dio.post(
@@ -76,7 +70,7 @@ class FolderService extends GetxService {
     try {
       await _api.dio.post(
         "/api/folder/permanent-delete",
-        data: {"FolderId": folderId, "id": folderId},
+        data: {"FolderId": folderId},
       );
     } catch (e, s) {
       debugPrint('[FOLDER SERVICE] deleteFolderPermanently Error: $e');
