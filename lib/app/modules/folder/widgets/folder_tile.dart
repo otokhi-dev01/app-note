@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../routes/app_pages.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/folder_controller.dart';
 import 'folder_context_menu.dart';
 
@@ -21,7 +22,7 @@ class FolderTile extends StatelessWidget {
       return Opacity(
         opacity: (isEditing && isSystem) ? 0.3 : 1.0,
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           onTap: (isEditing && isSystem)
               ? null
               : () {
@@ -37,14 +38,25 @@ class FolderTile extends StatelessWidget {
           onLongPress: isSystem ? null : () => _showContextMenu(context),
           leading: Icon(
             folder.icon,
-            color: theme.primaryColor,
+            color: AppTheme.folderPink, // Matching the pink color in screenshot
             size: 28,
           ),
           title: Text(
             folder.name,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontSize: 17,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.4,
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              "Folder  •  ${folder.noteCount} notes",
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                fontSize: 13,
+              ),
             ),
           ),
           trailing: isEditing && !isSystem
@@ -58,13 +70,13 @@ class FolderTile extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: theme.primaryColor,
+                            color: AppTheme.folderPink,
                             width: 1.2,
                           ),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.more_horiz,
-                          color: theme.primaryColor,
+                          color: AppTheme.folderPink,
                           size: 16,
                         ),
                       ),
@@ -72,31 +84,17 @@ class FolderTile extends StatelessWidget {
                     const SizedBox(width: 4),
                     Icon(
                       Icons.reorder,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                       size: 22,
                     ),
                   ],
                 )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (!isEditing)
-                      Text(
-                        "${folder.noteCount}",
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                          fontSize: 17,
-                        ),
-                      ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.2,
-                      ),
-                      size: 20,
-                    ),
-                  ],
+              : Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.2,
+                  ),
+                  size: 20,
                 ),
         ),
       );

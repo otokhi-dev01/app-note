@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,17 +6,16 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
+import 'note_controller.dart';
 
 class NoteDetailController extends GetxController {
   final NoteService _noteService;
-  final FolderService _folderService;
   final ImagePicker _picker = ImagePicker();
 
   NoteDetailController({
     required NoteService noteService,
     required FolderService folderService,
-  }) : _noteService = noteService,
-       _folderService = folderService;
+  }) : _noteService = noteService;
 
   // --- Observables ---
   final currentNote = Rxn<NoteModel>();
@@ -493,31 +490,47 @@ class NoteDetailController extends GetxController {
   Future<void> togglePin() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    await _noteService.updateNoteState(id, isPinned: !isPinned.value);
-    isPinned.value = !isPinned.value;
+    
+    final newState = !isPinned.value;
+    await _noteService.updateNoteState(id, isPinned: newState);
+    isPinned.value = newState;
+    
+    // Refresh to sync list view
+    Get.find<NoteController>().fetchNotes(refresh: true);
   }
 
   Future<void> toggleArchive() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    await _noteService.updateNoteState(id, isArchived: !isArchived.value);
-    isArchived.value = !isArchived.value;
+    
+    final newState = !isArchived.value;
+    await _noteService.updateNoteState(id, isArchived: newState);
+    isArchived.value = newState;
+    
+    // Refresh list and go back as archived notes usually disappear from the main list
+    Get.find<NoteController>().fetchNotes(refresh: true);
     Get.back(result: true);
   }
 
   Future<void> toggleLock() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    await _noteService.updateNoteState(id, isLocked: !isLocked.value);
-    isLocked.value = !isLocked.value;
+    
+    final newState = !isLocked.value;
+    await _noteService.updateNoteState(id, isLocked: newState);
+    isLocked.value = newState;
   }
 
   Future<void> deleteNote() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    await _noteService.deleteRestoreNote(id, true);
-    Get.back();
-    Get.back(result: true);
+    
+    // Task: Integrated with /api/note/update-state via updateNoteState(isDelete: true)
+    await _noteService.updateNoteState(id, isDelete: true);
+    
+    Get.find<NoteController>().fetchNotes(refresh: true);
+    Get.back(); // Close popup
+    Get.back(result: true); // Close detail view
   }
 
   Future<void> moveNote() async {

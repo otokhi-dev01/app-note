@@ -9,6 +9,7 @@ class FolderModel {
   final int noteCount;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? deletedAt;
 
   FolderModel({
     required this.id,
@@ -19,34 +20,34 @@ class FolderModel {
     this.noteCount = 0,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
   });
 
   factory FolderModel.fromJson(Map<String, dynamic> json) {
     return FolderModel(
-      id: json['FolderId'] ?? json['id'] ?? json['Id'] ?? 0,
+      id: _toInt(json['FolderId'] ?? json['id'] ?? json['Id']),
       name: (json['FolderName'] ?? json['Name'] ?? json['name'] ?? '')
           .toString()
           .trim(),
       iconName: json['IconName'] ?? json['iconName'] ?? '',
       colorValue: json['ColorValue'] ?? json['colorValue'] ?? '',
-      sortOrder: json['SortOrder'] ?? json['sortOrder'] ?? 0,
-      noteCount: json['NoteCount'] ?? json['noteCount'] ?? 0,
-      createdAt: json['CreatedAt'] != null
-          ? DateTime.tryParse(json['CreatedAt'])
-          : null,
-      updatedAt: json['UpdatedAt'] != null
-          ? DateTime.tryParse(json['UpdatedAt'])
-          : null,
+      sortOrder: _toInt(json['SortOrder'] ?? json['sortOrder']),
+      noteCount: _toInt(json['NoteCount'] ?? json['noteCount']),
+      createdAt: _parseDate(json['CreatedAt'] ?? json['createdAt']),
+      updatedAt: _parseDate(json['UpdatedAt'] ?? json['updatedAt']),
+      deletedAt: _parseDate(json['DeletedAt'] ?? json['deletedAt']),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    "FolderId": id,
-    "Name": name,
-    "IconName": iconName,
-    "ColorValue": colorValue,
-    "SortOrder": sortOrder,
-  };
+        "id": id,
+        "Id": id,
+        "FolderId": id,
+        "Name": name,
+        "IconName": iconName,
+        "ColorValue": colorValue,
+        "SortOrder": sortOrder,
+      };
 
   IconData get icon {
     switch (iconName.toLowerCase()) {
@@ -70,14 +71,23 @@ class FolderModel {
     if (colorValue.startsWith('#')) {
       return Color(int.parse(colorValue.replaceFirst('#', '0xFF')));
     }
-    // Handle large decimal strings from API
     return Color(int.tryParse(colorValue) ?? 0xFFFF69B4);
+  }
+
+  static int _toInt(dynamic v) {
+    if (v is int) return v;
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  static DateTime? _parseDate(dynamic v) {
+    if (v == null) return null;
+    return DateTime.tryParse(v.toString());
   }
 }
 
 class FolderResponse {
   final List<FolderModel> folders;
-  final List<dynamic> trash;
+  final List<FolderModel> trash;
   final int code;
   final String message;
 
@@ -90,27 +100,35 @@ class FolderResponse {
 
   factory FolderResponse.fromJson(Map<String, dynamic> json) {
     final dynamic rawData = json['data'];
-    Map<String, dynamic> data = {};
-    List folderList = [];
-    List archiveList = [];
-    List trashList = [];
+    List<FolderModel> activeList = [];
+    List<FolderModel> trashList = [];
 
     if (rawData is Map) {
-      data = Map<String, dynamic>.from(rawData);
-      folderList = data['folder'] as List? ?? [];
-      archiveList = data['archive'] as List? ?? [];
-      trashList = data['trash'] as List? ?? [];
+      final List rawFolderList = (rawData['folder'] ?? []) as List;
+      final List rawArchiveList = (rawData['archive'] ?? []) as List;
+      final List rawTrashList = (rawData['trash'] ?? []) as List;
+
+      // Parse and filter
+      final allItems = [
+        ...rawFolderList.map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e))),
+        ...rawArchiveList.map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e))),
+      ];
+
+      activeList = allItems.where((f) => f.deletedAt == null).toList();
+      
+      // Combine explicit trash with soft-deleted items found in main lists
+      final explicitTrash = rawTrashList.map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      final implicitTrash = allItems.where((f) => f.deletedAt != null).toList();
+      trashList = [...explicitTrash, ...implicitTrash];
+
     } else if (rawData is List) {
-      folderList = rawData;
+      final all = rawData.map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e))).toList();
+      activeList = all.where((f) => f.deletedAt == null).toList();
+      trashList = all.where((f) => f.deletedAt != null).toList();
     }
 
-    // Combine folder and archive for active display
-    final List combinedFolders = [...folderList, ...archiveList];
-
     return FolderResponse(
-      folders: combinedFolders
-          .map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e)))
-          .toList(),
+      folders: activeList,
       trash: trashList,
       code: json['code'] ?? 0,
       message: json['message'] ?? '',

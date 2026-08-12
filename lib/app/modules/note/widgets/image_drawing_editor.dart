@@ -49,11 +49,6 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
                 color: AppTheme.folderPink,
               ),
             ),
-          IconButton(
-            tooltip: 'Share',
-            onPressed: _shareImage,
-            icon: const Icon(CupertinoIcons.share),
-          ),
           const SizedBox(width: 8),
         ],
       ),
@@ -93,14 +88,6 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
             ),
         ],
       ),
-    );
-  }
-
-  void _shareImage() {
-    Get.snackbar(
-      "Info",
-      "Sharing options will be available soon.",
-      colorText: Colors.white,
     );
   }
 

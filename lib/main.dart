@@ -8,11 +8,11 @@ import 'app/theme/app_theme.dart';
 import 'app/data/providers/theme_service.dart';
 
 /*
-  App: OTOKHI Notes
-  Date: 08.11.2026 update by nona.dev in the evening at 8:00pm
+  App: Otokhi Notes
+  Date: 08.11.2026 update by nona in the morning at 5:00am
   Update by: branch nona_developer
   Update by: branch nona
-  Feature: dark mode and light mode, rebranding to OTOKHI
+  Feature: dark mode and light mode, rebranding to Otokhi
  */
 
 void main() async {

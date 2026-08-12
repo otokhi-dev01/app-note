@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart' hide Response;
@@ -81,18 +80,8 @@ class NoteService extends GetxService {
       noteId: noteId,
     );
 
-    // 2. Upload Attachments and update blocks
-    if (content != null) {
-      final detailController = Get.find<GetxController>(
-        tag: 'NoteDetailController',
-      );
-      // If we are in the context of NoteDetailController, it handles uploads.
-      // But if NoteService is used directly, we should ideally handle it here or in controller.
-      // The current logic in NoteDetailController is better as it updates observables.
-    }
-
     if (content != null && content.isNotEmpty) {
-      // 3. Final Content Sync
+      // 2. Final Content Sync
       await saveNoteContent(
         noteId: confirmedId,
         title: title,
@@ -250,28 +239,24 @@ class NoteService extends GetxService {
     }
   }
 
-  Future<void> deleteRestoreNote(int id, bool isDelete) async {
-    try {
-      final Map<String, dynamic> payload = {"id": id, "isDelete": isDelete};
-      await _api.dio.post("/api/note/update-state", data: payload);
-    } catch (e, s) {
-      debugPrint('[NOTE SERVICE] deleteRestoreNote Error: $e');
-      debugPrintStack(stackTrace: s);
-      rethrow;
-    }
-  }
-
+  /// Standardized state update API (Task: Integrated with /api/note/update-state)
   Future<void> updateNoteState(
     int id, {
     bool? isPinned,
     bool? isArchived,
     bool? isLocked,
+    bool? isDelete,
   }) async {
     try {
-      final Map<String, dynamic> payload = {"id": id};
+      debugPrint('[NOTE STATE] POST /api/note/update-state NoteId=$id');
+      final Map<String, dynamic> payload = {
+        "id": id,
+        "NoteId": id, // Casing robustness
+      };
       if (isPinned != null) payload["IsPinned"] = isPinned;
       if (isArchived != null) payload["IsArchived"] = isArchived;
       if (isLocked != null) payload["IsLocked"] = isLocked;
+      if (isDelete != null) payload["IsDelete"] = isDelete;
 
       await _api.dio.post("/api/note/update-state", data: payload);
     } catch (e, s) {
@@ -281,9 +266,14 @@ class NoteService extends GetxService {
     }
   }
 
+  Future<void> deleteRestoreNote(int id, bool isDelete) async {
+    // Re-use updateNoteState for consistency
+    await updateNoteState(id, isDelete: isDelete);
+  }
+
   Future<void> deleteNotePermanently(int id) async {
     try {
-      final Map<String, dynamic> payload = {"id": id};
+      final Map<String, dynamic> payload = {"id": id, "NoteId": id};
       await _api.dio.post("/api/note/permanent-delete", data: payload);
     } catch (e, s) {
       debugPrint('[NOTE SERVICE] deleteNotePermanently Error: $e');
