@@ -70,20 +70,8 @@ class RecentlyDeletedController extends GetxController {
       deletedNotes.assignAll(noteResponse);
 
       // Map Folder Models from the trash list
-      final List<FolderModel> folders = (folderRes.trash).map((e) {
-        if (e is Map<String, dynamic>) {
-          return FolderModel.fromJson(e);
-        }
-        return FolderModel(
-          id: e is int ? e : 0,
-          name: "Unknown Folder",
-          iconName: "folder",
-          colorValue: "0xFFFFCC00",
-          sortOrder: 0,
-        );
-      }).toList();
-
-      deletedFolders.assignAll(folders);
+      // Root Cause Fix: folderRes.trash is already List<FolderModel>
+      deletedFolders.assignAll(folderRes.trash);
 
       debugPrint(
         "SUCCESS: Fetched ${deletedNotes.length} notes and ${deletedFolders.length} folders in trash.",

@@ -25,10 +25,11 @@ class ArchiveView extends GetView<NoteController> {
               statusBarColor: Colors.transparent,
             ),
       child: Scaffold(
+        extendBody: true,
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         body: RefreshIndicator(
-          onRefresh: () => controller.fetchNotes(),
+          onRefresh: () => controller.fetchNotes(refresh: true),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
           edgeOffset: 140,
@@ -36,11 +37,18 @@ class ArchiveView extends GetView<NoteController> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               _buildAppBar(context),
+              _buildArchiveHeader(context),
               _buildArchiveList(context),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
         ),
+        bottomNavigationBar: Obx(() {
+          if (controller.isEditing.value) {
+            return _buildEditBottomBar(context);
+          }
+          return const SizedBox.shrink();
+        }),
       ),
     );
   }
@@ -94,11 +102,70 @@ class ArchiveView extends GetView<NoteController> {
               size: 24,
             ),
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
           ),
         ),
       ),
       leadingWidth: 70,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Obx(
+            () => controller.isEditing.value
+                ? LiquidGlassContainer(
+                    width: 44,
+                    height: 44,
+                    shape: GlassShape.circle,
+                    showGlow: true,
+                    thickness: 8,
+                    opacity: 0.15,
+                    blur: 10,
+                    child: GestureDetector(
+                      onTap: controller.toggleEditing,
+                      child: Center(
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.primaryColor,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : LiquidGlassContainer(
+                    height: 36,
+                    borderRadius: 18,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    showGlow: true,
+                    thickness: 8,
+                    opacity: 0.15,
+                    blur: 10,
+                    child: TextButton(
+                      onPressed: controller.toggleEditing,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        "Edit",
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
@@ -123,6 +190,36 @@ class ArchiveView extends GetView<NoteController> {
     );
   }
 
+  Widget _buildArchiveHeader(BuildContext context) {
+    final theme = Theme.of(context);
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Obx(
+          () => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${controller.archivedNotes.length} ${controller.archivedNotes.length == 1 ? 'Note' : 'Notes'}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Archived notes are kept separate from your main notes list. You can restore them at any time.",
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildArchiveList(BuildContext context) {
     final theme = Theme.of(context);
     return Obx(() {
@@ -134,29 +231,22 @@ class ArchiveView extends GetView<NoteController> {
         );
       }
 
-      if (controller.hasError.value) {
-        return SliverFillRemaining(
+      if (controller.archivedNotes.isEmpty) {
+        return const SliverFillRemaining(
+          hasScrollBody: false,
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.wifi_off_rounded,
-                  size: 64,
-                  color: AppTheme.textSecondary,
+                Icon(
+                  CupertinoIcons.archivebox,
+                  size: 60,
+                  color: Colors.grey,
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  controller.errorMessage.value,
-                  style: theme.textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => controller.fetchNotes(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.folderPink,
-                  ),
-                  child: const Text("Retry"),
+                  "No Archived Notes",
+                  style: TextStyle(color: Colors.grey, fontSize: 18),
                 ),
               ],
             ),
@@ -164,100 +254,121 @@ class ArchiveView extends GetView<NoteController> {
         );
       }
 
-      if (controller.archivedNotes.isEmpty) {
-        return const SliverFillRemaining(
-          hasScrollBody: false,
-          child: Center(child: Text("No Archived Notes")),
-        );
-      }
-
       final pinnedArchived = controller.pinnedArchivedNotes;
       final otherArchived = controller.otherArchivedNotes;
       final groupedNotes = _groupNotesByDate(otherArchived);
 
-      return SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            if (pinnedArchived.isNotEmpty) {
-              if (index == 0) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 8),
-                        child: Text(
-                          "Pinned",
-                          style: theme.textTheme.titleLarge,
-                        ),
-                      ),
-                      GlassCard(
-                        borderRadius: 30,
-                        children: [
-                          for (int i = 0; i < pinnedArchived.length; i++) ...[
-                            ArchiveNoteTile(
-                              note: pinnedArchived[i],
-                              controller: controller,
-                            ),
-                            if (i < pinnedArchived.length - 1)
-                              const Divider(indent: 56, height: 1),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                );
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (pinnedArchived.isNotEmpty) {
+                if (index == 0) {
+                  return _buildSection(context, "Pinned", pinnedArchived);
+                }
+                final groupIndex = index - 1;
+                if (groupIndex < groupedNotes.length) {
+                  final section = groupedNotes.keys.elementAt(groupIndex);
+                  return _buildSection(context, section, groupedNotes[section]!);
+                }
+              } else {
+                if (index < groupedNotes.length) {
+                  final section = groupedNotes.keys.elementAt(index);
+                  return _buildSection(context, section, groupedNotes[section]!);
+                }
               }
-              final groupIndex = index - 1;
-              if (groupIndex < groupedNotes.length) {
-                return _buildDateGroup(context, groupedNotes, groupIndex);
-              }
-            } else {
-              if (index < groupedNotes.length) {
-                return _buildDateGroup(context, groupedNotes, index);
-              }
-            }
-            return null;
-          },
-          childCount: (pinnedArchived.isNotEmpty ? 1 : 0) + groupedNotes.length,
+              return null;
+            },
+            childCount: (pinnedArchived.isNotEmpty ? 1 : 0) + groupedNotes.length,
+          ),
         ),
       );
     });
   }
 
-  Widget _buildDateGroup(
-    BuildContext context,
-    Map<String, List<NoteModel>> groupedNotes,
-    int index,
-  ) {
+  Widget _buildSection(BuildContext context, String title, List<NoteModel> notes) {
     final theme = Theme.of(context);
-    final section = groupedNotes.keys.elementAt(index);
-    final sectionNotes = groupedNotes[section]!;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 8),
-            child: Text(section, style: theme.textTheme.titleLarge),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, top: 16, bottom: 8),
+          child: Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
           ),
-          GlassCard(
-            borderRadius: 30,
-            children: [
-              for (int i = 0; i < sectionNotes.length; i++) ...[
-                ArchiveNoteTile(note: sectionNotes[i], controller: controller),
-                if (i < sectionNotes.length - 1)
-                  const Divider(indent: 56, height: 1),
-              ],
+        ),
+        GlassCard(
+          borderRadius: 28,
+          children: [
+            for (int i = 0; i < notes.length; i++) ...[
+              ArchiveNoteTile(
+                note: notes[i],
+                controller: controller,
+              ),
+              if (i < notes.length - 1)
+                const Divider(indent: 20, height: 1, thickness: 0.5),
             ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEditBottomBar(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _actionButton(
+              context,
+              "Delete",
+              color: Colors.redAccent,
+              onTap: () => controller.deleteSelectedNotes(0),
+            ),
+            _actionButton(
+              context,
+              "Unarchive",
+              onTap: () {
+                // Implementation for unarchiving selected notes
+                Get.snackbar("Info", "Unarchive functionality coming soon");
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionButton(
+    BuildContext context,
+    String label, {
+    Color? color,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: LiquidGlassContainer(
+        borderRadius: 25,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        thickness: 6,
+        showGlow: true,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color ?? theme.colorScheme.onSurface,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
-        ],
+        ),
       ),
     );
   }

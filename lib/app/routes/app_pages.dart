@@ -17,11 +17,7 @@ import '../modules/profile/views/profile_view.dart';
 import '../modules/profile/bindings/profile_binding.dart';
 import '../modules/recently_deleted/views/recently_deleted_view.dart';
 import '../modules/recently_deleted/bindings/recently_deleted_binding.dart';
-import '../modules/trash/views/trash_view.dart';
-import '../modules/trash/bindings/trash_binding.dart';
 import '../modules/archive/views/archive_view.dart';
-import '../modules/pinned/views/pinned_view.dart';
-import '../modules/pinned/bindings/pinned_binding.dart';
 
 part 'app_routes.dart';
 
@@ -80,19 +76,9 @@ class AppPages {
       binding: RecentlyDeletedBinding(),
     ),
     GetPage(
-      name: Routes.TRASH,
-      page: () => const TrashView(),
-      binding: TrashBinding(),
-    ),
-    GetPage(
       name: Routes.ARCHIVE,
       page: () => const ArchiveView(),
       binding: NoteBinding(),
-    ),
-    GetPage(
-      name: Routes.PINNED,
-      page: () => const PinnedView(),
-      binding: PinnedBinding(),
     ),
   ];
 }

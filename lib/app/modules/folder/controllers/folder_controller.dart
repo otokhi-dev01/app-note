@@ -16,19 +16,22 @@ class FolderController extends GetxController {
   final _noteService = Get.find<NoteService>();
 
   final folders = <FolderModel>[].obs;
+  final trashFolders = <FolderModel>[].obs;
   final deletedCount = 0.obs;
   final allNotesCount = 0.obs;
   final archivedCount = 0.obs;
-  final pinnedNotesCount = 0.obs;
   final isLoading = true.obs;
   final isEditing = false.obs;
   final isGroupedByDate = false.obs;
+  
+  // Guards to prevent duplicate API calls
+  final isDeleting = false.obs;
+  final isSaving = false.obs;
 
   // Section expanded states
   final isICloudExpanded = true.obs;
   final isOnMyiPhoneExpanded = true.obs;
   final isSharedExpanded = true.obs;
-  final isPinnedExpanded = true.obs;
   final isNotesSectionExpanded = true.obs;
 
   @override
@@ -41,7 +44,6 @@ class FolderController extends GetxController {
   void toggleOnMyiPhone() =>
       isOnMyiPhoneExpanded.value = !isOnMyiPhoneExpanded.value;
   void toggleShared() => isSharedExpanded.value = !isSharedExpanded.value;
-  void togglePinned() => isPinnedExpanded.value = !isPinnedExpanded.value;
   void toggleNotesSection() =>
       isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
 
@@ -71,27 +73,17 @@ class FolderController extends GetxController {
     }
   }
 
-  List<FolderModel> get pinnedFolders => folders
-      .where(
-        (f) =>
-            f.name.toLowerCase().contains("pinned") ||
-            f.name.toLowerCase().contains("favorite"),
-      )
-      .toList();
-
   List<FolderModel> get iCloudFolders => folders
       .where(
         (f) =>
-            f.name.toLowerCase().contains("icloud") &&
-            !pinnedFolders.contains(f),
+            f.name.toLowerCase().contains("icloud"),
       )
       .toList();
 
   List<FolderModel> get sharedFolders => folders
       .where(
         (f) =>
-            f.name.toLowerCase().contains("shared") &&
-            !pinnedFolders.contains(f),
+            f.name.toLowerCase().contains("shared"),
       )
       .toList();
 
@@ -99,8 +91,7 @@ class FolderController extends GetxController {
       .where(
         (f) =>
             !f.name.toLowerCase().contains("icloud") &&
-            !f.name.toLowerCase().contains("shared") &&
-            !pinnedFolders.contains(f),
+            !f.name.toLowerCase().contains("shared"),
       )
       .toList();
 
@@ -121,6 +112,7 @@ class FolderController extends GetxController {
     try {
       final response = await _folderService.getFolders();
       folders.assignAll(response.folders);
+      trashFolders.assignAll(response.trash);
       sortFolders();
       deletedCount.value = response.trash.length;
 
@@ -130,7 +122,6 @@ class FolderController extends GetxController {
       );
       allNotesCount.value = allNotes.notes.length;
       archivedCount.value = allNotes.archive.length;
-      pinnedNotesCount.value = allNotes.notes.where((n) => n.isPinned).length;
     } catch (e) {
       Get.snackbar("Error", "Could not load data");
     } finally {
@@ -154,6 +145,9 @@ class FolderController extends GetxController {
       return false;
     }
 
+    if (isSaving.value) return false;
+    isSaving.value = true;
+
     try {
       if (kDebugMode)
         debugPrint("[FOLDER DEBUG] onSaveFolder ID: $id, Name: $name");
@@ -172,6 +166,10 @@ class FolderController extends GetxController {
 
       if (code == 200 || code == 201) {
         await fetchFolders(refresh: true);
+        
+        // Root Cause Fix: "Clear screen back" - Exit edit mode and selection UI
+        isEditing.value = false;
+        
         Get.snackbar(
           "Success",
           id == 0 ? "Folder created" : "Folder renamed",
@@ -196,6 +194,8 @@ class FolderController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
       return false;
+    } finally {
+      isSaving.value = false;
     }
   }
 
@@ -231,11 +231,6 @@ class FolderController extends GetxController {
             label: "On My iPhone",
             icon: CupertinoIcons.device_phone_portrait,
             onTap: () => _updateFolderSection(folder, ""),
-          ),
-          IOSMenuAction(
-            label: "Pinned",
-            icon: CupertinoIcons.pin,
-            onTap: () => _updateFolderSection(folder, "Pinned"),
           ),
         ],
       ),
@@ -296,18 +291,22 @@ class FolderController extends GetxController {
       return;
     }
 
+    if (isDeleting.value) return;
+
     Get.dialog(
       IOSConfirmationDialog(
         title: "Are you sure you want to delete '${folder.name}'? Its notes will be moved to Recently Deleted.",
         confirmLabel: "Delete Folder",
         onConfirm: () async {
+          if (isDeleting.value) return;
+          isDeleting.value = true;
           isLoading.value = true;
           try {
             await _folderService.deleteRestoreFolder(folder.id, true);
             await fetchFolders(refresh: true);
             Get.snackbar(
               "Success",
-              "Folder moved to trash",
+              "Folder moved to Recently Deleted",
               snackPosition: SnackPosition.BOTTOM,
             );
           } catch (e) {
@@ -316,6 +315,7 @@ class FolderController extends GetxController {
               "Could not delete folder. Please try again.",
             );
           } finally {
+            isDeleting.value = false;
             isLoading.value = false;
           }
         },
