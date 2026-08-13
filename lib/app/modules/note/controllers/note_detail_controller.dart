@@ -7,6 +7,7 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
+import '../../folder/controllers/folder_controller.dart';
 import '../widgets/note_move_folder_modal.dart';
 import 'note_controller.dart';
 
@@ -535,16 +536,51 @@ class NoteDetailController extends GetxController {
 
   Future<void> deleteNote() async {
     final id = currentNote.value?.id ?? 0;
-    if (id == 0) return;
+    if (id == 0 || isSaving.value) return;
     
-    Get.back(); // Close menu
+    // Logic: Immediately unfocus and hide keyboard
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    // Close the "More" menu popup
+    if (Get.isDialogOpen ?? false) Get.back(); 
+
+    isLoading.value = true;
     try {
+      // Logic: Start soft delete on server
       await _noteService.updateNoteState(id, isDelete: true);
-      Get.find<NoteController>().fetchNotes(refresh: true);
-      Get.back(result: true); // Back to list
-      Get.snackbar("Success", "Moved to Recently Deleted");
+      
+      // FEATURE: Synchronize with FolderController to update global trash counts
+      if (Get.isRegistered<FolderController>()) {
+        Get.find<FolderController>().fetchFolders(refresh: true);
+      }
+      
+      // Optimistic UI: Clean up local lists so background is updated instantly
+      if (Get.isRegistered<NoteController>()) {
+        final nc = Get.find<NoteController>();
+        nc.notes.removeWhere((n) => n.id == id);
+        nc.pinnedNotes.removeWhere((n) => n.id == id);
+        nc.otherNotes.removeWhere((n) => n.id == id);
+        nc.fetchNotes(refresh: true);
+      }
+
+      // FEATURE Logic: Wipe all local state to "Clean screen"
+      blocks.clear();
+      titleController.clear();
+      currentNote.value = null;
+
+      // Logic: Exit detail view completely
+      Get.back(result: true); 
+
+      Get.snackbar(
+        "Success", 
+        "Note moved to Recently Deleted",
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 1),
+      );
     } catch (e) {
       Get.snackbar("Error", "Could not delete note");
+    } finally {
+      isLoading.value = false;
     }
   }
 
