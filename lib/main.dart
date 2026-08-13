@@ -9,7 +9,7 @@ import 'app/data/providers/theme_service.dart';
 
 /*
   App: Otokhi Notes
-  Date: 08.12.2026 update by nona in the morning at 5:00am
+  Date: 08.13.2026 update by nona in the morning at 8:00am
   Update by: branch nona_developer
   Update by: branch nona
   Feature: dark mode and light mode, rebranding to Otokhi
