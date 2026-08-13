@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../theme/app_theme.dart';
 import '../controllers/folder_controller.dart';
+import '../../../widgets/glass_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Local controller: manages text, save state, and lifecycle
@@ -127,46 +128,52 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1C1C1E) : AppTheme.bodyColor,
+      backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false, // We manage keyboard inset manually
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Top safe area ────────────────────────────────────
-          SizedBox(height: mq.padding.top),
+      body: LiquidGlassContainer(
+        borderRadius: 0,
+        blur: 40,
+        opacity: 0.1,
+        thickness: 0,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Top safe area ────────────────────────────────────
+            SizedBox(height: mq.padding.top),
 
-          // ── Header: [X]  Title  [✓] ──────────────────────────
-          _buildHeader(context, _c, isDark),
+            // ── Header: [X]  Title  [✓] ──────────────────────────
+            _buildHeader(context, _c, isDark),
 
-          // ── Scrollable content, keyboard-aware ───────────────
-          Expanded(
-            child: GestureDetector(
-              // Tap empty area to dismiss keyboard
-              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-              behavior: HitTestBehavior.opaque,
-              child: AnimatedPadding(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOut,
-                padding: EdgeInsets.only(
-                  bottom: mq.viewInsets.bottom > 0
-                      ? mq.viewInsets.bottom + 16
-                      : mq.padding.bottom + 16,
-                ),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    children: [
-                      _buildNameField(context, _c, isDark),
-                      const SizedBox(height: 16),
-                      _buildSmartFolderRow(context, _c, isDark),
-                    ],
+            // ── Scrollable content, keyboard-aware ───────────────
+            Expanded(
+              child: GestureDetector(
+                // Tap empty area to dismiss keyboard
+                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedPadding(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOut,
+                  padding: EdgeInsets.only(
+                    bottom: mq.viewInsets.bottom > 0
+                        ? mq.viewInsets.bottom + 16
+                        : mq.padding.bottom + 16,
+                  ),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Column(
+                      children: [
+                        _buildNameField(context, _c, isDark),
+                        const SizedBox(height: 16),
+                        _buildSmartFolderRow(context, _c, isDark),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -179,15 +186,21 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ✕ Cancel button — always tappable, clears screen on tap
-          _CircleButton(
-            size: 36,
-            backgroundColor: isDark ? Colors.white12 : Colors.white,
-            onTap: c.cancel, // → unfocus + Get.back() → back to folder view
-            child: Icon(
-              CupertinoIcons.xmark,
-              size: 16,
-              color: isDark ? Colors.white70 : Colors.black54,
+          // ✕ Cancel button
+          LiquidGlassContainer(
+            width: 36,
+            height: 36,
+            shape: GlassShape.circle,
+            opacity: 0.1,
+            blur: 10,
+            child: IconButton(
+              onPressed: c.cancel,
+              icon: Icon(
+                CupertinoIcons.xmark,
+                size: 16,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+              padding: EdgeInsets.zero,
             ),
           ),
 
@@ -202,16 +215,21 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
             ),
           ),
 
-          // ✓ Save button — pink circle, saves folder then clears screen
-          Obx(() => _CircleButton(
-                size: 40,
-                backgroundColor: c.canSave
-                    ? AppTheme.folderPink
-                    : AppTheme.folderPink.withValues(alpha: 0.35),
-                onTap: c.save, // guard is inside save() — only acts when canSave
-                child: c.isSaving.value
-                    ? const CupertinoActivityIndicator(color: Colors.white, radius: 9)
-                    : const Icon(CupertinoIcons.checkmark, size: 18, color: Colors.white),
+          // ✓ Save button
+          Obx(() => LiquidGlassContainer(
+                width: 40,
+                height: 40,
+                shape: GlassShape.circle,
+                opacity: c.canSave ? 0.8 : 0.2,
+                thickness: 5,
+                child: IconButton(
+                  onPressed: c.save,
+                  icon: c.isSaving.value
+                      ? const CupertinoActivityIndicator(color: Colors.white, radius: 9)
+                      : const Icon(CupertinoIcons.checkmark, size: 18, color: Colors.white),
+                  padding: EdgeInsets.zero,
+                  color: AppTheme.folderPink,
+                ),
               )),
         ],
       ),
@@ -220,20 +238,14 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
 
   // ── Name text field card ─────────────────────────────────────────────────────
   Widget _buildNameField(BuildContext context, FolderCreateLogic c, bool isDark) {
-    final cardColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
     final textColor = isDark ? Colors.white : Colors.black;
 
-    return Container(
+    return LiquidGlassContainer(
       height: 56,
+      borderRadius: 13,
+      opacity: 0.1,
+      blur: 10,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: borderColor, width: 0.5),
-      ),
       child: Row(
         children: [
           Expanded(
@@ -264,7 +276,6 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
               ),
             ),
           ),
-          // Clear (×) button — visible only when there is text
           Obx(() => c.folderName.value.isNotEmpty
               ? GestureDetector(
                   onTap: c.clearName,
@@ -282,122 +293,62 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
 
   // ── Smart Folder option row ──────────────────────────────────────────────────
   Widget _buildSmartFolderRow(BuildContext context, FolderCreateLogic c, bool isDark) {
-    final cardColor = isDark ? const Color(0xFF2C2C2E) : Colors.white;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
     final primaryText = isDark ? Colors.white : Colors.black;
     final secondaryText = isDark ? Colors.white54 : Colors.black45;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardColor,
+    return LiquidGlassContainer(
+      borderRadius: 13,
+      opacity: 0.1,
+      blur: 10,
+      child: InkWell(
+        onTap: () {
+          if (c.folder != null) {
+            c.mainController.onConvertToSmartFolder(c.folder!);
+          }
+        },
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: borderColor, width: 0.5),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(13),
-        child: InkWell(
-          onTap: () {
-            if (c.folder != null) {
-              c.mainController.onConvertToSmartFolder(c.folder!);
-            }
-          },
-          borderRadius: BorderRadius.circular(13),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                // Pink rounded square with gear icon
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: AppTheme.folderPink,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(CupertinoIcons.gear_alt_fill, color: Colors.white, size: 20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppTheme.folderPink,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Make Into Smart Folder',
-                        style: TextStyle(
-                          color: primaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: -0.2,
-                        ),
+                child: const Icon(CupertinoIcons.gear_alt_fill, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Make Into Smart Folder',
+                      style: TextStyle(
+                        color: primaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: -0.2,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Organize using tags and other filters',
-                        style: TextStyle(color: secondaryText, fontSize: 13),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Organize using tags and other filters',
+                      style: TextStyle(color: secondaryText, fontSize: 13),
+                    ),
+                  ],
                 ),
-                Icon(
-                  CupertinoIcons.chevron_forward,
-                  color: isDark ? Colors.white30 : Colors.black26,
-                  size: 15,
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                CupertinoIcons.chevron_forward,
+                color: isDark ? Colors.white30 : Colors.black26,
+                size: 15,
+              ),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Reusable animated circular button
-// Uses Material+InkWell so taps are never swallowed by parent GestureDetectors
-// ─────────────────────────────────────────────────────────────────────────────
-class _CircleButton extends StatelessWidget {
-  final double size;
-  final Color backgroundColor;
-  final Widget child;
-  final VoidCallback? onTap;
-
-  const _CircleButton({
-    required this.size,
-    required this.backgroundColor,
-    required this.child,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.10),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          splashColor: Colors.white24,
-          highlightColor: Colors.white10,
-          child: Center(child: child),
         ),
       ),
     );

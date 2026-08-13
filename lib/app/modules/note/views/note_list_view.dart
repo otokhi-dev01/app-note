@@ -29,9 +29,13 @@ class NoteListView extends GetView<NoteController> {
       value: theme.brightness == Brightness.dark
           ? SystemUiOverlayStyle.light.copyWith(
               statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
             )
           : SystemUiOverlayStyle.dark.copyWith(
               statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
             ),
       child: Scaffold(
         extendBody: true,
@@ -78,8 +82,14 @@ class NoteListView extends GetView<NoteController> {
       automaticallyImplyLeading: false,
       centerTitle: true,
       systemOverlayStyle: theme.brightness == Brightness.dark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
+            ),
       title: LayoutBuilder(
         builder: (context, constraints) {
           final double percentage =

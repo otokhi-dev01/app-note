@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../theme/app_theme.dart';
+import 'glass_widgets.dart';
 
 class IOSConfirmationDialog extends StatelessWidget {
   final String title;
@@ -25,96 +25,88 @@ class IOSConfirmationDialog extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Material(
-              color: isDark
-                  ? const Color(0xFF252525).withValues(alpha: 0.85)
-                  : Colors.white.withValues(alpha: 0.9),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                    child: Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black,
-                        height: 1.3,
-                        decoration: TextDecoration.none,
-                      ),
+        child: LiquidGlassContainer(
+          borderRadius: 24,
+          blur: 25,
+          opacity: 0.1,
+          thickness: 10,
+          showGlow: true,
+          child: Material(
+            color: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
-                  Divider(
-                    height: 1,
-                    thickness: 0.5,
-                    color: isDark
-                        ? const Color(0xFF38383A)
-                        : AppTheme.dividerColor,
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => Get.back(),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                          ),
-                          child: Text(
-                            "Cancel",
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppTheme.textPrimary,
+                ),
+                Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  color: theme.dividerColor.withValues(alpha: 0.2),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Get.back(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(24),
                             ),
                           ),
                         ),
-                      ),
-                      Container(
-                        width: 0.5,
-                        height: 50,
-                        color: isDark
-                            ? const Color(0xFF38383A)
-                            : AppTheme.dividerColor,
-                      ),
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () {
-                            Get.back();
-                            onConfirm();
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                          ),
-                          child: Text(
-                            confirmLabel,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w400,
-                              color: isDestructive
-                                  ? Colors.redAccent
-                                  : AppTheme.folderPink,
-                            ),
+                        child: Text(
+                          "Cancel",
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white70 : Colors.black54,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                    Container(
+                      width: 0.5,
+                      height: 60,
+                      color: theme.dividerColor.withValues(alpha: 0.2),
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Get.back();
+                          onConfirm();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(24),
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          confirmLabel,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isDestructive
+                                ? Colors.redAccent
+                                : AppTheme.folderPink,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

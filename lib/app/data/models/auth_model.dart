@@ -45,11 +45,19 @@ class AuthResponse {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>? ?? {};
+    final dynamic dataRaw = json['data'];
+    final Map<String, dynamic> data = (dataRaw is Map<String, dynamic>) ? dataRaw : {};
+    final int code = json['code'] ?? 0;
+    
+    // Only parse user data on success codes
+    final UserData user = (code == 200 || code == 201) 
+        ? UserData.fromJson(data) 
+        : UserData();
+
     return AuthResponse(
       token: data['token']?.toString() ?? '',
-      user: UserData.fromJson(data),
-      code: json['code'] ?? 0,
+      user: user,
+      code: code,
       message: json['message'] ?? '',
     );
   }
@@ -74,14 +82,23 @@ class UserData {
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
-      id: json['userId']?.toString(),
-      fullName: json['fullName']?.toString(),
-      phone: json['phone']?.toString(),
+      id: (json['userId'] ?? json['id'])?.toString(),
+      fullName: (json['fullName'] ?? json['name'])?.toString(),
+      phone: (json['phone'] ?? json['email'])?.toString(),
       deviceName: json['deviceName']?.toString(),
       deviceType: json['deviceType']?.toString(),
-      profileImage: json['profileImage']?.toString(),
+      profileImage: (json['profileImage'] ?? json['avatar'])?.toString(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    "userId": id,
+    "fullName": fullName,
+    "phone": phone,
+    "deviceName": deviceName,
+    "deviceType": deviceType,
+    "profileImage": profileImage,
+  };
 
   UserData copyWith({
     String? id,
@@ -100,13 +117,4 @@ class UserData {
       profileImage: profileImage ?? this.profileImage,
     );
   }
-
-  Map<String, dynamic> toJson() => {
-    "userId": id,
-    "fullName": fullName,
-    "phone": phone,
-    "deviceName": deviceName,
-    "deviceType": deviceType,
-    "profileImage": profileImage,
-  };
 }

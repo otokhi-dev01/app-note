@@ -82,31 +82,43 @@ class OnboardingView extends GetView<OnboardingController> {
           ),
           const Spacer(),
           Obx(
-            () => controller.currentPage.value == controller.pages.length - 1
-                ? const SizedBox(width: 70, height: 44)
-                : TextButton(
-                    onPressed: _skipToLastPage,
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.colorScheme.onSurfaceVariant,
-                      minimumSize: const Size(70, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                      ),
+                () {
+              final isLastPage =
+                  controller.currentPage.value ==
+                      controller.pages.length - 1;
+
+              if (isLastPage) {
+                return const SizedBox(
+                  width: 70,
+                  height: 44,
+                );
+              }
+
+              return LiquidGlassContainer(
+                width: 70,
+                height: 44,
+                child: TextButton(
+                  onPressed: _skipToLastPage,
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.onSurfaceVariant,
+                    minimumSize: const Size(70, 44),
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(22),
                     ),
-                    child: LiquidGlassContainer(
-                      width: 60,
-                      height: 30,
-                      child: Center(
-                        child: const Text(
-                          'Skip',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Skip',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
+                ),
+              );
+            },
           ),
         ],
       ),

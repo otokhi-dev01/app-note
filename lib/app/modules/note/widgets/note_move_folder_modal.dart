@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/glass_widgets.dart';
 
 class NoteMoveFolderModal extends StatelessWidget {
   final List<FolderModel> folders;
@@ -27,13 +28,14 @@ class NoteMoveFolderModal extends StatelessWidget {
       (f) => f.id == currentFolderId,
     );
 
-    return Material( // Root Cause Fix: Wrap in Material to support ListTile
-      color: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF4F3F9),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: LiquidGlassContainer(
+        borderRadius: 30,
+        blur: 35,
+        opacity: 0.1,
+        thickness: 10,
+        padding: const EdgeInsets.all(0),
         child: Column(
           children: [
             // Header: Standard iOS style with X on the left
@@ -41,11 +43,21 @@ class NoteMoveFolderModal extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 55, 16, 8),
               child: Row(
                 children: [
-                  _RoundActionButton(
-                    icon: CupertinoIcons.xmark,
-                    onTap: () => Get.back(),
-                    backgroundColor: isDark ? Colors.white10 : Colors.white,
-                    iconColor: isDark ? Colors.white : Colors.black,
+                  LiquidGlassContainer(
+                    width: 44,
+                    height: 44,
+                    shape: GlassShape.circle,
+                    opacity: 0.1,
+                    blur: 10,
+                    child: IconButton(
+                      onPressed: () => Get.back(),
+                      icon: Icon(
+                        CupertinoIcons.xmark,
+                        color: isDark ? Colors.white : Colors.black,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                   const Expanded(
                     child: Center(
@@ -127,21 +139,12 @@ class NoteMoveFolderModal extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    // ── Folders Container (Standard iOS Rounded Card) ──
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.05)) : null,
-                        boxShadow: isDark ? null : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          )
-                        ],
-                      ),
-                      clipBehavior: Clip.antiAlias,
+                    // ── Folders Container (Glassy Rounded Card) ──
+                    LiquidGlassContainer(
+                      borderRadius: 28,
+                      opacity: 0.05,
+                      blur: 10,
+                      thickness: 5,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -151,13 +154,23 @@ class NoteMoveFolderModal extends StatelessWidget {
                             label: "New Folder",
                             onTap: onCreateNewFolder ?? () {},
                           ),
-                          const Divider(indent: 64, height: 1, thickness: 0.5),
+                          Divider(
+                            indent: 64, 
+                            height: 1, 
+                            thickness: 0.5,
+                            color: theme.dividerColor.withValues(alpha: 0.1),
+                          ),
 
                           // List of available folders
                           for (int i = 0; i < folders.length; i++) ...[
                             _buildFolderTile(context, folders[i]),
                             if (i < folders.length - 1)
-                              const Divider(indent: 64, height: 1, thickness: 0.5),
+                              Divider(
+                                indent: 64, 
+                                height: 1, 
+                                thickness: 0.5,
+                                color: theme.dividerColor.withValues(alpha: 0.1),
+                              ),
                           ],
                         ],
                       ),
@@ -220,42 +233,6 @@ class NoteMoveFolderModal extends StatelessWidget {
         trailing: isCurrent 
           ? const Icon(CupertinoIcons.checkmark, color: AppTheme.folderPink, size: 18)
           : Icon(CupertinoIcons.chevron_forward, color: Colors.grey.withValues(alpha: 0.3), size: 16),
-      ),
-    );
-  }
-}
-
-class _RoundActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  final Color backgroundColor;
-  final Color iconColor;
-
-  const _RoundActionButton({
-    required this.icon,
-    required this.onTap,
-    required this.backgroundColor,
-    required this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
-          child: Center(
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-        ),
       ),
     );
   }
