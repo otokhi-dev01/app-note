@@ -127,8 +127,8 @@ class FolderController extends GetxController {
     }
   }
 
-  /// FEATURE: Logic for the "Check" button.
-  /// Logic: On success, "clears screen" by exiting edit mode and refreshing data.
+  /// FEATURE: Save or rename a folder.
+  /// Returns true on success so the caller (modal) can call Get.back().
   Future<bool> onSaveFolder({
     required int id,
     required String name,
@@ -142,6 +142,8 @@ class FolderController extends GetxController {
       return false;
     }
 
+    // Note: caller (FolderCreateLogic) manages its own isSaving guard.
+    // We only guard here when called directly (e.g. from move/section update).
     if (isSaving.value) return false;
     isSaving.value = true;
 
@@ -153,7 +155,7 @@ class FolderController extends GetxController {
           id: id,
           name: cleanName,
           iconName: iconName ?? "folder",
-          colorValue: colorValue ?? "#FFB703",
+          colorValue: colorValue ?? "#FF69B4", // Default to app pink
           sortOrder: sortOrder ?? 0,
         ),
       );
@@ -161,18 +163,18 @@ class FolderController extends GetxController {
       final int code = _toInt(result['code']) ?? 0;
 
       if (code == 200 || code == 201) {
+        // Refresh folder list so folder view is up-to-date
         await fetchFolders(refresh: true);
-        
-        // FEATURE Logic: "Clear screen back" - Exit edit mode so UI resets to normal state
+        // Reset edit mode so folder view returns to normal state
         isEditing.value = false;
-        
+
         Get.snackbar(
           "Success",
           id == 0 ? "Folder created successfully" : "Folder updated successfully",
           snackPosition: SnackPosition.BOTTOM,
           duration: const Duration(milliseconds: 1500),
         );
-        return true;
+        return true; // ← caller will call Get.back()
       } else {
         final errorMessage = FolderService.getApiErrorMessage(result);
         Get.snackbar(
