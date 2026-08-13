@@ -61,7 +61,7 @@ class FolderContextMenu extends StatelessWidget {
         ),
         IOSMenuAction(
           label: "Delete Folder",
-          icon: CupertinoIcons.trash,
+          icon: CupertinoIcons.delete,
           isDestructive: true,
           onTap: () {
             Get.back();

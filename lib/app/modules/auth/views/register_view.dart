@@ -28,6 +28,7 @@ class RegisterView extends GetView<AuthController> {
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
               backgroundColor: Colors.transparent,
@@ -61,11 +62,6 @@ class RegisterView extends GetView<AuthController> {
                   ),
                 ),
               ),
-              actions: const [
-                SizedBox(
-                  width: 70,
-                ), // Balance the leading width for perfect centering
-              ],
               title: LayoutBuilder(
                 builder: (context, constraints) {
                   final double percentage =
@@ -126,7 +122,7 @@ class RegisterView extends GetView<AuthController> {
                       duration: 600.ms,
                       curve: Curves.easeOutBack,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 15),
                     Text(
                           "Create Account",
                           style: theme.textTheme.headlineSmall?.copyWith(
@@ -139,30 +135,39 @@ class RegisterView extends GetView<AuthController> {
                         .slideY(begin: 0.2, end: 0),
 
                     const SizedBox(height: 8),
-
                     Text(
                       "Sign up to get started",
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 100.ms),
 
-                    const SizedBox(height: 40),
-
+                    const SizedBox(height: 15),
                     // Register Card
-                    Container(
+                    LiquidGlassContainer(
+                      borderRadius: 30,
+                      blur: 35,
+                      opacity: 0.1,
+                      thickness: 15,
+                      showGlow: true,
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(30),
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
                           padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(bottom: 24),
+                                  decoration: BoxDecoration(
+                                    color: theme.dividerColor.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
                               _buildTextField(
                                 context,
                                 controller: controller.nameController,
@@ -175,15 +180,44 @@ class RegisterView extends GetView<AuthController> {
                                 controller: controller.phoneController,
                                 hint: "Phone Number",
                                 icon: FontAwesomeIcons.phone,
+                                keyboardType: TextInputType.phone,
                               ),
                               const SizedBox(height: 16),
-                              _buildTextField(
+                              Obx(() => _buildTextField(
                                 context,
                                 controller: controller.passwordController,
                                 hint: "Password",
                                 icon: FontAwesomeIcons.lock,
-                                isPassword: true,
-                              ),
+                                isPassword: !controller.isPasswordVisible.value,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    controller.isPasswordVisible.value
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    size: 20,
+                                  ),
+                                  onPressed: controller.togglePasswordVisibility,
+                                ),
+                              )),
+                              const SizedBox(height: 16),
+                              Obx(() => _buildTextField(
+                                context,
+                                controller: controller.confirmPasswordController,
+                                hint: "Confirm Password",
+                                icon: FontAwesomeIcons.lock,
+                                isPassword: !controller.isConfirmPasswordVisible.value,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    controller.isConfirmPasswordVisible.value
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.visibility_rounded,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    size: 20,
+                                  ),
+                                  onPressed: controller.toggleConfirmPasswordVisibility,
+                                ),
+                              )),
                               const SizedBox(height: 32),
 
                               Obx(
@@ -201,7 +235,7 @@ class RegisterView extends GetView<AuthController> {
                                       ),
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(30),
                                       ),
                                     ),
                                     child: controller.isLoading.value
@@ -225,12 +259,11 @@ class RegisterView extends GetView<AuthController> {
                               ),
                             ],
                           ),
-                        )
-                        .animate()
-                        .fadeIn(delay: 200.ms)
-                        .slideY(begin: 0.1, end: 0),
+                        ),
+                      ),
+                    ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -258,7 +291,7 @@ class RegisterView extends GetView<AuthController> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(delay: 600.ms),
+                    ),
                   ],
                 ),
               ),
@@ -275,6 +308,8 @@ class RegisterView extends GetView<AuthController> {
     required String hint,
     required dynamic icon,
     bool isPassword = false,
+    Widget? suffixIcon,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     final theme = Theme.of(context);
     return Container(
@@ -285,6 +320,7 @@ class RegisterView extends GetView<AuthController> {
       child: TextField(
         controller: controller,
         obscureText: isPassword,
+        keyboardType: keyboardType,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: hint,
@@ -301,6 +337,7 @@ class RegisterView extends GetView<AuthController> {
                     size: 18,
                   ),
                 ),
+          suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,

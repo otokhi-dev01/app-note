@@ -22,9 +22,13 @@ class FolderView extends GetView<FolderController> {
       value: theme.brightness == Brightness.dark
           ? SystemUiOverlayStyle.light.copyWith(
               statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
             )
           : SystemUiOverlayStyle.dark.copyWith(
               statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
             ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -56,8 +60,14 @@ class FolderView extends GetView<FolderController> {
       automaticallyImplyLeading: false,
       centerTitle: true,
       systemOverlayStyle: theme.brightness == Brightness.dark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
+            ),
       title: LayoutBuilder(
         builder: (context, constraints) {
           final double percentage =
@@ -99,10 +109,11 @@ class FolderView extends GetView<FolderController> {
                   icon: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      const Icon(
+                      Icon(
                         CupertinoIcons.folder,
-                        color: AppTheme.folderPink,
+                        color: theme.colorScheme.onSurface,
                         size: 27,
+                        fontWeight: FontWeight.bold,
                       ),
                       Positioned(
                         right: -3,
@@ -110,15 +121,16 @@ class FolderView extends GetView<FolderController> {
                         child: Container(
                           width: 14,
                           height: 14,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppTheme.folderPink,
                             shape: BoxShape.circle,
                           ),
-                          child: const Center(
+                          child:  Center(
                             child: Icon(
                               CupertinoIcons.plus,
-                              color: Colors.white,
-                              size: 9,
+                              color: theme.colorScheme.onSurface,
+                              size: 10,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -201,7 +213,7 @@ class FolderView extends GetView<FolderController> {
           style: TextStyle(
             color: theme.colorScheme.onSurface,
             fontSize: 17,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),

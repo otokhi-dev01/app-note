@@ -216,15 +216,15 @@ class _MenuContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return LiquidGlassContainer(
       borderRadius: 14,
-      opacity: isDark ? 0.95 : 1.0,
-      blur: 30,
-      child: Material(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      opacity: 0.1,
+      blur: 35,
+      thickness: 8,
+      showGlow: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: children,
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../routes/app_pages.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/glass_widgets.dart';
 import '../controllers/auth_controller.dart';
 
 class LoginView extends GetView<AuthController> {
@@ -25,12 +26,13 @@ class LoginView extends GetView<AuthController> {
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
           slivers: [
             SliverAppBar(
               backgroundColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,
               pinned: true,
-              expandedHeight: 140.0,
+              expandedHeight: 100.0,
               elevation: 0,
               automaticallyImplyLeading: false,
               centerTitle: true,
@@ -43,7 +45,6 @@ class LoginView extends GetView<AuthController> {
                       (constraints.maxHeight - kToolbarHeight) /
                       (140.0 - kToolbarHeight);
                   final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-
                   return Opacity(
                     opacity: opacity > 0.8 ? 1.0 : 0.0,
                     child: Text(
@@ -112,82 +113,133 @@ class LoginView extends GetView<AuthController> {
                       "Login to your account",
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 300.ms),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 15),
                     // Login Card
-                    Container(
+                    LiquidGlassContainer(
+                      borderRadius: 30,
+                      blur: 35,
+                      opacity: 0.1,
+                      thickness: 15,
+                      showGlow: true,
+                      child: Material(
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(30),
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
                           padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
                           child: Column(
                             children: [
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(bottom: 24),
+                                  decoration: BoxDecoration(
+                                    color: theme.dividerColor.withValues(alpha: 0.3),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
                               _buildTextField(
                                 context,
                                 controller: controller.phoneController,
                                 hint: "Phone Number",
                                 icon: FontAwesomeIcons.phone,
+                                keyboardType: TextInputType.phone,
                               ),
                               const SizedBox(height: 20),
-                              _buildTextField(
-                                context,
-                                controller: controller.passwordController,
-                                hint: "Password",
-                                icon: FontAwesomeIcons.lock,
-                                isPassword: true,
-                              ),
-                              const SizedBox(height: 32),
-
-                              Obx(
-                                () => SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: controller.isLoading.value
-                                        ? null
-                                        : controller.login,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.folderPink,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
+                              Obx(() => _buildTextField(
+                                  context,
+                                  controller: controller.passwordController,
+                                  hint: "Password",
+                                  icon: FontAwesomeIcons.lock,
+                                  isPassword:
+                                      !controller.isPasswordVisible.value,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      controller.isPasswordVisible.value
+                                          ? Icons.visibility_off_rounded
+                                          : Icons.visibility_rounded,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      size: 20,
                                     ),
-                                    child: controller.isLoading.value
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : const Text(
-                                            "LOGIN",
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 20,
-                                            ),
-                                          ),
+                                    onPressed:
+                                        controller.togglePasswordVisibility,
+                                  ),
+                                )),
+                            const SizedBox(height: 20), const Divider(height: 1),
+                            Row(
+                              children: [
+                                Obx(() => Checkbox(
+                                      value: controller.rememberMe.value,
+                                      onChanged: (_) =>
+                                          controller.toggleRememberMe(),
+                                      activeColor: AppTheme.folderPink,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    )),
+                                GestureDetector(
+                                  onTap: controller.toggleRememberMe,
+                                  child: Text(
+                                    "Remember Me",
+                                    style: theme.textTheme.bodyMedium,
                                   ),
                                 ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: controller.forgotPassword,
+                                  child: const Text(
+                                    "Forgot Password\?",
+                                    style:
+                                        TextStyle(color: AppTheme.folderPink),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            Obx(
+                              () => SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: controller.isLoading.value
+                                      ? null
+                                      : controller.login,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.folderPink,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: controller.isLoading.value
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          "LOGIN",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                ),
                               ),
-                            ],
-                          ),
-                        )
-                        .animate()
-                        .fadeIn(delay: 400.ms)
-                        .slideY(begin: 0.1, end: 0),
+                            ),
+                          ],
+                        ),
+                        ),
+                      ),
+                    ),
 
                     const SizedBox(height: 28),
                     Row(
@@ -216,7 +268,7 @@ class LoginView extends GetView<AuthController> {
                           ),
                         ),
                       ],
-                    ).animate().fadeIn(delay: 600.ms),
+                    ),
                   ],
                 ),
               ),
@@ -233,16 +285,19 @@ class LoginView extends GetView<AuthController> {
     required String hint,
     required dynamic icon,
     bool isPassword = false,
+    Widget? suffixIcon,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(30),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
+        keyboardType: keyboardType,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: hint,
@@ -259,6 +314,7 @@ class LoginView extends GetView<AuthController> {
                     size: 18,
                   ),
                 ),
+          suffixIcon: suffixIcon,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,

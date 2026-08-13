@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
-import '../theme/app_theme.dart';
 
 // Unique Version: 2026-08-09-14-35
 enum GlassShape { roundedRectangle, oval, circle }
@@ -77,7 +76,7 @@ class _LiquidGlassContainerState extends State<LiquidGlassContainer>
 
     final Color glassColor = isDark
         ? Colors.white.withValues(alpha: 0.1)
-        : AppTheme.cardColor.withValues(alpha: widget.opacity);
+        : Colors.white.withValues(alpha: widget.opacity);
 
     Widget buildContent() {
       return Container(

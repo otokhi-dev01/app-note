@@ -12,20 +12,30 @@ class AuthService extends GetxService {
       data: {"phone": phone, "password": password},
     );
 
-    final authResponse = AuthResponse.fromJson(response.data);
-
-    if (kDebugMode) {
-      debugPrint("Login successful");
-    }
-
-    return authResponse;
+    return AuthResponse.fromJson(response.data);
   }
 
-  Future<void> register(RegisterRequest request) async {
-    await _api.dio.post("/api/auth/register", data: request.toJson());
+  Future<AuthResponse> register(RegisterRequest request) async {
+    final response = await _api.dio.post(
+      "/api/auth/register",
+      data: request.toJson(),
+    );
+    
+    return AuthResponse.fromJson(response.data);
+  }
 
-    if (kDebugMode) {
-      debugPrint("Registration successful");
+  Future<bool> forgotPassword(String phone) async {
+    try {
+      // Placeholder for forgot password API
+      // final response = await _api.dio.post("/api/auth/forgot-password", data: {"phone": phone});
+      // return response.statusCode == 200;
+      
+      // Simulating a network call for now
+      await Future.delayed(const Duration(seconds: 1));
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint("Forgot password error: $e");
+      return false;
     }
   }
 }

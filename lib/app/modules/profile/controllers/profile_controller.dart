@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,6 +7,7 @@ import '../../../data/providers/session_service.dart';
 import '../../../data/providers/theme_service.dart';
 import '../../../routes/app_pages.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/glass_dialog.dart';
 
 class ProfileController extends GetxController {
   final _sessionService = Get.find<SessionService>();
@@ -42,16 +42,34 @@ class ProfileController extends GetxController {
   void updateUserName() {
     final nameController = TextEditingController(text: userName.value);
     Get.dialog(
-      AlertDialog(
-        title: const Text("Edit Name"),
-        content: TextField(
-          controller: nameController,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: "Enter your name"),
+      GlassDialog(
+        title: "Edit Name",
+        content: Container(
+          decoration: BoxDecoration(
+            color: Get.theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: nameController,
+            autofocus: true,
+            style: Get.textTheme.bodyLarge,
+            decoration: const InputDecoration(
+              hintText: "Enter your name",
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text("Cancel")),
           TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Get.theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: () async {
               if (nameController.text.trim().isNotEmpty) {
                 userName.value = nameController.text.trim();
@@ -64,13 +82,21 @@ class ProfileController extends GetxController {
                   );
                 }
                 Get.back();
-                Get.snackbar("Success", "Name updated");
+                Get.snackbar(
+                  "Success", 
+                  "Name updated",
+                  backgroundColor: Colors.green.withValues(alpha: 0.1),
+                  colorText: Colors.green,
+                );
               }
             },
-            child: const Text(
-              "Save",
-              style: TextStyle(color: AppTheme.folderPink),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.folderPink,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
+            child: const Text("Save"),
           ),
         ],
       ),
