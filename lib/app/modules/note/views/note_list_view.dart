@@ -216,9 +216,27 @@ class NoteListView extends GetView<NoteController> {
       }
 
       if (controller.notes.isEmpty) {
-        return const SliverFillRemaining(
+        return SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(child: Text("No Notes")),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.doc_text,
+                  size: 60,
+                  color: Colors.grey.withValues(alpha: 0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "No Notes",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       }
 
@@ -333,9 +351,27 @@ class NoteListView extends GetView<NoteController> {
       }
 
       if (controller.notes.isEmpty) {
-        return const SliverFillRemaining(
+        return SliverFillRemaining(
           hasScrollBody: false,
-          child: Center(child: Text("No Notes")),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  CupertinoIcons.doc_text,
+                  size: 60,
+                  color: Colors.grey.withValues(alpha: 0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  "No Notes",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       }
 

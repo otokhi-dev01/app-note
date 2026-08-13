@@ -124,8 +124,12 @@ class RecentlyDeletedController extends GetxController {
           try {
             if (noteId != null) {
               await _noteService.deleteNotePermanently(noteId);
+              // Optimistic UI: remove from local list instantly
+              deletedNotes.removeWhere((n) => n.id == noteId);
             } else if (folderId != null) {
               await _folderService.deleteFolderPermanently(folderId);
+              // Optimistic UI: remove from local list instantly
+              deletedFolders.removeWhere((f) => f.id == folderId);
             }
             await fetchDeletedItems();
             Get.snackbar(

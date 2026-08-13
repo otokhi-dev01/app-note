@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/providers/folder_service.dart';
@@ -113,12 +112,13 @@ class FolderController extends GetxController {
       folders.assignAll(response.folders);
       trashFolders.assignAll(response.trash);
       sortFolders();
-      deletedCount.value = response.trash.length;
+      
+      // Fetch all notes count to get trash notes count for the "Recently Deleted" tile
+      final allNotes = await _noteService.getNotes(refresh: refresh);
+      
+      // FEATURE: Sum both deleted folders and deleted notes for the "Recently Deleted" tile
+      deletedCount.value = response.trash.length + allNotes.trash.length;
 
-      // Fetch all notes count
-      final NoteResponse allNotes = await _noteService.getNotes(
-        refresh: refresh,
-      );
       allNotesCount.value = allNotes.notes.length;
       archivedCount.value = allNotes.archive.length;
     } catch (e) {
@@ -197,25 +197,19 @@ class FolderController extends GetxController {
   int? _toInt(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '');
 
   /// FEATURE: Logic to Create a New Note
-  /// 1. Finds the best default folder (preferring "Notes" or the first available)
-  /// 2. Navigates to the immersive Note Detail screen
   void createNewNote() {
     if (folders.isEmpty) {
       Get.snackbar("Info", "Please create a folder first before writing a note.");
       return;
     }
 
-    // Try to find the default "Notes" folder, otherwise take the first active folder
     final defaultFolder = folders.firstWhere(
       (f) => f.name.toLowerCase().contains("notes"),
       orElse: () => folders.first,
     );
 
-    debugPrint("[NOTE CREATE] Starting creation in folder: ${defaultFolder.name} (ID: ${defaultFolder.id})");
-
     NoteNavigation.toNewNote(defaultFolder.id)?.then((value) {
       if (value == true) {
-        // Refresh everything to show the new note in counts
         fetchFolders(refresh: true);
       }
     });
@@ -249,7 +243,6 @@ class FolderController extends GetxController {
 
   Future<void> _updateFolderSection(FolderModel folder, String section) async {
     String newName = folder.name;
-    // Remove existing keywords (case insensitive)
     newName = newName
         .replaceAll(RegExp(r'icloud', caseSensitive: false), '')
         .replaceAll(RegExp(r'shared', caseSensitive: false), '')

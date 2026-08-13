@@ -13,6 +13,7 @@ class ImageDrawingEditor extends StatefulWidget {
   final ImageProvider imageProvider;
   final String title;
   final bool canEdit;
+  final bool startWithPencil;
 
   const ImageDrawingEditor({
     super.key,
@@ -21,6 +22,7 @@ class ImageDrawingEditor extends StatefulWidget {
     required this.imageProvider,
     this.title = 'Image Preview',
     this.canEdit = true,
+    this.startWithPencil = false,
   });
 
   @override
@@ -29,6 +31,16 @@ class ImageDrawingEditor extends StatefulWidget {
 
 class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.startWithPencil && widget.canEdit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openProEditor();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +115,9 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
         ),
       ),
       i18n: const I18n(done: 'Save', cancel: 'Cancel'),
+      paintEditor: const PaintEditorConfigs(
+        initialPaintMode: PaintMode.freeStyle,
+      ),
     );
 
     final callbacks = ProImageEditorCallbacks(

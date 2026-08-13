@@ -5,6 +5,7 @@ import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
+import '../../folder/controllers/folder_controller.dart';
 import '../widgets/note_move_folder_modal.dart';
 
 class NoteController extends GetxController {
@@ -41,6 +42,36 @@ class NoteController extends GetxController {
     }
   }
 
+  Future<void> updateNoteState(int id, {bool? isPinned, bool? isArchived}) async {
+    try {
+      await _noteService.updateNoteState(id, isPinned: isPinned, isArchived: isArchived);
+      
+      // FEATURE: Optimistic update for local UI lists
+      final index = notes.indexWhere((n) => n.id == id);
+      if (index != -1) {
+        final oldNote = notes[index];
+        final newNote = NoteModel(
+          id: oldNote.id,
+          folderId: oldNote.folderId,
+          folderName: oldNote.folderName,
+          title: oldNote.title,
+          content: oldNote.content,
+          isPinned: isPinned ?? oldNote.isPinned,
+          isArchived: isArchived ?? oldNote.isArchived,
+          isLocked: oldNote.isLocked,
+          updatedAt: DateTime.now(),
+          deletedAt: oldNote.deletedAt,
+          attachmentCount: oldNote.attachmentCount,
+        );
+        notes[index] = newNote;
+        notes.refresh();
+      }
+    } catch (e) {
+      debugPrint("[NOTE CONTROLLER] Error updating note state: $e");
+      Get.snackbar("Error", "Failed to update note");
+    }
+  }
+
   Future<void> deleteSelectedNotes(int folderId) async {
     final targets = selectedNoteIds.isNotEmpty
         ? selectedNoteIds.toList()
@@ -53,10 +84,23 @@ class NoteController extends GetxController {
       for (final id in targets) {
         if (kDebugMode) debugPrint("[NOTE DEBUG] Deleting NoteId: $id");
         await _noteService.deleteRestoreNote(id, true);
+        
+        // Optimistic UI: remove from local lists instantly
+        notes.removeWhere((n) => n.id == id);
+        pinnedNotes.removeWhere((n) => n.id == id);
+        otherNotes.removeWhere((n) => n.id == id);
       }
       selectedNoteIds.clear();
       isEditing.value = false;
+      
+      // Refresh full state from server
       await fetchNotes(folderId: folderId, refresh: true);
+      
+      // FEATURE: Refresh FolderController to update "Recently Deleted" counts
+      if (Get.isRegistered<FolderController>()) {
+        Get.find<FolderController>().fetchFolders(refresh: true);
+      }
+
       Get.snackbar(
         "Success",
         "Notes moved to Recently Deleted",

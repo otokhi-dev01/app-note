@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/note_model.dart';
+import '../../../widgets/ios_action_menu.dart';
 import '../controllers/note_detail_controller.dart';
 import 'image_drawing_editor.dart';
 
@@ -38,6 +39,7 @@ class NoteAttachmentBlock extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => _openImageEditor(context),
+          onLongPress: () => _showDeleteMenu(context), // Logic: Hold to show delete popup
           child: Container(
             constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
             width: double.infinity,
@@ -72,16 +74,20 @@ class NoteAttachmentBlock extends StatelessWidget {
                     Positioned(
                       top: 8,
                       right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          CupertinoIcons.pencil,
-                          color: Colors.white,
-                          size: 16,
+                      child: GestureDetector(
+                        onTap: () => _openImageEditor(context, directEdit: true), // Logic: Direct pencil tool
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.pencil,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ),
@@ -126,7 +132,7 @@ class NoteAttachmentBlock extends StatelessWidget {
     );
   }
 
-  Future<void> _openImageEditor(BuildContext context) async {
+  Future<void> _openImageEditor(BuildContext context, {bool directEdit = false}) async {
     final imageProvider = _resolveAttachmentImageProvider();
 
     if (imageProvider == null) {
@@ -148,6 +154,7 @@ class NoteAttachmentBlock extends StatelessWidget {
             ? 'Edit Image'
             : block.displayName,
         canEdit: canEdit,
+        startWithPencil: directEdit, // Pass through direct edit flag
       ),
     );
 
@@ -161,6 +168,37 @@ class NoteAttachmentBlock extends StatelessWidget {
 
     // This updates the local block and automatically saves the note
     controller.updateAttachmentImage(blockIndex, result);
+  }
+
+  void _showDeleteMenu(BuildContext context) {
+    if (controller.isReadOnly.value) return;
+
+    Get.dialog(
+      IOSActionMenu(
+        type: IOSMenuType.popup,
+        title: "Attachment Options",
+        actions: [
+          IOSMenuAction(
+            label: "Edit Image",
+            icon: CupertinoIcons.pencil,
+            onTap: () {
+              Get.back();
+              _openImageEditor(context);
+            },
+          ),
+          IOSMenuAction(
+            label: "Delete Picture",
+            icon: CupertinoIcons.trash,
+            isDestructive: true,
+            onTap: () {
+              Get.back();
+              controller.deleteBlock(blockIndex);
+            },
+          ),
+        ],
+      ),
+      barrierColor: Colors.black.withValues(alpha: 0.2),
+    );
   }
 
   ImageProvider? _resolveAttachmentImageProvider() {

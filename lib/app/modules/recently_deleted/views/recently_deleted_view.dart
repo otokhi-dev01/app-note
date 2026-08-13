@@ -6,9 +6,10 @@ import 'package:intl/intl.dart';
 
 import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
-import '../../../routes/note_navigation.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
+import '../../../widgets/ios_action_menu.dart';
+import '../../../widgets/ios_confirmation_dialog.dart';
 import '../controllers/recently_deleted_controller.dart';
 import '../widgets/slidable_note_tile.dart';
 
@@ -22,11 +23,11 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: theme.brightness == Brightness.dark
           ? SystemUiOverlayStyle.light.copyWith(
-        statusBarColor: Colors.transparent,
-      )
+              statusBarColor: Colors.transparent,
+            )
           : SystemUiOverlayStyle.dark.copyWith(
-        statusBarColor: Colors.transparent,
-      ),
+              statusBarColor: Colors.transparent,
+            ),
       child: Scaffold(
         extendBody: true,
         backgroundColor: theme.scaffoldBackgroundColor,
@@ -40,11 +41,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               _buildAppBar(context),
-              _buildTitleSection(context),
+              _buildRecentlyDeletedHeader(context),
               _buildDeletedItemsList(context),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 120),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
         ),
@@ -52,7 +51,6 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           if (controller.isEditing.value) {
             return _buildEditBottomBar(context);
           }
-
           return const SizedBox.shrink();
         }),
       ),
@@ -61,12 +59,11 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-
     return SliverAppBar(
       backgroundColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
       pinned: true,
-      expandedHeight: 140,
+      expandedHeight: 140.0,
       elevation: 0,
       automaticallyImplyLeading: false,
       centerTitle: true,
@@ -77,15 +74,12 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
         builder: (context, constraints) {
           final double percentage =
               (constraints.maxHeight - kToolbarHeight) /
-                  (140.0 - kToolbarHeight);
-
-          final opacity =
-          (1.0 - percentage).clamp(0.0, 1.0);
-
+              (140.0 - kToolbarHeight);
+          final opacity = (1.0 - percentage).clamp(0.0, 1.0);
           return Opacity(
             opacity: opacity > 0.8 ? 1.0 : 0.0,
             child: Text(
-              'Recently Deleted',
+              "Recently Deleted",
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 17,
@@ -118,102 +112,79 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       leadingWidth: 70,
       actions: [
         Padding(
-          padding: const EdgeInsets.only(
-            right: 16,
-          ),
+          padding: const EdgeInsets.only(right: 16),
           child: Obx(
-                () => controller.isEditing.value
+            () => controller.isEditing.value
                 ? LiquidGlassContainer(
-              width: 44,
-              height: 44,
-              shape: GlassShape.circle,
-              showGlow: true,
-              thickness: 8,
-              opacity: 0.15,
-              blur: 10,
-              child: GestureDetector(
-                onTap: controller.toggleEditing,
-                child: Center(
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.primaryColor,
+                    width: 44,
+                    height: 44,
+                    shape: GlassShape.circle,
+                    showGlow: true,
+                    thickness: 8,
+                    opacity: 0.15,
+                    blur: 10,
+                    child: GestureDetector(
+                      onTap: controller.toggleEditing,
+                      child: Center(
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.primaryColor,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-            )
+                  )
                 : LiquidGlassContainer(
-              height: 36,
-              borderRadius: 18,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 4,
-              ),
-              showGlow: true,
-              thickness: 8,
-              opacity: 0.15,
-              blur: 10,
-              child: TextButton(
-                onPressed:
-                controller.toggleEditing,
-                style: TextButton.styleFrom(
-                  padding:
-                  const EdgeInsets.symmetric(
-                    horizontal: 16,
+                    height: 36,
+                    borderRadius: 18,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    showGlow: true,
+                    thickness: 8,
+                    opacity: 0.15,
+                    blur: 10,
+                    child: TextButton(
+                      onPressed: controller.toggleEditing,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        "Edit",
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                   ),
-                  minimumSize: Size.zero,
-                  tapTargetSize:
-                  MaterialTapTargetSize
-                      .shrinkWrap,
-                ),
-                child: Text(
-                  'Edit',
-                  style: TextStyle(
-                    color: theme
-                        .colorScheme.onSurface,
-                    fontSize: 15,
-                    fontWeight:
-                    FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
           ),
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
-        titlePadding:
-        const EdgeInsets.fromLTRB(
-          20,
-          0,
-          16,
-          12,
-        ),
+        titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
         title: LayoutBuilder(
           builder: (context, constraints) {
             final double percentage =
-                (constraints.maxHeight -
-                    kToolbarHeight) /
-                    (140.0 - kToolbarHeight);
-
+                (constraints.maxHeight - kToolbarHeight) /
+                (140.0 - kToolbarHeight);
             return Opacity(
-              opacity:
-              percentage.clamp(0.0, 1.0),
+              opacity: percentage.clamp(0.0, 1.0),
               child: Text(
-                'Recently Deleted',
-                style: theme
-                    .textTheme.headlineLarge
-                    ?.copyWith(
+                "Recently Deleted",
+                style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 28,
+                  fontSize: 27,
                 ),
               ),
             );
@@ -223,60 +194,28 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     );
   }
 
-  Widget _buildTitleSection(
-      BuildContext context,
-      ) {
+  Widget _buildRecentlyDeletedHeader(BuildContext context) {
     final theme = Theme.of(context);
-
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          20,
-          0,
-          20,
-          16,
-        ),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: Obx(
-              () {
-            final noteCount =
-                controller.deletedNotes.length;
-
-            final folderCount =
-                controller.deletedFolders.length;
-
-            final totalItems =
-                noteCount + folderCount;
-
+          () {
+            final totalItems = controller.deletedNotes.length + controller.deletedFolders.length;
             return Column(
-              crossAxisAlignment:
-              CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '$totalItems ${totalItems == 1 ? 'Item' : 'Items'}',
-                  style: theme
-                      .textTheme.bodyMedium
-                      ?.copyWith(
-                    color: theme.colorScheme
-                        .onSurfaceVariant
-                        .withValues(
-                      alpha: 0.6,
-                    ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
                 ),
-                const SizedBox(
-                  height: 12,
-                ),
+                const SizedBox(height: 12),
                 Text(
-                  'Notes and folders are permanently removed after 30 days. '
-                      'You can restore them before they are deleted.',
-                  style: theme
-                      .textTheme.bodySmall
-                      ?.copyWith(
-                    color: theme.colorScheme
-                        .onSurfaceVariant
-                        .withValues(
-                      alpha: 0.5,
-                    ),
+                  "Notes are available here for 30 days. After that time, notes will be permanently deleted. This may take up to 40 days.",
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     height: 1.3,
                   ),
                 ),
@@ -288,54 +227,37 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     );
   }
 
-  Widget _buildDeletedItemsList(
-      BuildContext context,
-      ) {
+  Widget _buildDeletedItemsList(BuildContext context) {
     final theme = Theme.of(context);
-
     return Obx(() {
       if (controller.isLoading.value) {
         return const SliverFillRemaining(
           child: Center(
-            child: CircularProgressIndicator(
-              color: AppTheme.folderPink,
-            ),
+            child: CircularProgressIndicator(color: AppTheme.folderPink),
           ),
         );
       }
 
-      final totalItems =
-          controller.deletedNotes.length +
-              controller.deletedFolders.length;
+      final hasFolders = controller.deletedFolders.isNotEmpty;
+      final hasNotes = controller.deletedNotes.isNotEmpty;
 
-      if (totalItems == 0) {
+      if (!hasFolders && !hasNotes) {
         return SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
             child: Column(
-              mainAxisAlignment:
-              MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   CupertinoIcons.trash,
                   size: 60,
-                  color: Colors.grey.withValues(
-                    alpha: 0.3,
-                  ),
+                  color: Colors.grey.withValues(alpha: 0.3),
                 ),
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
                 Text(
-                  'No Deleted Items',
-                  style: theme
-                      .textTheme.titleMedium
-                      ?.copyWith(
-                    color: theme.colorScheme
-                        .onSurfaceVariant
-                        .withValues(
-                      alpha: 0.5,
-                    ),
+                  "No Deleted Items",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -345,220 +267,126 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       }
 
       return SliverPadding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         sliver: SliverList(
-          delegate: SliverChildListDelegate(
-            [
-              if (controller
-                  .deletedFolders.isNotEmpty) ...[
-                _buildSection(
-                  context,
-                  'Folders',
-                  controller.deletedFolders,
-                  isFolder: true,
-                ),
-                const SizedBox(
-                  height: 24,
-                ),
-              ],
-              if (controller
-                  .deletedNotes.isNotEmpty)
-                _buildSection(
-                  context,
-                  'Notes',
-                  controller.deletedNotes,
-                  isFolder: false,
-                ),
-            ],
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (hasFolders && hasNotes) {
+                if (index == 0) return _buildSection(context, "Folders", controller.deletedFolders, isFolder: true);
+                if (index == 1) return _buildSection(context, "Notes", controller.deletedNotes, isFolder: false);
+              } else if (hasFolders) {
+                if (index == 0) return _buildSection(context, "Folders", controller.deletedFolders, isFolder: true);
+              } else if (hasNotes) {
+                if (index == 0) return _buildSection(context, "Notes", controller.deletedNotes, isFolder: false);
+              }
+              return null;
+            },
+            childCount: (hasFolders ? 1 : 0) + (hasNotes ? 1 : 0),
           ),
         ),
       );
     });
   }
 
-  Widget _buildSection(
-      BuildContext context,
-      String title,
-      List items, {
-        required bool isFolder,
-      }) {
+  Widget _buildSection(BuildContext context, String title, List items, {required bool isFolder}) {
     final theme = Theme.of(context);
-    final isDark =
-        theme.brightness == Brightness.dark;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
-      crossAxisAlignment:
-      CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(
-            left: 12,
-            top: 16,
-            bottom: 8,
-          ),
+          padding: const EdgeInsets.only(left: 12, top: 16, bottom: 8),
           child: Text(
             title,
-            style: theme
-                .textTheme.titleMedium
-                ?.copyWith(
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               fontSize: 20,
-              color: theme
-                  .colorScheme.onSurface
-                  .withValues(
-                alpha: 0.8,
-              ),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
         ),
 
-        // UPDATED IOS STYLE PARENT CONTAINER
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF1C1C1E)
-                : Colors.white,
-            borderRadius:
-            BorderRadius.circular(28),
-            border: isDark
-                ? Border.all(
-              color: Colors.white.withValues(
-                alpha: 0.04,
-              ),
-              width: 0.5,
-            )
-                : null,
-            boxShadow: isDark
-                ? null
-                : [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: 0.035,
+        // Native iOS Styled Container
+        Material(
+          color: Colors.transparent,
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.04), width: 0.5) : null,
+              boxShadow: isDark ? null : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.035),
+                  blurRadius: 18,
+                  offset: const Offset(0, 7),
                 ),
-                blurRadius: 18,
-                spreadRadius: 0,
-                offset: const Offset(
-                  0,
-                  7,
-                ),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius:
-            BorderRadius.circular(28),
-            child: Column(
-              mainAxisSize:
-              MainAxisSize.min,
-              children: [
-                for (
-                int i = 0;
-                i < items.length;
-                i++
-                ) ...[
-                  if (isFolder)
-                    _buildFolderTile(
-                      context,
-                      items[i] as FolderModel,
-                    )
-                  else
-                    _buildNoteTile(
-                      context,
-                      items[i] as NoteModel,
-                    ),
-                  if (i < items.length - 1)
-                    Divider(
-                      indent: 20,
-                      endIndent: 20,
-                      height: 1,
-                      thickness: 0.5,
-                      color: theme.dividerColor
-                          .withValues(
-                        alpha: 0.35,
-                      ),
-                    ),
-                ],
               ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < items.length; i++) ...[
+                    if (isFolder)
+                      _buildFolderTile(context, items[i] as FolderModel)
+                    else
+                      _buildNoteTile(context, items[i] as NoteModel),
+                    if (i < items.length - 1)
+                      Divider(
+                        indent: 20,
+                        endIndent: 20,
+                        height: 1,
+                        thickness: 0.5,
+                        color: theme.dividerColor.withValues(alpha: 0.35),
+                      ),
+                  ],
+                ],
+              ),
             ),
           ),
         ),
+        const SizedBox(height: 16),
       ],
     );
   }
 
-  Widget _buildFolderTile(
-      BuildContext context,
-      FolderModel folder,
-      ) {
+  Widget _buildFolderTile(BuildContext context, FolderModel folder) {
     final theme = Theme.of(context);
-
     return SlidableNoteTile(
-      onMove: () => controller.recoverItem(
+      onMove: () => controller.recoverItem(folderId: folder.id),
+      onDelete: () => controller.deleteItemPermanently(
         folderId: folder.id,
+        name: folder.name,
       ),
-      onDelete: () =>
-          controller.deleteItemPermanently(
-            folderId: folder.id,
-            name: folder.name,
-          ),
       child: Obx(() {
-        final isSelected = controller
-            .selectedFolderIds
-            .contains(folder.id);
-
-        final isEditing =
-            controller.isEditing.value;
-
+        final isSelected = controller.selectedFolderIds.contains(folder.id);
+        final isEditing = controller.isEditing.value;
         return ListTile(
-          contentPadding:
-          const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 4,
-          ),
-          onTap: isEditing
-              ? () =>
-              controller.toggleSelectFolder(
-                folder.id,
-              )
-              : null,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          onTap: isEditing 
+              ? () => controller.toggleSelectFolder(folder.id) 
+              : () => _showRestoreDialog(context, folder: folder),
+          onLongPress: isEditing ? null : () => _showItemContextMenu(context, folder: folder),
           leading: isEditing
-              ? _buildSelectionIndicator(
-            context,
-            isSelected,
-          )
-              : Icon(
-            folder.icon,
-            color:
-            AppTheme.folderPink,
-            size: 28,
-          ),
+              ? _buildSelectionIndicator(context, isSelected)
+              : const Icon(CupertinoIcons.folder, color: AppTheme.folderPink, size: 28),
           title: Text(
             folder.name,
-            style:
-            theme.textTheme.bodyLarge?.copyWith(
+            style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 17,
               letterSpacing: -0.4,
             ),
           ),
           subtitle: Padding(
-            padding:
-            const EdgeInsets.only(
-              top: 2,
-            ),
+            padding: const EdgeInsets.only(top: 2),
             child: Text(
-              'Folder  •  ${folder.noteCount} notes',
-              style: theme
-                  .textTheme.bodyMedium
-                  ?.copyWith(
-                color: theme.colorScheme
-                    .onSurfaceVariant
-                    .withValues(
-                  alpha: 0.6,
-                ),
+              "Folder  •  ${folder.noteCount} notes",
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 fontSize: 13,
               ),
             ),
@@ -568,92 +396,48 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     );
   }
 
-  Widget _buildNoteTile(
-      BuildContext context,
-      NoteModel note,
-      ) {
+  Widget _buildNoteTile(BuildContext context, NoteModel note) {
     final theme = Theme.of(context);
-
-    final attachmentCount =
-        note.attachmentCount;
-
+    final attachmentCount = note.attachmentCount;
     return SlidableNoteTile(
-      onMove: () => controller.recoverItem(
-        noteId: note.id,
-      ),
+      onMove: () => controller.recoverItem(noteId: note.id),
       onDelete: () =>
-          controller.deleteItemPermanently(
-            noteId: note.id,
-            name: note.title,
-          ),
+          controller.deleteItemPermanently(noteId: note.id, name: note.title),
       child: Obx(() {
-        final isSelected = controller
-            .selectedNoteIds
-            .contains(note.id);
-
-        final isEditing =
-            controller.isEditing.value;
-
+        final isSelected = controller.selectedNoteIds.contains(note.id);
+        final isEditing = controller.isEditing.value;
         return ListTile(
-          contentPadding:
-          const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 4,
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
           onTap: isEditing
-              ? () =>
-              controller.toggleSelectNote(
-                note.id,
-              )
-              : () =>
-              NoteNavigation.toDetail(
-                note,
-              ),
+              ? () => controller.toggleSelectNote(note.id)
+              : () => _showRestoreDialog(context, note: note),
+          onLongPress: isEditing ? null : () => _showItemContextMenu(context, note: note),
           leading: isEditing
-              ? _buildSelectionIndicator(
-            context,
-            isSelected,
-          )
+              ? _buildSelectionIndicator(context, isSelected)
               : null,
           title: Text(
             note.displayTitle,
-            style:
-            theme.textTheme.bodyLarge?.copyWith(
+            style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 17,
               letterSpacing: -0.4,
             ),
           ),
           subtitle: Padding(
-            padding:
-            const EdgeInsets.only(
-              top: 2,
-            ),
+            padding: const EdgeInsets.only(top: 2),
             child: Text(
-              '${_formatDate(note.updatedAt)}  '
-                  '${attachmentCount > 0 ? '$attachmentCount attachments' : _getContentSnippet(note)}',
+              "${_formatDate(note.updatedAt)}  ${attachmentCount > 0 ? '$attachmentCount attachments' : _getContentSnippet(note)}",
               maxLines: 1,
-              overflow:
-              TextOverflow.ellipsis,
-              style: theme
-                  .textTheme.bodyMedium
-                  ?.copyWith(
-                color: theme.colorScheme
-                    .onSurfaceVariant
-                    .withValues(
-                  alpha: 0.6,
-                ),
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                 fontSize: 13,
               ),
             ),
           ),
           trailing: Icon(
             Icons.chevron_right,
-            color: theme.colorScheme
-                .onSurfaceVariant
-                .withValues(
-              alpha: 0.2,
-            ),
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
             size: 20,
           ),
         );
@@ -661,69 +445,98 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     );
   }
 
-  Widget _buildSelectionIndicator(
-      BuildContext context,
-      bool isSelected,
-      ) {
-    final theme = Theme.of(context);
+  void _showItemContextMenu(BuildContext context, {NoteModel? note, FolderModel? folder}) {
+    Get.dialog(
+      IOSActionMenu(
+        type: IOSMenuType.popup,
+        title: "Trash Options",
+        actions: [
+          IOSMenuAction(
+            label: "Restore",
+            icon: CupertinoIcons.arrow_counterclockwise,
+            onTap: () {
+              Get.back();
+              if (note != null) {
+                controller.recoverItem(noteId: note.id);
+              } else if (folder != null) {
+                controller.recoverItem(folderId: folder.id);
+              }
+            },
+          ),
+          IOSMenuAction(
+            label: "Delete Permanently",
+            icon: CupertinoIcons.trash,
+            isDestructive: true,
+            onTap: () {
+              Get.back();
+              if (note != null) {
+                controller.deleteItemPermanently(noteId: note.id, name: note.title);
+              } else if (folder != null) {
+                controller.deleteItemPermanently(folderId: folder.id, name: folder.name);
+              }
+            },
+          ),
+        ],
+      ),
+      barrierColor: Colors.black.withValues(alpha: 0.1),
+    );
+  }
 
+  void _showRestoreDialog(BuildContext context, {NoteModel? note, FolderModel? folder}) {
+    Get.dialog(
+      IOSConfirmationDialog(
+        title: "This ${note != null ? 'note' : 'folder'} is in Recently Deleted. You must restore it before viewing or editing.",
+        confirmLabel: "Restore",
+        isDestructive: false,
+        onConfirm: () {
+          if (note != null) {
+            controller.recoverItem(noteId: note.id);
+          } else if (folder != null) {
+            controller.recoverItem(folderId: folder.id);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildSelectionIndicator(BuildContext context, bool isSelected) {
+    final theme = Theme.of(context);
     return Container(
       width: 22,
       height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isSelected
-            ? theme.primaryColor
-            : Colors.transparent,
+        color: isSelected ? theme.primaryColor : Colors.transparent,
         border: Border.all(
           color: isSelected
               ? theme.primaryColor
-              : theme.colorScheme
-              .onSurfaceVariant
-              .withValues(
-            alpha: 0.5,
-          ),
+              : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           width: 1.5,
         ),
       ),
       child: isSelected
-          ? Icon(
-        Icons.check,
-        color:
-        theme.colorScheme.surface,
-        size: 14,
-      )
+          ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
           : null,
     );
   }
 
-  Widget _buildEditBottomBar(
-      BuildContext context,
-      ) {
+  Widget _buildEditBottomBar(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          16,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Row(
-          mainAxisAlignment:
-          MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _actionButton(
               context,
-              'Delete',
+              "Delete",
               color: Colors.redAccent,
-              onTap: controller
-                  .deletePermanentlySelectedItems,
+              onTap: controller.deletePermanentlySelectedItems,
             ),
             _actionButton(
               context,
-              'Recover',
-              onTap:
-              controller.recoverSelectedItems,
+              "Recover",
+              onTap: controller.recoverSelectedItems,
             ),
           ],
         ),
@@ -732,30 +545,23 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
   }
 
   Widget _actionButton(
-      BuildContext context,
-      String label, {
-        Color? color,
-        required VoidCallback onTap,
-      }) {
+    BuildContext context, String label, {
+    Color? color,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
-
     return GestureDetector(
       onTap: onTap,
       child: LiquidGlassContainer(
         borderRadius: 25,
-        padding:
-        const EdgeInsets.symmetric(
-          horizontal: 24,
-          vertical: 12,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         thickness: 6,
         showGlow: true,
         opacity: 0.15,
         child: Text(
           label,
           style: TextStyle(
-            color: color ??
-                theme.colorScheme.onSurface,
+            color: color ?? theme.colorScheme.onSurface,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -764,47 +570,19 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     );
   }
 
-  String _formatDate(
-      DateTime? date,
-      ) {
-    if (date == null) {
-      return '';
-    }
-
+  String _formatDate(DateTime? date) {
+    if (date == null) return "";
     final now = DateTime.now();
-
-    if (date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day) {
-      return DateFormat('HH:mm').format(
-        date,
-      );
-    }
-
-    return DateFormat('M/d/yy').format(
-      date,
-    );
+    if (date.year == now.year && date.month == now.month && date.day == now.day)
+      return DateFormat('HH:mm').format(date);
+    return DateFormat('MM/dd/yy').format(date);
   }
 
-  String _getContentSnippet(
-      NoteModel note,
-      ) {
-    if (note.content.isEmpty) {
-      return '';
-    }
-
+  String _getContentSnippet(NoteModel note) {
+    if (note.content.isEmpty) return "";
     final textBlock =
-    note.content.firstWhereOrNull(
-          (b) => b is TextBlock,
-    )
-    as TextBlock?;
-
-    if (textBlock == null) {
-      return '';
-    }
-
-    return NoteModel.extractPlainText(
-      textBlock.text,
-    );
+        note.content.firstWhereOrNull((b) => b is TextBlock) as TextBlock?;
+    if (textBlock == null) return "";
+    return NoteModel.extractPlainText(textBlock.text);
   }
 }

@@ -32,8 +32,10 @@ class NoteContentEditor extends StatelessWidget {
           child: Obx(() {
             final isReadOnly = controller.isReadOnly.value;
             final topPadding = baseTopPadding + (isReadOnly ? 52 : 0);
-            final noteDate =
-                controller.currentNote.value?.updatedAt ?? DateTime.now();
+            
+            // BUG FIX: Gracefully handle null note during deletion cleanup
+            final note = controller.currentNote.value;
+            final noteDate = note?.updatedAt ?? DateTime.now();
 
             return ListView(
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -56,7 +58,7 @@ class NoteContentEditor extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      controller.currentNote.value?.folderName ?? "Notes",
+                      note?.folderName ?? "Notes",
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.5,
