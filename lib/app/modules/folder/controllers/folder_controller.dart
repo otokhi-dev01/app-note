@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/providers/folder_service.dart';
@@ -127,8 +128,6 @@ class FolderController extends GetxController {
     }
   }
 
-  /// FEATURE: Save or rename a folder.
-  /// Returns true on success so the caller (modal) can call Get.back().
   Future<bool> onSaveFolder({
     required int id,
     required String name,
@@ -142,8 +141,6 @@ class FolderController extends GetxController {
       return false;
     }
 
-    // Note: caller (FolderCreateLogic) manages its own isSaving guard.
-    // We only guard here when called directly (e.g. from move/section update).
     if (isSaving.value) return false;
     isSaving.value = true;
 
@@ -155,7 +152,7 @@ class FolderController extends GetxController {
           id: id,
           name: cleanName,
           iconName: iconName ?? "folder",
-          colorValue: colorValue ?? "#FF69B4", // Default to app pink
+          colorValue: colorValue ?? "#FFB703",
           sortOrder: sortOrder ?? 0,
         ),
       );
@@ -163,18 +160,18 @@ class FolderController extends GetxController {
       final int code = _toInt(result['code']) ?? 0;
 
       if (code == 200 || code == 201) {
-        // Refresh folder list so folder view is up-to-date
         await fetchFolders(refresh: true);
-        // Reset edit mode so folder view returns to normal state
+        
+        // Root Cause Fix: "Clear screen back" - Exit edit mode and selection UI
         isEditing.value = false;
-
+        
         Get.snackbar(
           "Success",
           id == 0 ? "Folder created successfully" : "Folder updated successfully",
           snackPosition: SnackPosition.BOTTOM,
           duration: const Duration(milliseconds: 1500),
         );
-        return true; // ← caller will call Get.back()
+        return true;
       } else {
         final errorMessage = FolderService.getApiErrorMessage(result);
         Get.snackbar(
@@ -199,14 +196,29 @@ class FolderController extends GetxController {
 
   int? _toInt(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '');
 
+  /// FEATURE: Logic to Create a New Note
+  /// 1. Finds the best default folder (preferring "Notes" or the first available)
+  /// 2. Navigates to the immersive Note Detail screen
   void createNewNote() {
-    if (folders.isNotEmpty) {
-      NoteNavigation.toNewNote(folders.first.id)?.then((value) {
-        if (value == true) fetchFolders();
-      });
-    } else {
-      Get.snackbar("Info", "Create a folder first");
+    if (folders.isEmpty) {
+      Get.snackbar("Info", "Please create a folder first before writing a note.");
+      return;
     }
+
+    // Try to find the default "Notes" folder, otherwise take the first active folder
+    final defaultFolder = folders.firstWhere(
+      (f) => f.name.toLowerCase().contains("notes"),
+      orElse: () => folders.first,
+    );
+
+    debugPrint("[NOTE CREATE] Starting creation in folder: ${defaultFolder.name} (ID: ${defaultFolder.id})");
+
+    NoteNavigation.toNewNote(defaultFolder.id)?.then((value) {
+      if (value == true) {
+        // Refresh everything to show the new note in counts
+        fetchFolders(refresh: true);
+      }
+    });
   }
 
   void onMoveFolder(FolderModel folder) {
@@ -269,7 +281,7 @@ class FolderController extends GetxController {
   void onRenameFolder(FolderModel folder) {
     Get.to(
       () => FolderCreateModal(folder: folder, controller: this),
-      fullscreenDialog: false,
+      fullscreenDialog: true,
       transition: Transition.cupertino,
     );
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
@@ -69,7 +70,7 @@ class NoteListBottomBar extends StatelessWidget {
                   folderId,
                 )?.then((value) => controller.fetchNotes(folderId: folderId)),
                 icon: Icon(
-                  Icons.open_in_new,
+                  CupertinoIcons.square_pencil,
                   color: theme.colorScheme.onSurface,
                   size: 28,
                 ),

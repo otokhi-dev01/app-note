@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import '../../../widgets/ios_action_menu.dart';
 import '../controllers/note_detail_controller.dart';
 import 'package:get/get.dart';
@@ -14,6 +15,7 @@ class NoteDetailMorePopup extends StatelessWidget {
       () => IOSActionMenu(
         type: IOSMenuType.popup,
         actions: [
+          // 1. Pin Logic
           IOSMenuAction(
             label: controller.isPinned.value ? "Unpin" : "Pin",
             icon: controller.isPinned.value
@@ -21,6 +23,7 @@ class NoteDetailMorePopup extends StatelessWidget {
                 : CupertinoIcons.pin,
             onTap: controller.togglePin,
           ),
+          // 2. Archive Logic
           IOSMenuAction(
             label: controller.isArchived.value ? "Unarchive" : "Archive",
             icon: controller.isArchived.value
@@ -28,6 +31,7 @@ class NoteDetailMorePopup extends StatelessWidget {
                 : CupertinoIcons.archivebox,
             onTap: controller.toggleArchive,
           ),
+          // 3. Lock Logic
           IOSMenuAction(
             label: controller.isLocked.value ? "Unlock" : "Lock",
             icon: controller.isLocked.value
@@ -35,16 +39,19 @@ class NoteDetailMorePopup extends StatelessWidget {
                 : CupertinoIcons.lock,
             onTap: controller.toggleLock,
           ),
+          // 4. Move Logic
           IOSMenuAction(
             label: "Move",
-            icon: CupertinoIcons.folder_badge_plus,
+            icon: CupertinoIcons.folder,
             onTap: controller.moveNote,
           ),
+          // 5. Find in Note Logic
           IOSMenuAction(
             label: "Find in Note",
             icon: CupertinoIcons.doc_text_search,
             onTap: controller.toggleSearch,
           ),
+          // 6. Delete Logic (Destructive)
           IOSMenuAction(
             label: "Delete",
             icon: CupertinoIcons.trash,

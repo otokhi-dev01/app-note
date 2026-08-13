@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
@@ -33,7 +34,7 @@ class FolderAllNotesTile extends StatelessWidget {
                   ),
                 ),
           leading: const Icon(
-            Icons.folder_special_outlined,
+            CupertinoIcons.folder,
             color: AppTheme.folderPink,
             size: 30,
           ),

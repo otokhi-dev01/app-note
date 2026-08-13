@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
@@ -71,13 +72,14 @@ class FolderBottomBar extends StatelessWidget {
               showGlow: true,
               thickness: 10,
               refractiveIndex: 1.3,
-              opacity: 0.15, // Standard glass icon opacity
+              opacity: 0.15,
               child: IconButton(
                 onPressed: () => controller.createNewNote(),
+                padding: EdgeInsets.zero,
                 icon: Icon(
-                  Icons.open_in_new,
+                  CupertinoIcons.square_pencil,
                   color: theme.colorScheme.onSurface,
-                  size: 28,
+                  size: 27,
                 ),
               ),
             ),

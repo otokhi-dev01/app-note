@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 import '../widgets/folder_create_modal.dart';
@@ -85,15 +87,44 @@ class FolderView extends GetView<FolderController> {
                 shape: GlassShape.circle,
                 showGlow: true,
                 thickness: 8,
-                opacity: 0.15, // Lower opacity for high-fidelity glass look
-                blur: 10, // Crisper refraction
+                opacity: 0.15,
+                blur: 10,
                 child: IconButton(
                   onPressed: () => Get.to(
-                    () => FolderCreateModal(controller: controller),
+                        () => FolderCreateModal(controller: controller),
                     fullscreenDialog: true,
                     transition: Transition.cupertino,
                   ),
-                  icon: const Icon(Icons.create_new_folder_outlined, size: 24),
+                  padding: EdgeInsets.zero,
+                  icon: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const Icon(
+                        CupertinoIcons.folder,
+                        color: AppTheme.folderPink,
+                        size: 27,
+                      ),
+                      Positioned(
+                        right: -3,
+                        top: -1,
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.folderPink,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              CupertinoIcons.plus,
+                              color: Colors.white,
+                              size: 9,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

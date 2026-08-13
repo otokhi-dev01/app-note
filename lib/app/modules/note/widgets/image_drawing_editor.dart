@@ -45,7 +45,7 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
               tooltip: 'Edit Image',
               onPressed: _openProEditor,
               icon: const Icon(
-                CupertinoIcons.pencil_outline,
+                CupertinoIcons.square_pencil,
                 color: AppTheme.folderPink,
               ),
             ),
