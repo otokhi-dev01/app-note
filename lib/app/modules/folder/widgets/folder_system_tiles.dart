@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
@@ -32,7 +33,7 @@ class FolderSystemTiles extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
           leading: Icon(
-            Icons.delete_outline_rounded,
+            CupertinoIcons.folder, // Updated to use CupertinoIcons.folder
             color: theme.primaryColor,
             size: 30,
           ),
@@ -71,7 +72,7 @@ class FolderSystemTiles extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE),
           leading: Icon(
-            Icons.archive_outlined,
+            CupertinoIcons.folder,
             color: theme.primaryColor,
             size: 30,
           ),

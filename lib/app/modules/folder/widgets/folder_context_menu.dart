@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
@@ -22,7 +23,7 @@ class FolderContextMenu extends StatelessWidget {
       actions: [
         IOSMenuAction(
           label: "Add Folder",
-          icon: Icons.create_new_folder_outlined,
+          icon:  CupertinoIcons.folder,
           onTap: () {
             Get.bottomSheet(
               FolderCreateModal(controller: controller),
@@ -33,7 +34,7 @@ class FolderContextMenu extends StatelessWidget {
         ),
         IOSMenuAction(
           label: "Move Folder",
-          icon: Icons.drive_file_move_outlined,
+          icon:  CupertinoIcons.folder,
           onTap: () {
             Get.back();
             controller.onMoveFolder(folder);
@@ -60,7 +61,7 @@ class FolderContextMenu extends StatelessWidget {
         ),
         IOSMenuAction(
           label: "Delete Folder",
-          icon: Icons.delete_outline_rounded,
+          icon: CupertinoIcons.trash,
           isDestructive: true,
           onTap: () {
             Get.back();

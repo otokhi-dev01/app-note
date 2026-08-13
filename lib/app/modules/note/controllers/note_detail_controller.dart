@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -6,16 +7,19 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
+import '../widgets/note_move_folder_modal.dart';
 import 'note_controller.dart';
 
 class NoteDetailController extends GetxController {
   final NoteService _noteService;
+  final FolderService _folderService;
   final ImagePicker _picker = ImagePicker();
 
   NoteDetailController({
     required NoteService noteService,
     required FolderService folderService,
-  }) : _noteService = noteService;
+  }) : _noteService = noteService,
+       _folderService = folderService;
 
   // --- Observables ---
   final currentNote = Rxn<NoteModel>();
@@ -191,18 +195,14 @@ class NoteDetailController extends GetxController {
     final block = blocks[blockIndex];
     if (block is! AttachmentBlock) return;
 
-    // We reset attachmentId to 0 so it gets re-uploaded on next save
     blocks[blockIndex] = AttachmentBlock(
       id: block.id,
       attachmentId: 0,
       displayName: 'Edited Image',
       localPath: editedPath,
-      url: block.url, // Keep old URL as reference until sync
+      url: block.url,
     );
     blocks.refresh();
-
-    // Automatically trigger a save if the user just edited an image
-    // This satisfies "user can save when user edit image"
     saveNote();
   }
 
@@ -391,26 +391,21 @@ class NoteDetailController extends GetxController {
       final String title = titleController.text.trim();
       int noteId = currentNote.value?.id ?? 0;
 
-      // 1. Metadata Save (Get NoteId)
       noteId = await _noteService.saveNoteMetadata(
         folderId: folderId,
         title: title.isEmpty ? "Untitled Note" : title,
         noteId: noteId,
       );
 
-      // 2. Upload Attachments & Update blocks with real AttachmentId
       await _handleAttachmentUploads(noteId);
 
-      // 3. Final Content Sync
       await _noteService.saveNoteContent(
         noteId: noteId,
         title: title,
         content: blocks.toList(),
       );
 
-      // Update current note state so we don't think it's unsaved
       if (currentNote.value != null && currentNote.value!.id == 0) {
-        // If it was a new note, we might want to refresh to get full server object
         fetchNoteDetail(noteId);
       }
 
@@ -460,12 +455,18 @@ class NoteDetailController extends GetxController {
     if (stateChanged) blocks.refresh();
   }
 
+  // --- MENU LOGIC ---
+
   void toggleSearch() {
+    Get.back(); // Close More menu
     isSearchVisible.toggle();
-    if (isSearchVisible.value)
-      searchFocusNode.requestFocus();
-    else
+    if (isSearchVisible.value) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        searchFocusNode.requestFocus();
+      });
+    } else {
       searchQuery.value = "";
+    }
   }
 
   void shareNote() {
@@ -491,50 +492,100 @@ class NoteDetailController extends GetxController {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
     
+    Get.back(); // Close menu
     final newState = !isPinned.value;
-    await _noteService.updateNoteState(id, isPinned: newState);
-    isPinned.value = newState;
-    
-    // Refresh to sync list view
-    Get.find<NoteController>().fetchNotes(refresh: true);
+    try {
+      await _noteService.updateNoteState(id, isPinned: newState);
+      isPinned.value = newState;
+      Get.find<NoteController>().fetchNotes(refresh: true);
+    } catch (e) {
+      Get.snackbar("Error", "Could not update pin state");
+    }
   }
 
   Future<void> toggleArchive() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
     
+    Get.back(); // Close menu
     final newState = !isArchived.value;
-    await _noteService.updateNoteState(id, isArchived: newState);
-    isArchived.value = newState;
-    
-    // Refresh list and go back as archived notes usually disappear from the main list
-    Get.find<NoteController>().fetchNotes(refresh: true);
-    Get.back(result: true);
+    try {
+      await _noteService.updateNoteState(id, isArchived: newState);
+      isArchived.value = newState;
+      Get.find<NoteController>().fetchNotes(refresh: true);
+      if (newState) Get.back(result: true); // Go back if archived
+    } catch (e) {
+      Get.snackbar("Error", "Could not update archive state");
+    }
   }
 
   Future<void> toggleLock() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
     
+    Get.back(); // Close menu
     final newState = !isLocked.value;
-    await _noteService.updateNoteState(id, isLocked: newState);
-    isLocked.value = newState;
+    try {
+      await _noteService.updateNoteState(id, isLocked: newState);
+      isLocked.value = newState;
+    } catch (e) {
+      Get.snackbar("Error", "Could not update lock state");
+    }
   }
 
   Future<void> deleteNote() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
     
-    // Task: Integrated with /api/note/update-state via updateNoteState(isDelete: true)
-    await _noteService.updateNoteState(id, isDelete: true);
-    
-    Get.find<NoteController>().fetchNotes(refresh: true);
-    Get.back(); // Close popup
-    Get.back(result: true); // Close detail view
+    Get.back(); // Close menu
+    try {
+      await _noteService.updateNoteState(id, isDelete: true);
+      Get.find<NoteController>().fetchNotes(refresh: true);
+      Get.back(result: true); // Back to list
+      Get.snackbar("Success", "Moved to Recently Deleted");
+    } catch (e) {
+      Get.snackbar("Error", "Could not delete note");
+    }
   }
 
   Future<void> moveNote() async {
-    Get.snackbar("Info", "Move functionality is coming soon");
+    Get.back(); // Close menu
+    if (isLoading.value || currentNote.value == null) return;
+    
+    try {
+      final response = await _folderService.getFolders();
+      if (response.folders.isEmpty) {
+        Get.snackbar("Info", "Create another folder first");
+        return;
+      }
+
+      Get.to(
+        () => NoteMoveFolderModal(
+          folders: response.folders,
+          currentFolderId: currentNote.value!.folderId,
+          onFolderSelected: (targetFolder) async {
+            Get.back(); // Pop modal
+            isLoading.value = true;
+            try {
+              await _noteService.saveNoteMetadata(
+                folderId: targetFolder.id,
+                title: titleController.text,
+                noteId: currentNote.value!.id,
+              );
+              await fetchNoteDetail(currentNote.value!.id);
+              Get.find<NoteController>().fetchNotes(refresh: true);
+              Get.snackbar("Success", "Moved to ${targetFolder.name}");
+            } finally {
+              isLoading.value = false;
+            }
+          },
+        ),
+        fullscreenDialog: true,
+        transition: Transition.cupertino,
+      );
+    } catch (e) {
+      Get.snackbar("Error", "Could not load folders");
+    }
   }
 
   void _clearControllers() {

@@ -48,7 +48,7 @@ class NoteContentEditor extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.folder_open_rounded,
+                      CupertinoIcons.folder,
                       size: 12,
                       color: theme.colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.5,
