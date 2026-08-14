@@ -122,7 +122,7 @@ class FolderView extends GetView<FolderController> {
                           width: 14,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: AppTheme.folderPink,
+                            color: theme.primaryColor,
                             shape: BoxShape.circle,
                           ),
                           child:  Center(

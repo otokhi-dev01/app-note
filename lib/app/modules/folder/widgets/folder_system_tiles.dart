@@ -33,7 +33,7 @@ class FolderSystemTiles extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
           leading: Icon(
-            CupertinoIcons.folder, // Updated to use CupertinoIcons.folder
+            CupertinoIcons.trash, // Updated to use CupertinoIcons.folder
             color: theme.primaryColor,
             size: 30,
           ),

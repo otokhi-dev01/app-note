@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../widgets/ios_action_menu.dart';
 import '../controllers/folder_controller.dart';
-import 'folder_create_modal.dart';
 
 class FolderContextMenu extends StatelessWidget {
   final FolderModel folder;
@@ -21,17 +20,6 @@ class FolderContextMenu extends StatelessWidget {
     return IOSActionMenu(
       type: IOSMenuType.popup,
       actions: [
-        IOSMenuAction(
-          label: "Add Folder",
-          icon:  CupertinoIcons.folder,
-          onTap: () {
-            Get.bottomSheet(
-              FolderCreateModal(controller: controller),
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-            );
-          },
-        ),
         IOSMenuAction(
           label: "Move Folder",
           icon:  CupertinoIcons.folder,

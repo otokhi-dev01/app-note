@@ -33,9 +33,9 @@ class FolderAllNotesTile extends StatelessWidget {
                     sortOrder: 0,
                   ),
                 ),
-          leading: const Icon(
+          leading: Icon(
             CupertinoIcons.folder,
-            color: AppTheme.folderPink,
+            color: theme.primaryColor,
             size: 30,
           ),
           title: Text(
