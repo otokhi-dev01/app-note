@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'glass_widgets.dart';
 
 class IOSMenuAction {
@@ -82,13 +81,6 @@ class IOSActionMenu extends StatelessWidget {
                         ),
                       ),
                     )
-                    .animate()
-                    .scale(
-                      duration: 200.ms,
-                      curve: Curves.easeOutBack,
-                      alignment: effectiveAlignment,
-                    )
-                    .fadeIn(duration: 150.ms),
           ),
         ),
       ),
@@ -142,10 +134,7 @@ class IOSActionMenu extends StatelessWidget {
               ),
             ),
           ),
-        )
-        .animate()
-        .fadeIn(duration: 200.ms)
-        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic);
+        );
   }
 
   Widget _buildHeader(BuildContext context, String text) {

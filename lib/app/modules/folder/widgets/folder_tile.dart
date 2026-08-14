@@ -37,9 +37,9 @@ class FolderTile extends StatelessWidget {
                   }
                 },
           onLongPress: isSystem ? null : () => _showContextMenu(context),
-          leading: const Icon(
+          leading:  Icon(
             CupertinoIcons.folder, // Updated to use CupertinoIcons.folder
-            color: AppTheme.folderPink, 
+            color: theme.primaryColor,
             size: 28,
           ),
           title: Text(

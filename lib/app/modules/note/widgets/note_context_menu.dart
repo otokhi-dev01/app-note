@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../widgets/glass_widgets.dart';
 import 'package:Note/app/modules/note/controllers/note_controller.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 
 class NoteContextMenu extends StatelessWidget {
   final NoteController controller;
@@ -110,14 +109,7 @@ class NoteContextMenu extends StatelessWidget {
                               ],
                             ),
                           ),
-                        )
-                        .animate()
-                        .scale(
-                          duration: 200.ms,
-                          curve: Curves.easeOutBack,
-                          alignment: Alignment.topRight,
-                        )
-                        .fadeIn(duration: 150.ms),
+                    ),
               ),
             ),
           ),
