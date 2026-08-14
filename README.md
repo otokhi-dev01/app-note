@@ -1,4 +1,4 @@
-# otokhi001
+# OTOKHI NOTE APP
 
 A new Flutter project.
 
