@@ -202,14 +202,18 @@ class ArchiveView extends GetView<NoteController> {
               Text(
                 '${controller.archivedNotes.length} ${controller.archivedNotes.length == 1 ? 'Note' : 'Notes'}',
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 "Archived notes are kept separate from your main notes list. You can restore them at any time.",
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.5,
+                  ),
                   height: 1.3,
                 ),
               ),
@@ -221,7 +225,7 @@ class ArchiveView extends GetView<NoteController> {
   }
 
   Widget _buildArchiveList(BuildContext context) {
-    final theme = Theme.of(context);
+    Theme.of(context);
     return Obx(() {
       if (controller.isLoading.value) {
         return const SliverFillRemaining(
@@ -238,11 +242,7 @@ class ArchiveView extends GetView<NoteController> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  CupertinoIcons.archivebox,
-                  size: 60,
-                  color: Colors.grey,
-                ),
+                Icon(CupertinoIcons.archivebox, size: 60, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
                   "No Archived Notes",
@@ -270,24 +270,37 @@ class ArchiveView extends GetView<NoteController> {
                 final groupIndex = index - 1;
                 if (groupIndex < groupedNotes.length) {
                   final section = groupedNotes.keys.elementAt(groupIndex);
-                  return _buildSection(context, section, groupedNotes[section]!);
+                  return _buildSection(
+                    context,
+                    section,
+                    groupedNotes[section]!,
+                  );
                 }
               } else {
                 if (index < groupedNotes.length) {
                   final section = groupedNotes.keys.elementAt(index);
-                  return _buildSection(context, section, groupedNotes[section]!);
+                  return _buildSection(
+                    context,
+                    section,
+                    groupedNotes[section]!,
+                  );
                 }
               }
               return null;
             },
-            childCount: (pinnedArchived.isNotEmpty ? 1 : 0) + groupedNotes.length,
+            childCount:
+                (pinnedArchived.isNotEmpty ? 1 : 0) + groupedNotes.length,
           ),
         ),
       );
     });
   }
 
-  Widget _buildSection(BuildContext context, String title, List<NoteModel> notes) {
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<NoteModel> notes,
+  ) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,10 +320,7 @@ class ArchiveView extends GetView<NoteController> {
           borderRadius: 28,
           children: [
             for (int i = 0; i < notes.length; i++) ...[
-              ArchiveNoteTile(
-                note: notes[i],
-                controller: controller,
-              ),
+              ArchiveNoteTile(note: notes[i], controller: controller),
               if (i < notes.length - 1)
                 const Divider(indent: 20, height: 1, thickness: 0.5),
             ],

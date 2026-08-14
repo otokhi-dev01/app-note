@@ -111,7 +111,7 @@ class FolderView extends GetView<FolderController> {
                     children: [
                       Icon(
                         CupertinoIcons.folder,
-                        color: theme.colorScheme.onSurface,
+                        color: theme.primaryColor,
                         size: 27,
                         fontWeight: FontWeight.bold,
                       ),
@@ -128,7 +128,7 @@ class FolderView extends GetView<FolderController> {
                           child:  Center(
                             child: Icon(
                               CupertinoIcons.plus,
-                              color: theme.colorScheme.onSurface,
+                              color: Colors.white,
                               size: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -185,8 +185,8 @@ class FolderView extends GetView<FolderController> {
           child: Center(
             child: Icon(
               Icons.check,
-              color: theme.colorScheme.onSurface,
-              size: 20,
+              color: theme.primaryColor,
+              size: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -278,11 +278,13 @@ class FolderView extends GetView<FolderController> {
                         // System special: All on My iPhone
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: GlassCard(
+                          child: LiquidGlassContainer(
                             borderRadius: 30,
-                            children: [
-                              FolderAllNotesTile(controller: controller),
-                            ],
+                            blur: 35,
+                            opacity: 0.1,
+                            thickness: 10,
+                            showGlow: true,
+                            child: FolderAllNotesTile(controller: controller),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -291,23 +293,30 @@ class FolderView extends GetView<FolderController> {
                         if (controller.onMyiPhoneFolders.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: GlassCard(
+                            child: LiquidGlassContainer(
                               borderRadius: 30,
-                              children: [
-                                for (
-                                  int i = 0;
-                                  i < controller.onMyiPhoneFolders.length;
-                                  i++
-                                ) ...[
-                                  FolderTile(
-                                    folder: controller.onMyiPhoneFolders[i],
-                                    controller: controller,
-                                  ),
-                                  if (i <
-                                      controller.onMyiPhoneFolders.length - 1)
-                                    const Divider(indent: 56, height: 1),
+                              blur: 35,
+                              opacity: 0.1,
+                              thickness: 10,
+                              showGlow: true,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (
+                                    int i = 0;
+                                    i < controller.onMyiPhoneFolders.length;
+                                    i++
+                                  ) ...[
+                                    FolderTile(
+                                      folder: controller.onMyiPhoneFolders[i],
+                                      controller: controller,
+                                    ),
+                                    if (i <
+                                        controller.onMyiPhoneFolders.length - 1)
+                                      const Divider(indent: 56, height: 1),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -325,11 +334,13 @@ class FolderView extends GetView<FolderController> {
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                   ),
-                                  child: GlassCard(
+                                  child: LiquidGlassContainer(
                                     borderRadius: 30,
-                                    children: [
-                                      FolderSystemTiles(controller: controller),
-                                    ],
+                                    blur: 35,
+                                    opacity: 0.1,
+                                    thickness: 10,
+                                    showGlow: true,
+                                    child: FolderSystemTiles(controller: controller),
                                   ),
                                 )
                               : const SizedBox.shrink(),
@@ -352,20 +363,28 @@ class FolderView extends GetView<FolderController> {
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GlassCard(
+      child: LiquidGlassContainer(
         borderRadius: 30,
-        children: [
-          if (includeSystem) ...[
-            FolderAllNotesTile(controller: controller),
-            const Divider(indent: 56, height: 1),
-          ],
-          for (int i = 0; i < folders.length; i++) ...[
-            FolderTile(folder: folders[i], controller: controller),
-            if (i < folders.length - 1 || includeSystem)
+        blur: 35,
+        opacity: 0.1,
+        thickness: 10,
+        showGlow: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (includeSystem) ...[
+              FolderAllNotesTile(controller: controller),
               const Divider(indent: 56, height: 1),
+            ],
+            for (int i = 0; i < folders.length; i++) ...[
+              FolderTile(folder: folders[i], controller: controller),
+              if (i < folders.length - 1 || includeSystem)
+                const Divider(indent: 56, height: 1),
+            ],
+            if (includeSystem) FolderSystemTiles(controller: controller),
           ],
-          if (includeSystem) FolderSystemTiles(controller: controller),
-        ],
+        ),
       ),
     );
   }
