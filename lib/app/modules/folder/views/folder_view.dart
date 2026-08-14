@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 import '../widgets/folder_create_modal.dart';
@@ -92,12 +91,13 @@ class FolderView extends GetView<FolderController> {
           child: Row(
             children: [
               LiquidGlassContainer(
-                width: 44,
-                height: 44,
+                width: 50,
+                height: 50,
                 shape: GlassShape.circle,
                 showGlow: true,
-                thickness: 8,
-                opacity: 0.15,
+                thickness: 20,
+                refractiveIndex: 2,
+                opacity: 0.20,
                 blur: 10,
                 child: IconButton(
                   onPressed: () => Get.to(
@@ -112,8 +112,8 @@ class FolderView extends GetView<FolderController> {
                       Icon(
                         CupertinoIcons.folder,
                         color: theme.primaryColor,
-                        size: 27,
-                        fontWeight: FontWeight.bold,
+                        size: 28,
+                        // fontWeight: FontWeight.w500,
                       ),
                       Positioned(
                         right: -3,
@@ -173,12 +173,13 @@ class FolderView extends GetView<FolderController> {
     final theme = Theme.of(context);
     if (controller.isEditing.value) {
       return LiquidGlassContainer(
-        width: 44,
-        height: 44,
+        width: 50,
+        height: 50,
         shape: GlassShape.circle,
         showGlow: true,
-        thickness: 8,
-        opacity: 0.15, // Lower opacity for high-fidelity glass look
+        thickness: 20,
+        refractiveIndex: 2,
+        opacity: 0.20, // Lower opacity for high-fidelity glass look
         blur: 10,
         child: GestureDetector(
           onTap: controller.toggleEditing,
@@ -194,12 +195,13 @@ class FolderView extends GetView<FolderController> {
       );
     }
     return LiquidGlassContainer(
-      height: 44,
-      borderRadius: 22,
+      height: 50,
+      borderRadius: 30,
       padding: const EdgeInsets.symmetric(horizontal: 4),
       showGlow: true,
-      thickness: 8,
-      opacity: 0.15, // Lower opacity for high-fidelity glass look
+      refractiveIndex: 2,
+      thickness: 20,
+      opacity: 0.20, // Lower opacity for high-fidelity glass look
       blur: 10,
       child: TextButton(
         onPressed: controller.toggleEditing,
@@ -212,7 +214,7 @@ class FolderView extends GetView<FolderController> {
           "Edit",
           style: TextStyle(
             color: theme.colorScheme.onSurface,
-            fontSize: 17,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -242,7 +244,7 @@ class FolderView extends GetView<FolderController> {
             const SizedBox(height: 12),
             if (controller.iCloudFolders.isNotEmpty) ...[
               FolderSectionHeader(
-                title: "iCloud",
+                title: "2 Cloud",
                 isExpanded: controller.isICloudExpanded,
                 onTap: controller.toggleICloud,
               ),
@@ -267,7 +269,7 @@ class FolderView extends GetView<FolderController> {
               const SizedBox(height: 24),
             ],
             FolderSectionHeader(
-              title: "On My iPhone",
+              title: "On My Phone",
               isExpanded: controller.isOnMyiPhoneExpanded,
               onTap: controller.toggleOnMyiPhone,
             ),
@@ -323,7 +325,7 @@ class FolderView extends GetView<FolderController> {
                         ],
 
                         FolderSectionHeader(
-                          title: "Note",
+                          title: "Notes",
                           isExpanded: controller.isNotesSectionExpanded,
                           onTap: controller.toggleNotesSection,
                         ),

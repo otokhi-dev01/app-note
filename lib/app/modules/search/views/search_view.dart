@@ -65,19 +65,19 @@ class SearchView extends GetView<sc.SearchController> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           LiquidGlassContainer(
-            width: 44,
-            height: 44,
+            width: 50,
+            height: 50,
             shape: GlassShape.circle,
             showGlow: true,
-            thickness: 8,
-            opacity: 0.15,
-            blur: 10,
+            thickness: 20,
+            refractiveIndex: 2,
+            opacity: 0.20,
             child: IconButton(
               onPressed: () => Get.back(),
               icon: Icon(
                 CupertinoIcons.chevron_left,
                 color: theme.colorScheme.onSurface,
-                size: 24,
+                size: 28,
               ),
               padding: EdgeInsets.zero,
             ),
@@ -85,8 +85,8 @@ class SearchView extends GetView<sc.SearchController> {
           Text(
             "Search",
             style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              fontSize: 28,
             ),
           ),
           const SizedBox(width: 44), // Spacer to balance leading
@@ -97,7 +97,7 @@ class SearchView extends GetView<sc.SearchController> {
 
   Widget _buildSuggestedSection(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final _ = theme.brightness == Brightness.dark;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -114,26 +114,33 @@ class SearchView extends GetView<sc.SearchController> {
               ),
             ),
           ),
-          Material(
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (int i = 0; i < controller.suggestions.length; i++) ...[
-                  _buildSuggestionTile(
-                    context,
-                    controller.suggestions[i]['title'] as String,
-                    controller.suggestions[i]['icon'] as IconData,
-                  ),
-                  if (i < controller.suggestions.length - 1)
-                    Divider(
-                      indent: 56,
-                      height: 1,
-                      color: isDark ? Colors.white10 : Colors.black12,
+          LiquidGlassContainer(
+            borderRadius: 30,
+            blur: 35,
+            opacity: 2,
+            thickness: 20,
+            showGlow: true,
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(30),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  for (int i = 0; i < controller.suggestions.length; i++) ...[
+                    _buildSuggestionTile(
+                      context,
+                      controller.suggestions[i]['title'] as String,
+                      controller.suggestions[i]['icon'] as IconData,
                     ),
+                    if (i < controller.suggestions.length - 1)
+                      Divider(
+                        indent: 56,
+                        height: 1,
+                        color: theme.dividerColor.withValues(alpha: 0.1),
+                      ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
           const SizedBox(height: 100), // Space for floating search bar
@@ -305,101 +312,92 @@ class SearchView extends GetView<sc.SearchController> {
 
   Widget _buildBottomBar(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? 10 : 20),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                borderRadius: BorderRadius.circular(26),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Icon(
-                    CupertinoIcons.search,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
+    return Material(
+      color: Colors.transparent,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? 10 : 20),
+        child: Row(
+          children: [
+            Expanded(
+              child: LiquidGlassContainer(
+                height: 55,
+                showGlow: true,
+                thickness: 20,
+                refractiveIndex: 2,
+                opacity: 0.20,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.search,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
+                      size: 22,
                     ),
-                    size: 22,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: controller.searchController,
-                      onChanged: controller.onSearchChanged,
-                      autofocus: true,
-                      cursorColor: AppTheme.folderYellow,
-                      style: theme.textTheme.bodyLarge?.copyWith(fontSize: 17),
-                      decoration: InputDecoration(
-                        hintText: "Search",
-                        hintStyle: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.5,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: controller.searchController,
+                        onChanged: controller.onSearchChanged,
+                        autofocus: true,
+                        cursorColor: AppTheme.folderYellow,
+                        style: theme.textTheme.bodyLarge?.copyWith(fontSize: 17),
+                        decoration: InputDecoration(
+                          hintText: "Search",
+                          hintStyle: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.5,
+                            ),
+                            fontSize: 17,
                           ),
-                          fontSize: 17,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
                         ),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        isDense: true,
                       ),
                     ),
-                  ),
-                  Icon(
-                    CupertinoIcons.mic_fill,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
+                    Icon(
+                      CupertinoIcons.mic_fill,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
+                      size: 20,
                     ),
-                    size: 20,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () {
-              if (controller.isSearching.value) {
-                controller.clearSearch();
-              } else {
-                Get.back();
-              }
-            },
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Icon(
-                CupertinoIcons.xmark,
-                color: theme.colorScheme.onSurface,
-                size: 20,
+            const SizedBox(width: 16),
+            LiquidGlassContainer(
+              width: 50,
+              height: 50,
+              shape: GlassShape.circle,
+              showGlow: true,
+              thickness: 20,
+              refractiveIndex: 2,
+              opacity: 0.20,
+              child: IconButton(
+                onPressed: () {
+                  if (controller.isSearching.value) {
+                    controller.clearSearch();
+                  } else {
+                    Get.back();
+                  }
+                },
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  CupertinoIcons.xmark,
+                  color: AppTheme.folderPink,
+                  size: 28,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

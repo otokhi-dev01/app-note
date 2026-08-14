@@ -90,20 +90,19 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       ),
       leading: Center(
         child: LiquidGlassContainer(
-          width: 44,
-          height: 44,
+          width: 50,
+          height: 50,
           shape: GlassShape.circle,
           showGlow: true,
-          thickness: 8,
-          refractiveIndex: 1.1,
-          opacity: 0.15,
-          blur: 10,
+          thickness: 20,
+          refractiveIndex: 2,
+          opacity: 0.20,
           child: IconButton(
             onPressed: () => Get.back(),
             icon: Icon(
               CupertinoIcons.chevron_left,
               color: theme.colorScheme.onSurface,
-              size: 24,
+              size: 28,
             ),
             padding: EdgeInsets.zero,
           ),
@@ -126,29 +125,31 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                     child: GestureDetector(
                       onTap: controller.toggleEditing,
                       child: Center(
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.primaryColor,
-                          ),
+                        child: LiquidGlassContainer(
+                          width: 50,
+                          height: 50,
+                          shape: GlassShape.circle,
+                          showGlow: true,
+                          thickness: 20,
+                          refractiveIndex: 2,
+                          opacity: 0.20,
                           child: const Icon(
                             Icons.check,
                             color: Colors.white,
-                            size: 20,
+                            size: 28,
                           ),
                         ),
                       ),
                     ),
                   )
                 : LiquidGlassContainer(
-                    height: 36,
-                    borderRadius: 18,
+                    height: 50,
+                    borderRadius: 30,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     showGlow: true,
-                    thickness: 8,
-                    opacity: 0.15,
+                    refractiveIndex: 2,
+                    thickness: 20,
+                    opacity: 0.20, // Lower opacity for high-fidelity glass look
                     blur: 10,
                     child: TextButton(
                       onPressed: controller.toggleEditing,
@@ -161,8 +162,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                         "Edit",
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold
+                          ,
                         ),
                       ),
                     ),
