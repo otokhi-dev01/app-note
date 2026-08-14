@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:pro_image_editor/pro_image_editor.dart';
+import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart' as dio;
 import '../../../theme/app_theme.dart';
 
 class ImageDrawingEditor extends StatefulWidget {
@@ -37,7 +37,7 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
     super.initState();
     if (widget.startWithPencil && widget.canEdit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _openProEditor();
+        _openNativeEditor();
       });
     }
   }
@@ -55,7 +55,7 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
           if (widget.canEdit)
             IconButton(
               tooltip: 'Edit Image',
-              onPressed: _openProEditor,
+              onPressed: _openNativeEditor,
               icon: const Icon(
                 CupertinoIcons.square_pencil,
                 color: AppTheme.folderPink,
@@ -103,73 +103,41 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
     );
   }
 
-  Future<void> _openProEditor() async {
+  Future<void> _openNativeEditor() async {
     if (_isSaving) return;
 
-    final configs = ProImageEditorConfigs(
-      designMode: ImageEditorDesignMode.cupertino,
-      theme: Theme.of(context).copyWith(
-        primaryColor: AppTheme.folderPink,
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          secondary: AppTheme.folderPink,
-        ),
-      ),
-      i18n: const I18n(done: 'Save', cancel: 'Cancel'),
-      paintEditor: const PaintEditorConfigs(
-        initialPaintMode: PaintMode.freeStyle,
-      ),
-    );
+    String? pathToEdit = widget.localPath;
 
-    final callbacks = ProImageEditorCallbacks(
-      onImageEditingComplete: (Uint8List bytes) async {
-        setState(() => _isSaving = true);
-        try {
-          final directory = await getTemporaryDirectory();
-          final path =
-              '${directory.path}/edited_${DateTime.now().millisecondsSinceEpoch}.png';
-          final file = File(path);
-          await file.writeAsBytes(bytes);
-
-          if (mounted) {
-            // Success: Close the pro editor and return the path to the previous screen
-            Get.back(); // Pop ProImageEditor
-            Get.back(
-              result: path,
-            ); // Pop Preview and return path to NoteDetailController
-          }
-        } catch (e) {
-          debugPrint('Error saving edited image: $e');
-          Get.snackbar("Error", "Could not save edited image");
-        } finally {
-          if (mounted) setState(() => _isSaving = false);
-        }
-      },
-      onCloseEditor: (editorMode) => Get.back(),
-    );
+    setState(() => _isSaving = true);
 
     try {
-      if (widget.localPath != null && File(widget.localPath!).existsSync()) {
-        Get.to(
-          () => ProImageEditor.file(
-            File(widget.localPath!),
-            configs: configs,
-            callbacks: callbacks,
-          ),
-        );
-      } else if (widget.url != null && widget.url!.isNotEmpty) {
-        // Pre-verify network image
-        Get.to(
-          () => ProImageEditor.network(
-            widget.url!,
-            configs: configs,
-            callbacks: callbacks,
-          ),
-        );
-      } else {
+      // 1. Prepare local path if it's a network URL
+      if (pathToEdit == null || !File(pathToEdit).existsSync()) {
+        if (widget.url != null && widget.url!.isNotEmpty) {
+          final directory = await getTemporaryDirectory();
+          pathToEdit = '${directory.path}/temp_${DateTime.now().millisecondsSinceEpoch}.png';
+          await dio.Dio().download(widget.url!, pathToEdit);
+        }
+      }
+
+      if (pathToEdit == null || !File(pathToEdit).existsSync()) {
         throw Exception("Image source not available");
       }
+
+      // 2. Open native iOS Markup editor
+      final String? editedPath = await IOSImageEditor.editImage(pathToEdit);
+
+      if (editedPath != null && mounted) {
+        // Success: return the path to the previous screen (NoteDetailController)
+        Get.back(result: editedPath);
+      }
     } catch (e) {
-      Get.snackbar("Error", "Could not open editor");
+      debugPrint('Error editing image: $e');
+      if (mounted) {
+        Get.snackbar("Error", "Could not open editor or save image");
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 }
