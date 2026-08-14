@@ -26,7 +26,7 @@ dependencies:
   image_picker: ^1.2.3
   path_provider: ^2.1.6
   flutter_secure_storage: ^10.3.1
-  pro_image_editor: ^13.3.0
+  ios_image_editor: ^1.0.0
   flutter_quill: ^11.0.0
   flutter_quill_extensions: ^11.0.0
   path: ^1.9.0
