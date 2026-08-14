@@ -1,3 +1,4 @@
+import 'package:Note/app/theme/app_theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -78,8 +79,8 @@ class FolderBottomBar extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 icon: Icon(
                   CupertinoIcons.square_pencil,
-                  color: theme.colorScheme.onSurface,
-                  size: 27,
+                  color: theme.primaryColor,
+                  size: 28,
                 ),
               ),
             ),

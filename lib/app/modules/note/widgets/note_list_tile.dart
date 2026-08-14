@@ -8,7 +8,6 @@ import '../../../theme/app_theme.dart';
 import '../../../widgets/ios_action_menu.dart';
 import '../../../widgets/ios_confirmation_dialog.dart';
 import '../controllers/note_controller.dart';
-import '../../folder/controllers/folder_controller.dart';
 
 class NoteListTile extends StatelessWidget {
   final NoteModel note;

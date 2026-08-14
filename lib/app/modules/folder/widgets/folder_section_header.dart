@@ -33,7 +33,6 @@ class FolderSectionHeader extends StatelessWidget {
                     : Icons.keyboard_arrow_right,
                 color: AppTheme.folderPink,
                 size: 28,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ],
