@@ -1,4 +1,3 @@
-import 'package:Note/app/theme/app_theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,21 +21,11 @@ class FolderBottomBar extends StatelessWidget {
             Expanded(
               child: GestureDetector(
                 onTap: () => Get.toNamed(Routes.SEARCH),
-                child: Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: theme.brightness == Brightness.dark
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                  ),
+                child: LiquidGlassContainer(
+                  thickness: 20,
+                  refractiveIndex: 2,
+                  opacity: 0.20,
+                  height: 55,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
@@ -71,9 +60,9 @@ class FolderBottomBar extends StatelessWidget {
               height: 50,
               shape: GlassShape.circle,
               showGlow: true,
-              thickness: 10,
-              refractiveIndex: 1.3,
-              opacity: 0.15,
+              thickness: 20,
+              refractiveIndex: 2,
+              opacity: 0.20,
               child: IconButton(
                 onPressed: () => controller.createNewNote(),
                 padding: EdgeInsets.zero,
@@ -81,6 +70,7 @@ class FolderBottomBar extends StatelessWidget {
                   CupertinoIcons.square_pencil,
                   color: theme.primaryColor,
                   size: 28,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),

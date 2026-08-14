@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../widgets/glass_widgets.dart';
+import '../../../theme/app_theme.dart';
 import '../controllers/note_detail_controller.dart';
 import '../widgets/note_content_editor.dart';
 import '../widgets/note_detail_more_popup.dart';
@@ -99,39 +102,80 @@ class NoteDetailView extends GetView<NoteDetailController> {
   }
 
   void _showAttachmentPopup(BuildContext context) {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (_) => CupertinoActionSheet(
-        actions: [
-          _buildAction(context, CupertinoIcons.viewfinder, 'Scan Text', () {}),
-          _buildAction(
-            context,
-            CupertinoIcons.viewfinder_circle,
-            'Scan Documents',
-            () {},
+    final theme = Theme.of(context);
+
+    Get.bottomSheet(
+      Material(
+        color: Colors.transparent,
+        child: LiquidGlassContainer(
+          borderRadius: 30,
+          blur: 35,
+          opacity: 0.1,
+          thickness: 15,
+          showGlow: true,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: theme.dividerColor.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                ),
+              ),
+              _buildAction(
+                context,
+                CupertinoIcons.camera,
+                'Take Photo or Video',
+                () => controller.addAttachment(ImageSource.camera),
+              ),
+              _buildAction(
+                context,
+                CupertinoIcons.photo_on_rectangle,
+                'Choose Photo or Video',
+                () => controller.addAttachment(ImageSource.gallery),
+              ),
+              _buildAction(
+                context,
+                CupertinoIcons.paperclip,
+                'Attach File',
+                () => controller.addAttachment(ImageSource.gallery),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.folderPink,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: const Text(
+                    "CANCEL",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          _buildAction(
-            context,
-            CupertinoIcons.camera,
-            'Take Photo or Video',
-            () => _pickAttachment(ImageSource.camera),
-          ),
-          _buildAction(
-            context,
-            CupertinoIcons.photo_on_rectangle,
-            'Choose Photo or Video',
-            () => _pickAttachment(ImageSource.gallery),
-          ),
-          _buildAction(context, CupertinoIcons.mic, 'Record Audio', () {}),
-          _buildAction(context, CupertinoIcons.paperclip, 'Attach File', () {}),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: Get.back,
-          isDefaultAction: true,
-          child: const Text('Cancel'),
         ),
       ),
-      barrierColor: Colors.black.withValues(alpha: 0.3),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      enterBottomSheetDuration: 400.ms,
     );
   }
 
@@ -141,24 +185,23 @@ class NoteDetailView extends GetView<NoteDetailController> {
     String label,
     VoidCallback onTap,
   ) {
-    return CupertinoActionSheetAction(
-      onPressed: () {
+    final theme = Theme.of(context);
+    return ListTile(
+      leading: Icon(icon, color: AppTheme.folderPink, size: 24),
+      title: Text(
+        label,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontSize: 17,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      onTap: () {
         Get.back();
         onTap();
       },
-      child: Row(
-        children: [
-          Icon(icon, size: 22),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(fontSize: 17)),
-        ],
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
-  }
-
-  void _pickAttachment(ImageSource source, {bool isVideo = false}) {
-    Get.back();
-    controller.addAttachment(source, isVideo: isVideo);
   }
 
   Widget _buildReadOnlyBanner(BuildContext context) {

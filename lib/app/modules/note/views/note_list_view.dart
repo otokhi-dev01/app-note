@@ -110,8 +110,8 @@ class NoteListView extends GetView<NoteController> {
       ),
       leading: Center(
         child: LiquidGlassContainer(
-          width: 44,
-          height: 44,
+          width: 50,
+          height: 50,
           shape: GlassShape.circle,
           showGlow: true,
           thickness: 8,
@@ -123,7 +123,7 @@ class NoteListView extends GetView<NoteController> {
             icon: Icon(
               CupertinoIcons.chevron_left,
               color: theme.colorScheme.onSurface,
-              size: 24,
+              size: 28,
               fontWeight: FontWeight.bold,
             ),
             padding: EdgeInsets.zero,
@@ -196,8 +196,8 @@ class NoteListView extends GetView<NoteController> {
         barrierColor: Colors.black.withValues(alpha: 0.1),
       ),
       child: LiquidGlassContainer(
-        width: 44,
-        height: 44,
+        width: 50,
+        height: 50,
         shape: GlassShape.circle,
         showGlow: true,
         thickness: 8,
@@ -207,7 +207,8 @@ class NoteListView extends GetView<NoteController> {
           child: Icon(
             Icons.more_horiz,
             color: theme.colorScheme.onSurface,
-            size: 24,
+            size: 28,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),

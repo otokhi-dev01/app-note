@@ -172,14 +172,14 @@ class AuthController extends GetxController {
     final forgotPhoneController = TextEditingController(text: phoneController.text);
     
     Get.bottomSheet(
-      LiquidGlassContainer(
-        borderRadius: 25,
-        blur: 30,
-        opacity: 0.1,
-        thickness: 15,
-        padding: const EdgeInsets.all(24),
-        child: Material(
-          color: Colors.transparent,
+      Material(
+        color: Colors.transparent,
+        child: LiquidGlassContainer(
+          borderRadius: 25,
+          blur: 30,
+          opacity: 0.1,
+          thickness: 15,
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
