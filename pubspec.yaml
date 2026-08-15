@@ -17,7 +17,6 @@ dependencies:
   flutter_animate: ^4.5.0
   google_fonts: ^6.2.1
   glassmorphism: ^3.0.0
-  liquid_glass_renderer: ^0.2.0-dev.4
   intl: ^0.20.2
   cached_network_image: ^3.3.1
   uuid: ^4.3.3
@@ -31,6 +30,7 @@ dependencies:
   flutter_quill_extensions: ^11.0.0
   path: ^1.9.0
   share_plus: ^10.1.4
+  liquid_glass_widgets: ^0.29.5
 
 dev_dependencies:
   flutter_launcher_icons: "^0.14.4"
