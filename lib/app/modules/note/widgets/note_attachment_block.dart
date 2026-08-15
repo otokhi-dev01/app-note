@@ -3,10 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:ios_image_editor/ios_image_editor.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:dio/dio.dart' as dio;
 import '../../../data/models/note_model.dart';
 import '../../../widgets/ios_action_menu.dart';
 import '../controllers/note_detail_controller.dart';
-import 'image_drawing_editor.dart';
 
 class NoteAttachmentBlock extends StatelessWidget {
   final AttachmentBlock block;
@@ -38,7 +40,7 @@ class NoteAttachmentBlock extends StatelessWidget {
         label: '$semanticsLabel. Tap to edit and save.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => _openImageEditor(context),
+          onTap: () => _openImageEditor(context, directEdit: true), // Logic: Tap to Edit instantly
           onLongPress: () => _showDeleteMenu(context), // Logic: Hold to show delete popup
           child: Container(
             constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
@@ -133,41 +135,56 @@ class NoteAttachmentBlock extends StatelessWidget {
   }
 
   Future<void> _openImageEditor(BuildContext context, {bool directEdit = false}) async {
-    final imageProvider = _resolveAttachmentImageProvider();
+    if (controller.isReadOnly.value) return;
 
-    if (imageProvider == null) {
-      Get.snackbar(
-        'Image unavailable',
-        'The image file could not be opened.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    String? pathToEdit = _normalizeLocalPath(block.localPath);
+    
+    // 1. Prepare local path if it's a network URL
+    if (pathToEdit == null || !File(pathToEdit).existsSync()) {
+      final networkUrl = _normalizeAttachmentUrl(block.url);
+      if (networkUrl != null && networkUrl.isNotEmpty) {
+        try {
+          // Show quick loading overlay and WAIT for it to complete
+          await Get.showOverlay(
+            asyncFunction: () async {
+              final directory = await getTemporaryDirectory();
+              final timestamp = DateTime.now().millisecondsSinceEpoch;
+              final localPath = '${directory.path}/edit_$timestamp.png';
+              
+              debugPrint('[IMAGE EDIT] Downloading: $networkUrl to $localPath');
+              await dio.Dio().download(networkUrl, localPath);
+              pathToEdit = localPath;
+            },
+            loadingWidget: const Center(
+              child: CupertinoActivityIndicator(radius: 15, color: Colors.white),
+            ),
+          );
+        } catch (e) {
+          debugPrint('[IMAGE EDIT] Download Error: $e');
+          Get.snackbar("Error", "Could not prepare image for editing");
+          return;
+        }
+      }
+    }
+
+    debugPrint('[IMAGE EDIT] Final Path: $pathToEdit');
+
+    if (pathToEdit == null || !File(pathToEdit!).existsSync()) {
+      Get.snackbar("Error", "Image source not available");
       return;
     }
 
-    final canEdit = !controller.isReadOnly.value;
-    final dynamic result = await Get.to(
-      () => ImageDrawingEditor(
-        localPath: block.localPath,
-        url: block.url,
-        imageProvider: imageProvider,
-        title: block.displayName.trim().isEmpty
-            ? 'Edit Image'
-            : block.displayName,
-        canEdit: canEdit,
-        startWithPencil: directEdit, // Pass through direct edit flag
-      ),
-    );
-
-    if (result == 'delete') {
-      controller.deleteBlock(blockIndex);
-      return;
+    try {
+      // 2. Open native iOS Markup editor DIRECTLY
+      final String? editedPath = await IOSImageEditor.editImage(pathToEdit!);
+      if (editedPath != null && editedPath.isNotEmpty) {
+        // Success: update the local block and automatically save the note
+        controller.updateAttachmentImage(blockIndex, editedPath);
+      }
+    } catch (e) {
+      debugPrint('Error opening native editor: $e');
+      Get.snackbar("Error", "Could not open image editor");
     }
-
-    if (!canEdit || result == null || result is! String || result.isEmpty)
-      return;
-
-    // This updates the local block and automatically saves the note
-    controller.updateAttachmentImage(blockIndex, result);
   }
 
   void _showDeleteMenu(BuildContext context) {
@@ -199,20 +216,6 @@ class NoteAttachmentBlock extends StatelessWidget {
       ),
       barrierColor: Colors.black.withValues(alpha: 0.2),
     );
-  }
-
-  ImageProvider? _resolveAttachmentImageProvider() {
-    final localPath = _normalizeLocalPath(block.localPath);
-
-    if (localPath != null) {
-      final file = File(localPath);
-      if (file.existsSync()) return FileImage(file);
-    }
-
-    final networkUrl = _normalizeAttachmentUrl(block.url);
-    if (networkUrl != null) return NetworkImage(networkUrl);
-
-    return null;
   }
 
   String? _normalizeLocalPath(String? value) {

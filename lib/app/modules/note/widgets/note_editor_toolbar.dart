@@ -18,7 +18,6 @@ class NoteEditorToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardVisible = bottomInset > 0;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Smooth animation for following the keyboard
     return AnimatedContainer(
@@ -35,12 +34,13 @@ class NoteEditorToolbar extends StatelessWidget {
         child: _PageContent(
           child: LiquidGlassContainer(
             borderRadius: 30,
-            blur: 25,
-            opacity: isDark ? 0.8 : 0.98, // Professional iOS feel
+            blur: 35,
+            opacity: 0.1, // Premium translucent feel
             showGlow: true,
-            thickness: 8,
+            thickness: 10,
+            animateLiquid: true, // FEATURE: Added premium liquid glass physics
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Row(
                 children: [
                   Expanded(
@@ -53,9 +53,9 @@ class NoteEditorToolbar extends StatelessWidget {
                           semanticLabel: 'Format',
                         ),
                         _ToolbarButton(
-                          icon: CupertinoIcons.list_bullet,
-                          onTap: controller.addChecklistBlock,
-                          semanticLabel: 'Checklist',
+                          icon: CupertinoIcons.pencil_outline,
+                          onTap: controller.startDrawing, // Launches high-power native editor
+                          semanticLabel: 'Pencil',
                         ),
                         _ToolbarButton(
                           icon: CupertinoIcons.paperclip,

@@ -142,9 +142,9 @@ class NoteDetailView extends GetView<NoteDetailController> {
               ),
               _buildAction(
                 context,
-                CupertinoIcons.paperclip,
-                'Attach File',
-                () => controller.addAttachment(ImageSource.gallery),
+                CupertinoIcons.pencil_outline,
+                'Drawing',
+                () => controller.startDrawing(),
               ),
               const SizedBox(height: 24),
               SizedBox(

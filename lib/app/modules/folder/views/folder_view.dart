@@ -229,16 +229,14 @@ class FolderView extends GetView<FolderController> {
             ),
           );
         }
-
         controller.sortFolders();
-
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
             if (controller.iCloudFolders.isNotEmpty) ...[
               FolderSectionHeader(
-                title: "2 Cloud",
+                title: "Pii Cloud",
                 isExpanded: controller.isICloudExpanded,
                 onTap: controller.toggleICloud,
               ),

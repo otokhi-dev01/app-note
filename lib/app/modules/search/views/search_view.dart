@@ -7,6 +7,7 @@ import '../../../routes/app_pages.dart';
 import '../../../routes/note_navigation.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/glass_widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' hide GlassCard;
 import '../controllers/search_controller.dart' as sc;
 
 class SearchView extends GetView<sc.SearchController> {
@@ -157,11 +158,8 @@ class SearchView extends GetView<sc.SearchController> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ListTile(
+    return GlassListTile(
       onTap: () => controller.applyFilter(title),
-      dense: true,
-      hoverColor: AppTheme.folderYellow.withValues(alpha: 0.05),
-      splashColor: AppTheme.folderYellow.withValues(alpha: 0.1),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
         width: 32,
@@ -209,7 +207,7 @@ class SearchView extends GetView<sc.SearchController> {
               borderRadius: 30,
               children: [
                 for (int i = 0; i < controller.folderResults.length; i++) ...[
-                  ListTile(
+                  GlassListTile(
                     onTap: () => Get.toNamed(
                       Routes.NOTE_LIST,
                       arguments: controller.folderResults[i],
@@ -224,16 +222,14 @@ class SearchView extends GetView<sc.SearchController> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    trailing: Icon(
-                      Icons.chevron_right,
-                      size: 18,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
+                    trailing: GlassListTile.chevron,
                   ),
                   if (i < controller.folderResults.length - 1)
-                    const Divider(indent: 56, height: 1),
+                    Divider(
+                      indent: 56,
+                      height: 1,
+                      color: theme.dividerColor.withValues(alpha: 0.1),
+                    ),
                 ],
               ],
             ),
@@ -294,7 +290,7 @@ class SearchView extends GetView<sc.SearchController> {
 
   Widget _buildNoteTile(BuildContext context, NoteModel note) {
     final theme = Theme.of(context);
-    return ListTile(
+    return GlassListTile(
       onTap: () {
         NoteNavigation.toDetail(note);
       },
@@ -302,11 +298,7 @@ class SearchView extends GetView<sc.SearchController> {
         note.title.isEmpty ? "New Note" : note.title,
         style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        size: 18,
-        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-      ),
+      trailing: GlassListTile.chevron,
     );
   }
 
