@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:ios_image_editor/ios_image_editor.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:ui' as ui;
+import 'dart:io';
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
@@ -44,6 +48,27 @@ class NoteDetailController extends GetxController {
   final searchQuery = "".obs;
   final searchFocusNode = FocusNode();
   final isFormatPanelVisible = false.obs;
+
+  // --- Global Drawing Mode (iOS 18 Style) ---
+  final isDrawingMode = false.obs;
+  final backgroundPoints = <Offset?>[].obs; // Global drawing data
+  final drawingColor = Rx<Color>(Colors.black);
+  final drawingStrokeWidth = 3.0.obs;
+
+  void toggleDrawingMode() {
+    isDrawingMode.toggle();
+    if (isDrawingMode.value) {
+      Get.focusScope?.unfocus(); // Dismiss keyboard when drawing
+      Get.snackbar(
+        "Drawing Mode", 
+        "You can now draw anywhere on the note.",
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  void clearGlobalDrawing() => backgroundPoints.clear();
 
   @override
   void onInit() {
@@ -159,6 +184,50 @@ class NoteDetailController extends GetxController {
         ],
       ),
     );
+  }
+
+  Future<void> startDrawing() async {
+    if (isReadOnly.value) return;
+
+    try {
+      // 1. Create a blank white canvas for a clean start
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      final paint = ui.Paint()..color = Colors.white;
+      canvas.drawRect(const ui.Rect.fromLTWH(0, 0, 2000, 2000), paint);
+      
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(2000, 2000);
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      final buffer = byteData!.buffer.asUint8List();
+
+      // 2. Save to temp file
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      final file = File(path);
+      await file.writeAsBytes(buffer);
+
+      // 3. Open native iOS Markup editor DIRECTLY
+      final String? editedPath = await IOSImageEditor.editImage(path);
+
+      if (editedPath != null && editedPath.isNotEmpty) {
+        // 4. Add as a new attachment block and refresh
+        _insertBlock(
+          AttachmentBlock(
+            id: _generateId(),
+            displayName: 'Sketch',
+            localPath: editedPath,
+            attachmentId: 0,
+          ),
+        );
+        blocks.refresh();
+        addTextBlock();
+        saveNote();
+      }
+    } catch (e) {
+      debugPrint('[DRAWING ERROR] $e');
+      Get.snackbar("Error", "Could not start drawing board");
+    }
   }
 
   Future<void> addAttachment(ImageSource source, {bool isVideo = false}) async {
@@ -392,6 +461,11 @@ class NoteDetailController extends GetxController {
       final String title = titleController.text.trim();
       int noteId = currentNote.value?.id ?? 0;
 
+      // FEATURE Logic: If there is a global background sketch, capture it as a block first
+      if (backgroundPoints.isNotEmpty) {
+        await _flattenBackgroundDrawing();
+      }
+
       noteId = await _noteService.saveNoteMetadata(
         folderId: folderId,
         title: title.isEmpty ? "Untitled Note" : title,
@@ -406,9 +480,8 @@ class NoteDetailController extends GetxController {
         content: blocks.toList(),
       );
 
-      if (currentNote.value != null && currentNote.value!.id == 0) {
-        fetchNoteDetail(noteId);
-      }
+      // Always re-fetch detail after a successful save to sync server IDs and URLs
+      await fetchNoteDetail(noteId);
 
       Get.snackbar(
         "Success",
@@ -422,6 +495,54 @@ class NoteDetailController extends GetxController {
       Get.snackbar("Error", "Failed to save note");
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  /// Converts the global background points into a temporary image and adds it as a block
+  Future<void> _flattenBackgroundDrawing() async {
+    try {
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      
+      // We use a large virtual canvas to capture the drawing detail
+      final paint = ui.Paint()
+        ..color = drawingColor.value
+        ..strokeCap = ui.StrokeCap.round
+        ..strokeJoin = ui.StrokeJoin.round
+        ..strokeWidth = drawingStrokeWidth.value
+        ..isAntiAlias = true;
+
+      // Draw all points
+      for (int i = 0; i < backgroundPoints.length - 1; i++) {
+        if (backgroundPoints[i] != null && backgroundPoints[i + 1] != null) {
+          canvas.drawLine(backgroundPoints[i]!, backgroundPoints[i + 1]!, paint);
+        }
+      }
+
+      final picture = recorder.endRecording();
+      // Use standard logical bounds (approximate screen size)
+      final img = await picture.toImage(1000, 2000); 
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      final buffer = byteData!.buffer.asUint8List();
+
+      final directory = await getTemporaryDirectory();
+      final path = '${directory.path}/bg_sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      await File(path).writeAsBytes(buffer);
+
+      // Insert at the very top (index 0) so it stays "under" or "behind" other content blocks
+      blocks.insert(0, AttachmentBlock(
+        id: _generateId(),
+        displayName: 'Background Sketch',
+        localPath: path,
+        attachmentId: 0,
+      ));
+      
+      // Clear the volatile points now that they are a persistent block
+      backgroundPoints.clear();
+      isDrawingMode.value = false;
+      blocks.refresh();
+    } catch (e) {
+      debugPrint('[FLATTEN ERROR] $e');
     }
   }
 
