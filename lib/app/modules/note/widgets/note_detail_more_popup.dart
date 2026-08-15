@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import '../../../widgets/ios_action_menu.dart';
 import '../controllers/note_detail_controller.dart';
 import 'package:get/get.dart';

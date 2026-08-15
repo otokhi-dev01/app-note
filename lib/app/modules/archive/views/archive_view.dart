@@ -86,8 +86,8 @@ class ArchiveView extends GetView<NoteController> {
       ),
       leading: Center(
         child: LiquidGlassContainer(
-          width: 44,
-          height: 44,
+          width: 50,
+          height: 50,
           shape: GlassShape.circle,
           showGlow: true,
           thickness: 8,
@@ -99,7 +99,7 @@ class ArchiveView extends GetView<NoteController> {
             icon: Icon(
               CupertinoIcons.chevron_left,
               color: theme.colorScheme.onSurface,
-              size: 24,
+              size: 28,
             ),
             padding: EdgeInsets.zero,
           ),
@@ -112,8 +112,8 @@ class ArchiveView extends GetView<NoteController> {
           child: Obx(
             () => controller.isEditing.value
                 ? LiquidGlassContainer(
-                    width: 44,
-                    height: 44,
+                    width: 50,
+                    height: 50,
                     shape: GlassShape.circle,
                     showGlow: true,
                     thickness: 8,
@@ -122,25 +122,17 @@ class ArchiveView extends GetView<NoteController> {
                     child: GestureDetector(
                       onTap: controller.toggleEditing,
                       child: Center(
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: theme.primaryColor,
-                          ),
-                          child: const Icon(
+                          child:  Icon(
                             Icons.check,
-                            color: Colors.white,
-                            size: 20,
+                            color: theme.colorScheme.onSurface,
+                            size: 28,
                           ),
                         ),
                       ),
-                    ),
                   )
                 : LiquidGlassContainer(
-                    height: 36,
-                    borderRadius: 18,
+                    height: 50,
+                    borderRadius: 30,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     showGlow: true,
                     thickness: 8,
@@ -157,8 +149,8 @@ class ArchiveView extends GetView<NoteController> {
                         "Edit",
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),

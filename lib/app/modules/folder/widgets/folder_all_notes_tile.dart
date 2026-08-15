@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../routes/app_pages.dart';
-import '../../../theme/app_theme.dart';
 import '../controllers/folder_controller.dart';
 
 class FolderAllNotesTile extends StatelessWidget {
@@ -36,7 +35,7 @@ class FolderAllNotesTile extends StatelessWidget {
           leading: Icon(
             CupertinoIcons.folder,
             color: theme.primaryColor,
-            size: 30,
+            size: 25,
           ),
           title: Text(
             "All on My iphone",

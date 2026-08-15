@@ -25,14 +25,14 @@ class FolderBottomBar extends StatelessWidget {
                   thickness: 20,
                   refractiveIndex: 2,
                   opacity: 0.20,
-                  height: 55,
+                  height: 48,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
                       Icon(
                         Icons.search,
                         color: theme.colorScheme.onSurfaceVariant,
-                        size: 22,
+                        size: 25,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -45,9 +45,9 @@ class FolderBottomBar extends StatelessWidget {
                         ),
                       ),
                       Icon(
-                        Icons.mic,
+                        Icons.mic_none_rounded,
                         color: theme.colorScheme.onSurfaceVariant,
-                        size: 22,
+                        size: 25,
                       ),
                     ],
                   ),
@@ -56,8 +56,8 @@ class FolderBottomBar extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             LiquidGlassContainer(
-              width: 50,
-              height: 50,
+              width: 48,
+              height: 48,
               shape: GlassShape.circle,
               showGlow: true,
               thickness: 20,
@@ -69,8 +69,7 @@ class FolderBottomBar extends StatelessWidget {
                 icon: Icon(
                   CupertinoIcons.square_pencil,
                   color: theme.primaryColor,
-                  size: 28,
-                  fontWeight: FontWeight.bold,
+                  size: 25,
                 ),
               ),
             ),

@@ -40,7 +40,7 @@ class FolderTile extends StatelessWidget {
           leading:  Icon(
             CupertinoIcons.folder, // Updated to use CupertinoIcons.folder
             color: theme.primaryColor,
-            size: 30,
+            size: 25,
           ),
           title: Text(
             folder.name,

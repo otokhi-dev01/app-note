@@ -91,14 +91,13 @@ class FolderView extends GetView<FolderController> {
           child: Row(
             children: [
               LiquidGlassContainer(
-                width: 50,
-                height: 50,
+                width: 48,
+                height: 48,
                 shape: GlassShape.circle,
                 showGlow: true,
                 thickness: 20,
                 refractiveIndex: 2,
                 opacity: 0.20,
-                blur: 10,
                 child: IconButton(
                   onPressed: () => Get.to(
                         () => FolderCreateModal(controller: controller),
@@ -112,7 +111,7 @@ class FolderView extends GetView<FolderController> {
                       Icon(
                         CupertinoIcons.folder,
                         color: theme.primaryColor,
-                        size: 28,
+                        size: 25,
                       ),
                       Positioned(
                         right: -3,
@@ -128,7 +127,7 @@ class FolderView extends GetView<FolderController> {
                             child: Icon(
                               CupertinoIcons.plus,
                               color: Colors.white,
-                              size: 10,
+                              size: 11.5,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -172,21 +171,20 @@ class FolderView extends GetView<FolderController> {
     final theme = Theme.of(context);
     if (controller.isEditing.value) {
       return LiquidGlassContainer(
-        width: 50,
-        height: 50,
+        width: 48,
+        height: 48,
         shape: GlassShape.circle,
         showGlow: true,
         thickness: 20,
         refractiveIndex: 2,
         opacity: 0.20,
-        blur: 10,
         child: GestureDetector(
           onTap: controller.toggleEditing,
           child: Center(
             child: Icon(
               Icons.check,
               color: theme.primaryColor,
-              size: 28,
+              size: 25,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -194,14 +192,13 @@ class FolderView extends GetView<FolderController> {
       );
     }
     return LiquidGlassContainer(
-      height: 50,
-      borderRadius: 30,
       padding: const EdgeInsets.symmetric(horizontal: 4),
+      height: 48,
       showGlow: true,
-      refractiveIndex: 2,
       thickness: 20,
+      refractiveIndex: 2,
       opacity: 0.20,
-      blur: 10,
+      borderRadius: 25,
       child: TextButton(
         onPressed: controller.toggleEditing,
         style: TextButton.styleFrom(
@@ -213,8 +210,7 @@ class FolderView extends GetView<FolderController> {
           "Edit",
           style: TextStyle(
             color: theme.colorScheme.onSurface,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+            fontSize: 17,
           ),
         ),
       ),
