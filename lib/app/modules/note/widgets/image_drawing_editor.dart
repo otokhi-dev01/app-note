@@ -51,17 +51,21 @@ class _ImageDrawingEditorState extends State<ImageDrawingEditor> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        centerTitle: true,
         actions: [
           if (widget.canEdit)
             IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
               tooltip: 'Edit Image',
               onPressed: _openNativeEditor,
               icon: const Icon(
                 CupertinoIcons.square_pencil,
                 color: AppTheme.folderPink,
+                size: 24,
               ),
             ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 16),
         ],
       ),
       body: Stack(

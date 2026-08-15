@@ -15,10 +15,17 @@ import 'app/data/providers/theme_service.dart';
   Feature: dark mode and light mode, rebranding to Otokhi
  */
 
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
-  runApp(const MyApp());
+  await LiquidGlassWidgets.initialize();
+  runApp(
+    LiquidGlassWidgets.wrap(
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
