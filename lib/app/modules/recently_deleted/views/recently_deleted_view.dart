@@ -90,8 +90,8 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       ),
       leading: Center(
         child: LiquidGlassContainer(
-          width: 50,
-          height: 50,
+          width: 48,
+          height: 48,
           shape: GlassShape.circle,
           showGlow: true,
           thickness: 20,
@@ -102,7 +102,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             icon: Icon(
               CupertinoIcons.chevron_left,
               color: theme.colorScheme.onSurface,
-              size: 28,
+              size: 25,
             ),
             padding: EdgeInsets.zero,
           ),
@@ -115,8 +115,8 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           child: Obx(
             () => controller.isEditing.value
                 ? LiquidGlassContainer(
-                    width: 44,
-                    height: 44,
+                    width: 50,
+                    height: 50,
                     shape: GlassShape.circle,
                     showGlow: true,
                     thickness: 8,
@@ -126,25 +126,25 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                       onTap: controller.toggleEditing,
                       child: Center(
                         child: LiquidGlassContainer(
-                          width: 50,
-                          height: 50,
+                          width: 48,
+                          height: 48,
                           shape: GlassShape.circle,
                           showGlow: true,
                           thickness: 20,
                           refractiveIndex: 2,
                           opacity: 0.20,
-                          child: const Icon(
+                          child: Icon(
                             Icons.check,
-                            color: Colors.white,
-                            size: 28,
+                            color: theme.colorScheme.onSurface,
+                            size: 25,
                           ),
                         ),
                       ),
                     ),
                   )
                 : LiquidGlassContainer(
-                    height: 50,
-                    borderRadius: 30,
+                    height: 48,
+                    borderRadius: 25,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     showGlow: true,
                     refractiveIndex: 2,
@@ -162,9 +162,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                         "Edit",
                         style: TextStyle(
                           color: theme.colorScheme.onSurface,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold
-                          ,
+                          fontSize: 17,
                         ),
                       ),
                     ),

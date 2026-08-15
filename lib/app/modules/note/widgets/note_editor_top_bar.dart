@@ -23,9 +23,9 @@ class NoteEditorTopBar extends StatelessWidget {
       color: Colors.transparent,
       padding: EdgeInsets.only(top: topPadding),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: SizedBox(
-          height: 40,
+          height: 45,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -117,29 +117,32 @@ class _SaveButton extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: controller.saveNote,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: const BoxDecoration(
-          color: AppTheme.folderYellow,
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Obx(
-          () => controller.isSaving.value
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
+      child: LiquidGlassContainer(
+        width: 45,
+        height: 45,
+        shape: GlassShape.circle,
+        opacity: 0.15,
+        showGlow: true,
+        thickness: 8,
+        blur: 10,
+        child: Center(
+          child: Obx(
+            () => controller.isSaving.value
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: AppTheme.folderPink,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(
+                    CupertinoIcons.checkmark,
+                    color: AppTheme.folderPink,
+                    size: 20,
+                    fontWeight: FontWeight.bold,
                   ),
-                )
-              : const Icon(
-                  CupertinoIcons.checkmark,
-                  color: Colors.white,
-                  size: 24,
-                ),
+          ),
         ),
       ),
     );

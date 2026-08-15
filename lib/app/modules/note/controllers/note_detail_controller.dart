@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +6,7 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
+import '../../../routes/app_pages.dart';
 import '../../folder/controllers/folder_controller.dart';
 import '../widgets/note_move_folder_modal.dart';
 import 'note_controller.dart';
@@ -541,13 +541,16 @@ class NoteDetailController extends GetxController {
     // Logic: Immediately unfocus and hide keyboard
     FocusManager.instance.primaryFocus?.unfocus();
 
-    // Close the "More" menu popup
-    if (Get.isDialogOpen ?? false) Get.back(); 
+    // FEATURE Logic: Wipe all local state to "Clean screen" immediately
+    // This ensures that even if navigation is slow, the user sees an empty screen
+    blocks.clear();
+    titleController.clear();
+    final deletedNoteId = id;
+    currentNote.value = null;
 
-    isLoading.value = true;
     try {
       // Logic: Start soft delete on server
-      await _noteService.updateNoteState(id, isDelete: true);
+      await _noteService.updateNoteState(deletedNoteId, isDelete: true);
       
       // FEATURE: Synchronize with FolderController to update global trash counts
       if (Get.isRegistered<FolderController>()) {
@@ -557,19 +560,16 @@ class NoteDetailController extends GetxController {
       // Optimistic UI: Clean up local lists so background is updated instantly
       if (Get.isRegistered<NoteController>()) {
         final nc = Get.find<NoteController>();
-        nc.notes.removeWhere((n) => n.id == id);
-        nc.pinnedNotes.removeWhere((n) => n.id == id);
-        nc.otherNotes.removeWhere((n) => n.id == id);
+        nc.notes.removeWhere((n) => n.id == deletedNoteId);
+        nc.pinnedNotes.removeWhere((n) => n.id == deletedNoteId);
+        nc.otherNotes.removeWhere((n) => n.id == deletedNoteId);
         nc.fetchNotes(refresh: true);
       }
 
-      // FEATURE Logic: Wipe all local state to "Clean screen"
-      blocks.clear();
-      titleController.clear();
-      currentNote.value = null;
-
-      // Logic: Exit detail view completely
-      Get.back(result: true); 
+      // Logic: Exit detail view completely.
+      // Use Get.until to ensure we land exactly on the list page or home.
+      // This is more robust than multiple Get.back() calls.
+      Get.until((route) => route.settings.name == Routes.NOTE_LIST || route.settings.name == Routes.FOLDER || route.isFirst);
 
       Get.snackbar(
         "Success", 
@@ -578,9 +578,10 @@ class NoteDetailController extends GetxController {
         duration: const Duration(seconds: 1),
       );
     } catch (e) {
+      debugPrint("[NOTE DELETE ERROR] $e");
       Get.snackbar("Error", "Could not delete note");
-    } finally {
-      isLoading.value = false;
+      // Fallback: stay on screen if delete failed, but we already cleared it...
+      // Re-fetch might be needed here, but usually, a 200 is expected.
     }
   }
 

@@ -35,7 +35,7 @@ class FolderSystemTiles extends StatelessWidget {
           leading: Icon(
             CupertinoIcons.trash, // Updated to use CupertinoIcons.folder
             color: theme.primaryColor,
-            size: 30,
+            size: 25,
           ),
           title: Text("Recently Deleted", style: theme.textTheme.bodyLarge),
           trailing: Row(
@@ -74,7 +74,7 @@ class FolderSystemTiles extends StatelessWidget {
           leading: Icon(
             CupertinoIcons.folder,
             color: theme.primaryColor,
-            size: 30,
+            size: 25,
           ),
           title: Text("Archive", style: theme.textTheme.bodyLarge),
           trailing: Row(
@@ -113,7 +113,7 @@ class FolderSystemTiles extends StatelessWidget {
           leading: Icon(
             Icons.person_outline,
             color: theme.primaryColor,
-            size: 30,
+            size: 25,
           ),
           title: Text("Profile", style: theme.textTheme.bodyLarge),
           trailing: Icon(
