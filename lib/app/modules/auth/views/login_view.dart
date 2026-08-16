@@ -28,54 +28,24 @@ class LoginView extends GetView<AuthController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverAppBar(
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              pinned: true,
-              expandedHeight: 100.0,
-              elevation: 0,
-              automaticallyImplyLeading: false,
+            CustomGlassSliverAppBar(
+              expandedHeight: 100,
+              toolbarHeight: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 13),
               centerTitle: true,
-              systemOverlayStyle: theme.brightness == Brightness.dark
-                  ? SystemUiOverlayStyle.light
-                  : SystemUiOverlayStyle.dark,
-              title: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double percentage =
-                      (constraints.maxHeight - kToolbarHeight) /
-                      (140.0 - kToolbarHeight);
-                  final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-                  return Opacity(
-                    opacity: opacity > 0.8 ? 1.0 : 0.0,
-                    child: Text(
-                      "Login",
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                      ),
-                    ),
-                  );
-                },
+              title: Text(
+                "Login",
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 17,
+                ),
               ),
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
-                title: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double percentage =
-                        (constraints.maxHeight - kToolbarHeight) /
-                        (140.0 - kToolbarHeight);
-                    return Opacity(
-                      opacity: percentage.clamp(0.0, 1.0),
-                      child: Text(
-                        "Login",
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 30,
-                        ),
-                      ),
-                    );
-                  },
+              largeTitlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
+              largeTitle: Text(
+                "Login",
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30,
                 ),
               ),
             ),
@@ -115,7 +85,7 @@ class LoginView extends GetView<AuthController> {
                     ).animate().fadeIn(delay: 300.ms),
                     const SizedBox(height: 15),
                     // Login Card
-                    LiquidGlassContainer(
+                    CustomGlassContainer(
                       borderRadius: 30,
                       blur: 35,
                       opacity: 0.1,
@@ -221,7 +191,7 @@ class LoginView extends GetView<AuthController> {
                                           height: 20,
                                           width: 20,
                                           child: CircularProgressIndicator(
-                                            color: Colors.white,
+                                            color: AppTheme.folderPink,
                                             strokeWidth: 2,
                                           ),
                                         )

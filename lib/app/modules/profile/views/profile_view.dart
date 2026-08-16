@@ -35,82 +35,39 @@ class ProfileView extends GetView<ProfileController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverAppBar(
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              pinned: true,
-              expandedHeight: 120.0,
-              elevation: 0,
-              automaticallyImplyLeading: false,
+            CustomGlassSliverAppBar(
+              expandedHeight: 120,
+              toolbarHeight: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 13),
               centerTitle: true,
-              systemOverlayStyle: isDark
-                  ? SystemUiOverlayStyle.light.copyWith(
-                      statusBarIconBrightness: Brightness.light,
-                      statusBarBrightness: Brightness.dark,
-                    )
-                  : SystemUiOverlayStyle.dark.copyWith(
-                      statusBarIconBrightness: Brightness.dark,
-                      statusBarBrightness: Brightness.light,
-                    ),
-              leadingWidth: 70,
-              leading: Center(
-                child: LiquidGlassContainer(
-                  width: 44,
-                  height: 44,
-                  shape: GlassShape.circle,
-                  showGlow: true,
-                  thickness: 8,
-                  opacity: 0.15,
-                  blur: 10,
-                  child: IconButton(
-                    onPressed: () => Get.back(),
-                    icon: Icon(
-                      CupertinoIcons.chevron_left,
-                      color: theme.colorScheme.onSurface,
-                      size: 24,
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
+              leading: CustomGlassButton(
+                onPressed: () => Get.back(),
+                width: 44,
+                height: 44,
+                shape: GlassShape.circle,
+                blur: 10,
+                opacity: 0.15,
+                thickness: 8,
+                padding: EdgeInsets.zero,
+                child: Icon(
+                  CupertinoIcons.chevron_left,
+                  color: theme.colorScheme.onSurface,
+                  size: 24,
                 ),
               ),
-              title: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double percentage =
-                      (constraints.maxHeight - kToolbarHeight) /
-                      (120.0 - kToolbarHeight);
-                  final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-
-                  return Opacity(
-                    opacity: opacity > 0.8 ? 1.0 : 0.0,
-                    child: Text(
-                      "Profile",
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                      ),
-                    ),
-                  );
-                },
+              title: Text(
+                "Profile",
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 17,
+                ),
               ),
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
-                title: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double percentage =
-                        (constraints.maxHeight - kToolbarHeight) /
-                        (120.0 - kToolbarHeight);
-                    return Opacity(
-                      opacity: percentage.clamp(0.0, 1.0),
-                      child: Text(
-                        "Profile",
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 30,
-                        ),
-                      ),
-                    );
-                  },
+              largeTitlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
+              largeTitle: Text(
+                "Profile",
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30,
                 ),
               ),
             ),
@@ -129,7 +86,9 @@ class ProfileView extends GetView<ProfileController> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: AppTheme.folderPink.withValues(alpha: 0.3),
+                                  color: AppTheme.folderPink.withValues(
+                                    alpha: 0.3,
+                                  ),
                                   width: 2,
                                 ),
                               ),
@@ -137,17 +96,21 @@ class ProfileView extends GetView<ProfileController> {
                                 tag: 'profile_image',
                                 child: CircleAvatar(
                                   radius: 60,
-                                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                                  backgroundImage: controller
-                                          .userImagePath.value.isNotEmpty
+                                  backgroundColor:
+                                      theme.colorScheme.surfaceContainerHighest,
+                                  backgroundImage:
+                                      controller.userImagePath.value.isNotEmpty
                                       ? FileImage(
-                                          File(controller.userImagePath.value))
+                                          File(controller.userImagePath.value),
+                                        )
                                       : null,
                                   child: controller.userImagePath.value.isEmpty
                                       ? Icon(
                                           Icons.person_rounded,
                                           size: 60,
-                                          color: theme.colorScheme.onSurfaceVariant,
+                                          color: theme
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                         )
                                       : null,
                                 ),
@@ -233,13 +196,13 @@ class ProfileView extends GetView<ProfileController> {
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
-                            fontSize: 18
+                            fontSize: 18,
                           ),
                         ),
                       ),
                     ),
                     SizedBox(height: 28),
-                    LiquidGlassContainer(
+                    CustomGlassContainer(
                       borderRadius: 30,
                       blur: 35,
                       opacity: 0.1,
@@ -287,13 +250,13 @@ class ProfileView extends GetView<ProfileController> {
                             color: theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
-                            fontSize: 18
+                            fontSize: 18,
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(height: 28,),
-                    LiquidGlassContainer(
+                    SizedBox(height: 28),
+                    CustomGlassContainer(
                       borderRadius: 30,
                       blur: 35,
                       opacity: 0.1,
@@ -301,7 +264,7 @@ class ProfileView extends GetView<ProfileController> {
                       showGlow: true,
                       child: Material(
                         color: Colors.transparent,
-                        child: ListTile(
+                        child: CustomGlassListTile(
                           onTap: controller.logout,
                           leading: Container(
                             padding: const EdgeInsets.all(8),
@@ -322,10 +285,9 @@ class ProfileView extends GetView<ProfileController> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          trailing: const Icon(Icons.chevron_right_rounded,
-                              color: Colors.red),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            color: Colors.red,
                           ),
                         ),
                       ),
@@ -349,38 +311,38 @@ class ProfileView extends GetView<ProfileController> {
     final theme = Theme.of(context);
     final controller = Get.find<ProfileController>();
 
-    return Obx(
-      () {
-        final isSelected = controller.currentThemeMode.value == mode;
-        return ListTile(
-          onTap: () => controller.changeTheme(mode),
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppTheme.folderPink.withValues(alpha: 0.1)
-                  : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: isSelected
-                  ? AppTheme.folderPink
-                  : theme.colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
+    return Obx(() {
+      final isSelected = controller.currentThemeMode.value == mode;
+      return CustomGlassListTile(
+        onTap: () => controller.changeTheme(mode),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? AppTheme.folderPink.withValues(alpha: 0.1)
+                : theme.colorScheme.surfaceContainerHighest.withValues(
+                    alpha: 0.3,
+                  ),
+            shape: BoxShape.circle,
           ),
-          title: Text(
-            title,
-            style: TextStyle(
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
+          child: Icon(
+            icon,
+            color: isSelected
+                ? AppTheme.folderPink
+                : theme.colorScheme.onSurfaceVariant,
+            size: 20,
           ),
-          trailing: isSelected
-              ? const Icon(Icons.check_circle_rounded, color: AppTheme.folderPink)
-              : null,
-        );
-      },
-    );
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+        trailing: isSelected
+            ? const Icon(Icons.check_circle_rounded, color: AppTheme.folderPink)
+            : null,
+      );
+    });
   }
 }

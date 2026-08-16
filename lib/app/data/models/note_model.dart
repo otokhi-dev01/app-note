@@ -12,6 +12,7 @@ class NoteModel {
   final DateTime? updatedAt;
   final DateTime? deletedAt;
   final int attachmentCount;
+  final bool isDeleteFlag;
 
   NoteModel({
     required this.id,
@@ -25,11 +26,12 @@ class NoteModel {
     this.updatedAt,
     this.deletedAt,
     this.attachmentCount = 0,
+    this.isDeleteFlag = false,
   });
 
   String get displayTitle => title.isEmpty ? "Untitled Note" : title;
 
-  bool get isDeleted => deletedAt != null;
+  bool get isDeleted => deletedAt != null || isDeleteFlag;
 
   static String extractPlainText(dynamic value) {
     if (value == null) return '';
@@ -170,6 +172,7 @@ class NoteModel {
       isLocked: _toBool(json['IsLocked'] ?? json['isLocked']),
       updatedAt: _parseDate(json['UpdatedAt'] ?? json['updatedAt']),
       deletedAt: _parseDate(json['DeletedAt'] ?? json['deletedAt']),
+      isDeleteFlag: _toBool(json['IsDelete'] ?? json['isDelete']),
       attachmentCount: _toInt(
         json['AttachmentCount'] ?? json['attachmentCount'],
       ),

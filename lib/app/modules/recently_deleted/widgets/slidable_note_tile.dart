@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import '../../../widgets/glass_widgets.dart';
 
 class SlidableNoteTile extends StatefulWidget {
   final Widget child;
@@ -140,34 +139,57 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
         width: _actionWidth,
         height: double.infinity,
         color: Colors.transparent,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              LiquidGlassContainer(
-                width: 44,
-                height: 44,
-                shape: GlassShape.circle,
-                thickness: 5,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final double h = constraints.maxHeight;
+            if (h < 5) return const SizedBox.shrink();
+
+            // Super Safe: Scale down if space is tight
+            // h=57 is your current constraint. 
+            // iconSize=24, space=2, text=12 => total ~38px. Should fit 57px easily.
+            final bool showLabel = h > 55;
+            final double iconSize = h > 65 ? 30 : (h > 45 ? 24 : 20);
+
+            return Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: iconSize,
+                        height: iconSize,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          icon,
+                          color: Colors.white,
+                          size: iconSize * 0.6,
+                        ),
+                      ),
+                      if (showLabel) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  child: Icon(icon, color: Colors.white, size: 22),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

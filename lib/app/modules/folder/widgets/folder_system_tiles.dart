@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
+import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 
 class FolderSystemTiles extends StatelessWidget {
@@ -12,13 +13,12 @@ class FolderSystemTiles extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
+        SizedBox(height: 20,),
         _buildArchiveTile(context),
-        const Divider(indent: 56, height: 1),
+        const Divider(indent: 56, height: 20, thickness: 0.5),
         _buildRecentlyDeletedTile(context),
-        const Divider(indent: 56, height: 1),
-        _buildProfileTile(context),
+        SizedBox(height: 20,)
       ],
     );
   }
@@ -29,7 +29,7 @@ class FolderSystemTiles extends StatelessWidget {
       final isEditing = controller.isEditing.value;
       return Opacity(
         opacity: isEditing ? 0.15 : 1.0,
-        child: ListTile(
+        child: CustomGlassListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
           leading: Icon(
@@ -68,7 +68,7 @@ class FolderSystemTiles extends StatelessWidget {
       final isEditing = controller.isEditing.value;
       return Opacity(
         opacity: isEditing ? 0.15 : 1.0,
-        child: ListTile(
+        child: CustomGlassListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE),
           leading: Icon(
@@ -95,31 +95,6 @@ class FolderSystemTiles extends StatelessWidget {
                 size: 20,
               ),
             ],
-          ),
-        ),
-      );
-    });
-  }
-
-  Widget _buildProfileTile(BuildContext context) {
-    final theme = Theme.of(context);
-    return Obx(() {
-      final isEditing = controller.isEditing.value;
-      return Opacity(
-        opacity: isEditing ? 0.15 : 1.0,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          onTap: isEditing ? null : () => Get.toNamed(Routes.PROFILE),
-          leading: Icon(
-            Icons.person_outline,
-            color: theme.primaryColor,
-            size: 25,
-          ),
-          title: Text("Profile", style: theme.textTheme.bodyLarge),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-            size: 20,
           ),
         ),
       );

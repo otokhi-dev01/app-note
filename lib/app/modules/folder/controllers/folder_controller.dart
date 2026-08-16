@@ -71,27 +71,61 @@ class FolderController extends GetxController {
     }
   }
 
-  List<FolderModel> get iCloudFolders => folders
-      .where(
-        (f) =>
-            f.name.toLowerCase().contains("icloud"),
-      )
-      .toList();
+  List<FolderModel> _buildHierarchy(List<FolderModel> flatList) {
+    // 1. Create a map for quick lookup
+    final Map<int, List<FolderModel>> childrenMap = {};
+    final List<FolderModel> roots = [];
 
-  List<FolderModel> get sharedFolders => folders
-      .where(
-        (f) =>
-            f.name.toLowerCase().contains("shared"),
-      )
-      .toList();
+    for (var folder in flatList) {
+      if (folder.parentId == null || folder.parentId == 0) {
+        roots.add(folder);
+      } else {
+        childrenMap.putIfAbsent(folder.parentId!, () => []).add(folder);
+      }
+    }
 
-  List<FolderModel> get onMyiPhoneFolders => folders
+    // 2. Recursively attach children
+    List<FolderModel> attachChildren(List<FolderModel> currentLevel) {
+      return currentLevel.map((folder) {
+        final children = childrenMap[folder.id] ?? [];
+        return FolderModel(
+          id: folder.id,
+          parentId: folder.parentId,
+          name: folder.name,
+          iconName: folder.iconName,
+          colorValue: folder.colorValue,
+          sortOrder: folder.sortOrder,
+          noteCount: folder.noteCount,
+          createdAt: folder.createdAt,
+          updatedAt: folder.updatedAt,
+          deletedAt: folder.deletedAt,
+          subFolders: attachChildren(children),
+        );
+      }).toList();
+    }
+
+    return attachChildren(roots);
+  }
+
+  List<FolderModel> get iCloudFolders => _buildHierarchy(folders
+      .where(
+        (f) => f.name.toLowerCase().contains("icloud"),
+      )
+      .toList());
+
+  List<FolderModel> get sharedFolders => _buildHierarchy(folders
+      .where(
+        (f) => f.name.toLowerCase().contains("shared"),
+      )
+      .toList());
+
+  List<FolderModel> get onMyiPhoneFolders => _buildHierarchy(folders
       .where(
         (f) =>
             !f.name.toLowerCase().contains("icloud") &&
             !f.name.toLowerCase().contains("shared"),
       )
-      .toList();
+      .toList());
 
   void toggleEditing() => isEditing.value = !isEditing.value;
 
@@ -109,12 +143,34 @@ class FolderController extends GetxController {
     isLoading.value = true;
     try {
       final response = await _folderService.getFolders();
-      folders.assignAll(response.folders);
+      final allNotes = await _noteService.getNotes(refresh: refresh);
+
+      // Group notes by folderId for accurate client-side counts
+      final Map<int, int> actualCounts = {};
+      for (var note in allNotes.notes) {
+        actualCounts[note.folderId] = (actualCounts[note.folderId] ?? 0) + 1;
+      }
+
+      // Update folders with actual counts to fix server-side inconsistencies
+      final updatedFolders = response.folders.map((f) {
+        return FolderModel(
+          id: f.id,
+          parentId: f.parentId,
+          name: f.name,
+          iconName: f.iconName,
+          colorValue: f.colorValue,
+          sortOrder: f.sortOrder,
+          noteCount: actualCounts[f.id] ?? 0, // USE ACCURATE COUNT
+          createdAt: f.createdAt,
+          updatedAt: f.updatedAt,
+          deletedAt: f.deletedAt,
+          subFolders: f.subFolders,
+        );
+      }).toList();
+
+      folders.assignAll(updatedFolders);
       trashFolders.assignAll(response.trash);
       sortFolders();
-      
-      // Fetch all notes count to get trash notes count for the "Recently Deleted" tile
-      final allNotes = await _noteService.getNotes(refresh: refresh);
       
       // FEATURE: Sum both deleted folders and deleted notes for the "Recently Deleted" tile
       deletedCount.value = response.trash.length + allNotes.trash.length;
@@ -130,6 +186,7 @@ class FolderController extends GetxController {
 
   Future<bool> onSaveFolder({
     required int id,
+    int? parentId,
     required String name,
     String? iconName,
     String? colorValue,
@@ -145,11 +202,12 @@ class FolderController extends GetxController {
     isSaving.value = true;
 
     try {
-      if (kDebugMode) debugPrint("[FOLDER] ${id == 0 ? 'CREATE' : 'UPDATE'} FolderId=$id Name=$cleanName");
+      if (kDebugMode) debugPrint("[FOLDER] ${id == 0 ? 'CREATE' : 'UPDATE'} FolderId=$id ParentId=$parentId Name=$cleanName");
 
       final result = await _folderService.saveFolder(
         FolderModel(
           id: id,
+          parentId: parentId,
           name: cleanName,
           iconName: iconName ?? "folder",
           colorValue: colorValue ?? "#FFB703",
@@ -216,28 +274,27 @@ class FolderController extends GetxController {
   }
 
   void onMoveFolder(FolderModel folder) {
-    Get.dialog(
-      IOSActionMenu(
-        type: IOSMenuType.bottomSheet,
-        title: "Move '${folder.name}' to Section",
-        actions: [
-          IOSMenuAction(
-            label: "iCloud",
-            icon: CupertinoIcons.cloud,
-            onTap: () => _updateFolderSection(folder, "iCloud"),
-          ),
-          IOSMenuAction(
-            label: "Shared",
-            icon: CupertinoIcons.person_2,
-            onTap: () => _updateFolderSection(folder, "Shared"),
-          ),
-          IOSMenuAction(
-            label: "On My iPhone",
-            icon: CupertinoIcons.device_phone_portrait,
-            onTap: () => _updateFolderSection(folder, ""),
-          ),
-        ],
-      ),
+    IOSActionMenu.show(
+      context: Get.context!,
+      type: IOSMenuType.bottomSheet,
+      title: "Move '${folder.name}' to Section",
+      actions: [
+        IOSMenuAction(
+          label: "iCloud",
+          icon: CupertinoIcons.cloud,
+          onTap: () => _updateFolderSection(folder, "iCloud"),
+        ),
+        IOSMenuAction(
+          label: "Shared",
+          icon: CupertinoIcons.person_2,
+          onTap: () => _updateFolderSection(folder, "Shared"),
+        ),
+        IOSMenuAction(
+          label: "On My iPhone",
+          icon: CupertinoIcons.device_phone_portrait,
+          onTap: () => _updateFolderSection(folder, ""),
+        ),
+      ],
     );
   }
 
@@ -295,33 +352,33 @@ class FolderController extends GetxController {
 
     if (isDeleting.value) return;
 
-    Get.dialog(
-      IOSConfirmationDialog(
-        title: "Are you sure you want to delete '${folder.name}'? Its notes will be moved to Recently Deleted.",
-        confirmLabel: "Delete Folder",
-        onConfirm: () async {
-          if (isDeleting.value) return;
-          isDeleting.value = true;
-          isLoading.value = true;
-          try {
-            await _folderService.deleteRestoreFolder(folder.id, true);
-            await fetchFolders(refresh: true);
-            Get.snackbar(
-              "Success",
-              "Folder moved to Recently Deleted",
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          } catch (e) {
-            Get.snackbar(
-              "Error",
-              "Could not delete folder. Please try again.",
-            );
-          } finally {
-            isDeleting.value = false;
-            isLoading.value = false;
-          }
-        },
-      ),
+    IOSConfirmationDialog.show(
+      title:
+          "Are you sure you want to delete '${folder.name}'? Its notes will be moved to Recently Deleted.",
+      confirmLabel: "Delete Folder",
+      onConfirm: () async {
+        Get.back();
+        if (isDeleting.value) return;
+        isDeleting.value = true;
+        isLoading.value = true;
+        try {
+          await _folderService.deleteRestoreFolder(folder.id, true);
+          await fetchFolders(refresh: true);
+          Get.snackbar(
+            "Success",
+            "Folder moved to Recently Deleted",
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        } catch (e) {
+          Get.snackbar(
+            "Error",
+            "Could not delete folder. Please try again.",
+          );
+        } finally {
+          isDeleting.value = false;
+          isLoading.value = false;
+        }
+      },
     );
   }
 

@@ -73,91 +73,41 @@ class NoteListView extends GetView<NoteController> {
 
   Widget _buildAppBar(BuildContext context, String title) {
     final theme = Theme.of(context);
-    return SliverAppBar(
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      pinned: true,
-      expandedHeight: 140.0,
-      elevation: 0,
-      automaticallyImplyLeading: false,
+    return CustomGlassSliverAppBar(
+      expandedHeight: 140,
+      toolbarHeight: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
-      systemOverlayStyle: theme.brightness == Brightness.dark
-          ? SystemUiOverlayStyle.light.copyWith(
-              statusBarIconBrightness: Brightness.light,
-              statusBarBrightness: Brightness.dark,
-            )
-          : SystemUiOverlayStyle.dark.copyWith(
-              statusBarIconBrightness: Brightness.dark,
-              statusBarBrightness: Brightness.light,
-            ),
-      title: LayoutBuilder(
-        builder: (context, constraints) {
-          final double percentage =
-              (constraints.maxHeight - kToolbarHeight) /
-              (140.0 - kToolbarHeight);
-          final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-          return Opacity(
-            opacity: opacity > 0.8 ? 1.0 : 0.0,
-            child: Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-          );
-        },
-      ),
-      leading: Center(
-        child: LiquidGlassContainer(
-          width: 45,
-          height: 45,
-          shape: GlassShape.circle,
-          showGlow: true,
-          thickness: 8,
-          refractiveIndex: 1.1,
-          opacity: 0.15,
-          blur: 10,
-          child: IconButton(
-            onPressed: () => Get.back(),
-            icon: Icon(
-              CupertinoIcons.chevron_left,
-              color: theme.colorScheme.onSurface,
-              size: 20,
-              fontWeight: FontWeight.bold,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
+      title: Text(
+        title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 17,
         ),
       ),
-      leadingWidth: 70,
-      actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: Obx(() => _buildActionIcon(context)),
+      leading: CustomGlassButton(
+        onPressed: () => Get.back(),
+        width: 44,
+        height: 44,
+        shape: GlassShape.circle,
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Icon(
+          CupertinoIcons.chevron_left,
+          color: theme.colorScheme.onSurface,
+          size: 24,
+          fontWeight: FontWeight.bold,
         ),
-
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: true,
-        titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-        title: LayoutBuilder(
-          builder: (context, constraints) {
-            final double percentage =
-                (constraints.maxHeight - kToolbarHeight) /
-                (140.0 - kToolbarHeight);
-            return Opacity(
-              opacity: percentage.clamp(0.0, 1.0),
-              child: Text(
-                title,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                ),
-              ),
-            );
-          },
+      ),
+      actions: [Obx(() => _buildActionIcon(context))],
+      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
+      largeTitle: Text(
+        title,
+        style: theme.textTheme.headlineLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 34,
         ),
       ),
     );
@@ -166,44 +116,38 @@ class NoteListView extends GetView<NoteController> {
   Widget _buildActionIcon(BuildContext context) {
     final theme = Theme.of(context);
     if (controller.isEditing.value) {
-      return LiquidGlassContainer(
-        width: 45,
-        height: 45,
+      return CustomGlassButton(
+        onPressed: controller.toggleEditing,
+        width: 44,
+        height: 44,
         shape: GlassShape.circle,
-        showGlow: true,
-        thickness: 8,
-        opacity: 0.15,
         blur: 10,
-        child: GestureDetector(
-          onTap: controller.toggleEditing,
-          child: Center(
-              child: Icon(Icons.check, color: theme.colorScheme.onSurface, size: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Icon(
+          Icons.check,
+          color: theme.colorScheme.onSurface,
+          size: 24,
+          fontWeight: FontWeight.bold,
+        ),
       );
     }
 
-    return GestureDetector(
-      onTap: () => Get.dialog(
-        NoteContextMenu(controller: controller),
-        barrierColor: Colors.black.withValues(alpha: 0.1),
-      ),
-      child: LiquidGlassContainer(
-        width: 45,
-        height: 45,
-        shape: GlassShape.circle,
-        showGlow: true,
-        thickness: 8,
-        opacity: 0.15,
-        blur: 10,
-        child: Center(
-          child: Icon(
-            Icons.more_horiz,
-            color: theme.colorScheme.onSurface,
-            size: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+    return CustomGlassButton(
+      onPressed: () => NoteContextMenu.show(context: context, controller: controller),
+      width: 44,
+      height: 44,
+      shape: GlassShape.circle,
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      padding: EdgeInsets.zero,
+      child: Icon(
+        Icons.more_horiz,
+        color: theme.colorScheme.onSurface,
+        size: 24,
+        fontWeight: FontWeight.bold,
       ),
     );
   }

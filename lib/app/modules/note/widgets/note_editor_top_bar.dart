@@ -50,10 +50,9 @@ class NoteEditorTopBar extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                   const SizedBox(width: 15),
-                  _GlassIconButton(
-                    icon: Icons.more_horiz,
-                    onTap: onShowMoreMenu,
-                    color: Theme.of(context).colorScheme.onSurface,
+                  MoreButton(
+                    onPressed: onShowMoreMenu,
+                    iconColor: Theme.of(context).colorScheme.onSurface,
                   ),
                   const SizedBox(width: 15),
                   Obx(
@@ -76,7 +75,6 @@ class _GlassIconButton extends StatelessWidget {
   final VoidCallback onTap;
   final double size;
   final double iconSize;
-  final double opacity;
   final Color color;
 
   const _GlassIconButton({
@@ -85,24 +83,21 @@ class _GlassIconButton extends StatelessWidget {
     this.size = 44,
     this.iconSize = 24,
     this.color = AppTheme.textSecondary,
-  }) : opacity = 0.15;
+  });
 
   @override
   Widget build(BuildContext context) {
-    return LiquidGlassContainer(
+    return CustomGlassButton(
+      onPressed: onTap,
       width: size,
       height: size,
+      padding: EdgeInsets.zero,
       shape: GlassShape.circle,
-      opacity: opacity,
-      showGlow: true,
-      thickness: 8,
+      foregroundColor: color,
       blur: 10,
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-        onPressed: onTap,
-        icon: Icon(icon, color: color, size: iconSize),
-      ),
+      opacity: 0.15,
+      thickness: 8,
+      child: Icon(icon, size: iconSize),
     );
   }
 }
@@ -114,36 +109,31 @@ class _SaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: controller.saveNote,
-      child: LiquidGlassContainer(
-        width: 45,
-        height: 45,
+    return Obx(
+      () => CustomGlassButton(
+        onPressed: controller.isSaving.value ? null : controller.saveNote,
+        width: 44,
+        height: 44,
+        padding: EdgeInsets.zero,
         shape: GlassShape.circle,
-        opacity: 0.15,
-        showGlow: true,
-        thickness: 8,
         blur: 10,
-        child: Center(
-          child: Obx(
-            () => controller.isSaving.value
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: AppTheme.folderPink,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Icon(
-                    CupertinoIcons.checkmark,
-                    color: AppTheme.folderPink,
-                    size: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-          ),
-        ),
+        opacity: 0.15,
+        thickness: 8,
+        child: controller.isSaving.value
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: AppTheme.folderPink,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(
+                CupertinoIcons.checkmark,
+                color: AppTheme.folderPink,
+                size: 22,
+                fontWeight: FontWeight.bold,
+              ),
       ),
     );
   }

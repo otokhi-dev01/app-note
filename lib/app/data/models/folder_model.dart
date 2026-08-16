@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class FolderModel {
   final int id;
+  final int? parentId;
   final String name;
   final String iconName;
   final String colorValue;
@@ -10,9 +11,11 @@ class FolderModel {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? deletedAt;
+  final List<FolderModel> subFolders;
 
   FolderModel({
     required this.id,
+    this.parentId,
     required this.name,
     required this.iconName,
     required this.colorValue,
@@ -21,11 +24,24 @@ class FolderModel {
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
+    this.subFolders = const [],
   });
 
   factory FolderModel.fromJson(Map<String, dynamic> json) {
+    var subs = <FolderModel>[];
+    if (json['SubFolders'] != null) {
+      subs = (json['SubFolders'] as List)
+          .map((i) => FolderModel.fromJson(i))
+          .toList();
+    } else if (json['subFolders'] != null) {
+      subs = (json['subFolders'] as List)
+          .map((i) => FolderModel.fromJson(i))
+          .toList();
+    }
+
     return FolderModel(
       id: _toInt(json['FolderId'] ?? json['id'] ?? json['Id']),
+      parentId: _toInt(json['ParentId'] ?? json['parentId']),
       name: (json['FolderName'] ?? json['Name'] ?? json['name'] ?? '')
           .toString()
           .trim(),
@@ -36,11 +52,13 @@ class FolderModel {
       createdAt: _parseDate(json['CreatedAt'] ?? json['createdAt']),
       updatedAt: _parseDate(json['UpdatedAt'] ?? json['updatedAt']),
       deletedAt: _parseDate(json['DeletedAt'] ?? json['deletedAt']),
+      subFolders: subs,
     );
   }
 
   Map<String, dynamic> toJson() => {
         "FolderId": id,
+        "ParentId": parentId,
         "Name": name,
         "IconName": iconName,
         "ColorValue": colorValue,

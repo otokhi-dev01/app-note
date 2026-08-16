@@ -7,7 +7,8 @@ import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart' as dio;
 import '../../../data/models/note_model.dart';
-import '../../../widgets/ios_action_menu.dart';
+import '../../../widgets/glass_widgets.dart';
+import '../../../widgets/glass_surfaces.dart';
 import '../controllers/note_detail_controller.dart';
 
 class NoteAttachmentBlock extends StatelessWidget {
@@ -190,31 +191,22 @@ class NoteAttachmentBlock extends StatelessWidget {
   void _showDeleteMenu(BuildContext context) {
     if (controller.isReadOnly.value) return;
 
-    Get.dialog(
-      IOSActionMenu(
-        type: IOSMenuType.popup,
-        title: "Attachment Options",
-        actions: [
-          IOSMenuAction(
-            label: "Edit Image",
-            icon: CupertinoIcons.pencil,
-            onTap: () {
-              Get.back();
-              _openImageEditor(context);
-            },
-          ),
-          IOSMenuAction(
-            label: "Delete Picture",
-            icon: CupertinoIcons.trash,
-            isDestructive: true,
-            onTap: () {
-              Get.back();
-              controller.deleteBlock(blockIndex);
-            },
-          ),
-        ],
-      ),
-      barrierColor: Colors.black.withValues(alpha: 0.2),
+    CustomGlassActionSheet.show(
+      context: context,
+      title: "Attachment Options",
+      actions: [
+        CustomGlassActionSheetAction(
+          label: "Edit Image",
+          icon: CupertinoIcons.pencil,
+          onPressed: () => _openImageEditor(context),
+        ),
+        CustomGlassActionSheetAction(
+          label: "Delete Picture",
+          icon: CupertinoIcons.trash,
+          isDestructive: true,
+          onPressed: () => controller.deleteBlock(blockIndex),
+        ),
+      ],
     );
   }
 
@@ -305,7 +297,7 @@ class _AttachmentImage extends StatelessWidget {
       path = path.substring(1, path.length - 1).trim();
     }
 
-    final match = RegExp(r'(/[^)\]\s]+\.[\w\d]+)').firstMatch(path);
+    final match = RegExp(r'(/[^)\]\s]+\.\w+)').firstMatch(path);
     if (match != null) {
       path = match.group(0)!;
     }

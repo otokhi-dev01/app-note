@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../routes/app_pages.dart';
+import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 
 class FolderAllNotesTile extends StatelessWidget {
@@ -18,7 +19,7 @@ class FolderAllNotesTile extends StatelessWidget {
 
       return Opacity(
         opacity: isEditing ? 0.15 : 1.0,
-        child: ListTile(
+        child: CustomGlassListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing
               ? null

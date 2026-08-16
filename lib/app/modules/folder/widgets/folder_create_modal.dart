@@ -11,9 +11,10 @@ import '../../../widgets/glass_widgets.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 class FolderCreateLogic extends GetxController {
   final FolderModel? folder;
+  final int? parentId;
   final FolderController mainController;
 
-  FolderCreateLogic({this.folder, required this.mainController});
+  FolderCreateLogic({this.folder, this.parentId, required this.mainController});
 
   late final TextEditingController nameController;
   late final FocusNode nameFocusNode;
@@ -67,6 +68,7 @@ class FolderCreateLogic extends GetxController {
 
       final success = await mainController.onSaveFolder(
         id: folder?.id ?? 0,
+        parentId: folder?.parentId ?? parentId,
         name: name,
         iconName: folder?.iconName,
         colorValue: folder?.colorValue,
@@ -101,9 +103,15 @@ class FolderCreateLogic extends GetxController {
 // ─────────────────────────────────────────────────────────────────────────────
 class FolderCreateModal extends StatefulWidget {
   final FolderModel? folder;
+  final int? parentId;
   final FolderController controller;
 
-  const FolderCreateModal({super.key, this.folder, required this.controller});
+  const FolderCreateModal({
+    super.key,
+    this.folder,
+    this.parentId,
+    required this.controller,
+  });
 
   @override
   State<FolderCreateModal> createState() => _FolderCreateModalState();
@@ -115,9 +123,15 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
   @override
   void initState() {
     super.initState();
-    final tag = widget.folder != null ? 'rename_${widget.folder!.id}' : 'create';
+    final tag = widget.folder != null
+        ? 'rename_${widget.folder!.id}'
+        : (widget.parentId != null ? 'sub_${widget.parentId}' : 'create');
     _c = Get.put(
-      FolderCreateLogic(folder: widget.folder, mainController: widget.controller),
+      FolderCreateLogic(
+        folder: widget.folder,
+        parentId: widget.parentId,
+        mainController: widget.controller,
+      ),
       tag: tag,
     );
   }
@@ -130,7 +144,7 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       resizeToAvoidBottomInset: false, // We manage keyboard inset manually
-      body: LiquidGlassContainer(
+      body: CustomGlassContainer(
         borderRadius: 0,
         blur: 40,
         opacity: 0.1,
@@ -160,7 +174,10 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
                   ),
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     child: Column(
                       children: [
                         _buildNameField(context, _c, isDark),
@@ -180,6 +197,14 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
 
   // ── Header ──────────────────────────────────────────────────────────────────
   Widget _buildHeader(BuildContext context, FolderCreateLogic c, bool isDark) {
+    String title = c.isRenaming ? 'Rename Folder' : 'New Folder';
+    if (c.parentId != null && !c.isRenaming) {
+      final parentFolder = c.mainController.folders.firstWhereOrNull((f) => f.id == c.parentId);
+      if (parentFolder != null) {
+        title = 'Subfolder of ${parentFolder.name}';
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -187,26 +212,22 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ✕ Cancel button
-          LiquidGlassContainer(
+          CustomGlassButton(
+            onPressed: c.cancel,
+            semanticLabel: 'Cancel',
             width: 36,
             height: 36,
             shape: GlassShape.circle,
             opacity: 0.1,
             blur: 10,
-            child: IconButton(
-              onPressed: c.cancel,
-              icon: Icon(
-                CupertinoIcons.xmark,
-                size: 16,
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
-              padding: EdgeInsets.zero,
-            ),
+            padding: EdgeInsets.zero,
+            foregroundColor: isDark ? Colors.white70 : Colors.black54,
+            child: const Icon(CupertinoIcons.xmark, size: 16),
           ),
 
           // Title
           Text(
-            c.isRenaming ? 'Rename Folder' : 'New Folder',
+            title,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
@@ -216,87 +237,82 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
           ),
 
           // ✓ Save button
-          Obx(() => LiquidGlassContainer(
-                width: 40,
-                height: 40,
-                shape: GlassShape.circle,
-                opacity: c.canSave ? 0.8 : 0.2,
-                thickness: 5,
-                child: IconButton(
-                  onPressed: c.save,
-                  icon: c.isSaving.value
-                      ? const CupertinoActivityIndicator(color: Colors.white, radius: 9)
-                      : const Icon(CupertinoIcons.checkmark, size: 18, color: Colors.white),
-                  padding: EdgeInsets.zero,
-                  color: AppTheme.folderPink,
-                ),
-              )),
+          Obx(
+            () => CustomGlassButton(
+              onPressed: c.canSave ? c.save : null,
+              semanticLabel: 'Save folder',
+              width: 40,
+              height: 40,
+              shape: GlassShape.circle,
+              opacity: c.canSave ? 0.8 : 0.2,
+              thickness: 5,
+              padding: EdgeInsets.zero,
+              foregroundColor: Colors.white,
+              glassColor: AppTheme.folderPink,
+              child: c.isSaving.value
+                  ? const CupertinoActivityIndicator(
+                      color: Colors.white,
+                      radius: 9,
+                    )
+                  : const Icon(CupertinoIcons.checkmark, size: 18),
+            ),
+          ),
         ],
       ),
     );
   }
 
   // ── Name text field card ─────────────────────────────────────────────────────
-  Widget _buildNameField(BuildContext context, FolderCreateLogic c, bool isDark) {
+  Widget _buildNameField(
+    BuildContext context,
+    FolderCreateLogic c,
+    bool isDark,
+  ) {
     final textColor = isDark ? Colors.white : Colors.black;
 
-    return LiquidGlassContainer(
-      height: 56,
-      borderRadius: 13,
-      opacity: 0.1,
-      blur: 10,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: c.nameController,
-              focusNode: c.nameFocusNode,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => c.save(),
-              cursorColor: AppTheme.folderPink,
-              cursorWidth: 2,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 17,
-                fontWeight: FontWeight.w400,
-                letterSpacing: -0.2,
+    return Obx(
+      () => CustomGlassTextField(
+        controller: c.nameController,
+        focusNode: c.nameFocusNode,
+        placeholder: 'Name',
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => c.save(),
+        height: 56,
+        borderRadius: 13,
+        textStyle: TextStyle(
+          color: textColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+          letterSpacing: -0.2,
+        ),
+        placeholderStyle: TextStyle(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.35)
+              : Colors.black.withValues(alpha: 0.3),
+          fontSize: 17,
+        ),
+        suffixIcon: c.folderName.value.isEmpty
+            ? null
+            : Icon(
+                CupertinoIcons.clear_circled_solid,
+                color: isDark ? Colors.white38 : Colors.black26,
+                size: 20,
               ),
-              decoration: InputDecoration(
-                hintText: 'Name',
-                hintStyle: TextStyle(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.35)
-                      : Colors.black.withValues(alpha: 0.3),
-                  fontSize: 17,
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          Obx(() => c.folderName.value.isNotEmpty
-              ? GestureDetector(
-                  onTap: c.clearName,
-                  child: Icon(
-                    CupertinoIcons.clear_circled_solid,
-                    color: isDark ? Colors.white38 : Colors.black26,
-                    size: 20,
-                  ),
-                )
-              : const SizedBox.shrink()),
-        ],
+        onSuffixTap: c.folderName.value.isEmpty ? null : c.clearName,
       ),
     );
   }
 
   // ── Smart Folder option row ──────────────────────────────────────────────────
-  Widget _buildSmartFolderRow(BuildContext context, FolderCreateLogic c, bool isDark) {
+  Widget _buildSmartFolderRow(
+    BuildContext context,
+    FolderCreateLogic c,
+    bool isDark,
+  ) {
     final primaryText = isDark ? Colors.white : Colors.black;
     final secondaryText = isDark ? Colors.white54 : Colors.black45;
 
-    return LiquidGlassContainer(
+    return CustomGlassContainer(
       borderRadius: 13,
       opacity: 0.1,
       blur: 10,
@@ -318,7 +334,11 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
                   color: AppTheme.folderPink,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(CupertinoIcons.gear_alt_fill, color: Colors.white, size: 20),
+                child: const Icon(
+                  CupertinoIcons.gear_alt_fill,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(

@@ -127,7 +127,7 @@ class SplashView extends GetView<SplashController> {
                       ),
                     ).animate().fadeIn(delay: 1200.ms),
                     const SizedBox(height: 16),
-                    LiquidGlassContainer(
+                    CustomGlassContainer(
                       width: 230,
                       borderRadius: 15,
                       thickness: 5,

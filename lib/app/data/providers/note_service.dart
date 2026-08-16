@@ -324,9 +324,9 @@ class NoteResponse {
     List<NoteModel> deleted = [];
 
     void categorize(List<NoteModel> all) {
-      active = all.where((n) => !n.isArchived && n.deletedAt == null).toList();
-      archived = all.where((n) => n.isArchived && n.deletedAt == null).toList();
-      deleted = all.where((n) => n.deletedAt != null).toList();
+      active = all.where((n) => !n.isArchived && !n.isDeleted).toList();
+      archived = all.where((n) => n.isArchived && !n.isDeleted).toList();
+      deleted = all.where((n) => n.isDeleted).toList();
     }
 
     if (rawData is List) {
@@ -345,13 +345,19 @@ class NoteResponse {
       if (rawNotes.isNotEmpty || rawArchive.isNotEmpty || rawTrash.isNotEmpty) {
         active = rawNotes
             .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+            .where((n) => !n.isDeleted && !n.isArchived)
             .toList();
         archived = rawArchive
             .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
+            .where((n) => !n.isDeleted && n.isArchived)
             .toList();
         deleted = rawTrash
             .map((e) => NoteModel.fromJson(Map<String, dynamic>.from(e)))
             .toList();
+        
+        // Final fallback: merge items that might be miscategorized by the server
+        final allPossible = [...active, ...archived, ...deleted];
+        categorize(allPossible);
       } else {
         final List allData = (rawData['data'] ?? []) as List;
         categorize(

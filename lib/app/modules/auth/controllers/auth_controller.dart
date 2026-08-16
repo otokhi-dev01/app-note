@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../../data/models/auth_model.dart';
@@ -49,7 +48,9 @@ class AuthController extends GetxController {
 
   bool _validatePhone(String phone) {
     // Basic phone validation: at least 8 digits
-    return phone.length >= 8 && phone.length <= 15 && RegExp(r'^[0-9]+$').hasMatch(phone);
+    return phone.length >= 8 &&
+        phone.length <= 15 &&
+        RegExp(r'^[0-9]+$').hasMatch(phone);
   }
 
   void login() async {
@@ -57,27 +58,36 @@ class AuthController extends GetxController {
     final password = passwordController.text.trim();
 
     if (phone.isEmpty || password.isEmpty) {
-      _showError("Validation Error", "Please enter both phone number and password.");
+      _showError(
+        "Validation Error",
+        "Please enter both phone number and password.",
+      );
       return;
     }
 
     if (!_validatePhone(phone)) {
-      _showError("Invalid Phone", "Please enter a valid phone number (8-15 digits).");
+      _showError(
+        "Invalid Phone",
+        "Please enter a valid phone number (8-15 digits).",
+      );
       return;
     }
 
     isLoading.value = true;
     try {
       if (kDebugMode) debugPrint("Attempting login for: $phone");
-      
+
       final response = await _authService.login(phone, password);
-      
-      if (kDebugMode) debugPrint("API Response: code=${response.code}, message=${response.message}");
+
+      if (kDebugMode)
+        debugPrint(
+          "API Response: code=${response.code}, message=${response.message}",
+        );
 
       // STRICT CHECK: The code must be 200 AND a token must be present
       if (response.code == 200 && response.token.isNotEmpty) {
         if (kDebugMode) debugPrint("Login Success. Token acquired.");
-        
+
         // Handle Remember Me logic
         if (rememberMe.value) {
           _storage.write(_keyRememberMe, true);
@@ -88,9 +98,9 @@ class AuthController extends GetxController {
         }
 
         await _sessionService.saveSession(response.token, response.user);
-        
+
         Get.snackbar(
-          "Welcome", 
+          "Welcome",
           "Login successful!",
           backgroundColor: Colors.green.withValues(alpha: 0.1),
           colorText: Colors.green,
@@ -98,9 +108,11 @@ class AuthController extends GetxController {
 
         Get.offAllNamed(Routes.FOLDER);
       } else {
-        String msg = response.message.isNotEmpty ? response.message : "Invalid phone number or password.";
+        String msg = response.message.isNotEmpty
+            ? response.message
+            : "Invalid phone number or password.";
         if (response.token.isEmpty && response.code == 200) {
-           msg = "Authentication failed: No token received.";
+          msg = "Authentication failed: No token received.";
         }
         _showError("Login Failed", msg);
       }
@@ -123,12 +135,18 @@ class AuthController extends GetxController {
     }
 
     if (!_validatePhone(phone)) {
-      _showError("Invalid Phone", "Please enter a valid phone number (8-15 digits).");
+      _showError(
+        "Invalid Phone",
+        "Please enter a valid phone number (8-15 digits).",
+      );
       return;
     }
 
     if (password.length < 6) {
-      _showError("Weak Password", "Password must be at least 6 characters long.");
+      _showError(
+        "Weak Password",
+        "Password must be at least 6 characters long.",
+      );
       return;
     }
 
@@ -151,7 +169,7 @@ class AuthController extends GetxController {
 
       if (response.code == 200 || response.code == 201) {
         Get.snackbar(
-          "Success", 
+          "Success",
           "Account created successfully! Please log in.",
           backgroundColor: Colors.green.withValues(alpha: 0.1),
           colorText: Colors.green,
@@ -159,7 +177,12 @@ class AuthController extends GetxController {
         );
         Get.back();
       } else {
-        _showError("Registration Failed", response.message.isNotEmpty ? response.message : "Could not create account.");
+        _showError(
+          "Registration Failed",
+          response.message.isNotEmpty
+              ? response.message
+              : "Could not create account.",
+        );
       }
     } catch (e) {
       _handleAuthError(e, "Registration");
@@ -168,108 +191,99 @@ class AuthController extends GetxController {
     }
   }
 
-  void forgotPassword() {
-    final forgotPhoneController = TextEditingController(text: phoneController.text);
-    
-    Get.bottomSheet(
-      Material(
-        color: Colors.transparent,
-        child: LiquidGlassContainer(
-          borderRadius: 25,
-          blur: 30,
-          opacity: 0.1,
-          thickness: 15,
-          padding: const EdgeInsets.all(24),
+  Future<void> forgotPassword() async {
+    final context = Get.context;
+    if (context == null) return;
+
+    final forgotPhoneController = TextEditingController(
+      text: phoneController.text,
+    );
+    try {
+      await CustomGlassSheet.show<void>(
+        context: context,
+        isScrollable: true,
+        builder: (sheetContext) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Get.theme.dividerColor.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
               Text(
-                "Reset Password",
-                style: Get.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                'Reset Password',
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
-                "Enter your phone number to receive a password reset link.",
-                style: Get.textTheme.bodyMedium,
+                'Enter your phone number to receive a password reset link.',
+                style: Theme.of(sheetContext).textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  color: Get.theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: forgotPhoneController,
-                  keyboardType: TextInputType.phone,
-                  style: Get.textTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    hintText: "Phone Number",
-                    prefixIcon: const Icon(Icons.phone, color: AppTheme.folderPink),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                ),
+              CustomGlassTextField(
+                controller: forgotPhoneController,
+                placeholder: 'Phone Number',
+                prefixIcon: const Icon(Icons.phone, color: AppTheme.folderPink),
+                keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.done,
+                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
+                useOwnLayer: false,
               ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
+                child: CustomGlassButton(
                   onPressed: () async {
                     final phone = forgotPhoneController.text.trim();
                     if (phone.isEmpty || !_validatePhone(phone)) {
-                      _showError("Error", "Please enter a valid phone number");
+                      _showError('Error', 'Please enter a valid phone number');
                       return;
                     }
-                    
-                    Get.back(); // Close bottom sheet
+
+                    Navigator.of(sheetContext).pop();
                     isLoading.value = true;
-                    
+
                     final success = await _authService.forgotPassword(phone);
                     isLoading.value = false;
-                    
+
                     if (success) {
                       Get.snackbar(
-                        "Request Sent",
-                        "If an account exists for $phone, you will receive a reset link shortly.",
+                        'Request Sent',
+                        'If an account exists for $phone, you will receive a reset link shortly.',
                         backgroundColor: Colors.green.withValues(alpha: 0.1),
                         colorText: Colors.green,
                         duration: const Duration(seconds: 5),
                       );
                     } else {
-                      _showError("Error", "Could not process request. Please try again later.");
+                      _showError(
+                        'Error',
+                        'Could not process request. Please try again later.',
+                      );
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.folderPink,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                    elevation: 0,
+                  semanticLabel: 'Send reset link',
+                  borderRadius: 30,
+                  foregroundColor: Colors.white,
+                  glassColor: AppTheme.folderPink,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: const Text(
+                    'SEND RESET LINK',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  child: const Text("SEND RESET LINK", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      enterBottomSheetDuration: 400.ms,
-    );
+      );
+    } finally {
+      forgotPhoneController.dispose();
+    }
   }
 
   void _showError(String title, String message) {
@@ -290,6 +304,7 @@ class AuthController extends GetxController {
       ),
     );
   }
+
   void _handleAuthError(dynamic e, String type) {
     String errorMsg = "$type failed";
     if (e is dio.DioException) {
@@ -305,7 +320,7 @@ class AuthController extends GetxController {
               messages.add(value);
             }
           });
-          
+
           if (messages.isNotEmpty) {
             errorMsg = messages.join("\n");
           } else {
@@ -318,18 +333,18 @@ class AuthController extends GetxController {
         errorMsg = e.message ?? "Connection Error";
       }
     }
-    
+
     if (kDebugMode) {
       debugPrint("$type Error Details: $e");
     }
-    
+
     _showError("Error", errorMsg);
   }
 
   @override
   void onClose() {
-    // Removed manual disposal of TextEditingControllers to prevent 
-    // "used after being disposed" errors during route transitions 
+    // Removed manual disposal of TextEditingControllers to prevent
+    // "used after being disposed" errors during route transitions
     // between Login and Register screens.
     super.onClose();
   }

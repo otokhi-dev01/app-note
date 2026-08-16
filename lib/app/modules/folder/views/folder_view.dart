@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../data/models/folder_model.dart';
 import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 import '../widgets/folder_create_modal.dart';
@@ -50,168 +51,110 @@ class FolderView extends GetView<FolderController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return SliverAppBar(
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      pinned: true,
-      expandedHeight: 140.0,
-      elevation: 0,
-      automaticallyImplyLeading: false,
+    return CustomGlassSliverAppBar(
+      expandedHeight: 140,
+      toolbarHeight: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
-      systemOverlayStyle: theme.brightness == Brightness.dark
-          ? SystemUiOverlayStyle.light.copyWith(
-              statusBarIconBrightness: Brightness.light,
-              statusBarBrightness: Brightness.dark,
-            )
-          : SystemUiOverlayStyle.dark.copyWith(
-              statusBarIconBrightness: Brightness.dark,
-              statusBarBrightness: Brightness.light,
-            ),
-      title: LayoutBuilder(
-        builder: (context, constraints) {
-          final double percentage =
-              (constraints.maxHeight - kToolbarHeight) /
-              (140.0 - kToolbarHeight);
-          final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-          return Opacity(
-            opacity: opacity > 0.8 ? 1.0 : 0.0,
-            child: Text(
-              "Folders",
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-              ),
-            ),
-          );
-        },
+      title: Text(
+        "Folders",
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 17,
+        ),
+      ),
+      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
+      largeTitle: Text(
+        "Folders",
+        style: theme.textTheme.headlineLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 34,
+        ),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: Row(
+        CustomGlassButton(
+          onPressed: () => Get.to(
+            () => FolderCreateModal(controller: controller),
+            fullscreenDialog: true,
+            transition: Transition.cupertino,
+          ),
+          width: 44,
+          height: 44,
+          shape: GlassShape.circle,
+          blur: 10,
+          opacity: 0.15,
+          thickness: 8,
+          padding: EdgeInsets.zero,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
-              LiquidGlassContainer(
-                width: 48,
-                height: 48,
-                shape: GlassShape.circle,
-                showGlow: true,
-                thickness: 20,
-                refractiveIndex: 2,
-                opacity: 0.20,
-                child: IconButton(
-                  onPressed: () => Get.to(
-                        () => FolderCreateModal(controller: controller),
-                    fullscreenDialog: true,
-                    transition: Transition.cupertino,
+              Icon(
+                CupertinoIcons.folder,
+                color: theme.primaryColor,
+                size: 24,
+              ),
+              Positioned(
+                right: -2,
+                top: -1,
+                child: Container(
+                  width: 13,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor,
+                    shape: BoxShape.circle,
                   ),
-                  padding: EdgeInsets.zero,
-                  icon: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Icon(
-                        CupertinoIcons.folder,
-                        color: theme.primaryColor,
-                        size: 25,
-                      ),
-                      Positioned(
-                        right: -3,
-                        top: -1,
-                        child: Container(
-                          width: 14,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: theme.primaryColor,
-                            shape: BoxShape.circle,
-                          ),
-                          child:  Center(
-                            child: Icon(
-                              CupertinoIcons.plus,
-                              color: Colors.white,
-                              size: 11.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: const Center(
+                    child: Icon(
+                      CupertinoIcons.plus,
+                      color: Colors.white,
+                      size: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Obx(() => _buildEditButton(context)),
             ],
           ),
         ),
+        Obx(() => _buildEditButton(context)),
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: false,
-        titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
-        title: LayoutBuilder(
-          builder: (context, constraints) {
-            final double percentage =
-                (constraints.maxHeight - kToolbarHeight) /
-                (140.0 - kToolbarHeight);
-            return Opacity(
-              opacity: percentage.clamp(0.0, 1.0),
-              child: Text(
-                "Folders",
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 34,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
     );
   }
 
   Widget _buildEditButton(BuildContext context) {
     final theme = Theme.of(context);
     if (controller.isEditing.value) {
-      return LiquidGlassContainer(
-        width: 48,
-        height: 48,
+      return CustomGlassButton(
+        onPressed: controller.toggleEditing,
+        width: 44,
+        height: 44,
         shape: GlassShape.circle,
-        showGlow: true,
-        thickness: 20,
-        refractiveIndex: 2,
-        opacity: 0.20,
-        child: GestureDetector(
-          onTap: controller.toggleEditing,
-          child: Center(
-            child: Icon(
-              Icons.check,
-              color: theme.primaryColor,
-              size: 25,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Icon(
+          Icons.check,
+          color: theme.primaryColor,
+          size: 24,
+          fontWeight: FontWeight.bold,
         ),
       );
     }
-    return LiquidGlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      height: 48,
-      showGlow: true,
-      thickness: 20,
-      refractiveIndex: 2,
-      opacity: 0.20,
-      borderRadius: 25,
-      child: TextButton(
-        onPressed: controller.toggleEditing,
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        ),
-        child: Text(
-          "Edit",
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 17,
-          ),
+    return CustomGlassButton(
+      onPressed: controller.toggleEditing,
+      height: 44,
+      borderRadius: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      child: Text(
+        "Edit",
+        style: TextStyle(
+          color: theme.colorScheme.onSurface,
+          fontSize: 17,
         ),
       ),
     );
@@ -234,32 +177,28 @@ class FolderView extends GetView<FolderController> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
-            if (controller.iCloudFolders.isNotEmpty) ...[
-              FolderSectionHeader(
-                title: "Pii Cloud",
-                isExpanded: controller.isICloudExpanded,
-                onTap: controller.toggleICloud,
-              ),
-              Obx(
-                () => controller.isICloudExpanded.value
-                    ? _buildFolderGroup(context, controller.iCloudFolders)
-                    : const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 24),
-            ],
-            if (controller.sharedFolders.isNotEmpty) ...[
-              FolderSectionHeader(
-                title: "Shared",
-                isExpanded: controller.isSharedExpanded,
-                onTap: controller.toggleShared,
-              ),
-              Obx(
-                () => controller.isSharedExpanded.value
-                    ? _buildFolderGroup(context, controller.sharedFolders)
-                    : const SizedBox.shrink(),
-              ),
-              const SizedBox(height: 24),
-            ],
+            FolderSectionHeader(
+              title: "Pii Cloud",
+              isExpanded: controller.isICloudExpanded,
+              onTap: controller.toggleICloud,
+            ),
+            Obx(
+              () => controller.isICloudExpanded.value
+                  ? _buildFolderGroup(context, controller.iCloudFolders)
+                  : const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 24),
+            FolderSectionHeader(
+              title: "Shared",
+              isExpanded: controller.isSharedExpanded,
+              onTap: controller.toggleShared,
+            ),
+            Obx(
+              () => controller.isSharedExpanded.value
+                  ? _buildFolderGroup(context, controller.sharedFolders)
+                  : const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 24),
             FolderSectionHeader(
               title: "On My Phone",
               isExpanded: controller.isOnMyiPhoneExpanded,
@@ -267,61 +206,28 @@ class FolderView extends GetView<FolderController> {
             ),
             Obx(
               () => controller.isOnMyiPhoneExpanded.value
-                  ? Column(
-                      children: [
-                        // System special: All on My iPhone
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: GlassCard(
-                            borderRadius: 30,
-                            children: [
-                              FolderAllNotesTile(controller: controller),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
+                  ? _buildFolderGroup(context, controller.onMyiPhoneFolders)
+                  : const SizedBox.shrink(),
+            ),
+            const SizedBox(height: 24),
 
-                        // User Created Folders Container
-                        if (controller.onMyiPhoneFolders.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: GlassCard(
-                              borderRadius: 30,
-                              children: [
-                                for (int i = 0; i < controller.onMyiPhoneFolders.length; i++) ...[
-                                  FolderTile(
-                                    folder: controller.onMyiPhoneFolders[i],
-                                    controller: controller,
-                                  ),
-                                  if (i < controller.onMyiPhoneFolders.length - 1)
-                                    const Divider(indent: 56, height: 1),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
+            // SYSTEM "SOURCES" SECTION
+            FolderSectionHeader(
+              title: "Sources",
+              isExpanded: controller.isNotesSectionExpanded,
+              onTap: controller.toggleNotesSection,
+            ),
+            Obx(
+              () => controller.isNotesSectionExpanded.value
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: GlassCard(
+                        borderRadius: 30,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        children: [
+                          FolderSystemTiles(controller: controller),
                         ],
-
-                        FolderSectionHeader(
-                          title: "Notes",
-                          isExpanded: controller.isNotesSectionExpanded,
-                          onTap: controller.toggleNotesSection,
-                        ),
-
-                        Obx(
-                          () => controller.isNotesSectionExpanded.value
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: GlassCard(
-                                    borderRadius: 30,
-                                    children: [
-                                      FolderSystemTiles(controller: controller),
-                                    ],
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
+                      ),
                     )
                   : const SizedBox.shrink(),
             ),
@@ -334,9 +240,13 @@ class FolderView extends GetView<FolderController> {
 
   Widget _buildFolderGroup(
     BuildContext context,
-    List folders, {
+    List<FolderModel> folders, {
     bool includeSystem = false,
   }) {
+    if (folders.isEmpty && !includeSystem) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GlassCard(
@@ -346,14 +256,35 @@ class FolderView extends GetView<FolderController> {
             FolderAllNotesTile(controller: controller),
             const Divider(indent: 56, height: 1),
           ],
-          for (int i = 0; i < folders.length; i++) ...[
-            FolderTile(folder: folders[i], controller: controller),
-            if (i < folders.length - 1 || includeSystem)
-              const Divider(indent: 56, height: 1),
-          ],
+          ..._buildRecursiveFolderList(folders),
           if (includeSystem) FolderSystemTiles(controller: controller),
         ],
       ),
     );
+  }
+
+  List<Widget> _buildRecursiveFolderList(List<FolderModel> folders, {int depth = 0}) {
+    List<Widget> list = [];
+    for (int i = 0; i < folders.length; i++) {
+      final folder = folders[i];
+      list.add(
+        FolderTile(
+          folder: folder,
+          controller: controller,
+          depth: depth,
+        ),
+      );
+      
+      if (folder.subFolders.isNotEmpty) {
+        list.add(const Divider(indent: 56, height: 1, thickness: 0.5));
+        list.addAll(_buildRecursiveFolderList(folder.subFolders, depth: depth + 1));
+      }
+
+      // Add divider between items at the SAME level
+      if (i < folders.length - 1) {
+        list.add(const Divider(indent: 56, height: 1, thickness: 0.5));
+      }
+    }
+    return list;
   }
 }
