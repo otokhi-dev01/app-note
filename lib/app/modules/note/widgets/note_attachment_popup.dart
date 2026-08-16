@@ -1,56 +1,59 @@
 import 'package:flutter/cupertino.dart';
-import 'package:get/get.dart';
-import '../../../widgets/ios_action_menu.dart';
+import '../../../widgets/glass_widgets.dart';
 
 class NoteAttachmentPopup extends StatelessWidget {
   final Function(String type) onAction;
 
   const NoteAttachmentPopup({super.key, required this.onAction});
 
-  @override
-  Widget build(BuildContext context) {
-    final color = Get.theme.primaryColor;
-
-    return IOSActionMenu(
-      type: IOSMenuType.bottomSheet,
+  static Future<void> show({
+    required BuildContext context,
+    required Function(String type) onAction,
+  }) {
+    return CustomGlassActionSheet.show(
+      context: context,
       actions: [
-        IOSMenuAction(
+        CustomGlassActionSheetAction(
           label: 'Scan Text',
           icon: CupertinoIcons.viewfinder,
-          color: color,
-          onTap: () => onAction('scan_text'),
+          onPressed: () => onAction('scan_text'),
         ),
-        IOSMenuAction(
+        CustomGlassActionSheetAction(
           label: 'Scan Documents',
           icon: CupertinoIcons.viewfinder_circle,
-          color: color,
-          onTap: () => onAction('scan_docs'),
+          onPressed: () => onAction('scan_docs'),
         ),
-        IOSMenuAction(
+        CustomGlassActionSheetAction(
           label: 'Take Photo or Video',
           icon: CupertinoIcons.camera,
-          color: color,
-          onTap: () => onAction('camera'),
+          onPressed: () => onAction('camera'),
         ),
-        IOSMenuAction(
+        CustomGlassActionSheetAction(
           label: 'Choose Photo or Video',
           icon: CupertinoIcons.photo_on_rectangle,
-          color: color,
-          onTap: () => onAction('gallery'),
+          onPressed: () => onAction('gallery'),
         ),
-        IOSMenuAction(
+        CustomGlassActionSheetAction(
+          label: 'Drawing',
+          icon: CupertinoIcons.pencil_outline,
+          onPressed: () => onAction('drawing'),
+        ),
+        CustomGlassActionSheetAction(
           label: 'Record Audio',
           icon: CupertinoIcons.mic,
-          color: color,
-          onTap: () => onAction('audio'),
+          onPressed: () => onAction('audio'),
         ),
-        IOSMenuAction(
+        CustomGlassActionSheetAction(
           label: 'Attach File',
           icon: CupertinoIcons.paperclip,
-          color: color,
-          onTap: () => onAction('file'),
+          onPressed: () => onAction('file'),
         ),
       ],
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox.shrink();
   }
 }

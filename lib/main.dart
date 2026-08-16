@@ -17,15 +17,34 @@ import 'app/data/providers/theme_service.dart';
 
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
-void main() async {
+Future<void> main() async {
+  // Flutter's debug memory-allocation singleton is lazy. On some iOS hot
+  // restarts it can otherwise be initialized re-entrantly while the binding
+  // creates its first ValueNotifier, causing a LateInitializationError.
+  assert(_initializeDebugMemoryAllocations());
+
   WidgetsFlutterBinding.ensureInitialized();
   await GetStorage.init();
-  await LiquidGlassWidgets.initialize();
+  await LiquidGlassWidgets.initialize(enablePerformanceMonitor: false);
   runApp(
     LiquidGlassWidgets.wrap(
+      brightnessResolver: Theme.maybeBrightnessOf,
+      theme: GlassThemeData(
+        light: const GlassThemeVariant(
+          quality: GlassQuality.standard,
+        ),
+        dark: const GlassThemeVariant(
+          quality: GlassQuality.standard,
+        ),
+      ),
       child: const MyApp(),
     ),
   );
+}
+
+bool _initializeDebugMemoryAllocations() {
+  FlutterMemoryAllocations.instance;
+  return true;
 }
 
 class MyApp extends StatelessWidget {

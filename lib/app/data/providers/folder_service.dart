@@ -28,6 +28,7 @@ class FolderService extends GetxService {
         "id": folder.id,
         "Id": folder.id,
         "FolderId": folder.id,
+        "ParentId": folder.parentId,
         "Name": folder.name,
         "IconName": folder.iconName,
         "ColorValue": folder.colorValue,

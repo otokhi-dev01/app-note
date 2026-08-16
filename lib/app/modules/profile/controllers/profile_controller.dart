@@ -6,8 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import '../../../data/providers/session_service.dart';
 import '../../../data/providers/theme_service.dart';
 import '../../../routes/app_pages.dart';
-import '../../../theme/app_theme.dart';
-import '../../../widgets/glass_dialog.dart';
+import '../../../widgets/glass_widgets.dart';
 
 class ProfileController extends GetxController {
   final _sessionService = Get.find<SessionService>();
@@ -39,67 +38,60 @@ class ProfileController extends GetxController {
     }
   }
 
-  void updateUserName() {
+  Future<void> updateUserName() async {
+    final context = Get.context;
+    if (context == null) return;
+
     final nameController = TextEditingController(text: userName.value);
-    Get.dialog(
-      GlassDialog(
-        title: "Edit Name",
-        content: Container(
-          decoration: BoxDecoration(
-            color: Get.theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: TextField(
-            controller: nameController,
-            autofocus: true,
-            style: Get.textTheme.bodyLarge,
-            decoration: const InputDecoration(
-              hintText: "Enter your name",
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
+    try {
+      await CustomGlassDialog.show<void>(
+        context: context,
+        title: 'Edit Name',
+        content: CustomGlassTextField(
+          controller: nameController,
+          autofocus: true,
+          placeholder: 'Enter your name',
+          textInputAction: TextInputAction.done,
+          textStyle: Get.textTheme.bodyLarge,
+          useOwnLayer: false,
+          onSubmitted: (_) => _saveUserName(nameController),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              "Cancel",
-              style: TextStyle(color: Get.theme.colorScheme.onSurfaceVariant),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.trim().isNotEmpty) {
-                userName.value = nameController.text.trim();
-                // Update local session
-                final currentUser = _sessionService.user.value;
-                if (currentUser != null) {
-                  await _sessionService.saveSession(
-                    _sessionService.token.value ?? "",
-                    currentUser.copyWith(fullName: userName.value),
-                  );
-                }
-                Get.back();
-                Get.snackbar(
-                  "Success", 
-                  "Name updated",
-                  backgroundColor: Colors.green.withValues(alpha: 0.1),
-                  colorText: Colors.green,
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.folderPink,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text("Save"),
+          const CustomGlassDialogAction(label: 'Cancel', onPressed: _noOp),
+          CustomGlassDialogAction(
+            label: 'Save',
+            isPrimary: true,
+            closeOnPressed: false,
+            onPressed: () => _saveUserName(nameController),
           ),
         ],
-      ),
+      );
+    } finally {
+      nameController.dispose();
+    }
+  }
+
+  Future<void> _saveUserName(TextEditingController controller) async {
+    final name = controller.text.trim();
+    if (name.isEmpty) {
+      Get.snackbar('Name required', 'Please enter your name.');
+      return;
+    }
+
+    userName.value = name;
+    final currentUser = _sessionService.user.value;
+    if (currentUser != null) {
+      await _sessionService.saveSession(
+        _sessionService.token.value ?? '',
+        currentUser.copyWith(fullName: name),
+      );
+    }
+    Get.back();
+    Get.snackbar(
+      'Success',
+      'Name updated',
+      backgroundColor: Colors.green.withValues(alpha: 0.1),
+      colorText: Colors.green,
     );
   }
 
@@ -143,3 +135,5 @@ class ProfileController extends GetxController {
     Get.offAllNamed(Routes.ONBOARDING);
   }
 }
+
+void _noOp() {}

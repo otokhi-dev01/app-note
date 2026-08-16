@@ -11,6 +11,7 @@ import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
 import '../../../routes/app_pages.dart';
+import '../../../widgets/glass_widgets.dart';
 import '../../folder/controllers/folder_controller.dart';
 import '../widgets/note_move_folder_modal.dart';
 import 'note_controller.dart';
@@ -60,7 +61,7 @@ class NoteDetailController extends GetxController {
     if (isDrawingMode.value) {
       Get.focusScope?.unfocus(); // Dismiss keyboard when drawing
       Get.snackbar(
-        "Drawing Mode", 
+        "Drawing Mode",
         "You can now draw anywhere on the note.",
         snackPosition: SnackPosition.TOP,
         duration: const Duration(seconds: 2),
@@ -195,7 +196,7 @@ class NoteDetailController extends GetxController {
       final canvas = ui.Canvas(recorder);
       final paint = ui.Paint()..color = Colors.white;
       canvas.drawRect(const ui.Rect.fromLTWH(0, 0, 2000, 2000), paint);
-      
+
       final picture = recorder.endRecording();
       final img = await picture.toImage(2000, 2000);
       final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
@@ -203,7 +204,8 @@ class NoteDetailController extends GetxController {
 
       // 2. Save to temp file
       final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      final path =
+          '${directory.path}/sketch_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File(path);
       await file.writeAsBytes(buffer);
 
@@ -503,7 +505,7 @@ class NoteDetailController extends GetxController {
     try {
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);
-      
+
       // We use a large virtual canvas to capture the drawing detail
       final paint = ui.Paint()
         ..color = drawingColor.value
@@ -515,28 +517,36 @@ class NoteDetailController extends GetxController {
       // Draw all points
       for (int i = 0; i < backgroundPoints.length - 1; i++) {
         if (backgroundPoints[i] != null && backgroundPoints[i + 1] != null) {
-          canvas.drawLine(backgroundPoints[i]!, backgroundPoints[i + 1]!, paint);
+          canvas.drawLine(
+            backgroundPoints[i]!,
+            backgroundPoints[i + 1]!,
+            paint,
+          );
         }
       }
 
       final picture = recorder.endRecording();
       // Use standard logical bounds (approximate screen size)
-      final img = await picture.toImage(1000, 2000); 
+      final img = await picture.toImage(1000, 2000);
       final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
       final buffer = byteData!.buffer.asUint8List();
 
       final directory = await getTemporaryDirectory();
-      final path = '${directory.path}/bg_sketch_${DateTime.now().millisecondsSinceEpoch}.png';
+      final path =
+          '${directory.path}/bg_sketch_${DateTime.now().millisecondsSinceEpoch}.png';
       await File(path).writeAsBytes(buffer);
 
       // Insert at the very top (index 0) so it stays "under" or "behind" other content blocks
-      blocks.insert(0, AttachmentBlock(
-        id: _generateId(),
-        displayName: 'Background Sketch',
-        localPath: path,
-        attachmentId: 0,
-      ));
-      
+      blocks.insert(
+        0,
+        AttachmentBlock(
+          id: _generateId(),
+          displayName: 'Background Sketch',
+          localPath: path,
+          attachmentId: 0,
+        ),
+      );
+
       // Clear the volatile points now that they are a persistent block
       backgroundPoints.clear();
       isDrawingMode.value = false;
@@ -592,19 +602,26 @@ class NoteDetailController extends GetxController {
   }
 
   void shareNote() {
+    final context = Get.context;
+    if (context == null) return;
+
     _syncBlocks();
     String content = titleController.text + "\n\n";
     for (var b in blocks) {
       if (b is TextBlock) content += NoteModel.extractPlainText(b.text) + "\n";
     }
-    Get.dialog(
-      AlertDialog(
-        title: const Text("Share Note"),
-        content: SingleChildScrollView(child: Text(content)),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text("Close")),
-        ],
+    CustomGlassDialog.show<void>(
+      context: context,
+      title: 'Share Note',
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+        ),
+        child: SingleChildScrollView(child: Text(content)),
       ),
+      actions: const [
+        CustomGlassDialogAction(label: 'Close', onPressed: _noOp),
+      ],
     );
   }
 
@@ -613,7 +630,7 @@ class NoteDetailController extends GetxController {
   Future<void> togglePin() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    
+
     Get.back(); // Close menu
     final newState = !isPinned.value;
     try {
@@ -628,7 +645,7 @@ class NoteDetailController extends GetxController {
   Future<void> toggleArchive() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    
+
     Get.back(); // Close menu
     final newState = !isArchived.value;
     try {
@@ -644,7 +661,7 @@ class NoteDetailController extends GetxController {
   Future<void> toggleLock() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
-    
+
     Get.back(); // Close menu
     final newState = !isLocked.value;
     try {
@@ -658,7 +675,7 @@ class NoteDetailController extends GetxController {
   Future<void> deleteNote() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0 || isSaving.value) return;
-    
+
     // Logic: Immediately unfocus and hide keyboard
     FocusManager.instance.primaryFocus?.unfocus();
 
@@ -672,12 +689,12 @@ class NoteDetailController extends GetxController {
     try {
       // Logic: Start soft delete on server
       await _noteService.updateNoteState(deletedNoteId, isDelete: true);
-      
+
       // FEATURE: Synchronize with FolderController to update global trash counts
       if (Get.isRegistered<FolderController>()) {
         Get.find<FolderController>().fetchFolders(refresh: true);
       }
-      
+
       // Optimistic UI: Clean up local lists so background is updated instantly
       if (Get.isRegistered<NoteController>()) {
         final nc = Get.find<NoteController>();
@@ -690,10 +707,15 @@ class NoteDetailController extends GetxController {
       // Logic: Exit detail view completely.
       // Use Get.until to ensure we land exactly on the list page or home.
       // This is more robust than multiple Get.back() calls.
-      Get.until((route) => route.settings.name == Routes.NOTE_LIST || route.settings.name == Routes.FOLDER || route.isFirst);
+      Get.until(
+        (route) =>
+            route.settings.name == Routes.NOTE_LIST ||
+            route.settings.name == Routes.FOLDER ||
+            route.isFirst,
+      );
 
       Get.snackbar(
-        "Success", 
+        "Success",
         "Note moved to Recently Deleted",
         snackPosition: SnackPosition.BOTTOM,
         duration: const Duration(seconds: 1),
@@ -709,7 +731,7 @@ class NoteDetailController extends GetxController {
   Future<void> moveNote() async {
     Get.back(); // Close menu
     if (isLoading.value || currentNote.value == null) return;
-    
+
     try {
       final response = await _folderService.getFolders();
       if (response.folders.isEmpty) {
@@ -763,3 +785,5 @@ class NoteDetailController extends GetxController {
 
   String _generateId() => DateTime.now().microsecondsSinceEpoch.toString();
 }
+
+void _noOp() {}

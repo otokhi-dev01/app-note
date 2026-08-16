@@ -4,26 +4,40 @@ import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../routes/app_pages.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/glass_widgets.dart';
 import '../controllers/folder_controller.dart';
 import 'folder_context_menu.dart';
 
 class FolderTile extends StatelessWidget {
   final FolderModel folder;
   final FolderController controller;
+  final int depth;
 
-  const FolderTile({super.key, required this.folder, required this.controller});
+  const FolderTile({
+    super.key,
+    required this.folder,
+    required this.controller,
+    this.depth = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final leftPadding = 20.0 + (depth * 20.0);
+
     return Obx(() {
       final isEditing = controller.isEditing.value;
       final isSystem = controller.isSystemFolder(folder);
 
       return Opacity(
         opacity: (isEditing && isSystem) ? 0.3 : 1.0,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        child: CustomGlassListTile(
+          contentPadding: EdgeInsets.only(
+            left: leftPadding,
+            right: 20,
+            top: 4,
+            bottom: 4,
+          ),
           onTap: (isEditing && isSystem)
               ? null
               : () {
@@ -37,7 +51,7 @@ class FolderTile extends StatelessWidget {
                   }
                 },
           onLongPress: isSystem ? null : () => _showContextMenu(context),
-          leading:  Icon(
+          leading: Icon(
             CupertinoIcons.folder, // Updated to use CupertinoIcons.folder
             color: theme.primaryColor,
             size: 25,
@@ -55,7 +69,9 @@ class FolderTile extends StatelessWidget {
             child: Text(
               "Folder  •  ${folder.noteCount} notes",
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.6,
+                ),
                 fontSize: 13,
               ),
             ),
@@ -85,7 +101,9 @@ class FolderTile extends StatelessWidget {
                     const SizedBox(width: 4),
                     Icon(
                       Icons.reorder,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.4,
+                      ),
                       size: 22,
                     ),
                   ],
@@ -103,9 +121,10 @@ class FolderTile extends StatelessWidget {
   }
 
   void _showContextMenu(BuildContext context) {
-    Get.dialog(
-      FolderContextMenu(folder: folder, controller: controller),
-      barrierColor: Colors.black.withValues(alpha: 0.1),
+    FolderContextMenu.show(
+      context: context,
+      folder: folder,
+      controller: controller,
     );
   }
 }

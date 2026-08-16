@@ -32,7 +32,7 @@ class NoteEditorToolbar extends StatelessWidget {
           isKeyboardVisible ? 8 : 20, // Clean floating padding
         ),
         child: _PageContent(
-          child: LiquidGlassContainer(
+          child: CustomGlassContainer(
             borderRadius: 30,
             blur: 35,
             opacity: 0.1, // Premium translucent feel

@@ -94,7 +94,7 @@ class OnboardingView extends GetView<OnboardingController> {
                 );
               }
 
-              return LiquidGlassContainer(
+              return CustomGlassContainer(
                 width: 70,
                 height: 44,
                 child: TextButton(

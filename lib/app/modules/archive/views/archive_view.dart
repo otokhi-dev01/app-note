@@ -55,128 +55,77 @@ class ArchiveView extends GetView<NoteController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return SliverAppBar(
-      backgroundColor: Colors.transparent,
-      surfaceTintColor: Colors.transparent,
-      pinned: true,
-      expandedHeight: 140.0,
-      elevation: 0,
-      automaticallyImplyLeading: false,
+    return CustomGlassSliverAppBar(
+      expandedHeight: 140,
+      toolbarHeight: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
-      systemOverlayStyle: theme.brightness == Brightness.dark
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
-      title: LayoutBuilder(
-        builder: (context, constraints) {
-          final double percentage =
-              (constraints.maxHeight - kToolbarHeight) /
-              (140.0 - kToolbarHeight);
-          final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-          return Opacity(
-            opacity: opacity > 0.8 ? 1.0 : 0.0,
-            child: Text(
-              "Archive",
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 17,
-              ),
-            ),
-          );
-        },
-      ),
-      leading: Center(
-        child: LiquidGlassContainer(
-          width: 50,
-          height: 50,
-          shape: GlassShape.circle,
-          showGlow: true,
-          thickness: 8,
-          refractiveIndex: 1.1,
-          opacity: 0.15,
-          blur: 10,
-          child: IconButton(
-            onPressed: () => Get.back(),
-            icon: Icon(
-              CupertinoIcons.chevron_left,
-              color: theme.colorScheme.onSurface,
-              size: 28,
-            ),
-            padding: EdgeInsets.zero,
-          ),
+      title: Text(
+        "Archive",
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 17,
         ),
       ),
-      leadingWidth: 70,
+      leading: CustomGlassButton(
+        onPressed: () => Get.back(),
+        width: 44,
+        height: 44,
+        shape: GlassShape.circle,
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Icon(
+          CupertinoIcons.chevron_left,
+          color: theme.colorScheme.onSurface,
+          size: 24,
+        ),
+      ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: Obx(
-            () => controller.isEditing.value
-                ? LiquidGlassContainer(
-                    width: 50,
-                    height: 50,
-                    shape: GlassShape.circle,
-                    showGlow: true,
-                    thickness: 8,
-                    opacity: 0.15,
-                    blur: 10,
-                    child: GestureDetector(
-                      onTap: controller.toggleEditing,
-                      child: Center(
-                          child:  Icon(
-                            Icons.check,
-                            color: theme.colorScheme.onSurface,
-                            size: 28,
-                          ),
-                        ),
-                      ),
-                  )
-                : LiquidGlassContainer(
-                    height: 50,
-                    borderRadius: 30,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    showGlow: true,
-                    thickness: 8,
-                    opacity: 0.15,
-                    blur: 10,
-                    child: TextButton(
-                      onPressed: controller.toggleEditing,
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        "Edit",
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+        Obx(
+          () => controller.isEditing.value
+              ? CustomGlassButton(
+                  onPressed: controller.toggleEditing,
+                  width: 44,
+                  height: 44,
+                  shape: GlassShape.circle,
+                  blur: 10,
+                  opacity: 0.15,
+                  thickness: 8,
+                  padding: EdgeInsets.zero,
+                  child: Icon(
+                    Icons.check,
+                    color: theme.colorScheme.onSurface,
+                    size: 24,
+                  ),
+                )
+              : CustomGlassButton(
+                  onPressed: controller.toggleEditing,
+                  height: 44,
+                  borderRadius: 22,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  blur: 10,
+                  opacity: 0.15,
+                  thickness: 8,
+                  child: Text(
+                    "Edit",
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-          ),
+                ),
         ),
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        centerTitle: true,
-        titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-        title: LayoutBuilder(
-          builder: (context, constraints) {
-            final double percentage =
-                (constraints.maxHeight - kToolbarHeight) /
-                (140.0 - kToolbarHeight);
-            return Opacity(
-              opacity: percentage.clamp(0.0, 1.0),
-              child: Text(
-                "Archive",
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 34,
-                ),
-              ),
-            );
-          },
+      largeTitleAlignment: Alignment.bottomCenter,
+      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+      largeTitle: Text(
+        "Archive",
+        style: theme.textTheme.headlineLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 34,
         ),
       ),
     );
@@ -324,24 +273,30 @@ class ArchiveView extends GetView<NoteController> {
 
   Widget _buildEditBottomBar(BuildContext context) {
     return SafeArea(
+      top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _actionButton(
-              context,
-              "Delete",
-              color: Colors.redAccent,
-              onTap: () => controller.deleteSelectedNotes(0),
+            Expanded(
+              child: _actionButton(
+                context,
+                "Delete",
+                color: Colors.redAccent,
+                onTap: () => controller.deleteSelectedNotes(0),
+              ),
             ),
-            _actionButton(
-              context,
-              "Unarchive",
-              onTap: () {
-                // Implementation for unarchiving selected notes
-                Get.snackbar("Info", "Unarchive functionality coming soon");
-              },
+            const SizedBox(width: 16),
+            Expanded(
+              child: _actionButton(
+                context,
+                "Unarchive",
+                onTap: () {
+                  // Implementation for unarchiving selected notes
+                  Get.snackbar("Info", "Unarchive functionality coming soon");
+                },
+              ),
             ),
           ],
         ),
@@ -356,20 +311,20 @@ class ArchiveView extends GetView<NoteController> {
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: LiquidGlassContainer(
-        borderRadius: 25,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        thickness: 6,
-        showGlow: true,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: color ?? theme.colorScheme.onSurface,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+    return CustomGlassButton(
+      onPressed: onTap,
+      height: 48,
+      borderRadius: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color ?? theme.colorScheme.onSurface,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

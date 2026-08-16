@@ -30,7 +30,7 @@ class NoteMoveFolderModal extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: LiquidGlassContainer(
+      body: CustomGlassContainer(
         borderRadius: 30,
         blur: 35,
         opacity: 0.1,
@@ -43,7 +43,7 @@ class NoteMoveFolderModal extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 55, 16, 8),
               child: Row(
                 children: [
-                  LiquidGlassContainer(
+                  CustomGlassContainer(
                     width: 44,
                     height: 44,
                     shape: GlassShape.circle,
@@ -71,7 +71,7 @@ class NoteMoveFolderModal extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 44), 
+                  const SizedBox(width: 44),
                 ],
               ),
             ),
@@ -79,7 +79,10 @@ class NoteMoveFolderModal extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -89,7 +92,7 @@ class NoteMoveFolderModal extends StatelessWidget {
                         children: [
                           const Icon(
                             CupertinoIcons.folder,
-                            color: AppTheme.folderPink, 
+                            color: AppTheme.folderPink,
                             size: 56,
                           ),
                           const SizedBox(width: 14),
@@ -132,7 +135,7 @@ class NoteMoveFolderModal extends StatelessWidget {
                         ),
                         const Icon(
                           CupertinoIcons.chevron_down,
-                          color: AppTheme.folderPink, 
+                          color: AppTheme.folderPink,
                           size: 18,
                         ),
                       ],
@@ -140,7 +143,7 @@ class NoteMoveFolderModal extends StatelessWidget {
                     const SizedBox(height: 14),
 
                     // ── Folders Container (Glassy Rounded Card) ──
-                    LiquidGlassContainer(
+                    CustomGlassContainer(
                       borderRadius: 28,
                       opacity: 0.05,
                       blur: 10,
@@ -155,8 +158,8 @@ class NoteMoveFolderModal extends StatelessWidget {
                             onTap: onCreateNewFolder ?? () {},
                           ),
                           Divider(
-                            indent: 64, 
-                            height: 1, 
+                            indent: 64,
+                            height: 1,
                             thickness: 0.5,
                             color: theme.dividerColor.withValues(alpha: 0.1),
                           ),
@@ -166,10 +169,12 @@ class NoteMoveFolderModal extends StatelessWidget {
                             _buildFolderTile(context, folders[i]),
                             if (i < folders.length - 1)
                               Divider(
-                                indent: 64, 
-                                height: 1, 
+                                indent: 64,
+                                height: 1,
                                 thickness: 0.5,
-                                color: theme.dividerColor.withValues(alpha: 0.1),
+                                color: theme.dividerColor.withValues(
+                                  alpha: 0.1,
+                                ),
                               ),
                           ],
                         ],
@@ -190,7 +195,7 @@ class NoteMoveFolderModal extends StatelessWidget {
     required String label,
     required VoidCallback onTap,
   }) {
-    return ListTile(
+    return CustomGlassListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       leading: Icon(icon, color: AppTheme.folderPink, size: 28),
@@ -213,12 +218,12 @@ class NoteMoveFolderModal extends StatelessWidget {
 
     return Opacity(
       opacity: isCurrent ? 0.35 : 1.0,
-      child: ListTile(
+      child: CustomGlassListTile(
         onTap: isCurrent ? null : () => onFolderSelected(folder),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         leading: const Icon(
           CupertinoIcons.folder,
-          color: AppTheme.folderPink, 
+          color: AppTheme.folderPink,
           size: 26,
         ),
         title: Text(
@@ -230,9 +235,17 @@ class NoteMoveFolderModal extends StatelessWidget {
             color: isSystem ? Colors.grey : theme.colorScheme.onSurface,
           ),
         ),
-        trailing: isCurrent 
-          ? const Icon(CupertinoIcons.checkmark, color: AppTheme.folderPink, size: 18)
-          : Icon(CupertinoIcons.chevron_forward, color: Colors.grey.withValues(alpha: 0.3), size: 16),
+        trailing: isCurrent
+            ? const Icon(
+                CupertinoIcons.checkmark,
+                color: AppTheme.folderPink,
+                size: 18,
+              )
+            : Icon(
+                CupertinoIcons.chevron_forward,
+                color: Colors.grey.withValues(alpha: 0.3),
+                size: 16,
+              ),
       ),
     );
   }

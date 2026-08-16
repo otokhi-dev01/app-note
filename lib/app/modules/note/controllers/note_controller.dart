@@ -5,6 +5,7 @@ import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
+import '../../../widgets/glass_widgets.dart';
 import '../../folder/controllers/folder_controller.dart';
 import '../widgets/note_move_folder_modal.dart';
 
@@ -42,10 +43,18 @@ class NoteController extends GetxController {
     }
   }
 
-  Future<void> updateNoteState(int id, {bool? isPinned, bool? isArchived}) async {
+  Future<void> updateNoteState(
+    int id, {
+    bool? isPinned,
+    bool? isArchived,
+  }) async {
     try {
-      await _noteService.updateNoteState(id, isPinned: isPinned, isArchived: isArchived);
-      
+      await _noteService.updateNoteState(
+        id,
+        isPinned: isPinned,
+        isArchived: isArchived,
+      );
+
       // FEATURE: Optimistic update for local UI lists
       final index = notes.indexWhere((n) => n.id == id);
       if (index != -1) {
@@ -84,34 +93,34 @@ class NoteController extends GetxController {
       for (final id in targets) {
         if (kDebugMode) debugPrint("[NOTE DEBUG] Deleting NoteId: $id");
         await _noteService.deleteRestoreNote(id, true);
-        
-        // Optimistic UI: remove from local lists instantly
+
+        // Immediate Local Cleanup (Optimistic UI)
         notes.removeWhere((n) => n.id == id);
         pinnedNotes.removeWhere((n) => n.id == id);
         otherNotes.removeWhere((n) => n.id == id);
       }
+
+      // Exit Edit Mode & Clear selection
       selectedNoteIds.clear();
       isEditing.value = false;
-      
-      // Refresh full state from server
-      await fetchNotes(folderId: folderId, refresh: true);
-      
-      // FEATURE: Refresh FolderController to update "Recently Deleted" counts
+
+      // Force Refresh server state to ensure synchronization
+      await fetchNotes(folderId: folderId == 0 ? null : folderId, refresh: true);
+
+      // Refresh Folder List to update counts (Badge counts, Trash counts)
       if (Get.isRegistered<FolderController>()) {
         Get.find<FolderController>().fetchFolders(refresh: true);
       }
 
       Get.snackbar(
-        "Success",
-        "Notes moved to Recently Deleted",
+        "Moved to Trash",
+        "${targets.length} notes moved to Recently Deleted",
         snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 2),
       );
     } catch (e) {
       if (kDebugMode) debugPrint("[NOTE DEBUG] Delete notes error: $e");
-      Get.snackbar(
-        "Error",
-        "Could not delete notes. Please check your connection.",
-      );
+      Get.snackbar("Error", "Could not delete notes");
     } finally {
       isLoading.value = false;
     }
@@ -136,46 +145,54 @@ class NoteController extends GetxController {
         return;
       }
 
-      Get.bottomSheet(
-        NoteMoveFolderModal(
-          folders: allFolders,
-          currentFolderId: currentFolderId,
-          onFolderSelected: (folder) async {
-            Get.back();
-            isLoading.value = true;
-            try {
-              for (final noteId in targets) {
-                final note = notes.firstWhereOrNull((n) => n.id == noteId);
-                if (note != null) {
-                  if (kDebugMode)
-                    debugPrint(
-                      "[NOTE DEBUG] Moving NoteId: $noteId to FolderId: ${folder.id}",
+      await CustomGlassSheet.show<void>(
+        context: context,
+        showDragIndicator: false,
+        isScrollable: false,
+        builder: (sheetContext) => SizedBox(
+          height: MediaQuery.sizeOf(sheetContext).height * 0.82,
+          child: NoteMoveFolderModal(
+            folders: allFolders,
+            currentFolderId: currentFolderId,
+            onFolderSelected: (folder) async {
+              Navigator.of(sheetContext).pop();
+              isLoading.value = true;
+              try {
+                for (final noteId in targets) {
+                  final note = notes.firstWhereOrNull((n) => n.id == noteId);
+                  if (note != null) {
+                    if (kDebugMode) {
+                      debugPrint(
+                        '[NOTE DEBUG] Moving NoteId: $noteId to FolderId: ${folder.id}',
+                      );
+                    }
+                    await _noteService.saveNote(
+                      folder.id,
+                      note.title,
+                      noteId: note.id,
+                      content: note.content,
                     );
-                  await _noteService.saveNote(
-                    folder.id,
-                    note.title,
-                    noteId: note.id,
-                    content: note.content,
-                  );
+                  }
                 }
+                selectedNoteIds.clear();
+                isEditing.value = false;
+                await fetchNotes(folderId: currentFolderId, refresh: true);
+                Get.snackbar(
+                  'Success',
+                  'Moved notes to ${folder.name}',
+                  snackPosition: SnackPosition.BOTTOM,
+                );
+              } catch (e) {
+                if (kDebugMode) {
+                  debugPrint('[NOTE DEBUG] Move notes error: $e');
+                }
+                Get.snackbar('Error', 'Failed to move notes');
+              } finally {
+                isLoading.value = false;
               }
-              selectedNoteIds.clear();
-              isEditing.value = false;
-              await fetchNotes(folderId: currentFolderId, refresh: true);
-              Get.snackbar(
-                "Success",
-                "Moved notes to ${folder.name}",
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            } catch (e) {
-              if (kDebugMode) debugPrint("[NOTE DEBUG] Move notes error: $e");
-              Get.snackbar("Error", "Failed to move notes");
-            } finally {
-              isLoading.value = false;
-            }
-          },
+            },
+          ),
         ),
-        isScrollControlled: true,
       );
     } catch (e) {
       Get.snackbar("Error", "Could not fetch folders");

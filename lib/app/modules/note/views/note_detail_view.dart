@@ -1,17 +1,15 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../../widgets/glass_widgets.dart';
-import '../../../theme/app_theme.dart';
 import '../controllers/note_detail_controller.dart';
 import '../widgets/note_content_editor.dart';
 import '../widgets/note_detail_more_popup.dart';
 import '../widgets/note_editor_toolbar.dart';
 import '../widgets/note_editor_top_bar.dart';
 import '../widgets/note_format_panel.dart';
+
+import '../widgets/note_attachment_popup.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
   const NoteDetailView({super.key});
@@ -83,124 +81,37 @@ class NoteDetailView extends GetView<NoteDetailController> {
 
   SystemUiOverlayStyle _systemUiStyle(ThemeData theme) {
     final isDark = theme.brightness == Brightness.dark;
-    final style = isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark;
+    final style = isDark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
 
     return style.copyWith(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       systemNavigationBarColor: theme.scaffoldBackgroundColor,
-      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarIconBrightness: isDark
+          ? Brightness.light
+          : Brightness.dark,
     );
   }
 
   void _showMoreMenu(BuildContext context) {
-    Get.dialog(
-      NoteDetailMorePopup(controller: controller),
-      barrierColor: Colors.black.withValues(alpha: 0.1),
-    );
+    NoteDetailMorePopup.show(context: context, controller: controller);
   }
 
   void _showAttachmentPopup(BuildContext context) {
-    final theme = Theme.of(context);
-
-    Get.bottomSheet(
-      Material(
-        color: Colors.transparent,
-        child: LiquidGlassContainer(
-          borderRadius: 30,
-          blur: 35,
-          opacity: 0.1,
-          thickness: 15,
-          showGlow: true,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-              ),
-              _buildAction(
-                context,
-                CupertinoIcons.camera,
-                'Take Photo or Video',
-                () => controller.addAttachment(ImageSource.camera),
-              ),
-              _buildAction(
-                context,
-                CupertinoIcons.photo_on_rectangle,
-                'Choose Photo or Video',
-                () => controller.addAttachment(ImageSource.gallery),
-              ),
-              _buildAction(
-                context,
-                CupertinoIcons.pencil_outline,
-                'Drawing',
-                () => controller.startDrawing(),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Get.back(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.folderPink,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    "CANCEL",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      enterBottomSheetDuration: 400.ms,
-    );
-  }
-
-  Widget _buildAction(
-    BuildContext context,
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) {
-    final theme = Theme.of(context);
-    return ListTile(
-      leading: Icon(icon, color: AppTheme.folderPink, size: 24),
-      title: Text(
-        label,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          fontSize: 17,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      onTap: () {
-        Get.back();
-        onTap();
+    NoteAttachmentPopup.show(
+      context: context,
+      onAction: (type) {
+        if (type == 'camera') {
+          controller.addAttachment(ImageSource.camera);
+        } else if (type == 'gallery') {
+          controller.addAttachment(ImageSource.gallery);
+        } else if (type == 'drawing') {
+          controller.startDrawing();
+        }
       },
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 

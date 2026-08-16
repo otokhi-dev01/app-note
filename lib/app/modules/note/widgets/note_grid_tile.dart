@@ -49,7 +49,7 @@ class NoteGridTile extends StatelessWidget {
           }
         },
         onLongPress: isEditing ? null : () => _showContextMenu(context), // Logic: Hold to show delete popup
-        child: LiquidGlassContainer(
+        child: CustomGlassContainer(
           borderRadius: 20,
           opacity: 0.1,
           child: Stack(
@@ -160,54 +160,48 @@ class NoteGridTile extends StatelessWidget {
   }
 
   void _showContextMenu(BuildContext context) {
-    Get.dialog(
-      IOSActionMenu(
-        type: IOSMenuType.popup,
-        title: "Note Options",
-        actions: [
-          IOSMenuAction(
-            label: note.isPinned ? "Unpin Note" : "Pin Note",
-            icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
-            onTap: () async {
-              Get.back();
-              await controller.updateNoteState(note.id, isPinned: !note.isPinned);
-              await controller.fetchNotes(folderId: folderId, refresh: true);
-            },
-          ),
-          IOSMenuAction(
-            label: "Move Note",
-            icon: CupertinoIcons.folder_badge_plus,
-            onTap: () {
-              Get.back();
-              controller.selectedNoteIds.clear();
-              controller.selectedNoteIds.add(note.id);
-              controller.moveSelectedNotes(context, folderId);
-            },
-          ),
-          IOSMenuAction(
-            label: "Delete",
-            icon: CupertinoIcons.trash,
-            isDestructive: true,
-            onTap: () {
-              Get.back(); // Close menu
-              // FEATURE: Confirmation before deleting from grid popup
-              Get.dialog(
-                IOSConfirmationDialog(
-                  title: "Are you sure you want to move this note to Recently Deleted?",
-                  confirmLabel: "Delete Note",
-                  onConfirm: () async {
-                    // Set selection to just this note to use existing controller logic safely
-                    controller.selectedNoteIds.clear();
-                    controller.selectedNoteIds.add(note.id);
-                    await controller.deleteSelectedNotes(folderId);
-                  },
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      barrierColor: Colors.black.withValues(alpha: 0.1),
+    IOSActionMenu.show(
+      context: context,
+      type: IOSMenuType.popup,
+      title: "Note Options",
+      actions: [
+        IOSMenuAction(
+          label: note.isPinned ? "Unpin Note" : "Pin Note",
+          icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
+          onTap: () async {
+            await controller.updateNoteState(note.id, isPinned: !note.isPinned);
+            await controller.fetchNotes(folderId: folderId, refresh: true);
+          },
+        ),
+        IOSMenuAction(
+          label: "Move Note",
+          icon: CupertinoIcons.folder_badge_plus,
+          onTap: () {
+            controller.selectedNoteIds.clear();
+            controller.selectedNoteIds.add(note.id);
+            controller.moveSelectedNotes(context, folderId);
+          },
+        ),
+        IOSMenuAction(
+          label: "Delete",
+          icon: CupertinoIcons.trash,
+          isDestructive: true,
+          onTap: () {
+            // FEATURE: Confirmation before deleting from grid popup
+            IOSConfirmationDialog.show(
+              title: "Are you sure you want to move this note to Recently Deleted?",
+              confirmLabel: "Delete Note",
+              onConfirm: () async {
+                Get.back();
+                // Set selection to just this note to use existing controller logic safely
+                controller.selectedNoteIds.clear();
+                controller.selectedNoteIds.add(note.id);
+                await controller.deleteSelectedNotes(folderId);
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 

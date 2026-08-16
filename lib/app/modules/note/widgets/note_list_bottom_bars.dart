@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../routes/app_pages.dart';
 import '../../../routes/note_navigation.dart';
 import '../../../widgets/glass_widgets.dart';
+import '../../../widgets/ios_confirmation_dialog.dart';
 import '../controllers/note_controller.dart';
 
 class NoteListBottomBar extends StatelessWidget {
@@ -20,64 +21,51 @@ class NoteListBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Get.toNamed(Routes.SEARCH),
-                child: Container(
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: theme.brightness == Brightness.dark
-                        ? null
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.search, size: 22),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text("Search", style: TextStyle(fontSize: 17)),
-                      ),
-                      Icon(Icons.mic, size: 22),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            LiquidGlassContainer(
-              width: 50,
-              height: 50,
-              shape: GlassShape.circle,
-              showGlow: true,
-              thickness: 10,
-              refractiveIndex: 1.3,
-              opacity: 0.15, // Standard glass icon opacity
-              child: IconButton(
-                onPressed: () => NoteNavigation.toNewNote(
-                  folderId,
-                )?.then((value) => controller.fetchNotes(folderId: folderId)),
-                icon: Icon(
-                  CupertinoIcons.square_pencil,
-                  color: theme.colorScheme.onSurface,
-                  size: 28,
-                ),
-              ),
-            ),
-          ],
+      top: false,
+      child: CustomGlassTabBar.bottom(
+        tabs: const [
+          CustomGlassTab(
+            icon: Icon(CupertinoIcons.folder),
+            activeIcon: Icon(CupertinoIcons.folder_fill),
+            label: 'Folders',
+            semanticLabel: 'Folders',
+          ),
+          CustomGlassTab(
+            icon: Icon(CupertinoIcons.profile_circled),
+            activeIcon: Icon(CupertinoIcons.profile_circled),
+            label: 'Profile',
+            semanticLabel: 'Profile',
+          ),
+          CustomGlassTab(
+            icon: Icon(CupertinoIcons.search),
+            label: 'Search',
+            semanticLabel: 'Search notes and folders',
+          ),
+        ],
+        selectedIndex: 0,
+        onTabSelected: (index) {
+          if (index == 0) {
+            Get.back();
+          } else if (index == 1) {
+            Get.toNamed(Routes.PROFILE);
+          } else if (index == 2) {
+            Get.toNamed(Routes.SEARCH);
+          }
+        },
+        extraButton: CustomGlassTabBarExtraButton(
+          icon: const Icon(CupertinoIcons.square_pencil),
+          onTap: () => NoteNavigation.toNewNote(folderId)
+              ?.then((value) => controller.fetchNotes(folderId: folderId)),
+          label: 'Create note',
+          iconColor: theme.primaryColor,
+          size: 56,
         ),
+        horizontalPadding: 12,
+        verticalPadding: 8,
+        barHeight: 64,
+        selectedIconColor: theme.primaryColor,
+        unselectedIconColor: theme.colorScheme.onSurfaceVariant,
+        adaptiveBrightness: true,
       ),
     );
   }
@@ -96,8 +84,9 @@ class NoteListEditBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
+      top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Obx(() {
           final selectedCount = controller.selectedNoteIds.length;
           final moveText = selectedCount == 0
@@ -114,13 +103,31 @@ class NoteListEditBar extends StatelessWidget {
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _ActionButton(
-                label: moveText,
-                onTap: () => controller.moveSelectedNotes(context, folderId),
+              Expanded(
+                child: _ActionButton(
+                  label: moveText,
+                  onTap: () => controller.moveSelectedNotes(context, folderId),
+                ),
               ),
-              _ActionButton(
-                label: deleteText,
-                onTap: () => controller.deleteSelectedNotes(folderId),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _ActionButton(
+                  label: deleteText,
+                  color: Colors.redAccent,
+                  onTap: () {
+                    final noteCount = selectedCount == 0 ? controller.notes.length : selectedCount;
+                    if (noteCount == 0) return;
+                    IOSConfirmationDialog.show(
+                      title: "Delete $noteCount Notes?",
+                      message: "These notes will be moved to Recently Deleted.",
+                      confirmLabel: "Delete",
+                      onConfirm: () {
+                        Get.back();
+                        controller.deleteSelectedNotes(folderId);
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           );
@@ -133,26 +140,27 @@ class NoteListEditBar extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final Color? color;
 
-  const _ActionButton({required this.label, required this.onTap});
+  const _ActionButton({required this.label, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: LiquidGlassContainer(
-        borderRadius: 25,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        thickness: 6,
-        showGlow: true,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+    return CustomGlassButton(
+      onPressed: onTap,
+      height: 48,
+      borderRadius: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color ?? theme.colorScheme.onSurface,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );

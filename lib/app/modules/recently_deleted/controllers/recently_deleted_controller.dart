@@ -116,32 +116,30 @@ class RecentlyDeletedController extends GetxController {
         : "This folder and its notes will be deleted. This action cannot be undone.";
     String label = noteId != null ? "Delete Note" : "Delete Folder";
 
-    Get.dialog(
-      IOSConfirmationDialog(
-        title: message,
-        confirmLabel: label,
-        onConfirm: () async {
-          try {
-            if (noteId != null) {
-              await _noteService.deleteNotePermanently(noteId);
-              // Optimistic UI: remove from local list instantly
-              deletedNotes.removeWhere((n) => n.id == noteId);
-            } else if (folderId != null) {
-              await _folderService.deleteFolderPermanently(folderId);
-              // Optimistic UI: remove from local list instantly
-              deletedFolders.removeWhere((f) => f.id == folderId);
-            }
-            await fetchDeletedItems();
-            Get.snackbar(
-              "Success",
-              "Item permanently deleted",
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          } catch (e) {
-            Get.snackbar("Error", "Could not delete item permanently");
+    IOSConfirmationDialog.show(
+      title: message,
+      confirmLabel: label,
+      onConfirm: () async {
+        try {
+          if (noteId != null) {
+            await _noteService.deleteNotePermanently(noteId);
+            // Optimistic UI: remove from local list instantly
+            deletedNotes.removeWhere((n) => n.id == noteId);
+          } else if (folderId != null) {
+            await _folderService.deleteFolderPermanently(folderId);
+            // Optimistic UI: remove from local list instantly
+            deletedFolders.removeWhere((f) => f.id == folderId);
           }
-        },
-      ),
+          await fetchDeletedItems();
+          Get.snackbar(
+            "Success",
+            "Item permanently deleted",
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        } catch (e) {
+          Get.snackbar("Error", "Could not delete item permanently");
+        }
+      },
     );
   }
 
@@ -215,62 +213,58 @@ class RecentlyDeletedController extends GetxController {
         : "These notes will be deleted. This action cannot be undone.";
     String label = "Delete";
 
-    Get.dialog(
-      IOSConfirmationDialog(
-        title: message,
-        confirmLabel: label,
-        onConfirm: () async {
-          isLoading.value = true;
-          try {
-            for (final id in selectedNoteIds) {
-              await _noteService.deleteNotePermanently(id);
-            }
-            for (final id in selectedFolderIds) {
-              await _folderService.deleteFolderPermanently(id);
-            }
-            selectedNoteIds.clear();
-            selectedFolderIds.clear();
-            isEditing.value = false;
-            await fetchDeletedItems();
-            Get.snackbar(
-              "Success",
-              "Items permanently deleted",
-              snackPosition: SnackPosition.BOTTOM,
-            );
-          } catch (e) {
-            Get.snackbar("Error", "Could not delete items permanently");
-          } finally {
-            isLoading.value = false;
+    IOSConfirmationDialog.show(
+      title: message,
+      confirmLabel: label,
+      onConfirm: () async {
+        isLoading.value = true;
+        try {
+          for (final id in selectedNoteIds) {
+            await _noteService.deleteNotePermanently(id);
           }
-        },
-      ),
+          for (final id in selectedFolderIds) {
+            await _folderService.deleteFolderPermanently(id);
+          }
+          selectedNoteIds.clear();
+          selectedFolderIds.clear();
+          isEditing.value = false;
+          await fetchDeletedItems();
+          Get.snackbar(
+            "Success",
+            "Items permanently deleted",
+            snackPosition: SnackPosition.BOTTOM,
+          );
+        } catch (e) {
+          Get.snackbar("Error", "Could not delete items permanently");
+        } finally {
+          isLoading.value = false;
+        }
+      },
     );
   }
 
   Future<void> deleteAll() async {
-    Get.dialog(
-      IOSConfirmationDialog(
-        title:
-            "All notes and folders in Recently Deleted will be permanently removed.",
-        confirmLabel: "Empty Trash",
-        onConfirm: () async {
-          isLoading.value = true;
-          try {
-            await _noteService.emptyTrash();
-            // Also need to handle folders if emptyTrash doesn't cover them
-            for (final folder in deletedFolders) {
-              await _folderService.deleteFolderPermanently(folder.id);
-            }
-            isEditing.value = false;
-            await fetchDeletedItems();
-            Get.snackbar("Success", "Trash emptied");
-          } catch (e) {
-            Get.snackbar("Error", "Failed to empty trash");
-          } finally {
-            isLoading.value = false;
+    IOSConfirmationDialog.show(
+      title:
+          "All notes and folders in Recently Deleted will be permanently removed.",
+      confirmLabel: "Empty Trash",
+      onConfirm: () async {
+        isLoading.value = true;
+        try {
+          await _noteService.emptyTrash();
+          // Also need to handle folders if emptyTrash doesn't cover them
+          for (final folder in deletedFolders) {
+            await _folderService.deleteFolderPermanently(folder.id);
           }
-        },
-      ),
+          isEditing.value = false;
+          await fetchDeletedItems();
+          Get.snackbar("Success", "Trash emptied");
+        } catch (e) {
+          Get.snackbar("Error", "Failed to empty trash");
+        } finally {
+          isLoading.value = false;
+        }
+      },
     );
   }
 }

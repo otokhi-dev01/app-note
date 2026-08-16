@@ -14,67 +14,48 @@ class FolderBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Get.toNamed(Routes.SEARCH),
-                child: LiquidGlassContainer(
-                  thickness: 20,
-                  refractiveIndex: 2,
-                  opacity: 0.20,
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search,
-                        color: theme.colorScheme.onSurfaceVariant,
-                        size: 25,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Search",
-                          style: TextStyle(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 17,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.mic_none_rounded,
-                        color: theme.colorScheme.onSurfaceVariant,
-                        size: 25,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            LiquidGlassContainer(
-              width: 48,
-              height: 48,
-              shape: GlassShape.circle,
-              showGlow: true,
-              thickness: 20,
-              refractiveIndex: 2,
-              opacity: 0.20,
-              child: IconButton(
-                onPressed: () => controller.createNewNote(),
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  CupertinoIcons.square_pencil,
-                  color: theme.primaryColor,
-                  size: 25,
-                ),
-              ),
-            ),
-          ],
+      top: false,
+      child: CustomGlassTabBar.bottom(
+        tabs: const [
+          CustomGlassTab(
+            icon: Icon(CupertinoIcons.folder),
+            activeIcon: Icon(CupertinoIcons.folder_fill),
+            label: 'Folders',
+            semanticLabel: 'Folders',
+          ),
+          CustomGlassTab(
+            icon: Icon(CupertinoIcons.profile_circled),
+            activeIcon: Icon(CupertinoIcons.profile_circled),
+            label: 'Profile',
+            semanticLabel: 'Profile',
+          ),
+          CustomGlassTab(
+            icon: Icon(CupertinoIcons.search),
+            label: 'Search',
+            semanticLabel: 'Search notes and folders',
+          ),
+        ],
+        selectedIndex: 0,
+        onTabSelected: (index) {
+          if (index == 1) {
+            Get.toNamed(Routes.PROFILE);
+          } else if (index == 2) {
+            Get.toNamed(Routes.SEARCH);
+          }
+        },
+        extraButton: CustomGlassTabBarExtraButton(
+          icon: const Icon(CupertinoIcons.square_pencil),
+          onTap: controller.createNewNote,
+          label: 'Create note',
+          iconColor: theme.primaryColor,
+          size: 65,
         ),
+        horizontalPadding: 12,
+        verticalPadding: 8,
+        barHeight: 64,
+        selectedIconColor: theme.primaryColor,
+        unselectedIconColor: theme.colorScheme.onSurfaceVariant,
+        adaptiveBrightness: true,
       ),
     );
   }

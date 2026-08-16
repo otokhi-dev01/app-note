@@ -43,7 +43,7 @@ class RegisterView extends GetView<AuthController> {
                   : SystemUiOverlayStyle.dark,
               leadingWidth: 70,
               leading: Center(
-                child: LiquidGlassContainer(
+                child: CustomGlassContainer(
                   width: 44,
                   height: 44,
                   shape: GlassShape.circle,
@@ -142,7 +142,7 @@ class RegisterView extends GetView<AuthController> {
 
                     const SizedBox(height: 15),
                     // Register Card
-                    LiquidGlassContainer(
+                    CustomGlassContainer(
                       borderRadius: 30,
                       blur: 35,
                       opacity: 0.1,
@@ -243,7 +243,7 @@ class RegisterView extends GetView<AuthController> {
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
-                                              color: Colors.white,
+                                              color: AppTheme.folderPink,
                                               strokeWidth: 2,
                                             ),
                                           )

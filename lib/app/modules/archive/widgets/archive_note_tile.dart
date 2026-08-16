@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/note_model.dart';
 import '../../../routes/note_navigation.dart';
 import '../../../theme/app_theme.dart';
+import '../../../widgets/glass_widgets.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -25,7 +26,7 @@ class ArchiveNoteTile extends StatelessWidget {
       final isEditing = controller.isEditing.value;
       final isSelected = controller.selectedNoteIds.contains(note.id);
 
-      return ListTile(
+      return CustomGlassListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         onTap: isEditing
             ? () => controller.toggleSelectNote(note.id)
@@ -37,8 +38,12 @@ class ArchiveNoteTile extends StatelessWidget {
         leading: isEditing
             ? _buildSelectionIndicator(context, isSelected)
             : (note.isPinned
-                ? const Icon(Icons.push_pin, color: AppTheme.folderPink, size: 16)
-                : null),
+                  ? const Icon(
+                      Icons.push_pin,
+                      color: AppTheme.folderPink,
+                      size: 16,
+                    )
+                  : null),
         title: Text(
           note.displayTitle,
           style: theme.textTheme.bodyLarge?.copyWith(
