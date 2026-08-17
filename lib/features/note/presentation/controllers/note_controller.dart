@@ -1,0 +1,301 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import 'package:Note/core/error/result.dart';
+import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/usecase/usecase.dart';
+import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
+import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/note/domain/entities/note.dart';
+import 'package:Note/features/note/domain/usecases/note_usecases.dart';
+import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
+
+/// Drives the note list, the archive, and the multi-select bar on both.
+class NoteController extends GetxController {
+  final GetNotes _getNotes;
+  final UpdateNoteState _updateNoteState;
+  final DeleteRestoreNote _deleteRestoreNote;
+  final MoveNotesToFolder _moveNotes;
+  final GetFolders _getFolders;
+
+  NoteController({
+    required GetNotes getNotes,
+    required UpdateNoteState updateNoteState,
+    required DeleteRestoreNote deleteRestoreNote,
+    required MoveNotesToFolder moveNotes,
+    required GetFolders getFolders,
+  }) : _getNotes = getNotes,
+       _updateNoteState = updateNoteState,
+       _deleteRestoreNote = deleteRestoreNote,
+       _moveNotes = moveNotes,
+       _getFolders = getFolders;
+
+  final notes = <Note>[].obs;
+  final pinnedNotes = <Note>[].obs;
+  final otherNotes = <Note>[].obs;
+  final archivedNotes = <Note>[].obs;
+  final pinnedArchivedNotes = <Note>[].obs;
+  final otherArchivedNotes = <Note>[].obs;
+  final isLoading = true.obs;
+  final hasError = false.obs;
+  final errorMessage = ''.obs;
+
+  // View and editing modes
+  final isEditing = false.obs;
+  final viewMode = 'list'.obs; // 'list' or 'gallery'
+  final isGroupedByDate = true.obs;
+  final selectedNoteIds = <int>{}.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments;
+    fetchNotes(folderId: args is Folder ? args.id : null);
+  }
+
+  void toggleEditing() {
+    isEditing.value = !isEditing.value;
+    if (!isEditing.value) selectedNoteIds.clear();
+  }
+
+  void toggleSelectNote(int id) {
+    if (selectedNoteIds.contains(id)) {
+      selectedNoteIds.remove(id);
+    } else {
+      selectedNoteIds.add(id);
+    }
+  }
+
+  /// Narrows the selection to a single note — used by the per-tile context
+  /// menu, which acts on one note while reusing the batch operations.
+  void selectOnly(int id) {
+    selectedNoteIds
+      ..clear()
+      ..add(id);
+  }
+
+  Future<void> fetchNotes({int? folderId, bool refresh = false}) async {
+    isLoading.value = true;
+    hasError.value = false;
+    try {
+      final result = await _getNotes(GetNotesParams(folderId: folderId));
+
+      switch (result) {
+        case Ok(:final value):
+          final active = _sorted(value.notes);
+          final pinned = active.where((n) => n.isPinned).toList();
+          final others = active.where((n) => !n.isPinned).toList();
+
+          pinnedNotes.assignAll(pinned);
+          otherNotes.assignAll(others);
+          notes.assignAll([...pinned, ...others]);
+
+          final archived = _sorted(value.archive);
+          archivedNotes.assignAll(archived);
+          pinnedArchivedNotes.assignAll(archived.where((n) => n.isPinned));
+          otherArchivedNotes.assignAll(archived.where((n) => !n.isPinned));
+
+        case Err(:final failure):
+          hasError.value = true;
+          errorMessage.value = failure.message;
+          AppSnackbar.failure('Could not load notes', failure);
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> updateNoteState(
+    int id, {
+    bool? isPinned,
+    bool? isArchived,
+  }) async {
+    final result = await _updateNoteState(
+      UpdateNoteStateParams(
+        noteId: id,
+        isPinned: isPinned,
+        isArchived: isArchived,
+      ),
+    );
+
+    if (result case Err(:final failure)) {
+      AppSnackbar.failure('Failed to update note', failure);
+      return;
+    }
+
+    // Optimistic local update so the row reacts before the next fetch.
+    final index = notes.indexWhere((n) => n.id == id);
+    if (index != -1) {
+      final old = notes[index];
+      notes[index] = Note(
+        id: old.id,
+        folderId: old.folderId,
+        folderName: old.folderName,
+        title: old.title,
+        content: old.content,
+        isPinned: isPinned ?? old.isPinned,
+        isArchived: isArchived ?? old.isArchived,
+        isLocked: old.isLocked,
+        updatedAt: DateTime.now(),
+        deletedAt: old.deletedAt,
+        attachmentCount: old.attachmentCount,
+      );
+      notes.refresh();
+    }
+  }
+
+  Future<void> deleteSelectedNotes(int folderId) async {
+    final targets = selectedNoteIds.isNotEmpty
+        ? selectedNoteIds.toList()
+        : notes.map((n) => n.id).toList();
+    if (targets.isEmpty) return;
+
+    isLoading.value = true;
+    try {
+      var deleted = 0;
+      for (final id in targets) {
+        final result = await _deleteRestoreNote(
+          DeleteRestoreNoteParams(noteId: id, isDelete: true),
+        );
+        if (result case Err(:final failure)) {
+          AppSnackbar.failure('Could not delete notes', failure);
+          break;
+        }
+        deleted++;
+        // Optimistic removal keeps the list from flashing the deleted row.
+        notes.removeWhere((n) => n.id == id);
+        pinnedNotes.removeWhere((n) => n.id == id);
+        otherNotes.removeWhere((n) => n.id == id);
+      }
+
+      selectedNoteIds.clear();
+      isEditing.value = false;
+
+      await fetchNotes(
+        folderId: folderId == 0 ? null : folderId,
+        refresh: true,
+      );
+      _refreshFolderCounts();
+
+      if (deleted > 0) {
+        AppSnackbar.success(
+          'Moved to Trash',
+          '$deleted note${deleted == 1 ? '' : 's'} moved to Recently Deleted',
+        );
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> moveSelectedNotes(
+    BuildContext context,
+    int currentFolderId,
+  ) async {
+    final targetIds = selectedNoteIds.isNotEmpty
+        ? selectedNoteIds.toList()
+        : notes.map((n) => n.id).toList();
+    if (targetIds.isEmpty) return;
+
+    final folderResult = await _getFolders(const NoParams());
+    if (folderResult case Err(:final failure)) {
+      AppSnackbar.failure('Could not fetch folders', failure);
+      return;
+    }
+
+    final allFolders = folderResult.valueOrNull!.folders;
+    if (allFolders.isEmpty) {
+      AppSnackbar.info('Nowhere to move', 'No destination folders available.');
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    await CustomGlassSheet.show<void>(
+      context: context,
+      showDragIndicator: false,
+      isScrollable: false,
+      builder: (sheetContext) => SizedBox(
+        height: MediaQuery.sizeOf(sheetContext).height * 0.82,
+        child: NoteMoveFolderModal(
+          folders: allFolders,
+          currentFolderId: currentFolderId,
+          onFolderSelected: (folder) async {
+            Navigator.of(sheetContext).pop();
+            await _moveNotesTo(folder, targetIds, currentFolderId);
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _moveNotesTo(
+    Folder folder,
+    List<int> noteIds,
+    int currentFolderId,
+  ) async {
+    isLoading.value = true;
+    try {
+      final selected = notes.where((n) => noteIds.contains(n.id)).toList();
+      final result = await _moveNotes(
+        MoveNotesParams(notes: selected, targetFolderId: folder.id),
+      );
+
+      switch (result) {
+        case Ok(:final value):
+          selectedNoteIds.clear();
+          isEditing.value = false;
+          await fetchNotes(folderId: currentFolderId, refresh: true);
+          _refreshFolderCounts();
+          if (value.isComplete) {
+            AppSnackbar.success('Moved', 'Moved notes to ${folder.name}');
+          } else {
+            AppSnackbar.warning(
+              'Partially moved',
+              '${value.moved} of ${value.total} notes moved to ${folder.name}.',
+            );
+          }
+        case Err(:final failure):
+          AppSnackbar.failure('Failed to move notes', failure);
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Folder badges show note counts, so they go stale after a move or delete.
+  void _refreshFolderCounts() {
+    if (Get.isRegistered<FolderController>()) {
+      Get.find<FolderController>().fetchFolders(refresh: true);
+    }
+  }
+
+  List<Note> _sorted(List<Note> list) {
+    final copy = List<Note>.from(list);
+    copy.sort((a, b) {
+      final dateA = a.updatedAt ?? DateTime(0);
+      final dateB = b.updatedAt ?? DateTime(0);
+      return dateB.compareTo(dateA);
+    });
+    return copy;
+  }
+
+  void toggleViewMode() =>
+      viewMode.value = viewMode.value == 'list' ? 'gallery' : 'list';
+
+  void updateSorting(String criteria) =>
+      AppSnackbar.info('Sorting', 'Sorting by $criteria');
+
+  void toggleDateGrouping() {
+    isGroupedByDate.value = !isGroupedByDate.value;
+    AppSnackbar.info(
+      'Grouping',
+      isGroupedByDate.value ? 'Grouped by date' : 'Ungrouped',
+    );
+  }
+
+  void viewAllAttachments() =>
+      AppSnackbar.info('Attachments', 'Viewing all attachments');
+}
