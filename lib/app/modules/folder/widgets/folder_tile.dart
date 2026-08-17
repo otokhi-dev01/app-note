@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
@@ -51,11 +50,8 @@ class FolderTile extends StatelessWidget {
                   }
                 },
           onLongPress: isSystem ? null : () => _showContextMenu(context),
-          leading: Icon(
-            CupertinoIcons.folder, // Updated to use CupertinoIcons.folder
-            color: theme.primaryColor,
-            size: 25,
-          ),
+          // Renders the icon + color chosen in the folder editor
+          leading: Icon(folder.icon, color: folder.color, size: 25),
           title: Text(
             folder.name,
             style: theme.textTheme.bodyLarge?.copyWith(

@@ -1,13 +1,98 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import '../../../data/models/folder_appearance.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../theme/app_theme.dart';
 import '../controllers/folder_controller.dart';
 import '../../../widgets/glass_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Local controller: manages text, save state, and lifecycle
+// Palette: every surface, label, and fill on this screen resolved from
+// AppTheme, so the editor tracks the app in both light and dark mode.
+// ─────────────────────────────────────────────────────────────────────────────
+class _FolderColors {
+  final bool isDark;
+
+  /// Scaffold base the glass layer sits on.
+  final Color background;
+
+  /// Tint given to the picker panels so they read as cards in light mode and
+  /// stay subtle glass in dark mode.
+  final Color panelTint;
+
+  final Color primaryText;
+  final Color secondaryText;
+  final Color placeholder;
+
+  /// Chrome icons: cancel ✕, clear-field ⊗, row chevron.
+  final Color mutedIcon;
+
+  /// Unselected icon cell: fill + glyph.
+  final Color cellFill;
+  final Color cellIcon;
+
+  const _FolderColors._({
+    required this.isDark,
+    required this.background,
+    required this.panelTint,
+    required this.primaryText,
+    required this.secondaryText,
+    required this.placeholder,
+    required this.mutedIcon,
+    required this.cellFill,
+    required this.cellIcon,
+  });
+
+  factory _FolderColors.of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (isDark) {
+      return _FolderColors._(
+        isDark: true,
+        background: AppTheme.darkBackground,
+        // Matches the white-at-0.1 tint the shared glass widgets default to.
+        panelTint: Colors.white.withValues(alpha: 0.08),
+        primaryText: AppTheme.darkTextPrimary,
+        secondaryText: AppTheme.darkTextSecondary,
+        placeholder: AppTheme.darkTextSecondary.withValues(alpha: 0.7),
+        mutedIcon: AppTheme.darkTextSecondary,
+        cellFill: AppTheme.darkDividerColor,
+        cellIcon: AppTheme.darkTextPrimary,
+      );
+    }
+
+    return _FolderColors._(
+      isDark: false,
+      background: AppTheme.bodyColor,
+      // Translucent card white: the panels stay legible against the light
+      // scaffold, which a plain white glass tint would disappear into.
+      panelTint: AppTheme.cardColor.withValues(alpha: 0.55),
+      primaryText: AppTheme.textPrimary,
+      secondaryText: AppTheme.textGrey,
+      placeholder: AppTheme.hintColor,
+      mutedIcon: AppTheme.textGrey,
+      cellFill: AppTheme.dividerColor,
+      cellIcon: AppTheme.textSecondary,
+    );
+  }
+}
+
+/// Glyph color that stays legible on top of an accent swatch.
+///
+/// The threshold sits high on purpose: white is the intended look on the
+/// saturated swatches (pink, red, blue, purple), and only the pale yellows
+/// `#FFB703` / `#FFCC00` are bright enough that a white glyph disappears.
+/// `ThemeData.estimateBrightnessForColor` cuts at 0.15 and would flip most of
+/// the palette to black.
+Color _onAccent(Color color) =>
+    color.computeLuminance() > 0.5 ? AppTheme.textPrimary : Colors.white;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Local controller: manages text, appearance, save state, and lifecycle
 // ─────────────────────────────────────────────────────────────────────────────
 class FolderCreateLogic extends GetxController {
   final FolderModel? folder;
@@ -22,8 +107,15 @@ class FolderCreateLogic extends GetxController {
   final folderName = ''.obs;
   final isSaving = false.obs;
 
+  /// FEATURE: appearance the user picks, persisted as iconName / colorValue
+  final iconName = FolderAppearance.defaultIconName.obs;
+  final colorValue = FolderAppearance.defaultColorValue.obs;
+
   bool get isRenaming => folder != null;
   bool get canSave => folderName.value.trim().isNotEmpty && !isSaving.value;
+
+  Color get color => FolderAppearance.parseHex(colorValue.value);
+  IconData get icon => FolderAppearance.iconFor(iconName.value);
 
   @override
   void onInit() {
@@ -33,6 +125,11 @@ class FolderCreateLogic extends GetxController {
     nameController = TextEditingController(text: initialName);
     nameController.addListener(() => folderName.value = nameController.text);
     nameFocusNode = FocusNode();
+
+    // Restore the folder's saved appearance when renaming, so reopening the
+    // editor shows the swatch and glyph it was created with.
+    iconName.value = FolderAppearance.normalizeIcon(folder?.iconName);
+    colorValue.value = FolderAppearance.normalizeColor(folder?.colorValue);
 
     // Auto-focus + select all text after screen transition completes
     Future.delayed(const Duration(milliseconds: 380), () {
@@ -54,6 +151,18 @@ class FolderCreateLogic extends GetxController {
     super.onClose();
   }
 
+  void selectColor(String value) {
+    if (colorValue.value == value) return;
+    HapticFeedback.selectionClick();
+    colorValue.value = value;
+  }
+
+  void selectIcon(String value) {
+    if (iconName.value == value) return;
+    HapticFeedback.selectionClick();
+    iconName.value = value;
+  }
+
   /// FEATURE: ✓ button tapped → save folder → navigate back to folder view
   Future<void> save() async {
     final name = folderName.value.trim();
@@ -70,8 +179,8 @@ class FolderCreateLogic extends GetxController {
         id: folder?.id ?? 0,
         parentId: folder?.parentId ?? parentId,
         name: name,
-        iconName: folder?.iconName,
-        colorValue: folder?.colorValue,
+        iconName: iconName.value,
+        colorValue: colorValue.value,
         sortOrder: folder?.sortOrder,
       );
 
@@ -117,8 +226,10 @@ class FolderCreateModal extends StatefulWidget {
   State<FolderCreateModal> createState() => _FolderCreateModalState();
 }
 
-class _FolderCreateModalState extends State<FolderCreateModal> {
+class _FolderCreateModalState extends State<FolderCreateModal>
+    with SingleTickerProviderStateMixin {
   late final FolderCreateLogic _c;
+  late final AnimationController _entrance;
 
   @override
   void initState() {
@@ -134,77 +245,140 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
       ),
       tag: tag,
     );
+
+    _entrance = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 720),
+    );
+    // Start after the push transition so the stagger is actually visible.
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _entrance.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _entrance.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = _FolderColors.of(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      resizeToAvoidBottomInset: false, // We manage keyboard inset manually
-      body: CustomGlassContainer(
-        borderRadius: 0,
-        blur: 40,
-        opacity: 0.1,
-        thickness: 0,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Top safe area ────────────────────────────────────
-            SizedBox(height: mq.padding.top),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: colors.isDark
+          ? SystemUiOverlayStyle.light.copyWith(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.light,
+              statusBarBrightness: Brightness.dark,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+              statusBarBrightness: Brightness.light,
+            ),
+      child: Scaffold(
+        backgroundColor: colors.background,
+        resizeToAvoidBottomInset: false, // We manage keyboard inset manually
+        body: CustomGlassContainer(
+          borderRadius: 0,
+          blur: 40,
+          opacity: 0.1,
+          thickness: 0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Top safe area ────────────────────────────────────
+              SizedBox(height: mq.padding.top),
 
-            // ── Header: [X]  Title  [✓] ──────────────────────────
-            _buildHeader(context, _c, isDark),
+              // ── Header: [X]  Title  [✓] ──────────────────────────
+              _buildHeader(context, _c, colors),
 
-            // ── Scrollable content, keyboard-aware ───────────────
-            Expanded(
-              child: GestureDetector(
-                // Tap empty area to dismiss keyboard
-                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                behavior: HitTestBehavior.opaque,
-                child: AnimatedPadding(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOut,
-                  padding: EdgeInsets.only(
-                    bottom: mq.viewInsets.bottom > 0
-                        ? mq.viewInsets.bottom + 16
-                        : mq.padding.bottom + 16,
-                  ),
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+              // ── Scrollable content, keyboard-aware ───────────────
+              Expanded(
+                child: GestureDetector(
+                  // Tap empty area to dismiss keyboard
+                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedPadding(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOut,
+                    padding: EdgeInsets.only(
+                      bottom: mq.viewInsets.bottom > 0
+                          ? mq.viewInsets.bottom + 16
+                          : mq.padding.bottom + 16,
                     ),
-                    child: Column(
-                      children: [
-                        _buildNameField(context, _c, isDark),
-                        const SizedBox(height: 16),
-                        _buildSmartFolderRow(context, _c, isDark),
-                      ],
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _StaggerIn(
+                            animation: _entrance,
+                            index: 0,
+                            child: _buildHeroPreview(context, _c, colors),
+                          ),
+                          const SizedBox(height: 28),
+                          _StaggerIn(
+                            animation: _entrance,
+                            index: 1,
+                            child: _buildSection(
+                              context,
+                              colors,
+                              label: 'Name',
+                              child: _buildNameField(context, _c, colors),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          _StaggerIn(
+                            animation: _entrance,
+                            index: 2,
+                            child: _buildSection(
+                              context,
+                              colors,
+                              label: 'Color',
+                              child: _buildColorPicker(context, _c, colors),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          _StaggerIn(
+                            animation: _entrance,
+                            index: 3,
+                            child: _buildSection(
+                              context,
+                              colors,
+                              label: 'Icon',
+                              child: _buildIconPicker(context, _c, colors),
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          _StaggerIn(
+                            animation: _entrance,
+                            index: 4,
+                            child: _buildSmartFolderRow(context, _c, colors),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   // ── Header ──────────────────────────────────────────────────────────────────
-  Widget _buildHeader(BuildContext context, FolderCreateLogic c, bool isDark) {
-    String title = c.isRenaming ? 'Rename Folder' : 'New Folder';
-    if (c.parentId != null && !c.isRenaming) {
-      final parentFolder = c.mainController.folders.firstWhereOrNull((f) => f.id == c.parentId);
-      if (parentFolder != null) {
-        title = 'Subfolder of ${parentFolder.name}';
-      }
-    }
-
+  Widget _buildHeader(
+    BuildContext context,
+    FolderCreateLogic c,
+    _FolderColors colors,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
@@ -221,24 +395,25 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
             opacity: 0.1,
             blur: 10,
             padding: EdgeInsets.zero,
-            foregroundColor: isDark ? Colors.white70 : Colors.black54,
+            foregroundColor: colors.mutedIcon,
             child: const Icon(CupertinoIcons.xmark, size: 16),
           ),
 
           // Title
           Text(
-            title,
+            c.isRenaming ? 'Edit Folder' : 'New Folder',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
               letterSpacing: -0.3,
-              color: isDark ? Colors.white : Colors.black,
+              color: colors.primaryText,
             ),
           ),
 
-          // ✓ Save button
-          Obx(
-            () => CustomGlassButton(
+          // ✓ Save button — tinted with the color the user picked
+          Obx(() {
+            final onAccent = _onAccent(c.color);
+            return CustomGlassButton(
               onPressed: c.canSave ? c.save : null,
               semanticLabel: 'Save folder',
               width: 40,
@@ -247,18 +422,126 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
               opacity: c.canSave ? 0.8 : 0.2,
               thickness: 5,
               padding: EdgeInsets.zero,
-              foregroundColor: Colors.white,
-              glassColor: AppTheme.folderPink,
+              foregroundColor: onAccent,
+              glassColor: c.color,
               child: c.isSaving.value
-                  ? const CupertinoActivityIndicator(
-                      color: Colors.white,
-                      radius: 9,
-                    )
+                  ? CupertinoActivityIndicator(color: onAccent, radius: 9)
                   : const Icon(CupertinoIcons.checkmark, size: 18),
-            ),
-          ),
+            );
+          }),
         ],
       ),
+    );
+  }
+
+  // ── Hero preview: live rendering of the folder being built ──────────────────
+  Widget _buildHeroPreview(
+    BuildContext context,
+    FolderCreateLogic c,
+    _FolderColors colors,
+  ) {
+    return Obx(() {
+      final color = c.color;
+      final name = c.folderName.value.trim();
+
+      return Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 340),
+            curve: Curves.easeOutCubic,
+            width: 96,
+            height: 96,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color.lerp(color, Colors.white, 0.3)!, color],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: colors.isDark ? 0.45 : 0.34),
+                  blurRadius: 30,
+                  spreadRadius: -4,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              transitionBuilder: (child, anim) => ScaleTransition(
+                scale: anim.drive(CurveTween(curve: Curves.easeOutBack)),
+                child: FadeTransition(opacity: anim, child: child),
+              ),
+              child: Icon(
+                c.icon,
+                key: ValueKey(c.iconName.value),
+                color: _onAccent(color),
+                size: 42,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            name.isEmpty ? 'New Folder' : name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.primaryText,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _previewSubtitle(c),
+            style: TextStyle(color: colors.secondaryText, fontSize: 13.5),
+          ),
+        ],
+      );
+    });
+  }
+
+  String _previewSubtitle(FolderCreateLogic c) {
+    if (c.isRenaming) {
+      final count = c.folder!.noteCount;
+      return 'Folder  •  $count ${count == 1 ? 'note' : 'notes'}';
+    }
+    if (c.parentId != null) {
+      final parent = c.mainController.folders.firstWhereOrNull(
+        (f) => f.id == c.parentId,
+      );
+      if (parent != null) return 'Subfolder of ${parent.name}';
+    }
+    return 'Folder  •  No notes yet';
+  }
+
+  // ── Grouped section wrapper: uppercase label + content ───────────────────────
+  Widget _buildSection(
+    BuildContext context,
+    _FolderColors colors, {
+    required String label,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 6, bottom: 9),
+          child: Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              color: colors.secondaryText,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.9,
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 
@@ -266,10 +549,8 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
   Widget _buildNameField(
     BuildContext context,
     FolderCreateLogic c,
-    bool isDark,
+    _FolderColors colors,
   ) {
-    final textColor = isDark ? Colors.white : Colors.black;
-
     return Obx(
       () => CustomGlassTextField(
         controller: c.nameController,
@@ -278,24 +559,19 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => c.save(),
         height: 56,
-        borderRadius: 13,
+        borderRadius: 18,
         textStyle: TextStyle(
-          color: textColor,
+          color: colors.primaryText,
           fontSize: 17,
           fontWeight: FontWeight.w400,
           letterSpacing: -0.2,
         ),
-        placeholderStyle: TextStyle(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.35)
-              : Colors.black.withValues(alpha: 0.3),
-          fontSize: 17,
-        ),
+        placeholderStyle: TextStyle(color: colors.placeholder, fontSize: 17),
         suffixIcon: c.folderName.value.isEmpty
             ? null
             : Icon(
                 CupertinoIcons.clear_circled_solid,
-                color: isDark ? Colors.white38 : Colors.black26,
+                color: colors.mutedIcon,
                 size: 20,
               ),
         onSuffixTap: c.folderName.value.isEmpty ? null : c.clearName,
@@ -303,41 +579,112 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
     );
   }
 
+  // ── FEATURE: color picker ────────────────────────────────────────────────────
+  Widget _buildColorPicker(
+    BuildContext context,
+    FolderCreateLogic c,
+    _FolderColors colors,
+  ) {
+    return CustomGlassContainer(
+      borderRadius: 18,
+      blur: 10,
+      glassColor: colors.panelTint,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      child: Obx(() {
+        final selected = c.colorValue.value;
+        return Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 4,
+          runSpacing: 10,
+          children: [
+            for (final hex in FolderAppearance.colors)
+              _ColorSwatch(
+                hex: hex,
+                selected: selected == hex,
+                onTap: () => c.selectColor(hex),
+              ),
+          ],
+        );
+      }),
+    );
+  }
+
+  // ── FEATURE: icon picker ─────────────────────────────────────────────────────
+  Widget _buildIconPicker(
+    BuildContext context,
+    FolderCreateLogic c,
+    _FolderColors colors,
+  ) {
+    return CustomGlassContainer(
+      borderRadius: 18,
+      blur: 10,
+      glassColor: colors.panelTint,
+      padding: const EdgeInsets.all(14),
+      child: Obx(() {
+        final selectedIcon = c.iconName.value;
+        final color = c.color;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: FolderAppearance.icons.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+          ),
+          itemBuilder: (context, i) {
+            final option = FolderAppearance.icons[i];
+            return _IconCell(
+              option: option,
+              accent: color,
+              selected: option.name == selectedIcon,
+              colors: colors,
+              onTap: () => c.selectIcon(option.name),
+            );
+          },
+        );
+      }),
+    );
+  }
+
   // ── Smart Folder option row ──────────────────────────────────────────────────
   Widget _buildSmartFolderRow(
     BuildContext context,
     FolderCreateLogic c,
-    bool isDark,
+    _FolderColors colors,
   ) {
-    final primaryText = isDark ? Colors.white : Colors.black;
-    final secondaryText = isDark ? Colors.white54 : Colors.black45;
-
     return CustomGlassContainer(
-      borderRadius: 13,
-      opacity: 0.1,
+      borderRadius: 18,
       blur: 10,
+      glassColor: colors.panelTint,
       child: InkWell(
         onTap: () {
           if (c.folder != null) {
             c.mainController.onConvertToSmartFolder(c.folder!);
           }
         },
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(18),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppTheme.folderPink,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  CupertinoIcons.gear_alt_fill,
-                  color: Colors.white,
-                  size: 20,
+              Obx(
+                () => AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  width: 34,
+                  height: 34,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: c.color,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    CupertinoIcons.gear_alt_fill,
+                    color: _onAccent(c.color),
+                    size: 20,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -348,7 +695,7 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
                     Text(
                       'Make Into Smart Folder',
                       style: TextStyle(
-                        color: primaryText,
+                        color: colors.primaryText,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         letterSpacing: -0.2,
@@ -357,20 +704,201 @@ class _FolderCreateModalState extends State<FolderCreateModal> {
                     const SizedBox(height: 2),
                     Text(
                       'Organize using tags and other filters',
-                      style: TextStyle(color: secondaryText, fontSize: 13),
+                      style: TextStyle(
+                        color: colors.secondaryText,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               ),
               Icon(
                 CupertinoIcons.chevron_forward,
-                color: isDark ? Colors.white30 : Colors.black26,
+                color: colors.mutedIcon,
                 size: 15,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Building blocks
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A single tappable color circle with an animated selection ring.
+class _ColorSwatch extends StatelessWidget {
+  final String hex;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ColorSwatch({
+    required this.hex,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = FolderAppearance.parseHex(hex);
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Folder color $hex',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 46,
+          height: 46,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: selected ? 1 : 0),
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOut,
+            builder: (context, t, _) => Stack(
+              alignment: Alignment.center,
+              children: [
+                Opacity(
+                  opacity: t,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: color, width: 2),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 34 - 3 * t,
+                  height: 34 - 3 * t,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.4 * t),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Opacity(
+                    opacity: t,
+                    child: Icon(
+                      CupertinoIcons.checkmark,
+                      size: 16,
+                      color: _onAccent(color),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single tappable icon cell that fills with the picked accent when selected.
+class _IconCell extends StatelessWidget {
+  final FolderIconOption option;
+  final Color accent;
+  final bool selected;
+  final _FolderColors colors;
+  final VoidCallback onTap;
+
+  const _IconCell({
+    required this.option,
+    required this.accent,
+    required this.selected,
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: option.label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          scale: selected ? 1.06 : 1,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutBack,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? accent : colors.cellFill,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.38),
+                        blurRadius: 14,
+                        offset: const Offset(0, 5),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Icon(
+              option.icon,
+              size: 22,
+              color: selected ? _onAccent(accent) : colors.cellIcon,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fades and lifts [child] into place on a delay derived from [index], so the
+/// sections cascade in after the screen is pushed.
+class _StaggerIn extends StatelessWidget {
+  final Animation<double> animation;
+  final int index;
+  final Widget child;
+
+  const _StaggerIn({
+    required this.animation,
+    required this.index,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final start = math.min(index * 0.11, 0.5);
+    final interval = Interval(
+      start,
+      math.min(start + 0.5, 1),
+      curve: Curves.easeOut,
+    );
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, inner) {
+        final t = interval.transform(animation.value);
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, 18 * (1 - t)),
+            child: inner,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

@@ -8,11 +8,11 @@ import 'app/theme/app_theme.dart';
 import 'app/data/providers/theme_service.dart';
 
 /*
-  App: Otokhi Notes
-  Date: 08.15.2026 update by nona in the morning at 8:00am
+  App: OTOKHI NOTE APP
+  Date: 08.17.2026 update by nona_developer in the evening at 10:00pm
   Update by: branch nona_developer
   Update by: branch nona
-  Feature: dark mode and light mode, rebranding to Otokhi
+  Feature: All the feature and the logic and integration with api  
  */
 
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
