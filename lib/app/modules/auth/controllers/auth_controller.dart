@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import '../../../data/models/auth_model.dart';
+import '../../../data/providers/api_service.dart';
 import '../../../data/providers/auth_service.dart';
 import '../../../data/providers/session_service.dart';
 import '../../../routes/app_pages.dart';
@@ -248,10 +249,8 @@ class AuthController extends GetxController {
                     Navigator.of(sheetContext).pop();
                     isLoading.value = true;
 
-                    final success = await _authService.forgotPassword(phone);
-                    isLoading.value = false;
-
-                    if (success) {
+                    try {
+                      await _authService.forgotPassword(phone);
                       Get.snackbar(
                         'Request Sent',
                         'If an account exists for $phone, you will receive a reset link shortly.',
@@ -259,11 +258,15 @@ class AuthController extends GetxController {
                         colorText: Colors.green,
                         duration: const Duration(seconds: 5),
                       );
-                    } else {
+                    } on ApiUnsupportedException catch (e) {
+                      _showError('Not available', e.message);
+                    } catch (_) {
                       _showError(
                         'Error',
                         'Could not process request. Please try again later.',
                       );
+                    } finally {
+                      isLoading.value = false;
                     }
                   },
                   semanticLabel: 'Send reset link',

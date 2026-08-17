@@ -688,7 +688,7 @@ class NoteDetailController extends GetxController {
 
     try {
       // Logic: Start soft delete on server
-      await _noteService.updateNoteState(deletedNoteId, isDelete: true);
+      await _noteService.deleteRestoreNote(deletedNoteId, true);
 
       // FEATURE: Synchronize with FolderController to update global trash counts
       if (Get.isRegistered<FolderController>()) {

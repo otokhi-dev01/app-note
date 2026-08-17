@@ -22,17 +22,15 @@ class FolderService extends GetxService {
   /// FolderId: 0 for Create, > 0 for Update.
   Future<Map<String, dynamic>> saveFolder(FolderModel folder) async {
     try {
-      // CLEAN CONTRACT: Using multiple keys to ensure backend model binding success.
-      // This solves the bug where update (ID > 0) was treated as create.
+      // Matches FolderSaveRequest: { id, name*, iconName, colorValue, sortOrder }.
+      // id == 0 creates, id > 0 updates.
+      // NOTE: the API has no parentId field, so folder nesting is not persisted.
       final payload = {
         "id": folder.id,
-        "Id": folder.id,
-        "FolderId": folder.id,
-        "ParentId": folder.parentId,
-        "Name": folder.name,
-        "IconName": folder.iconName,
-        "ColorValue": folder.colorValue,
-        "SortOrder": folder.sortOrder,
+        "name": folder.name,
+        "iconName": folder.iconName,
+        "colorValue": folder.colorValue,
+        "sortOrder": folder.sortOrder,
       };
 
       debugPrint('[FOLDER SAVE] POST /api/folder/save ID=${folder.id}');
@@ -48,22 +46,14 @@ class FolderService extends GetxService {
   }
 
   /// Toggles folder delete/restore state.
-  /// Fixes 404 by providing all possible ID and Flag variants for the backend DTO.
+  /// Matches FolderDeleteOrRestoreRequest: { id, isDelete }.
   Future<void> deleteRestoreFolder(int folderId, bool isDelete) async {
     try {
-      debugPrint('[FOLDER DELETE] POST /api/folder/delete-restore FolderId=$folderId IsDelete=$isDelete');
-      
-      final payload = {
-        "id": folderId,
-        "Id": folderId,
-        "FolderId": folderId, 
-        "isDelete": isDelete,
-        "IsDelete": isDelete,
-      };
+      debugPrint('[FOLDER DELETE] POST /api/folder/delete-restore FolderId=$folderId isDelete=$isDelete');
 
       final response = await _api.dio.post(
         "/api/folder/delete-restore",
-        data: payload,
+        data: {"id": folderId, "isDelete": isDelete},
       );
 
       debugPrint('[FOLDER DELETE] Success: ${response.data}');
@@ -74,21 +64,12 @@ class FolderService extends GetxService {
     }
   }
 
+  /// Not supported: the API exposes no /api/folder/permanent-delete route.
+  /// See [ApiCapabilities.permanentDelete].
   Future<void> deleteFolderPermanently(int folderId) async {
-    try {
-      await _api.dio.post(
-        "/api/folder/permanent-delete",
-        data: {
-          "id": folderId,
-          "Id": folderId,
-          "FolderId": folderId
-        },
-      );
-    } catch (e, s) {
-      debugPrint('[FOLDER SERVICE] deleteFolderPermanently Error: $e');
-      debugPrintStack(stackTrace: s);
-      rethrow;
-    }
+    throw const ApiUnsupportedException(
+      'Permanently deleting a folder is not available on the server yet.',
+    );
   }
 
   /// Extracts a user-friendly error message from the API response

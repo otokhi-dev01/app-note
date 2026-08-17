@@ -5,13 +5,15 @@ import 'package:flutter/material.dart';
 class SlidableNoteTile extends StatefulWidget {
   final Widget child;
   final VoidCallback onMove;
-  final VoidCallback onDelete;
+
+  /// When null, the Delete swipe action is hidden entirely.
+  final VoidCallback? onDelete;
 
   const SlidableNoteTile({
     super.key,
     required this.child,
     required this.onMove,
-    required this.onDelete,
+    this.onDelete,
   });
 
   @override
@@ -23,7 +25,10 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
   late AnimationController _controller;
   double _dragExtent = 0;
   static const double _actionWidth = 80;
-  static const double _totalActionsWidth = _actionWidth * 2;
+
+  /// Width of the revealed action strip, which shrinks when Delete is hidden.
+  double get _totalActionsWidth =>
+      _actionWidth * (widget.onDelete != null ? 2 : 1);
 
   @override
   void initState() {
@@ -100,12 +105,13 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
                     const Color(0xFF5856D6),
                     widget.onMove,
                   ),
-                  _buildActionButton(
-                    "Delete",
-                    CupertinoIcons.trash_fill,
-                    const Color(0xFFFF3B30),
-                    widget.onDelete,
-                  ),
+                  if (widget.onDelete != null)
+                    _buildActionButton(
+                      "Delete",
+                      CupertinoIcons.trash_fill,
+                      const Color(0xFFFF3B30),
+                      widget.onDelete!,
+                    ),
                 ],
               ),
             ),

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 import '../models/auth_model.dart';
 import 'api_service.dart';
@@ -24,18 +23,15 @@ class AuthService extends GetxService {
     return AuthResponse.fromJson(response.data);
   }
 
+  /// Not supported: the API exposes no /api/auth/forgot-password route.
+  /// See [ApiCapabilities.forgotPassword].
+  ///
+  /// This previously faked a successful send, which told users a reset link
+  /// was on its way when nothing was ever dispatched.
   Future<bool> forgotPassword(String phone) async {
-    try {
-      // Placeholder for forgot password API
-      // final response = await _api.dio.post("/api/auth/forgot-password", data: {"phone": phone});
-      // return response.statusCode == 200;
-      
-      // Simulating a network call for now
-      await Future.delayed(const Duration(seconds: 1));
-      return true;
-    } catch (e) {
-      if (kDebugMode) debugPrint("Forgot password error: $e");
-      return false;
-    }
+    throw const ApiUnsupportedException(
+      'Password reset is not available on the server yet. '
+      'Please contact support to reset your password.',
+    );
   }
 }
