@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import '../../../data/models/folder_appearance.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
@@ -209,8 +210,10 @@ class FolderController extends GetxController {
           id: id,
           parentId: parentId,
           name: cleanName,
-          iconName: iconName ?? "folder",
-          colorValue: colorValue ?? "#FFB703",
+          // Normalized so legacy folders with a blank appearance get a real
+          // icon/color instead of persisting an empty string back to the API.
+          iconName: FolderAppearance.normalizeIcon(iconName),
+          colorValue: FolderAppearance.normalizeColor(colorValue),
           sortOrder: sortOrder ?? 0,
         ),
       );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'folder_appearance.dart';
 
 class FolderModel {
   final int id;
@@ -65,30 +66,9 @@ class FolderModel {
         "SortOrder": sortOrder,
       };
 
-  IconData get icon {
-    switch (iconName.toLowerCase()) {
-      case 'work':
-        return Icons.work_outline;
-      case 'school':
-        return Icons.school_outlined;
-      case 'favorite':
-        return Icons.favorite_border;
-      case '5':
-        return Icons.code_rounded;
-      case 'folder':
-        return Icons.folder_open_rounded;
-      default:
-        return Icons.folder_open_rounded;
-    }
-  }
+  IconData get icon => FolderAppearance.iconFor(iconName);
 
-  Color get color {
-    if (colorValue.isEmpty) return const Color(0xFFFF69B4);
-    if (colorValue.startsWith('#')) {
-      return Color(int.parse(colorValue.replaceFirst('#', '0xFF')));
-    }
-    return Color(int.tryParse(colorValue) ?? 0xFFFF69B4);
-  }
+  Color get color => FolderAppearance.colorFor(colorValue);
 
   static int _toInt(dynamic v) {
     if (v is int) return v;
