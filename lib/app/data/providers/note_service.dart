@@ -12,7 +12,7 @@ class NoteService extends GetxService {
       final response = await _api.dio.get(
         "/api/note",
         queryParameters: {
-          if (folderId != null && folderId != 0) "FolderId": folderId,
+          if (folderId != null && folderId != 0) "folderId": folderId,
         },
       );
       return NoteResponse.fromJson(response.data);
@@ -100,11 +100,12 @@ class NoteService extends GetxService {
   }) async {
     try {
       debugPrint('[NOTE CREATE] POST /api/note/save');
+      // Matches NoteSaveRequest: { noteId, folderId*, title }.
       final Map<String, dynamic> payload = {
-        "FolderId": folderId,
-        "Title": title,
+        "folderId": folderId,
+        "title": title,
       };
-      if (noteId > 0) payload["NoteId"] = noteId;
+      if (noteId > 0) payload["noteId"] = noteId;
 
       final response = await _api.dio.post("/api/note/save", data: payload);
       final data = response.data;
@@ -239,24 +240,22 @@ class NoteService extends GetxService {
     }
   }
 
-  /// Standardized state update API (Task: Integrated with /api/note/update-state)
+  /// Standardized state update API — POST /api/note/update-state
+  ///
+  /// Matches NoteUpdateStateRequest: { id, isPinned?, isArchived?, isLocked? }.
+  /// Note: the DTO has no isDelete field — use [deleteRestoreNote] instead.
   Future<void> updateNoteState(
     int id, {
     bool? isPinned,
     bool? isArchived,
     bool? isLocked,
-    bool? isDelete,
   }) async {
     try {
       debugPrint('[NOTE STATE] POST /api/note/update-state NoteId=$id');
-      final Map<String, dynamic> payload = {
-        "id": id,
-        "NoteId": id, // Casing robustness
-      };
-      if (isPinned != null) payload["IsPinned"] = isPinned;
-      if (isArchived != null) payload["IsArchived"] = isArchived;
-      if (isLocked != null) payload["IsLocked"] = isLocked;
-      if (isDelete != null) payload["IsDelete"] = isDelete;
+      final Map<String, dynamic> payload = {"id": id};
+      if (isPinned != null) payload["isPinned"] = isPinned;
+      if (isArchived != null) payload["isArchived"] = isArchived;
+      if (isLocked != null) payload["isLocked"] = isLocked;
 
       await _api.dio.post("/api/note/update-state", data: payload);
     } catch (e, s) {
@@ -266,30 +265,39 @@ class NoteService extends GetxService {
     }
   }
 
+  /// Soft-deletes or restores a note — POST /api/note/delete-restore
+  ///
+  /// Matches NoteDeleteOrRestoreRequest: { id, isDelete }.
   Future<void> deleteRestoreNote(int id, bool isDelete) async {
-    // Re-use updateNoteState for consistency
-    await updateNoteState(id, isDelete: isDelete);
+    try {
+      debugPrint(
+        '[NOTE DELETE] POST /api/note/delete-restore NoteId=$id isDelete=$isDelete',
+      );
+      await _api.dio.post(
+        "/api/note/delete-restore",
+        data: {"id": id, "isDelete": isDelete},
+      );
+    } catch (e, s) {
+      debugPrint('[NOTE SERVICE] deleteRestoreNote Error: $e');
+      debugPrintStack(stackTrace: s);
+      rethrow;
+    }
   }
 
+  /// Not supported: the API exposes no /api/note/permanent-delete route.
+  /// See [ApiCapabilities.permanentDelete].
   Future<void> deleteNotePermanently(int id) async {
-    try {
-      final Map<String, dynamic> payload = {"id": id, "NoteId": id};
-      await _api.dio.post("/api/note/permanent-delete", data: payload);
-    } catch (e, s) {
-      debugPrint('[NOTE SERVICE] deleteNotePermanently Error: $e');
-      debugPrintStack(stackTrace: s);
-      rethrow;
-    }
+    throw const ApiUnsupportedException(
+      'Permanently deleting a note is not available on the server yet.',
+    );
   }
 
+  /// Not supported: the API exposes no /api/note/empty-trash route.
+  /// See [ApiCapabilities.permanentDelete].
   Future<void> emptyTrash() async {
-    try {
-      await _api.dio.post("/api/note/empty-trash");
-    } catch (e, s) {
-      debugPrint('[NOTE SERVICE] emptyTrash Error: $e');
-      debugPrintStack(stackTrace: s);
-      rethrow;
-    }
+    throw const ApiUnsupportedException(
+      'Emptying the trash is not available on the server yet.',
+    );
   }
 
   Future<List<NoteModel>> getTrashNotes() async {

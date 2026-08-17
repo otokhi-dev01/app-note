@@ -339,10 +339,12 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     final theme = Theme.of(context);
     return SlidableNoteTile(
       onMove: () => controller.recoverItem(folderId: folder.id),
-      onDelete: () => controller.deleteItemPermanently(
-        folderId: folder.id,
-        name: folder.name,
-      ),
+      onDelete: controller.canDeletePermanently
+          ? () => controller.deleteItemPermanently(
+              folderId: folder.id,
+              name: folder.name,
+            )
+          : null,
       child: Obx(() {
         final isSelected = controller.selectedFolderIds.contains(folder.id);
         final isEditing = controller.isEditing.value;
@@ -395,8 +397,12 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     final attachmentCount = note.attachmentCount;
     return SlidableNoteTile(
       onMove: () => controller.recoverItem(noteId: note.id),
-      onDelete: () =>
-          controller.deleteItemPermanently(noteId: note.id, name: note.title),
+      onDelete: controller.canDeletePermanently
+          ? () => controller.deleteItemPermanently(
+              noteId: note.id,
+              name: note.title,
+            )
+          : null,
       child: Obx(() {
         final isSelected = controller.selectedNoteIds.contains(note.id);
         final isEditing = controller.isEditing.value;
@@ -467,24 +473,25 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             }
           },
         ),
-        CustomGlassActionSheetAction(
-          label: "Delete Permanently",
-          icon: CupertinoIcons.trash,
-          isDestructive: true,
-          onPressed: () {
-            if (note != null) {
-              controller.deleteItemPermanently(
-                noteId: note.id,
-                name: note.title,
-              );
-            } else if (folder != null) {
-              controller.deleteItemPermanently(
-                folderId: folder.id,
-                name: folder.name,
-              );
-            }
-          },
-        ),
+        if (controller.canDeletePermanently)
+          CustomGlassActionSheetAction(
+            label: "Delete Permanently",
+            icon: CupertinoIcons.trash,
+            isDestructive: true,
+            onPressed: () {
+              if (note != null) {
+                controller.deleteItemPermanently(
+                  noteId: note.id,
+                  name: note.title,
+                );
+              } else if (folder != null) {
+                controller.deleteItemPermanently(
+                  folderId: folder.id,
+                  name: folder.name,
+                );
+              }
+            },
+          ),
       ],
     );
   }
@@ -537,15 +544,17 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Expanded(
-              child: _actionButton(
-                context,
-                "Delete",
-                color: Colors.redAccent,
-                onTap: controller.deletePermanentlySelectedItems,
+            if (controller.canDeletePermanently) ...[
+              Expanded(
+                child: _actionButton(
+                  context,
+                  "Delete",
+                  color: Colors.redAccent,
+                  onTap: controller.deletePermanentlySelectedItems,
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
+              const SizedBox(width: 16),
+            ],
             Expanded(
               child: _actionButton(
                 context,

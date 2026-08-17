@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../data/models/folder_model.dart';
 import '../../../data/models/note_model.dart';
+import '../../../data/providers/api_service.dart';
 import '../../../data/providers/folder_service.dart';
 import '../../../data/providers/note_service.dart';
 import '../../../widgets/ios_confirmation_dialog.dart';
@@ -9,6 +10,10 @@ import '../../../widgets/ios_confirmation_dialog.dart';
 class RecentlyDeletedController extends GetxController {
   final _noteService = Get.find<NoteService>();
   final _folderService = Get.find<FolderService>();
+
+  /// The backend has no permanent-delete or empty-trash routes, so the views
+  /// hide those actions instead of offering a button that always fails.
+  bool get canDeletePermanently => ApiCapabilities.permanentDelete;
 
   final deletedNotes = <NoteModel>[].obs;
   final deletedFolders = <FolderModel>[].obs;
@@ -106,11 +111,29 @@ class RecentlyDeletedController extends GetxController {
     }
   }
 
+  /// Shows the backend's own reason when an action is unsupported, and a
+  /// generic message otherwise.
+  void _reportFailure(Object error, String fallback) {
+    if (error is ApiUnsupportedException) {
+      Get.snackbar("Not available", error.message);
+    } else {
+      Get.snackbar("Error", fallback);
+    }
+  }
+
   Future<void> deleteItemPermanently({
     int? noteId,
     int? folderId,
     String? name,
   }) async {
+    if (!canDeletePermanently) {
+      Get.snackbar(
+        "Not available",
+        "Permanent delete is not available on the server yet.",
+      );
+      return;
+    }
+
     String message = noteId != null
         ? "This note will be deleted. This action cannot be undone."
         : "This folder and its notes will be deleted. This action cannot be undone.";
@@ -137,7 +160,7 @@ class RecentlyDeletedController extends GetxController {
             snackPosition: SnackPosition.BOTTOM,
           );
         } catch (e) {
-          Get.snackbar("Error", "Could not delete item permanently");
+          _reportFailure(e, "Could not delete item permanently");
         }
       },
     );
@@ -200,6 +223,14 @@ class RecentlyDeletedController extends GetxController {
   }
 
   Future<void> deletePermanentlySelectedItems() async {
+    if (!canDeletePermanently) {
+      Get.snackbar(
+        "Not available",
+        "Permanent delete is not available on the server yet.",
+      );
+      return;
+    }
+
     final noteCount = selectedNoteIds.length;
     final folderCount = selectedFolderIds.length;
 
@@ -235,7 +266,7 @@ class RecentlyDeletedController extends GetxController {
             snackPosition: SnackPosition.BOTTOM,
           );
         } catch (e) {
-          Get.snackbar("Error", "Could not delete items permanently");
+          _reportFailure(e, "Could not delete items permanently");
         } finally {
           isLoading.value = false;
         }
@@ -244,6 +275,14 @@ class RecentlyDeletedController extends GetxController {
   }
 
   Future<void> deleteAll() async {
+    if (!canDeletePermanently) {
+      Get.snackbar(
+        "Not available",
+        "Emptying the trash is not available on the server yet.",
+      );
+      return;
+    }
+
     IOSConfirmationDialog.show(
       title:
           "All notes and folders in Recently Deleted will be permanently removed.",
@@ -260,7 +299,7 @@ class RecentlyDeletedController extends GetxController {
           await fetchDeletedItems();
           Get.snackbar("Success", "Trash emptied");
         } catch (e) {
-          Get.snackbar("Error", "Failed to empty trash");
+          _reportFailure(e, "Failed to empty trash");
         } finally {
           isLoading.value = false;
         }
