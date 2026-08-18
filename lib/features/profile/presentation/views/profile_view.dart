@@ -62,12 +62,12 @@ class ProfileView extends GetView<ProfileController> {
                   fontSize: 17,
                 ),
               ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
+              largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
               largeTitle: Text(
                 "Profile",
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 30,
+                  fontSize: 34,
                 ),
               ),
             ),
@@ -186,85 +186,43 @@ class ProfileView extends GetView<ProfileController> {
 
                     const SizedBox(height: 32),
                     // Appearance Section
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 8),
-                        child: Text(
-                          "Appearance",
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                            fontSize: 18,
-                          ),
+                    _buildSectionHeader(context, "Appearance"),
+                    const SizedBox(height: 12),
+                    GlassCard(
+                      borderRadius: 28,
+                      children: [
+                        _buildThemeOption(
+                          context,
+                          title: "System Default",
+                          icon: Icons.brightness_auto_rounded,
+                          mode: ThemeMode.system,
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 28),
-                    CustomGlassContainer(
-                      borderRadius: 30,
-                      blur: 35,
-                      opacity: 0.1,
-                      thickness: 15,
-                      showGlow: true,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Column(
-                          children: [
-                            _buildThemeOption(
-                              context,
-                              title: "System Default",
-                              icon: Icons.brightness_auto_rounded,
-                              mode: ThemeMode.system,
-                            ),
-                            const Divider(indent: 56, height: 1),
-                            _buildThemeOption(
-                              context,
-                              title: "Light Mode",
-                              icon: Icons.light_mode_rounded,
-                              mode: ThemeMode.light,
-                            ),
-                            const Divider(indent: 56, height: 1),
-                            _buildThemeOption(
-                              context,
-                              title: "Dark Mode",
-                              icon: Icons.dark_mode_rounded,
-                              mode: ThemeMode.dark,
-                            ),
-                          ],
+                        const Divider(indent: 56, height: 1),
+                        _buildThemeOption(
+                          context,
+                          title: "Light Mode",
+                          icon: Icons.light_mode_rounded,
+                          mode: ThemeMode.light,
                         ),
-                      ),
+                        const Divider(indent: 56, height: 1),
+                        _buildThemeOption(
+                          context,
+                          title: "Dark Mode",
+                          icon: Icons.dark_mode_rounded,
+                          mode: ThemeMode.dark,
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
                     // Account Section
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8, bottom: 8),
-                        child: Text(
-                          "Account",
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 28),
-                    CustomGlassContainer(
-                      borderRadius: 30,
-                      blur: 35,
-                      opacity: 0.1,
-                      thickness: 15,
-                      showGlow: true,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: CustomGlassListTile(
+                    _buildSectionHeader(context, "Account"),
+                    const SizedBox(height: 12),
+                    GlassCard(
+                      borderRadius: 28,
+                      children: [
+                        CustomGlassListTile(
                           onTap: controller.logout,
                           leading: Container(
                             padding: const EdgeInsets.all(8),
@@ -290,13 +248,31 @@ class ProfileView extends GetView<ProfileController> {
                             color: Colors.red,
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Text(
+          title,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
         ),
       ),
     );

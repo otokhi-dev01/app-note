@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:Note/core/network/api_client.dart';
+import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/json_parsers.dart';
 import 'package:Note/features/note/data/models/note_block_mapper.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
@@ -62,7 +62,7 @@ class NoteModel extends Note {
       if (att is! Map) continue;
       final map = Map<String, dynamic>.from(att);
       final String blockId = asString(map['BlockId'] ?? map['blockId']);
-      final String? fullUrl = _resolveUrl(
+      final String? fullUrl = normalizeAttachmentUrl(
         asString(
           map['FilePath'] ?? map['filePath'] ?? map['Url'] ?? map['url'],
         ),
@@ -142,14 +142,4 @@ class NoteModel extends Note {
     'Title': title,
     'ContentJson': content.map(NoteBlockMapper.toJson).toList(),
   };
-
-  /// Attachment paths come back relative (and sometimes Windows-style), so
-  /// resolve them against the API host before the UI tries to load them.
-  static String? _resolveUrl(String path) {
-    final normalized = path.trim().replaceAll('\\', '/').replaceFirst('~/', '');
-    if (normalized.isEmpty) return null;
-    final uri = Uri.tryParse(normalized);
-    if (uri != null && uri.hasScheme) return uri.toString();
-    return Uri.parse(ApiClient.baseUrl).resolve(normalized).toString();
-  }
 }

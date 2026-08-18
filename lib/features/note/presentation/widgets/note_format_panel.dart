@@ -114,9 +114,12 @@ class NoteFormatPanel extends StatelessWidget {
               ),
               _IconButton(
                 icon: Icons.edit_note_rounded,
-                onTap: () {}, // Highlighter logic could go here
+                onTap: () => controller.applyHighlight(Colors.purpleAccent),
               ),
-              _ColorCircle(color: Colors.purpleAccent),
+              _ColorCircle(
+                color: Colors.purpleAccent,
+                onTap: () => controller.applyHighlight(Colors.purpleAccent),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -147,7 +150,10 @@ class NoteFormatPanel extends StatelessWidget {
                 onTap: () =>
                     controller.applyInlineFormat(quill.Attribute.indent),
               ),
-              _IconButton(icon: Icons.view_column_rounded, onTap: () {}),
+              _IconButton(
+                icon: Icons.view_column_rounded,
+                onTap: controller.addTableBlock,
+              ),
             ],
           ),
         ],
@@ -226,19 +232,23 @@ class _IconButton extends StatelessWidget {
 
 class _ColorCircle extends StatelessWidget {
   final Color color;
+  final VoidCallback onTap;
 
-  const _ColorCircle({required this.color});
+  const _ColorCircle({required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 44,
-      alignment: Alignment.center,
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        width: 48,
+        height: 44,
+        alignment: Alignment.center,
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/feedback/app_dialogs.dart';
+import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/date_formatter.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -240,9 +241,10 @@ class _GridVisualPreview extends StatelessWidget {
       url = b.url;
     }
 
-    if (localPath != null && File(localPath).existsSync()) {
+    final normalizedLocalPath = normalizeLocalPath(localPath);
+    if (normalizedLocalPath != null && File(normalizedLocalPath).existsSync()) {
       return Image.file(
-        File(localPath),
+        File(normalizedLocalPath),
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover, // Ensures the picture fills the top area fully
@@ -250,9 +252,11 @@ class _GridVisualPreview extends StatelessWidget {
       );
     }
 
-    if (url != null && url.isNotEmpty) {
+    final networkUrl = normalizeAttachmentUrl(url);
+    if (networkUrl != null) {
       return Image.network(
-        url,
+        networkUrl,
+        headers: attachmentAuthHeaders(),
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover, // Show the picture as the primary visual

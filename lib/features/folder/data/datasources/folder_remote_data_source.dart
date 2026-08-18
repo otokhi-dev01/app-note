@@ -16,9 +16,16 @@ import 'package:Note/features/folder/data/models/folder_model.dart';
 class FolderRemoteDataSource extends GetxService {
   final ApiClient _api = Get.find<ApiClient>();
 
-  Future<FolderResponse> getFolders() async {
+  /// `parentFolderId: null` fetches the top-level (root) folders; pass a
+  /// folder's id to fetch just its immediate children.
+  Future<FolderResponse> getFolders({int? parentFolderId}) async {
     try {
-      final response = await _api.dio.get('/api/folder');
+      final response = await _api.dio.get(
+        '/api/folder',
+        queryParameters: parentFolderId != null
+            ? {'parentFolderId': parentFolderId}
+            : null,
+      );
       final body = response.data;
       if (body is! Map) {
         return const FolderResponse(

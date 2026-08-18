@@ -16,6 +16,10 @@ class Folder {
   final DateTime? deletedAt;
   final List<Folder> subFolders;
 
+  /// Server-reported flag telling us whether this folder has children,
+  /// without needing to have fetched them yet.
+  final bool hasChildren;
+
   const Folder({
     required this.id,
     this.parentId,
@@ -28,6 +32,7 @@ class Folder {
     this.updatedAt,
     this.deletedAt,
     this.subFolders = const [],
+    this.hasChildren = false,
   });
 
   bool get isDeleted => deletedAt != null;
@@ -46,6 +51,7 @@ class Folder {
     updatedAt: updatedAt,
     deletedAt: deletedAt,
     subFolders: subFolders ?? this.subFolders,
+    hasChildren: hasChildren,
   );
 }
 

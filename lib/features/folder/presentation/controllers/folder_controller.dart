@@ -51,6 +51,11 @@ class FolderController extends GetxController {
   final isSharedExpanded = true.obs;
   final isNotesSectionExpanded = true.obs;
 
+  /// Folders whose subfolders are hidden — a folder with children starts
+  /// expanded, same as the "On My iPhone" section, and collapses via its own
+  /// disclosure arrow.
+  final collapsedFolderIds = <int>{}.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -63,6 +68,17 @@ class FolderController extends GetxController {
   void toggleShared() => isSharedExpanded.value = !isSharedExpanded.value;
   void toggleNotesSection() =>
       isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
+
+  bool isFolderExpanded(int folderId) =>
+      !collapsedFolderIds.contains(folderId);
+
+  void toggleFolderExpanded(int folderId) {
+    if (collapsedFolderIds.contains(folderId)) {
+      collapsedFolderIds.remove(folderId);
+    } else {
+      collapsedFolderIds.add(folderId);
+    }
+  }
 
   void toggleDateGrouping() {
     isGroupedByDate.value = !isGroupedByDate.value;
@@ -88,20 +104,48 @@ class FolderController extends GetxController {
     }
   }
 
+  /// The full parent/child tree, built once from every folder's real
+  /// `parentId` — independent of which section a folder's name puts it in.
+  List<Folder> get _fullHierarchy => _buildHierarchy(folders).orElse(const []);
+
   /// The sidebar's three sections, each nested into a tree.
-  List<Folder> get iCloudFolders =>
-      _hierarchyOf((f) => f.name.toLowerCase().contains('icloud'));
+  ///
+  /// Section membership is decided by each *root* folder's name only. The
+  /// tree is built from the complete flat list first, so a subfolder whose
+  /// name doesn't repeat its ancestor's "icloud"/"shared" keyword (e.g. a
+  /// folder named "Work" nested under "iCloud Family") still nests under its
+  /// real parent instead of being filtered out and silently disappearing.
+  List<Folder> get iCloudFolders => _fullHierarchy
+      .where((f) => f.name.toLowerCase().contains('icloud'))
+      .toList();
 
-  List<Folder> get sharedFolders =>
-      _hierarchyOf((f) => f.name.toLowerCase().contains('shared'));
+  List<Folder> get sharedFolders => _fullHierarchy
+      .where((f) => f.name.toLowerCase().contains('shared'))
+      .toList();
 
-  List<Folder> get onMyiPhoneFolders => _hierarchyOf((f) {
+  List<Folder> get onMyiPhoneFolders => _fullHierarchy.where((f) {
     final name = f.name.toLowerCase();
     return !name.contains('icloud') && !name.contains('shared');
-  });
+  }).toList();
 
-  List<Folder> _hierarchyOf(bool Function(Folder) where) =>
-      _buildHierarchy(folders.where(where).toList()).orElse(const []);
+  /// Builds a parent/child tree from any flat folder list — used by the
+  /// Location picker, which walks every section rather than just one.
+  List<Folder> buildHierarchy(List<Folder> flat) =>
+      _buildHierarchy(flat).orElse(const []);
+
+  /// IDs of [folderId] and everything nested beneath it, so the Location
+  /// picker can stop a folder from becoming its own descendant.
+  Set<int> subtreeIds(int folderId) {
+    final ids = <int>{folderId};
+    void collect(int parentId) {
+      for (final f in folders.where((f) => f.parentId == parentId)) {
+        if (ids.add(f.id)) collect(f.id);
+      }
+    }
+
+    collect(folderId);
+    return ids;
+  }
 
   void toggleEditing() => isEditing.value = !isEditing.value;
 
@@ -180,6 +224,7 @@ class FolderController extends GetxController {
       final result = await _saveFolder(
         SaveFolderParams(
           id: id,
+          parentId: parentId,
           name: name,
           // Normalized so legacy folders with a blank appearance get a real
           // icon/color instead of persisting an empty string back to the API.
@@ -232,17 +277,12 @@ class FolderController extends GetxController {
     IOSActionMenu.show(
       context: Get.context!,
       type: IOSMenuType.bottomSheet,
-      title: "Move '${folder.name}' to Section",
+      title: "Move '${folder.displayName}' to Section",
       actions: [
         IOSMenuAction(
-          label: 'iCloud',
+          label: 'Pii Cloud',
           icon: CupertinoIcons.cloud,
           onTap: () => _updateFolderSection(folder, 'iCloud'),
-        ),
-        IOSMenuAction(
-          label: 'Shared',
-          icon: CupertinoIcons.person_2,
-          onTap: () => _updateFolderSection(folder, 'Shared'),
         ),
         IOSMenuAction(
           label: 'On My iPhone',
@@ -253,29 +293,38 @@ class FolderController extends GetxController {
     );
   }
 
+  /// The section keyword ('iCloud' / 'Shared' / '') already baked into
+  /// [folder]'s name — the inverse of [stripSectionKeyword], so a rename can
+  /// reapply it and not silently drop the folder out of its section.
+  String sectionKeywordOf(Folder folder) =>
+      FolderAppearance.sectionKeywordOf(folder.name);
+
+  /// The display label for [sectionKeywordOf]'s return value.
+  String sectionLabel(String keyword) => FolderAppearance.sectionLabel(keyword);
+
+  /// Strips any section/status keyword out of [name], leaving just the part
+  /// the user actually typed.
+  String stripSectionKeyword(String name) =>
+      FolderAppearance.stripSectionKeyword(name);
+
   /// Sections are encoded in the folder name, since the API has no field for
   /// them — so moving a folder means rewriting its name prefix.
   Future<void> _updateFolderSection(Folder folder, String section) async {
-    var newName = folder.name
-        .replaceAll(RegExp(r'icloud', caseSensitive: false), '')
-        .replaceAll(RegExp(r'shared', caseSensitive: false), '')
-        .replaceAll(RegExp(r'pinned', caseSensitive: false), '')
-        .replaceAll(RegExp(r'favorite', caseSensitive: false), '')
-        .trim();
-
+    var newName = stripSectionKeyword(folder.name);
     if (section.isNotEmpty) newName = '$section $newName';
 
     isLoading.value = true;
     try {
       final success = await onSaveFolder(
         id: folder.id,
+        parentId: folder.parentId,
         name: newName,
         iconName: folder.iconName,
         colorValue: folder.colorValue,
         sortOrder: folder.sortOrder,
       );
       if (success && section.isNotEmpty) {
-        AppSnackbar.success('Moved', 'Moved to $section');
+        AppSnackbar.success('Moved', 'Moved to ${sectionLabel(section)}');
       }
     } finally {
       isLoading.value = false;
@@ -299,7 +348,7 @@ class FolderController extends GetxController {
     }
     if (isDeleting.value) return;
 
-    if (!await AppDialogs.confirmDeleteFolder(folder.name)) return;
+    if (!await AppDialogs.confirmDeleteFolder(folder.displayName)) return;
 
     isDeleting.value = true;
     isLoading.value = true;

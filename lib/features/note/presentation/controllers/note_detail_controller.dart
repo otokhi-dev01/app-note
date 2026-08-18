@@ -2,19 +2,23 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/usecase/usecase.dart';
+import 'package:Note/core/theme/folder_appearance.dart';
+import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/core/utils/note_snippet.dart';
@@ -70,6 +74,7 @@ class NoteDetailController extends GetxController {
   final blocks = <NoteBlock>[].obs;
   final Map<String, quill.QuillController> quillControllers = {};
   final Map<String, TextEditingController> textControllers = {};
+  final Map<String, FocusNode> blockFocusNodes = {};
 
   // --- State ---
   final activeBlockIndex = (-1).obs;
@@ -189,6 +194,21 @@ class NoteDetailController extends GetxController {
     );
   }
 
+  FocusNode getBlockFocusNode(String blockId) =>
+      blockFocusNodes.putIfAbsent(blockId, () => FocusNode());
+
+  /// iOS-Notes-style title→body flow: pressing return in the title field
+  /// jumps straight into the first text block instead of just inserting a
+  /// newline into the title.
+  void focusFirstTextBlock() {
+    final firstText = blocks.whereType<TextBlock>().firstOrNull;
+    if (firstText != null) {
+      getBlockFocusNode(firstText.id).requestFocus();
+    } else {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+  }
+
   // --- Block Actions ---
 
   void addTextBlock({String style = 'body'}) {
@@ -290,6 +310,33 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// "Attach File" from the attachment sheet — any file type, not just
+  /// photos/video. Reuses the same upload path as [addAttachment]; the
+  /// block renders as a generic file tile when it isn't an image.
+  Future<void> addFileAttachment() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles();
+      final picked = result?.files.single;
+      if (picked?.path == null) return;
+
+      _insertBlock(
+        AttachmentBlock(
+          id: _generateId(),
+          displayName: picked!.name,
+          localPath: picked.path,
+          attachmentId: 0,
+        ),
+      );
+      blocks.refresh();
+      addTextBlock();
+    } catch (e) {
+      debugPrint('[FILE PICKER ERROR] $e');
+      AppSnackbar.error('Error', 'Could not attach that file');
+    }
+  }
+
   /// Resolves a local file for [remoteUrl] so the image editor has something to
   /// open. Returns `null` and reports the reason if the download fails.
   Future<String?> cacheAttachmentForEditing(String remoteUrl) async {
@@ -316,15 +363,33 @@ class NoteDetailController extends GetxController {
     final block = blocks[blockIndex];
     if (block is! AttachmentBlock) return;
 
+    // ios_image_editor saves the markup in place and hands back the same
+    // path it was given, so Flutter's image cache — keyed by FileImage(path),
+    // not file contents — would otherwise keep painting the pre-edit bytes
+    // forever. Evict it so the edit is actually visible.
+    PaintingBinding.instance.imageCache.evict(FileImage(File(editedPath)));
+
     blocks[blockIndex] = AttachmentBlock(
       id: block.id,
       attachmentId: 0,
-      displayName: 'Edited Image',
+      // Keep a real extension on the name — it's the most reliable of the
+      // three signals note_attachment_block.dart uses to tell an image
+      // attachment from a generic file, since a re-upload can come back
+      // from the server as an extensionless URL.
+      displayName: 'Edited Image${_extensionOf(editedPath)}',
       localPath: editedPath,
       url: block.url,
     );
+    // Leave persisting to the checkmark button, same as any other edit to
+    // the note — editing an image shouldn't trigger its own separate save.
     blocks.refresh();
-    saveNote();
+  }
+
+  /// `.jpg` from `/tmp/.../photo.jpg`, or `''` if [path] has no extension.
+  String _extensionOf(String path) {
+    final name = path.split('/').last;
+    final dot = name.lastIndexOf('.');
+    return dot == -1 ? '' : name.substring(dot);
   }
 
   void updateDrawing(int blockIndex, String path) {
@@ -448,6 +513,23 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Toggles a highlight in [color] on the current selection — off if it's
+  /// already that color, applied otherwise (never stacks multiple colors).
+  void applyHighlight(Color color) {
+    if (isReadOnly.value || activeBlockIndex.value < 0) return;
+    final block = blocks[activeBlockIndex.value];
+    if (block is! TextBlock) return;
+    final qc = quillControllers[block.id];
+    if (qc == null) return;
+
+    final hex =
+        '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
+    final current = qc.getSelectionStyle().attributes['background']?.value;
+    qc.formatSelection(
+      quill.BackgroundAttribute(current == hex ? null : hex),
+    );
+  }
+
   void updateActiveBlockStyle(String style) {
     if (isReadOnly.value || activeBlockIndex.value < 0) return;
     final block = blocks[activeBlockIndex.value];
@@ -532,7 +614,7 @@ class NoteDetailController extends GetxController {
       }
       noteId = idResult.valueOrNull!;
 
-      await _handleAttachmentUploads(noteId);
+      final failedUploads = await _handleAttachmentUploads(noteId);
 
       final contentResult = await _saveNoteContent(
         SaveNoteContentParams(
@@ -548,7 +630,22 @@ class NoteDetailController extends GetxController {
 
       // Re-fetch so server-assigned ids and attachment URLs land locally.
       await fetchNoteDetail(noteId);
-      AppSnackbar.success('Saved', 'Note saved');
+
+      if (failedUploads.isNotEmpty) {
+        // These never reached the server, so they aren't part of what the
+        // fetch above just loaded — re-attach them so the picture isn't
+        // lost, and say so instead of claiming a clean save.
+        blocks.addAll(failedUploads);
+        blocks.refresh();
+        AppSnackbar.warning(
+          'Saved with an issue',
+          failedUploads.length == 1
+              ? 'Note saved, but 1 image could not be uploaded. Try saving again.'
+              : 'Note saved, but ${failedUploads.length} images could not be uploaded. Try saving again.',
+        );
+      } else {
+        AppSnackbar.success('Saved', 'Note saved');
+      }
     } finally {
       isSaving.value = false;
     }
@@ -610,8 +707,11 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  Future<void> _handleAttachmentUploads(int noteId) async {
+  /// Uploads every not-yet-uploaded attachment, returning the ones that
+  /// failed so the caller can keep them around and tell the user.
+  Future<List<AttachmentBlock>> _handleAttachmentUploads(int noteId) async {
     bool stateChanged = false;
+    final failed = <AttachmentBlock>[];
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
       if (block is AttachmentBlock &&
@@ -632,24 +732,32 @@ class NoteDetailController extends GetxController {
               id: block.id,
               attachmentId: value.attachmentId,
               displayName: block.displayName,
-              url: value.filePath,
+              // Resolve immediately rather than waiting for the next fetch —
+              // otherwise the block briefly (or, if the raw path is
+              // malformed, permanently) carries an unresolved server path
+              // and the image renders as unavailable right after saving.
+              url: normalizeAttachmentUrl(value.filePath) ?? value.filePath,
               localPath: null,
             );
             stateChanged = true;
           case Err(:final failure):
             // Keep the local path so the block survives and can retry on the
             // next save rather than silently vanishing.
+            failed.add(block);
             debugPrint('[UPLOAD] BlockId=${block.id}: ${failure.message}');
         }
       }
     }
     if (stateChanged) blocks.refresh();
+    return failed;
   }
 
   // --- MENU LOGIC ---
 
   void toggleSearch() {
-    Get.back(); // Close More menu
+    // The more-menu popup already closes itself before calling this (see
+    // IOSActionMenu._buildMenuItem) — an extra Get.back() here used to pop
+    // the note editor itself instead of just the menu.
     isSearchVisible.toggle();
     if (isSearchVisible.value) {
       Future.delayed(const Duration(milliseconds: 300), () {
@@ -660,37 +768,69 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  void shareNote() {
+  /// Hands the note's plain-text content to the OS share sheet (Messages,
+  /// Mail, AirDrop, …) instead of the old dialog that just displayed the
+  /// text on-screen with a "Close" button — that never actually shared
+  /// anything anywhere.
+  Future<void> shareNote() async {
     final context = Get.context;
     if (context == null) return;
 
     _syncBlocks();
-    String content = titleController.text + "\n\n";
-    for (var b in blocks) {
-      if (b is TextBlock) content += NoteSnippet.plainText(b.text) + "\n";
+    final title = titleController.text.trim();
+    final buffer = StringBuffer(title.isEmpty ? 'Untitled Note' : title)
+      ..write('\n\n');
+    for (final b in blocks) {
+      if (b is TextBlock) buffer.write('${NoteSnippet.plainText(b.text)}\n');
     }
-    CustomGlassDialog.show<void>(
-      context: context,
-      title: 'Share Note',
-      content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.5,
-        ),
-        child: SingleChildScrollView(child: Text(content)),
-      ),
-      actions: const [
-        CustomGlassDialogAction(label: 'Close', onPressed: _noOp),
-      ],
-    );
+
+    // Anchors the share popover on iPad/macOS; harmless elsewhere.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+
+    try {
+      await Share.share(
+        buffer.toString().trim(),
+        subject: title.isEmpty ? 'Untitled Note' : title,
+        sharePositionOrigin: origin,
+      );
+    } catch (e) {
+      debugPrint('[SHARE ERROR] $e');
+      AppSnackbar.error('Error', 'Could not open the share sheet');
+    }
   }
 
-  void undo() => AppSnackbar.info('Undo', 'Undo feature is coming soon');
+  /// Undoes the last edit in whichever text block currently has focus, using
+  /// each block's own Quill edit history. Title changes and non-text blocks
+  /// (checklists, tables, attachments) aren't tracked by this — there's no
+  /// edit history to undo them from.
+  void undo() {
+    final index = activeBlockIndex.value;
+    if (index < 0 || index >= blocks.length) {
+      AppSnackbar.info('Nothing to undo', 'Tap into some text first.');
+      return;
+    }
+    final block = blocks[index];
+    if (block is! TextBlock) {
+      AppSnackbar.info('Nothing to undo', 'This block has no text history.');
+      return;
+    }
+    final qc = quillControllers[block.id];
+    if (qc == null || !qc.hasUndo) {
+      AppSnackbar.info('Nothing to undo', '');
+      return;
+    }
+    qc.undo();
+  }
 
   Future<void> togglePin() async {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
 
-    Get.back(); // Close menu
+    // The more-menu popup already closes itself before calling this — see
+    // toggleSearch()'s note above.
     final newState = !isPinned.value;
     final result = await _updateNoteState(
       UpdateNoteStateParams(noteId: id, isPinned: newState),
@@ -709,7 +849,8 @@ class NoteDetailController extends GetxController {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
 
-    Get.back(); // Close menu
+    // The more-menu popup already closes itself before calling this — see
+    // toggleSearch()'s note above.
     final newState = !isArchived.value;
     final result = await _updateNoteState(
       UpdateNoteStateParams(noteId: id, isArchived: newState),
@@ -730,7 +871,8 @@ class NoteDetailController extends GetxController {
     final id = currentNote.value?.id ?? 0;
     if (id == 0) return;
 
-    Get.back(); // Close menu
+    // The more-menu popup already closes itself before calling this — see
+    // toggleSearch()'s note above.
     final newState = !isLocked.value;
     final result = await _updateNoteState(
       UpdateNoteStateParams(noteId: id, isLocked: newState),
@@ -802,9 +944,15 @@ class NoteDetailController extends GetxController {
   }
 
   Future<void> moveNote() async {
-    Get.back(); // Close menu
+    // No Get.back() here: the more-menu popup already closes itself before
+    // calling this (see toggleSearch()'s note above), and this is also
+    // called directly by tapping the folder label in the editor, which
+    // never had a menu to close in the first place.
     if (isLoading.value || currentNote.value == null) return;
+    await _openFolderPicker();
+  }
 
+  Future<void> _openFolderPicker() async {
     final foldersResult = await _getFolders(const NoParams());
     if (foldersResult case Err(:final failure)) {
       AppSnackbar.failure('Could not load folders', failure);
@@ -817,7 +965,7 @@ class NoteDetailController extends GetxController {
       return;
     }
 
-    Get.to(
+    await Get.to(
       () => NoteMoveFolderModal(
         folders: folders,
         currentFolderId: currentNote.value!.folderId,
@@ -836,13 +984,31 @@ class NoteDetailController extends GetxController {
               case Ok():
                 await fetchNoteDetail(currentNote.value!.id);
                 _refreshNoteList();
-                AppSnackbar.success('Moved', 'Moved to ${targetFolder.name}');
+                AppSnackbar.success(
+                  'Moved',
+                  'Moved to ${targetFolder.displayName}',
+                );
               case Err(:final failure):
                 AppSnackbar.failure('Could not move note', failure);
             }
           } finally {
             isLoading.value = false;
           }
+        },
+        onCreateNewFolder: () async {
+          // Waits for FolderCreateModal to pop back here (rather than all
+          // the way out to the main Folder screen), then reopens the picker
+          // so the folder just created shows up as a destination.
+          await Get.to(
+            () => FolderCreateModal(
+              controller: Get.find<FolderController>(),
+              onDone: () => Get.back(),
+            ),
+            fullscreenDialog: true,
+            transition: Transition.cupertino,
+          );
+          Get.back(); // Close the now-stale picker
+          await _openFolderPicker();
         },
       ),
       fullscreenDialog: true,
@@ -855,6 +1021,8 @@ class NoteDetailController extends GetxController {
     quillControllers.clear();
     for (var c in textControllers.values) c.dispose();
     textControllers.clear();
+    for (var f in blockFocusNodes.values) f.dispose();
+    blockFocusNodes.clear();
   }
 
   @override
@@ -867,5 +1035,3 @@ class NoteDetailController extends GetxController {
 
   String _generateId() => DateTime.now().microsecondsSinceEpoch.toString();
 }
-
-void _noOp() {}

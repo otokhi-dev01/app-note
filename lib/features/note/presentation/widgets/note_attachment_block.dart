@@ -1,14 +1,48 @@
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ios_image_editor/ios_image_editor.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/glass_surfaces.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/utils/attachment_url.dart';
+
+const _imageExtensions = {
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'heic',
+  'heif',
+  'webp',
+  'bmp',
+};
+
+/// True if any source we have for this attachment carries a recognized image
+/// extension.
+///
+/// Checking only the first non-null source (the old `a ?? b ?? c` version)
+/// meant a block flipped between the file tile and the image tile across
+/// saves: `url` sometimes comes back from the server as an extensionless
+/// endpoint (e.g. `/api/attachment/123`), which — being non-null — used to
+/// win over `displayName`'s perfectly good `.jpg` and short-circuit the
+/// whole check. `displayName` is the most reliable source since it's set
+/// once from the original file name and just carried forward, so every
+/// source that's actually present gets a look, not just the first one.
+bool _looksLikeImage(AttachmentBlock block) {
+  for (final candidate in [block.displayName, block.localPath, block.url]) {
+    final name = candidate?.trim() ?? '';
+    if (name.isEmpty || !name.contains('.')) continue;
+    if (_imageExtensions.contains(name.split('.').last.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
 
 class NoteAttachmentBlock extends StatelessWidget {
   final AttachmentBlock block;
@@ -22,10 +56,20 @@ class NoteAttachmentBlock extends StatelessWidget {
     required this.controller,
   });
 
-  static final Uri _attachmentBaseUri = Uri.parse('https://note.piisiit.com/');
-
   @override
   Widget build(BuildContext context) {
+    if (!_looksLikeImage(block)) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 16),
+        child: _FileTile(
+          block: block,
+          isReadOnly: controller.isReadOnly.value,
+          onTap: () => _openOrShareFile(context),
+          onLongPress: () => _showDeleteMenu(context, isImage: false),
+        ),
+      );
+    }
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final semanticsLabel = block.displayName.trim().isEmpty
@@ -40,10 +84,7 @@ class NoteAttachmentBlock extends StatelessWidget {
         label: '$semanticsLabel. Tap to edit and save.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => _openImageEditor(
-            context,
-            directEdit: true,
-          ), // Logic: Tap to Edit instantly
+          onTap: () => _openImageEditor(context), // Logic: Tap to Edit instantly
           onLongPress: () =>
               _showDeleteMenu(context), // Logic: Hold to show delete popup
           child: Container(
@@ -81,10 +122,8 @@ class NoteAttachmentBlock extends StatelessWidget {
                       top: 8,
                       right: 8,
                       child: GestureDetector(
-                        onTap: () => _openImageEditor(
-                          context,
-                          directEdit: true,
-                        ), // Logic: Direct pencil tool
+                        onTap: () =>
+                            _openImageEditor(context), // Logic: Direct pencil tool
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -143,17 +182,14 @@ class NoteAttachmentBlock extends StatelessWidget {
     );
   }
 
-  Future<void> _openImageEditor(
-    BuildContext context, {
-    bool directEdit = false,
-  }) async {
+  Future<void> _openImageEditor(BuildContext context) async {
     if (controller.isReadOnly.value) return;
 
-    String? pathToEdit = _normalizeLocalPath(block.localPath);
+    String? pathToEdit = normalizeLocalPath(block.localPath);
 
     // 1. Prepare local path if it's a network URL
     if (pathToEdit == null || !File(pathToEdit).existsSync()) {
-      final networkUrl = _normalizeAttachmentUrl(block.url);
+      final networkUrl = normalizeAttachmentUrl(block.url);
       if (networkUrl != null && networkUrl.isNotEmpty) {
         // The editor only works on local files, so pull the remote one down
         // first. The controller owns the transfer — widgets do not do I/O.
@@ -189,20 +225,21 @@ class NoteAttachmentBlock extends StatelessWidget {
     }
   }
 
-  void _showDeleteMenu(BuildContext context) {
+  void _showDeleteMenu(BuildContext context, {bool isImage = true}) {
     if (controller.isReadOnly.value) return;
 
     CustomGlassActionSheet.show(
       context: context,
       title: "Attachment Options",
       actions: [
+        if (isImage)
+          CustomGlassActionSheetAction(
+            label: "Edit Image",
+            icon: CupertinoIcons.pencil,
+            onPressed: () => _openImageEditor(context),
+          ),
         CustomGlassActionSheetAction(
-          label: "Edit Image",
-          icon: CupertinoIcons.pencil,
-          onPressed: () => _openImageEditor(context),
-        ),
-        CustomGlassActionSheetAction(
-          label: "Delete Picture",
+          label: isImage ? "Delete Picture" : "Delete File",
           icon: CupertinoIcons.trash,
           isDestructive: true,
           onPressed: () => controller.deleteBlock(blockIndex),
@@ -211,31 +248,23 @@ class NoteAttachmentBlock extends StatelessWidget {
     );
   }
 
-  String? _normalizeLocalPath(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    final path = value.trim();
-    if (!path.startsWith('file://')) return path;
-    final uri = Uri.tryParse(path);
-    return uri?.toFilePath();
-  }
-
-  String? _normalizeAttachmentUrl(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    String path = value.trim().replaceAll('\\', '/');
-    if (path.startsWith('~/')) {
-      path = path.substring(2);
-    }
-    final uri = Uri.tryParse(path);
-    if (uri != null && uri.hasScheme) {
-      return uri.toString();
+  /// Non-image attachments (PDFs, docs, …) have no in-app viewer, so tapping
+  /// hands the file to the OS share sheet — "Open in…" lets the user view it
+  /// in whatever app actually reads that format.
+  Future<void> _openOrShareFile(BuildContext context) async {
+    final path = normalizeLocalPath(block.localPath);
+    if (path == null || !File(path).existsSync()) {
+      AppSnackbar.info('Not available', 'This file isn\'t on the device.');
+      return;
     }
     try {
-      return _attachmentBaseUri.resolve(path).toString();
-    } catch (error) {
-      if (kDebugMode) debugPrint('Error normalizing URL $path: $error');
-      return null;
+      await Share.shareXFiles([XFile(path)]);
+    } catch (e) {
+      debugPrint('[FILE SHARE ERROR] $e');
+      AppSnackbar.error('Error', 'Could not open that file');
     }
   }
+
 }
 
 class _AttachmentImage extends StatelessWidget {
@@ -245,8 +274,8 @@ class _AttachmentImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final localPath = _normalizeLocalPath(block.localPath);
-    final networkUrl = _normalizeAttachmentUrl(block.url);
+    final localPath = normalizeLocalPath(block.localPath);
+    final networkUrl = normalizeAttachmentUrl(block.url);
 
     if (localPath != null) {
       final file = File(localPath);
@@ -274,46 +303,6 @@ class _AttachmentImage extends StatelessWidget {
 
     return _AttachmentPlaceholder();
   }
-
-  String? _normalizeLocalPath(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    final path = value.trim();
-    if (!path.startsWith('file://')) return path;
-    final uri = Uri.tryParse(path);
-    return uri?.toFilePath();
-  }
-
-  String? _normalizeAttachmentUrl(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    String path = value.trim().replaceAll('\\', '/');
-    if (path.startsWith('~/')) {
-      path = path.substring(2);
-    }
-
-    path = path.trim();
-    if (path.startsWith('[') && path.endsWith(']')) {
-      path = path.substring(1, path.length - 1).trim();
-    }
-    if (path.startsWith('(') && path.endsWith(')')) {
-      path = path.substring(1, path.length - 1).trim();
-    }
-
-    final match = RegExp(r'(/[^)\]\s]+\.\w+)').firstMatch(path);
-    if (match != null) {
-      path = match.group(0)!;
-    }
-
-    final uri = Uri.tryParse(path);
-    if (uri != null && uri.hasScheme) {
-      return uri.toString();
-    }
-    try {
-      return Uri.parse('https://note.piisiit.com/').resolve(path).toString();
-    } catch (error) {
-      if (kDebugMode) debugPrint('Error resolving URL $path: $error');
-      return null;
-    }
-  }
 }
 
 class _NetworkAttachmentImage extends StatelessWidget {
@@ -327,6 +316,7 @@ class _NetworkAttachmentImage extends StatelessWidget {
     return Image.network(
       url,
       key: ValueKey('network-$blockId-$url'),
+      headers: attachmentAuthHeaders(),
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.cover,
@@ -366,6 +356,104 @@ class _AttachmentPlaceholder extends StatelessWidget {
           CupertinoIcons.photo,
           size: 27,
           color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// Row shown for a non-image attachment — a picked file that has no in-app
+/// preview, so it just gets an icon and its name (tap shares/opens it,
+/// long-press offers delete).
+class _FileTile extends StatelessWidget {
+  final AttachmentBlock block;
+  final bool isReadOnly;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _FileTile({
+    required this.block,
+    required this.isReadOnly,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final name = block.displayName.trim().isEmpty
+        ? 'Attachment'
+        : block.displayName;
+    final ext = name.contains('.') ? name.split('.').last.toUpperCase() : '';
+
+    return Semantics(
+      button: true,
+      label: 'Attached file: $name',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.08),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  CupertinoIcons.doc,
+                  size: 20,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (ext.isNotEmpty)
+                      Text(
+                        ext,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (!isReadOnly)
+                Icon(
+                  CupertinoIcons.square_arrow_up,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

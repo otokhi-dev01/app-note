@@ -4,13 +4,14 @@ import 'package:get/get.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/usecase/usecase.dart';
+import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Drives the note list, the archive, and the multi-select bar on both.
 class NoteController extends GetxController {
@@ -198,7 +199,15 @@ class NoteController extends GetxController {
         ? selectedNoteIds.toList()
         : notes.map((n) => n.id).toList();
     if (targetIds.isEmpty) return;
+    if (!context.mounted) return;
+    await _openFolderPicker(context, targetIds, currentFolderId);
+  }
 
+  Future<void> _openFolderPicker(
+    BuildContext context,
+    List<int> targetIds,
+    int currentFolderId,
+  ) async {
     final folderResult = await _getFolders(const NoParams());
     if (folderResult case Err(:final failure)) {
       AppSnackbar.failure('Could not fetch folders', failure);
@@ -213,21 +222,32 @@ class NoteController extends GetxController {
 
     if (!context.mounted) return;
 
-    await CustomGlassSheet.show<void>(
-      context: context,
-      showDragIndicator: false,
-      isScrollable: false,
-      builder: (sheetContext) => SizedBox(
-        height: MediaQuery.sizeOf(sheetContext).height * 0.82,
-        child: NoteMoveFolderModal(
-          folders: allFolders,
-          currentFolderId: currentFolderId,
-          onFolderSelected: (folder) async {
-            Navigator.of(sheetContext).pop();
-            await _moveNotesTo(folder, targetIds, currentFolderId);
-          },
-        ),
+    await Get.to(
+      () => NoteMoveFolderModal(
+        folders: allFolders,
+        currentFolderId: currentFolderId,
+        onFolderSelected: (folder) async {
+          Get.back();
+          await _moveNotesTo(folder, targetIds, currentFolderId);
+        },
+        onCreateNewFolder: () async {
+          // Waits for FolderCreateModal to pop back here (rather than all
+          // the way out to the main Folder screen), then reopens the picker
+          // so the folder just created shows up as a destination.
+          await Get.to(
+            () => FolderCreateModal(
+              controller: Get.find<FolderController>(),
+              onDone: () => Get.back(),
+            ),
+            fullscreenDialog: true,
+            transition: Transition.cupertino,
+          );
+          Get.back(); // Close the now-stale picker
+          await _openFolderPicker(context, targetIds, currentFolderId);
+        },
       ),
+      fullscreenDialog: true,
+      transition: Transition.cupertino,
     );
   }
 
@@ -250,11 +270,11 @@ class NoteController extends GetxController {
           await fetchNotes(folderId: currentFolderId, refresh: true);
           _refreshFolderCounts();
           if (value.isComplete) {
-            AppSnackbar.success('Moved', 'Moved notes to ${folder.name}');
+            AppSnackbar.success('Moved', 'Moved notes to ${folder.displayName}');
           } else {
             AppSnackbar.warning(
               'Partially moved',
-              '${value.moved} of ${value.total} notes moved to ${folder.name}.',
+              '${value.moved} of ${value.total} notes moved to ${folder.displayName}.',
             );
           }
         case Err(:final failure):

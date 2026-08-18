@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/theme/app_colors.dart';
+import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_location_picker_modal.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 
@@ -18,13 +20,31 @@ class FolderCreateLogic extends GetxController {
   final int? parentId;
   final FolderController mainController;
 
-  FolderCreateLogic({this.folder, this.parentId, required this.mainController});
+  /// How to leave this screen once saved/cancelled. Defaults to popping back
+  /// to the main Folder screen — the right call for every entry point except
+  /// ones nested deeper in the stack (e.g. "New Folder" from the note-move
+  /// picker), which pass their own callback so they land back where they
+  /// were instead of being ejected all the way out.
+  final VoidCallback? onDone;
+
+  FolderCreateLogic({
+    this.folder,
+    this.parentId,
+    required this.mainController,
+    this.onDone,
+  });
 
   late final TextEditingController nameController;
   late final FocusNode nameFocusNode;
 
   final folderName = ''.obs;
   final isSaving = false.obs;
+
+  /// FEATURE: which folder this one nests under, `null` for the top level.
+  /// Seeded from the folder being renamed, or the `parentId` this screen was
+  /// opened with (e.g. "Create Subfolder"), and changeable via the Location
+  /// picker either way.
+  final selectedParentId = Rxn<int>();
 
   /// FEATURE: appearance the user picks, persisted as iconName / colorValue
   final iconName = FolderAppearance.defaultIconName.obs;
@@ -36,14 +56,27 @@ class FolderCreateLogic extends GetxController {
   Color get color => FolderAppearance.parseHex(colorValue.value);
   IconData get icon => FolderAppearance.iconFor(iconName.value);
 
+  /// The section keyword ('iCloud' / 'Shared' / '') baked into the folder
+  /// being renamed, captured once up front so a rename can reapply it — the
+  /// Name field only ever shows/edits the part the user actually typed.
+  late final String _originalSectionKeyword = folder == null
+      ? ''
+      : mainController.sectionKeywordOf(folder!);
+
   @override
   void onInit() {
     super.onInit();
-    final initialName = folder?.name ?? 'New Folder';
+    final strippedName = folder == null
+        ? ''
+        : mainController.stripSectionKeyword(folder!.name);
+    final initialName = folder == null
+        ? 'New Folder'
+        : (strippedName.isEmpty ? folder!.name : strippedName);
     folderName.value = initialName;
     nameController = TextEditingController(text: initialName);
     nameController.addListener(() => folderName.value = nameController.text);
     nameFocusNode = FocusNode();
+    selectedParentId.value = folder?.parentId ?? parentId;
 
     // Restore the folder's saved appearance when renaming, so reopening the
     // editor shows the swatch and glyph it was created with.
@@ -82,10 +115,30 @@ class FolderCreateLogic extends GetxController {
     iconName.value = value;
   }
 
+  void selectParent(int? id) {
+    if (selectedParentId.value == id) return;
+    selectedParentId.value = id;
+  }
+
+  /// The folder [selectedParentId] resolves to, or `null` at the top level.
+  Folder? get parentFolder => selectedParentId.value == null
+      ? null
+      : mainController.folders.firstWhereOrNull(
+          (f) => f.id == selectedParentId.value,
+        );
+
   /// FEATURE: ✓ button tapped → save folder → navigate back to folder view
   Future<void> save() async {
-    final name = folderName.value.trim();
-    if (name.isEmpty || isSaving.value) return;
+    final typedName = folderName.value.trim();
+    if (typedName.isEmpty || isSaving.value) return;
+
+    // Reapply whichever section (Pii Cloud / Shared) the folder started in —
+    // the Name field only ever showed the part the user typed, so nothing
+    // they did there can silently knock it out of that section.
+    final name = _originalSectionKeyword.isEmpty
+        ? typedName
+        : '$_originalSectionKeyword ${mainController.stripSectionKeyword(typedName)}'
+              .trim();
 
     FocusManager.instance.primaryFocus?.unfocus();
     isSaving.value = true;
@@ -96,7 +149,7 @@ class FolderCreateLogic extends GetxController {
 
       final success = await mainController.onSaveFolder(
         id: folder?.id ?? 0,
-        parentId: folder?.parentId ?? parentId,
+        parentId: selectedParentId.value,
         name: name,
         iconName: iconName.value,
         colorValue: colorValue.value,
@@ -104,10 +157,15 @@ class FolderCreateLogic extends GetxController {
       );
 
       if (success) {
-        // Use Get.until() to pop back to /folder route.
-        // This is more reliable than Get.back() when snackbars are showing,
-        // because Get.back() can accidentally dismiss the snackbar overlay instead.
-        Get.until((route) => route.settings.name == '/folder');
+        if (onDone != null) {
+          onDone!();
+        } else {
+          // Pop back to the /folder route rather than a single Get.back():
+          // this screen may sit under nested pushes (e.g. rename opened from
+          // a subfolder several levels deep), and Get.until() unwinds all of
+          // them in one go instead of leaving stragglers in the stack.
+          Get.until((route) => route.settings.name == '/folder');
+        }
       }
     } finally {
       isSaving.value = false;
@@ -116,8 +174,12 @@ class FolderCreateLogic extends GetxController {
 
   void cancel() {
     FocusManager.instance.primaryFocus?.unfocus();
-    // Navigate back to folder view — same as save() for consistency
-    Get.until((route) => route.settings.name == '/folder');
+    if (onDone != null) {
+      onDone!();
+    } else {
+      // Navigate back to folder view — same as save() for consistency
+      Get.until((route) => route.settings.name == '/folder');
+    }
   }
 
   void clearName() {
@@ -133,12 +195,14 @@ class FolderCreateModal extends StatefulWidget {
   final Folder? folder;
   final int? parentId;
   final FolderController controller;
+  final VoidCallback? onDone;
 
   const FolderCreateModal({
     super.key,
     this.folder,
     this.parentId,
     required this.controller,
+    this.onDone,
   });
 
   @override
@@ -161,6 +225,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
         folder: widget.folder,
         parentId: widget.parentId,
         mainController: widget.controller,
+        onDone: widget.onDone,
       ),
       tag: tag,
     );
@@ -201,90 +266,94 @@ class _FolderCreateModalState extends State<FolderCreateModal>
             ),
       child: Scaffold(
         backgroundColor: colors.background,
-        resizeToAvoidBottomInset: false, // We manage keyboard inset manually
-        body: CustomGlassContainer(
-          borderRadius: 0,
-          blur: 40,
-          opacity: 0.1,
-          thickness: 0,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── Top safe area ────────────────────────────────────
-              SizedBox(height: mq.padding.top),
-
-              // ── Header: [X]  Title  [✓] ──────────────────────────
-              _buildHeader(context, _c, colors),
-
-              // ── Scrollable content, keyboard-aware ───────────────
-              Expanded(
-                child: GestureDetector(
-                  // Tap empty area to dismiss keyboard
-                  onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedPadding(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeOut,
-                    padding: EdgeInsets.only(
-                      bottom: mq.viewInsets.bottom > 0
-                          ? mq.viewInsets.bottom + 16
-                          : mq.padding.bottom + 16,
-                    ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _StaggerIn(
-                            animation: _entrance,
-                            index: 0,
-                            child: _buildHeroPreview(context, _c, colors),
-                          ),
-                          const SizedBox(height: 28),
-                          _StaggerIn(
-                            animation: _entrance,
-                            index: 1,
-                            child: _buildSection(
-                              context,
-                              colors,
-                              label: 'Name',
-                              child: _buildNameField(context, _c, colors),
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          _StaggerIn(
-                            animation: _entrance,
-                            index: 2,
-                            child: _buildSection(
-                              context,
-                              colors,
-                              label: 'Color',
-                              child: _buildColorPicker(context, _c, colors),
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          _StaggerIn(
-                            animation: _entrance,
-                            index: 3,
-                            child: _buildSection(
-                              context,
-                              colors,
-                              label: 'Icon',
-                              child: _buildIconPicker(context, _c, colors),
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          _StaggerIn(
-                            animation: _entrance,
-                            index: 4,
-                            child: _buildSmartFolderRow(context, _c, colors),
-                          ),
-                        ],
+        extendBody: true,
+        extendBodyBehindAppBar: true,
+        body: GestureDetector(
+          // Tap empty area to dismiss keyboard
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(context, _c, colors),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 0,
+                        child: _buildHeroPreview(context, _c, colors),
                       ),
-                    ),
+                      const SizedBox(height: 28),
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 1,
+                        child: _buildSection(
+                          context,
+                          colors,
+                          label: 'Name',
+                          child: _buildNameField(context, _c, colors),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 2,
+                        child: _buildSection(
+                          context,
+                          colors,
+                          label: 'Location',
+                          child: _buildLocationRow(context, _c, colors),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 3,
+                        child: _buildSection(
+                          context,
+                          colors,
+                          label: 'Color',
+                          child: _buildColorPicker(context, _c, colors),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 4,
+                        child: _buildSection(
+                          context,
+                          colors,
+                          label: 'Icon',
+                          child: _buildIconPicker(context, _c, colors),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 5,
+                        child: _buildSection(
+                          context,
+                          colors,
+                          label: 'Emoji',
+                          child: _buildEmojiPicker(context, _c, colors),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      _StaggerIn(
+                        animation: _entrance,
+                        index: 6,
+                        child: _buildSmartFolderRow(context, _c, colors),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(height: mq.padding.bottom + 24),
               ),
             ],
           ),
@@ -293,63 +362,70 @@ class _FolderCreateModalState extends State<FolderCreateModal>
     );
   }
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-  Widget _buildHeader(
+  // ── Sliver app bar: collapsing large title, same language as Archive ────────
+  Widget _buildAppBar(
     BuildContext context,
     FolderCreateLogic c,
     AppColors colors,
   ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // ✕ Cancel button
-          CustomGlassButton(
-            onPressed: c.cancel,
-            semanticLabel: 'Cancel',
-            width: 36,
-            height: 36,
+    final theme = Theme.of(context);
+    final label = c.isRenaming ? 'Edit Folder' : 'New Folder';
+
+    return CustomGlassSliverAppBar(
+      expandedHeight: 140,
+      toolbarHeight: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      centerTitle: true,
+      title: Text(
+        label,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          fontSize: 17,
+        ),
+      ),
+      leading: CustomGlassButton(
+        onPressed: c.cancel,
+        semanticLabel: 'Cancel',
+        width: 44,
+        height: 44,
+        shape: GlassShape.circle,
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        foregroundColor: colors.mutedIcon,
+        child: const Icon(CupertinoIcons.xmark, size: 18),
+      ),
+      actions: [
+        // ✓ Save button — tinted with the color the user picked
+        Obx(() {
+          final onAccent = AppColors.onAccent(c.color);
+          return CustomGlassButton(
+            onPressed: c.canSave ? c.save : null,
+            semanticLabel: 'Save folder',
+            width: 44,
+            height: 44,
             shape: GlassShape.circle,
-            opacity: 0.1,
             blur: 10,
+            opacity: c.canSave ? 0.8 : 0.2,
+            thickness: 5,
             padding: EdgeInsets.zero,
-            foregroundColor: colors.mutedIcon,
-            child: const Icon(CupertinoIcons.xmark, size: 16),
-          ),
-
-          // Title
-          Text(
-            c.isRenaming ? 'Edit Folder' : 'New Folder',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.3,
-              color: colors.primaryText,
-            ),
-          ),
-
-          // ✓ Save button — tinted with the color the user picked
-          Obx(() {
-            final onAccent = AppColors.onAccent(c.color);
-            return CustomGlassButton(
-              onPressed: c.canSave ? c.save : null,
-              semanticLabel: 'Save folder',
-              width: 40,
-              height: 40,
-              shape: GlassShape.circle,
-              opacity: c.canSave ? 0.8 : 0.2,
-              thickness: 5,
-              padding: EdgeInsets.zero,
-              foregroundColor: onAccent,
-              glassColor: c.color,
-              child: c.isSaving.value
-                  ? CupertinoActivityIndicator(color: onAccent, radius: 9)
-                  : const Icon(CupertinoIcons.checkmark, size: 18),
-            );
-          }),
-        ],
+            foregroundColor: onAccent,
+            glassColor: c.color,
+            child: c.isSaving.value
+                ? CupertinoActivityIndicator(color: onAccent, radius: 9)
+                : const Icon(CupertinoIcons.checkmark, size: 20),
+          );
+        }),
+      ],
+      largeTitleAlignment: Alignment.bottomLeft,
+      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+      largeTitle: Text(
+        label,
+        style: theme.textTheme.headlineLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+          fontSize: 34,
+        ),
       ),
     );
   }
@@ -365,6 +441,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
     return Obx(() {
       final color = c.color;
       final name = c.folderName.value.trim();
+      final isEmoji = FolderAppearance.isEmoji(c.iconName.value);
 
       return Column(
         children: [
@@ -395,12 +472,18 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                 scale: anim.drive(CurveTween(curve: Curves.easeOutBack)),
                 child: FadeTransition(opacity: anim, child: child),
               ),
-              child: Icon(
-                c.icon,
-                key: ValueKey(c.iconName.value),
-                color: AppColors.onAccent(color),
-                size: 42,
-              ),
+              child: isEmoji
+                  ? Text(
+                      c.iconName.value,
+                      key: ValueKey(c.iconName.value),
+                      style: const TextStyle(fontSize: 42, height: 1),
+                    )
+                  : Icon(
+                      c.icon,
+                      key: ValueKey(c.iconName.value),
+                      color: AppColors.onAccent(color),
+                      size: 42,
+                    ),
             ),
           ),
           const SizedBox(height: 18),
@@ -431,12 +514,8 @@ class _FolderCreateModalState extends State<FolderCreateModal>
       final count = c.folder!.noteCount;
       return 'Folder  •  $count ${count == 1 ? 'note' : 'notes'}';
     }
-    if (c.parentId != null) {
-      final parent = c.mainController.folders.firstWhereOrNull(
-        (f) => f.id == c.parentId,
-      );
-      if (parent != null) return 'Subfolder of ${parent.name}';
-    }
+    final parent = c.parentFolder;
+    if (parent != null) return 'Subfolder of ${parent.displayName}';
     return 'Folder  •  No notes yet';
   }
 
@@ -499,6 +578,71 @@ class _FolderCreateModalState extends State<FolderCreateModal>
         onSuffixTap: c.folderName.value.isEmpty ? null : c.clearName,
       ),
     );
+  }
+
+  // ── FEATURE: Location row — iOS-Notes-style parent folder picker ────────────
+  Widget _buildLocationRow(
+    BuildContext context,
+    FolderCreateLogic c,
+    AppColors colors,
+  ) {
+    return CustomGlassContainer(
+      borderRadius: 18,
+      blur: 10,
+      glassColor: colors.panelTint,
+      child: InkWell(
+        onTap: () => _pickLocation(context, c),
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Obx(() {
+            final parent = c.parentFolder;
+            return Row(
+              children: [
+                parent != null
+                    ? FolderGlyph(folder: parent, size: 22)
+                    : Icon(
+                        CupertinoIcons.device_phone_portrait,
+                        color: colors.mutedIcon,
+                        size: 22,
+                      ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    parent?.displayName ?? 'On My iPhone',
+                    style: TextStyle(
+                      color: colors.primaryText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  color: colors.mutedIcon,
+                  size: 15,
+                ),
+              ],
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickLocation(BuildContext context, FolderCreateLogic c) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final result = await Get.to<ParentSelection>(
+      () => FolderLocationPickerModal(
+        controller: c.mainController,
+        currentParentId: c.selectedParentId.value,
+        excludeFolderId: c.folder?.id,
+      ),
+      fullscreenDialog: true,
+      transition: Transition.cupertino,
+    );
+    if (result != null) c.selectParent(result.parentId);
   }
 
   // ── FEATURE: color picker ────────────────────────────────────────────────────
@@ -570,6 +714,43 @@ class _FolderCreateModalState extends State<FolderCreateModal>
     );
   }
 
+  // ── FEATURE: emoji picker (flutter_emoji) ────────────────────────────────────
+  Widget _buildEmojiPicker(
+    BuildContext context,
+    FolderCreateLogic c,
+    AppColors colors,
+  ) {
+    return CustomGlassContainer(
+      borderRadius: 18,
+      blur: 10,
+      glassColor: colors.panelTint,
+      padding: const EdgeInsets.all(14),
+      child: Obx(() {
+        final selectedIcon = c.iconName.value;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          itemCount: FolderAppearance.emojis.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 5,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+          ),
+          itemBuilder: (context, i) {
+            final emoji = FolderAppearance.emojis[i];
+            return _EmojiCell(
+              emoji: emoji,
+              selected: emoji == selectedIcon,
+              colors: colors,
+              onTap: () => c.selectIcon(emoji),
+            );
+          },
+        );
+      }),
+    );
+  }
+
   // ── Smart Folder option row ──────────────────────────────────────────────────
   Widget _buildSmartFolderRow(
     BuildContext context,
@@ -584,6 +765,11 @@ class _FolderCreateModalState extends State<FolderCreateModal>
         onTap: () {
           if (c.folder != null) {
             c.mainController.onConvertToSmartFolder(c.folder!);
+          } else {
+            AppSnackbar.info(
+              'Save first',
+              'Save this folder, then make it a Smart Folder from Edit Folder.',
+            );
           }
         },
         borderRadius: BorderRadius.circular(18),
@@ -779,6 +965,53 @@ class _IconCell extends StatelessWidget {
               size: 22,
               color: selected ? AppColors.onAccent(accent) : colors.cellIcon,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A single tappable emoji cell — same selection chrome as [_IconCell], but
+/// the glyph itself needs no tint since emoji carry their own color.
+class _EmojiCell extends StatelessWidget {
+  final String emoji;
+  final bool selected;
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  const _EmojiCell({
+    required this.emoji,
+    required this.selected,
+    required this.colors,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: emoji,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          scale: selected ? 1.06 : 1,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutBack,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: colors.cellFill,
+              borderRadius: BorderRadius.circular(16),
+              border: selected
+                  ? Border.all(color: colors.mutedIcon, width: 1.5)
+                  : null,
+            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 20)),
           ),
         ),
       ),

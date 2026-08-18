@@ -49,11 +49,11 @@ class FolderSystemTiles extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Icon(
-                Icons.chevron_right,
+                Icons.arrow_forward_ios,
                 color: theme.colorScheme.onSurfaceVariant.withValues(
                   alpha: 0.3,
                 ),
-                size: 20,
+                size: 16,
               ),
             ],
           ),
@@ -88,11 +88,11 @@ class FolderSystemTiles extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Icon(
-                Icons.chevron_right,
+                Icons.arrow_forward_ios,
                 color: theme.colorScheme.onSurfaceVariant.withValues(
                   alpha: 0.3,
                 ),
-                size: 20,
+                size: 16,
               ),
             ],
           ),

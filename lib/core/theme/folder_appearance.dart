@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_emoji/flutter_emoji.dart';
 
 import 'package:Note/features/folder/domain/entities/folder.dart';
 
@@ -7,9 +8,41 @@ import 'package:Note/features/folder/domain/entities/folder.dart';
 /// This lives in the theme layer, not on the entity: the domain knows a folder
 /// has an icon *name*, and only the UI knows what glyph that draws as.
 extension FolderAppearanceX on Folder {
+  bool get isEmojiIcon => FolderAppearance.isEmoji(iconName);
+
   IconData get icon => FolderAppearance.iconFor(iconName);
 
   Color get color => FolderAppearance.colorFor(colorValue);
+
+  /// The name as it should be shown in the UI. The "Pii Cloud" / "Shared"
+  /// section a folder lives in is encoded as a keyword baked into the raw
+  /// [Folder.name] (the API has no dedicated field for it) — that keyword is
+  /// an implementation detail the user should never see as literal text, so
+  /// every screen that renders a folder's name shows this instead.
+  String get displayName => FolderAppearance.displayName(name);
+}
+
+/// Renders a folder's stored icon: an [Icon] for a named glyph, or the raw
+/// emoji character as text when [Folder.iconName] holds one instead.
+class FolderGlyph extends StatelessWidget {
+  final Folder folder;
+  final double size;
+  final Color? color;
+
+  const FolderGlyph({
+    super.key,
+    required this.folder,
+    required this.size,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (folder.isEmojiIcon) {
+      return Text(folder.iconName, style: TextStyle(fontSize: size, height: 1));
+    }
+    return Icon(folder.icon, color: color ?? folder.color, size: size);
+  }
 }
 
 /// One pickable folder icon: the `iconName` persisted by the API, the glyph it
@@ -60,6 +93,18 @@ class FolderAppearance {
     FolderIconOption('people', CupertinoIcons.person_2_fill, 'People'),
   ];
 
+  /// Emoji alternative to [icons] — the same 20 concepts, so switching
+  /// between the two picker tabs doesn't lose the folder's "meaning".
+  /// Stored verbatim as [Folder.iconName] when picked.
+  static const List<String> emojis = [
+    '📁', '💼', '🎓', '❤️', '⭐',
+    '📝', '🏠', '✈️', '💡', '💰',
+    '📅', '🚩', '⚡', '🎮', '🎵',
+    '📷', '🛒', '🎁', '💻', '👥',
+  ];
+
+  static final EmojiParser _emojiParser = EmojiParser();
+
   /// `#FFB703` is kept in the palette because every folder created before the
   /// picker existed was saved with it — without it those folders would open the
   /// editor with no swatch selected.
@@ -80,6 +125,47 @@ class FolderAppearance {
 
   /// Icon names written by older builds that are no longer offered directly.
   static const Map<String, String> _legacyIconAliases = {'5': 'code'};
+
+  /// Whether [name] is (or contains) an emoji character rather than one of
+  /// the named [icons] keys — `flutter_emoji` does the actual detection.
+  static bool isEmoji(String? name) {
+    final trimmed = (name ?? '').trim();
+    if (trimmed.isEmpty) return false;
+    return _emojiParser.hasEmoji(trimmed);
+  }
+
+  /// The section keyword ('iCloud' / 'Shared' / '') baked into [name] — the
+  /// only place the API has to encode which sidebar section a folder is in.
+  static String sectionKeywordOf(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('icloud')) return 'iCloud';
+    if (lower.contains('shared')) return 'Shared';
+    return '';
+  }
+
+  /// The display label for [sectionKeywordOf]'s return value.
+  static String sectionLabel(String keyword) => switch (keyword) {
+    'iCloud' => 'Pii Cloud',
+    'Shared' => 'Shared',
+    _ => 'On My iPhone',
+  };
+
+  /// Strips the section/status keyword out of [name], leaving just the part
+  /// meant to be shown to the user.
+  static String stripSectionKeyword(String name) => name
+      .replaceAll(RegExp(r'icloud', caseSensitive: false), '')
+      .replaceAll(RegExp(r'shared', caseSensitive: false), '')
+      .replaceAll(RegExp(r'pinned', caseSensitive: false), '')
+      .replaceAll(RegExp(r'favorite', caseSensitive: false), '')
+      .trim();
+
+  /// The name as it should be shown anywhere in the UI — the section keyword
+  /// is an internal storage convention, never something the user typed or
+  /// should see as literal text.
+  static String displayName(String name) {
+    final stripped = stripSectionKeyword(name);
+    return stripped.isEmpty ? name : stripped;
+  }
 
   static IconData iconFor(String? name) {
     final key = (name ?? '').trim().toLowerCase();
@@ -111,8 +197,10 @@ class FolderAppearance {
   }
 
   static String normalizeIcon(String? name) {
-    final key = (name ?? '').trim().toLowerCase();
-    if (key.isEmpty) return defaultIconName;
+    final raw = (name ?? '').trim();
+    if (raw.isEmpty) return defaultIconName;
+    if (isEmoji(raw)) return raw;
+    final key = raw.toLowerCase();
     final resolved = _legacyIconAliases[key] ?? key;
     final known = icons.any((o) => o.name == resolved);
     return known ? resolved : defaultIconName;

@@ -105,12 +105,26 @@ class NoteDetailView extends GetView<NoteDetailController> {
     NoteAttachmentPopup.show(
       context: context,
       onAction: (type) {
-        if (type == 'camera') {
-          controller.addAttachment(ImageSource.camera);
-        } else if (type == 'gallery') {
-          controller.addAttachment(ImageSource.gallery);
-        } else if (type == 'drawing') {
-          controller.startDrawing();
+        switch (type) {
+          case 'camera':
+            controller.addAttachment(ImageSource.camera);
+          case 'gallery':
+            controller.addAttachment(ImageSource.gallery);
+          case 'drawing':
+            controller.startDrawing();
+          // These need a native scanner / audio recorder / file picker this
+          // app doesn't have yet — say so instead of the button doing
+          // nothing when tapped.
+          case 'scan_text':
+          case 'scan_docs':
+            AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
+          case 'audio':
+            AppSnackbar.info(
+              'Coming soon',
+              'Audio recording isn\'t available yet.',
+            );
+          case 'file':
+            controller.addFileAttachment();
         }
       },
     );
