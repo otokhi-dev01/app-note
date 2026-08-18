@@ -380,8 +380,9 @@ class NoteDetailController extends GetxController {
       localPath: editedPath,
       url: block.url,
     );
+    // Leave persisting to the checkmark button, same as any other edit to
+    // the note — editing an image shouldn't trigger its own separate save.
     blocks.refresh();
-    saveNote();
   }
 
   /// `.jpg` from `/tmp/.../photo.jpg`, or `''` if [path] has no extension.
