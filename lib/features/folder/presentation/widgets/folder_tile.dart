@@ -52,9 +52,9 @@ class FolderTile extends StatelessWidget {
                 },
           onLongPress: isSystem ? null : () => _showContextMenu(context),
           // Renders the icon + color chosen in the folder editor
-          leading: Icon(folder.icon, color: folder.color, size: 25),
+          leading: FolderGlyph(folder: folder, size: 25),
           title: Text(
-            folder.name,
+            folder.displayName,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontSize: 17,
               fontWeight: FontWeight.w600,
@@ -105,12 +105,14 @@ class FolderTile extends StatelessWidget {
                     ),
                   ],
                 )
+              : folder.subFolders.isNotEmpty
+              ? _ExpandToggle(controller: controller, folder: folder)
               : Icon(
-                  Icons.chevron_right,
+                  Icons.arrow_forward_ios,
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.2,
                   ),
-                  size: 20,
+                  size: 16,
                 ),
         ),
       );
@@ -123,5 +125,44 @@ class FolderTile extends StatelessWidget {
       folder: folder,
       controller: controller,
     );
+  }
+}
+
+/// The disclosure arrow on a folder that has subfolders — tapping it
+/// expands/collapses just that folder's children, same feature as the
+/// "On My iPhone" section header but scoped to one folder. Its own tap
+/// target keeps it independent from the tile's row tap (which opens the
+/// folder's notes).
+class _ExpandToggle extends StatelessWidget {
+  final FolderController controller;
+  final Folder folder;
+
+  const _ExpandToggle({required this.controller, required this.folder});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Obx(() {
+      final expanded = controller.isFolderExpanded(folder.id);
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => controller.toggleFolderExpanded(folder.id),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: AnimatedRotation(
+            turns: expanded ? 0.25 : 0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: Icon(
+              Icons.arrow_forward_ios,
+              color: theme.colorScheme.onSurfaceVariant.withValues(
+                alpha: 0.35,
+              ),
+              size: 16,
+            ),
+          ),
+        ),
+      );
+    });
   }
 }

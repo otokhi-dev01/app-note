@@ -165,7 +165,6 @@ class FolderView extends GetView<FolderController> {
             ),
           );
         }
-        controller.sortFolders();
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -181,11 +180,11 @@ class FolderView extends GetView<FolderController> {
                   : const SizedBox.shrink(),
             ),
             const SizedBox(height: 24),
-            FolderSectionHeader(
-              title: "Shared",
-              isExpanded: controller.isSharedExpanded,
-              onTap: controller.toggleShared,
-            ),
+            // FolderSectionHeader(
+            //   title: "Shared",
+            //   isExpanded: controller.isSharedExpanded,
+            //   onTap: controller.toggleShared,
+            // ),
             Obx(
               () => controller.isSharedExpanded.value
                   ? _buildFolderGroup(context, controller.sharedFolders)
@@ -265,7 +264,8 @@ class FolderView extends GetView<FolderController> {
         FolderTile(folder: folder, controller: controller, depth: depth),
       );
 
-      if (folder.subFolders.isNotEmpty) {
+      if (folder.subFolders.isNotEmpty &&
+          controller.isFolderExpanded(folder.id)) {
         list.add(const Divider(indent: 56, height: 1, thickness: 0.5));
         list.addAll(
           _buildRecursiveFolderList(folder.subFolders, depth: depth + 1),

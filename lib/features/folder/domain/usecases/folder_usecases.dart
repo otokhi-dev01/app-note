@@ -21,6 +21,7 @@ class SaveFolder extends UseCase<int, SaveFolderParams> {
   @override
   Future<Result<int>> call(SaveFolderParams params) => _repository.saveFolder(
     id: params.id,
+    parentId: params.parentId,
     name: params.name,
     iconName: params.iconName,
     colorValue: params.colorValue,
@@ -30,6 +31,7 @@ class SaveFolder extends UseCase<int, SaveFolderParams> {
 
 class SaveFolderParams {
   final int id;
+  final int? parentId;
   final String name;
   final String iconName;
   final String colorValue;
@@ -37,6 +39,7 @@ class SaveFolderParams {
 
   const SaveFolderParams({
     this.id = 0,
+    this.parentId,
     required this.name,
     required this.iconName,
     required this.colorValue,

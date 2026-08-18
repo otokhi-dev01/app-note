@@ -14,10 +14,30 @@ class FolderRepositoryImpl implements FolderRepository {
 
   const FolderRepositoryImpl(this._remote);
 
+  /// `parentFolderId: null` now only returns the root level, so a full tree
+  /// takes one call per folder that reports `hasChildren` — walked here so
+  /// every existing caller still gets the complete flat set it always did.
   @override
   Future<Result<FolderBundle>> getFolders() => guard(() async {
-    final response = await _remote.getFolders();
-    return FolderBundle(folders: response.folders, trash: response.trash);
+    final folders = <FolderModel>[];
+    final trashById = <int, FolderModel>{};
+    final visited = <int>{};
+
+    Future<void> collect(int? parentId) async {
+      final response = await _remote.getFolders(parentFolderId: parentId);
+      folders.addAll(response.folders);
+      for (final f in response.trash) {
+        trashById[f.id] = f;
+      }
+      for (final f in response.folders) {
+        if (f.hasChildren && visited.add(f.id)) {
+          await collect(f.id);
+        }
+      }
+    }
+
+    await collect(null);
+    return FolderBundle(folders: folders, trash: trashById.values.toList());
   });
 
   /// `/api/folder/save` answers 200 even for validation errors, signalling the
@@ -26,6 +46,7 @@ class FolderRepositoryImpl implements FolderRepository {
   @override
   Future<Result<int>> saveFolder({
     required int id,
+    int? parentId,
     required String name,
     required String iconName,
     required String colorValue,
@@ -40,6 +61,7 @@ class FolderRepositoryImpl implements FolderRepository {
       final body = await _remote.saveFolder(
         FolderModel(
           id: id,
+          parentId: parentId,
           name: trimmed,
           iconName: iconName,
           colorValue: colorValue,

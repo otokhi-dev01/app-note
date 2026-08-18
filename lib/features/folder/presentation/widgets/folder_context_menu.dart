@@ -38,7 +38,7 @@ class FolderContextMenu extends StatelessWidget {
           onTap: () => controller.onRenameFolder(folder),
         ),
         IOSMenuAction(
-          label: "Create Subfolder",
+          label: "Add Folder",
           icon: CupertinoIcons.folder_badge_plus,
           onTap: () {
             Get.to(

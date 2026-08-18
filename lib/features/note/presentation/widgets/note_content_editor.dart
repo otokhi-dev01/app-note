@@ -46,28 +46,31 @@ class NoteContentEditor extends StatelessWidget {
                 bottomPadding,
               ),
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      CupertinoIcons.folder,
-                      size: 12,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.5,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      note?.folderName ?? "Notes",
-                      style: theme.textTheme.bodySmall?.copyWith(
+                GestureDetector(
+                  onTap: isReadOnly ? null : controller.moveNote,
+                  behavior: HitTestBehavior.opaque,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.folder,
+                        size: 12,
                         color: theme.colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.5,
                         ),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Text(
+                        note?.folderName ?? "Notes",
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -89,7 +92,9 @@ class NoteContentEditor extends StatelessWidget {
                   cursorColor: AppTheme.folderYellow,
                   cursorWidth: 1.5,
                   maxLines: null,
-                  keyboardType: TextInputType.multiline,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) => controller.focusFirstTextBlock(),
                   textCapitalization: TextCapitalization.sentences,
                   style: theme.textTheme.headlineLarge?.copyWith(
                     fontSize: 32,
@@ -223,6 +228,7 @@ class NoteContentEditor extends StatelessWidget {
     int blockIndex,
   ) {
     final quillController = controller.getQuillController(block.id, block.text);
+    final focusNode = controller.getBlockFocusNode(block.id);
     final isReadOnly = controller.isReadOnly.value;
 
     // Set readOnly on the controller for flutter_quill 10+
@@ -237,7 +243,36 @@ class NoteContentEditor extends StatelessWidget {
             controller.currentBlockStyle.value = block.style;
           }
         },
-        child: quill.QuillEditor.basic(controller: quillController),
+        child: quill.QuillEditor.basic(
+          controller: quillController,
+          focusNode: focusNode,
+          config: quill.QuillEditorConfig(
+            customStyles: _paragraphStylesFor(context, block.style),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Renders a block at the size/weight its Format-panel style implies
+  /// ("Title", "Heading", "Subheading", "Body") — previously `block.style`
+  /// was only used to highlight the selected button, with no visual effect
+  /// on the block itself.
+  quill.DefaultStyles _paragraphStylesFor(BuildContext context, String style) {
+    final base = Theme.of(context).textTheme.bodyLarge!;
+    final textStyle = switch (style) {
+      'title' => base.copyWith(fontSize: 26, fontWeight: FontWeight.bold),
+      'heading' => base.copyWith(fontSize: 22, fontWeight: FontWeight.w700),
+      'subheading' => base.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
+      _ => base.copyWith(fontSize: 17, fontWeight: FontWeight.normal),
+    };
+    return quill.DefaultStyles(
+      paragraph: quill.DefaultTextBlockStyle(
+        textStyle,
+        const quill.HorizontalSpacing(0, 0),
+        const quill.VerticalSpacing(0, 0),
+        const quill.VerticalSpacing(0, 0),
+        null,
       ),
     );
   }

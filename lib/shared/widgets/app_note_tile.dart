@@ -1,7 +1,10 @@
+import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/date_formatter.dart';
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
@@ -127,18 +130,51 @@ class _AttachmentThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localPath = normalizeLocalPath(attachment.localPath);
+    if (localPath != null && File(localPath).existsSync()) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(
+          File(localPath),
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(context),
+        ),
+      );
+    }
+
+    final networkUrl = normalizeAttachmentUrl(attachment.url);
+    if (networkUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          networkUrl,
+          headers: attachmentAuthHeaders(),
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(context),
+        ),
+      );
+    }
+
+    return _placeholder(context);
+  }
+
+  Widget _placeholder(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: 44,
       height: 44,
       decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
-        image: DecorationImage(
-          image: attachment.url != null
-              ? NetworkImage(attachment.url!)
-              : const AssetImage('assets/images/placeholder.png')
-                    as ImageProvider,
-          fit: BoxFit.cover,
-        ),
+      ),
+      child: Icon(
+        CupertinoIcons.photo,
+        size: 18,
+        color: theme.colorScheme.onSurfaceVariant,
       ),
     );
   }

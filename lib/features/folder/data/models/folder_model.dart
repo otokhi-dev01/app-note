@@ -15,6 +15,7 @@ class FolderModel extends Folder {
     super.updatedAt,
     super.deletedAt,
     super.subFolders,
+    super.hasChildren,
   });
 
   factory FolderModel.fromJson(Map<String, dynamic> json) {
@@ -26,7 +27,9 @@ class FolderModel extends Folder {
 
     return FolderModel(
       id: asInt(json['FolderId'] ?? json['id'] ?? json['Id']),
-      parentId: asInt(json['ParentId'] ?? json['parentId']),
+      parentId: asInt(
+        json['ParentFolderId'] ?? json['parentFolderId'] ?? json['ParentId'] ?? json['parentId'],
+      ),
       name: asString(json['FolderName'] ?? json['Name'] ?? json['name']).trim(),
       iconName: asString(json['IconName'] ?? json['iconName']),
       colorValue: asString(json['ColorValue'] ?? json['colorValue']),
@@ -36,6 +39,7 @@ class FolderModel extends Folder {
       updatedAt: asDate(json['UpdatedAt'] ?? json['updatedAt']),
       deletedAt: asDate(json['DeletedAt'] ?? json['deletedAt']),
       subFolders: subs,
+      hasChildren: asBool(json['HasChildren'] ?? json['hasChildren']),
     );
   }
 
@@ -53,16 +57,19 @@ class FolderModel extends Folder {
     updatedAt: folder.updatedAt,
     deletedAt: folder.deletedAt,
     subFolders: folder.subFolders,
+    hasChildren: folder.hasChildren,
   );
 
-  /// Matches `FolderSaveRequest`: `{ id, name*, iconName, colorValue, sortOrder }`.
-  /// The API has no parentId field, so nesting is not persisted server-side.
+  /// Matches `FolderSaveRequest`:
+  /// `{ id, name*, iconName, colorValue, sortOrder, parentFolderId }`.
+  /// `parentFolderId: null` saves it as a root folder.
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'iconName': iconName,
     'colorValue': colorValue,
     'sortOrder': sortOrder,
+    'parentFolderId': isRoot ? null : parentId,
   };
 }
 

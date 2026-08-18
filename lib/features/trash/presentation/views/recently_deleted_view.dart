@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/date_formatter.dart';
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -343,7 +344,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       onDelete: controller.canDeletePermanently
           ? () => controller.deleteItemPermanently(
               folderId: folder.id,
-              name: folder.name,
+              name: folder.displayName,
             )
           : null,
       child: Obx(() {
@@ -369,7 +370,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                   size: 28,
                 ),
           title: Text(
-            folder.name,
+            folder.displayName,
             style: theme.textTheme.bodyLarge?.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 17,
@@ -487,7 +488,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               } else if (folder != null) {
                 controller.deleteItemPermanently(
                   folderId: folder.id,
-                  name: folder.name,
+                  name: folder.displayName,
                 );
               }
             },
