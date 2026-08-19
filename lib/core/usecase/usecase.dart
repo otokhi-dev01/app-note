@@ -8,18 +8,18 @@ import 'package:Note/core/error/result.dart';
 /// ```dart
 /// final result = await _getNotes(GetNotesParams(folderId: 3));
 /// ```
-abstract class UseCase<Type, Params> {
+abstract class UseCase<T, Params> {
   const UseCase();
 
-  Future<Result<Type>> call(Params params);
+  Future<Result<T>> call(Params params);
 }
 
 /// A use case that is pure and synchronous — no I/O, just a domain rule.
 /// [BuildFolderHierarchy] is the example: a list in, a tree out.
-abstract class SyncUseCase<Type, Params> {
+abstract class SyncUseCase<T, Params> {
   const SyncUseCase();
 
-  Result<Type> call(Params params);
+  Result<T> call(Params params);
 }
 
 /// Parameter object for use cases that take no input.

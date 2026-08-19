@@ -222,36 +222,40 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
         sliver: SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
             if (hasFolders && hasNotes) {
-              if (index == 0)
+              if (index == 0) {
                 return _buildSection(
                   context,
                   "Folders",
                   controller.deletedFolders,
                   isFolder: true,
                 );
-              if (index == 1)
+              }
+              if (index == 1) {
                 return _buildSection(
                   context,
                   "Notes",
                   controller.deletedNotes,
                   isFolder: false,
                 );
+              }
             } else if (hasFolders) {
-              if (index == 0)
+              if (index == 0) {
                 return _buildSection(
                   context,
                   "Folders",
                   controller.deletedFolders,
                   isFolder: true,
                 );
+              }
             } else if (hasNotes) {
-              if (index == 0)
+              if (index == 0) {
                 return _buildSection(
                   context,
                   "Notes",
                   controller.deletedNotes,
                   isFolder: false,
                 );
+              }
             }
             return null;
           }, childCount: (hasFolders ? 1 : 0) + (hasNotes ? 1 : 0)),

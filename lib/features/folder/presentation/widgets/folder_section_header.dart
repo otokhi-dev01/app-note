@@ -45,21 +45,17 @@ class FolderSectionHeader extends StatelessWidget {
                       child: Text(title, style: theme.textTheme.titleLarge),
                     ),
                     Obx(
-                      () => CustomGlassContainer(
+                      () => SizedBox(
                         width: 36,
                         height: 36,
-                        shape: GlassShape.circle,
-                        blur: 10,
-                        opacity: 0.15,
-                        thickness: 8,
-                        padding: EdgeInsets.zero,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          isExpanded.value
-                              ? CupertinoIcons.chevron_down
-                              : CupertinoIcons.chevron_forward,
-                          color: AppTheme.folderPink,
-                          size: 25,
+                        child: Center(
+                          child: Icon(
+                            isExpanded.value
+                                ? CupertinoIcons.chevron_down
+                                : CupertinoIcons.chevron_forward,
+                            color: AppTheme.folderPink,
+                            size: 25,
+                          ),
                         ),
                       ),
                     ),
@@ -69,17 +65,15 @@ class FolderSectionHeader extends StatelessWidget {
             ),
             if (onCreateFolder != null) ...[
               const SizedBox(width: 8),
-              CustomGlassButton(
+              IconButton(
                 onPressed: onCreateFolder,
-                semanticLabel: 'Create folder in $title',
-                width: 36,
-                height: 36,
-                shape: GlassShape.circle,
-                blur: 10,
-                opacity: 0.15,
-                thickness: 8,
+                tooltip: 'Create folder in $title',
                 padding: EdgeInsets.zero,
-                child: Icon(
+                constraints: const BoxConstraints.tightFor(
+                  width: 36,
+                  height: 36,
+                ),
+                icon: Icon(
                   CupertinoIcons.folder_badge_plus,
                   color: AppTheme.folderPink,
                   size: 25,

@@ -48,8 +48,9 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
     setState(() {
       _dragExtent += details.primaryDelta!;
       if (_dragExtent > 0) _dragExtent = 0; // Prevent dragging to the right
-      if (_dragExtent < -_totalActionsWidth - 20)
+      if (_dragExtent < -_totalActionsWidth - 20) {
         _dragExtent = -_totalActionsWidth - 20; // Limit left drag
+      }
     });
   }
 

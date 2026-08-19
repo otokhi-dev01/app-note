@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches AppTheme.bodyColor so the launch screen hands over to the
+         Flutter splash without a flash of a different background. -->
+    <color name="launch_background">#F2F2F7</color>
+</resources>

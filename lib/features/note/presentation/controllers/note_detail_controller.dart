@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -273,7 +275,7 @@ class NoteDetailController extends GetxController {
         );
         blocks.refresh();
         addTextBlock();
-        saveNote();
+        unawaited(saveNote());
       }
     } catch (e) {
       debugPrint('[DRAWING ERROR] $e');
@@ -358,8 +360,9 @@ class NoteDetailController extends GetxController {
   }
 
   void updateAttachmentImage(int blockIndex, String editedPath) {
-    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length)
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
+    }
     final block = blocks[blockIndex];
     if (block is! AttachmentBlock) return;
 
@@ -393,8 +396,9 @@ class NoteDetailController extends GetxController {
   }
 
   void updateDrawing(int blockIndex, String path) {
-    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length)
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
+    }
     blocks[blockIndex] = DrawingBlock(
       id: blocks[blockIndex].id,
       localPath: path,
@@ -924,7 +928,7 @@ class NoteDetailController extends GetxController {
 
     // Trash counts live on the folder screen and go stale otherwise.
     if (Get.isRegistered<FolderController>()) {
-      Get.find<FolderController>().fetchFolders(refresh: true);
+      unawaited(Get.find<FolderController>().fetchFolders(refresh: true));
     }
 
     // Optimistic cleanup so the list behind us is already correct.
@@ -933,7 +937,7 @@ class NoteDetailController extends GetxController {
       nc.notes.removeWhere((n) => n.id == deletedNoteId);
       nc.pinnedNotes.removeWhere((n) => n.id == deletedNoteId);
       nc.otherNotes.removeWhere((n) => n.id == deletedNoteId);
-      nc.fetchNotes(refresh: true);
+      unawaited(nc.fetchNotes(refresh: true));
     }
 
     // Land exactly on the list or folder screen — more robust than stacking
@@ -1022,11 +1026,17 @@ class NoteDetailController extends GetxController {
   }
 
   void _clearControllers() {
-    for (var c in quillControllers.values) c.dispose();
+    for (var c in quillControllers.values) {
+      c.dispose();
+    }
     quillControllers.clear();
-    for (var c in textControllers.values) c.dispose();
+    for (var c in textControllers.values) {
+      c.dispose();
+    }
     textControllers.clear();
-    for (var f in blockFocusNodes.values) f.dispose();
+    for (var f in blockFocusNodes.values) {
+      f.dispose();
+    }
     blockFocusNodes.clear();
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
@@ -21,8 +23,8 @@ class AccountController extends GetxController {
   Future<void> logout() async {
     await _logout(const NoParams());
     // Show onboarding again on the next launch.
-    GetStorage().write('isFirstTime', true);
-    Get.offAllNamed(Routes.ONBOARDING);
+    unawaited(GetStorage().write('isFirstTime', true));
+    unawaited(Get.offAllNamed(Routes.ONBOARDING));
   }
 
   /// Guest mode's way back to Welcome/Login — required so a device that

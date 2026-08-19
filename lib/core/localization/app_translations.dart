@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 
-import 'en_us.dart';
-import 'km_kh.dart';
+import 'package:Note/core/localization/en_us.dart';
+import 'package:Note/core/localization/km_kh.dart';
 
 /// GetX's built-in i18n: `'key'.tr` resolves against whichever locale is
 /// active. Only Splash/Onboarding/Login/Register are translated today —

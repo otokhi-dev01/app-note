@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -390,6 +392,6 @@ class SettingsView extends GetView<ProfileController> {
 
   Future<void> _logout() async {
     await Get.find<Logout>()(const NoParams());
-    Get.offAllNamed(Routes.ONBOARDING);
+    unawaited(Get.offAllNamed(Routes.ONBOARDING));
   }
 }

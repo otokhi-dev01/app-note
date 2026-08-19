@@ -248,7 +248,7 @@ class _GridVisualPreview extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover, // Ensures the picture fills the top area fully
-        errorBuilder: (_, __, ___) => const _GridPlaceholder(),
+        errorBuilder: (_, _, _) => const _GridPlaceholder(),
       );
     }
 
@@ -277,7 +277,7 @@ class _GridVisualPreview extends StatelessWidget {
             ),
           );
         },
-        errorBuilder: (_, __, ___) => const _GridPlaceholder(),
+        errorBuilder: (_, _, _) => const _GridPlaceholder(),
       );
     }
 

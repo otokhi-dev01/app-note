@@ -139,7 +139,7 @@ class _AttachmentThumbnail extends StatelessWidget {
           width: 44,
           height: 44,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(context),
+          errorBuilder: (_, _, _) => _placeholder(context),
         ),
       );
     }
@@ -154,7 +154,7 @@ class _AttachmentThumbnail extends StatelessWidget {
           width: 44,
           height: 44,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(context),
+          errorBuilder: (_, _, _) => _placeholder(context),
         ),
       );
     }

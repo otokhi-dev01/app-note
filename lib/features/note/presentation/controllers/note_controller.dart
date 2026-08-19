@@ -247,6 +247,7 @@ class NoteController extends GetxController {
             transition: Transition.cupertino,
           );
           Get.back(); // Close the now-stale picker
+          if (!context.mounted) return;
           await _openFolderPicker(context, targetIds, currentFolderId);
         },
       ),

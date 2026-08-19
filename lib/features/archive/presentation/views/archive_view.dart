@@ -185,7 +185,7 @@ class ArchiveView extends GetView<NoteController> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(CupertinoIcons.archivebox, size: 60, color: Colors.grey),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Text(
                   "No Archived Notes",
                   style: TextStyle(color: Colors.grey, fontSize: 18),

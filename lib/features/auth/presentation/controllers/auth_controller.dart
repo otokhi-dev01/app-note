@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -79,7 +81,7 @@ class AuthController extends GetxController {
           _guestMode.disable();
           _persistRememberMe(phone);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
-          Get.offAllNamed(Routes.FOLDER);
+          unawaited(Get.offAllNamed(Routes.FOLDER));
         case Err(:final failure):
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }
@@ -111,7 +113,7 @@ class AuthController extends GetxController {
             'success_title'.tr,
             'register_success_message'.tr,
           );
-          Get.offAllNamed(Routes.LOGIN);
+          unawaited(Get.offAllNamed(Routes.LOGIN));
         case Err(:final failure):
           AppSnackbar.failure('register_failed_title'.tr, failure);
       }
