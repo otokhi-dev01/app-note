@@ -1,8 +1,6 @@
 import 'package:get/get.dart';
 
 import 'package:Note/core/storage/session_storage.dart';
-import 'package:Note/core/storage/theme_storage.dart';
-import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
@@ -23,15 +21,12 @@ class ProfileBinding extends Bindings {
       () => UpdateProfileImage(Get.find<ProfileRepository>()),
       fenix: true,
     );
-    Get.lazyPut(() => ThemeStorage(), fenix: true);
 
     Get.put(
       ProfileController(
         updateUserName: Get.find<UpdateUserName>(),
         updateProfileImage: Get.find<UpdateProfileImage>(),
-        logout: Get.find<Logout>(),
         profile: Get.find<ProfileRepository>(),
-        theme: Get.find<ThemeStorage>(),
       ),
     );
   }

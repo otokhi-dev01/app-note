@@ -11,6 +11,7 @@ import 'package:Note/features/folder/presentation/widgets/folder_all_notes_tile.
 import 'package:Note/features/folder/presentation/widgets/folder_system_tiles.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_bottom_bar.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/routes/app_pages.dart';
 
 class FolderView extends GetView<FolderController> {
   const FolderView({super.key});
@@ -32,18 +33,26 @@ class FolderView extends GetView<FolderController> {
             ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        extendBody: true,
         extendBodyBehindAppBar: true,
-        bottomNavigationBar: FolderBottomBar(controller: controller),
-        body: RefreshIndicator(
-          onRefresh: () => controller.fetchFolders(refresh: true),
-          color: theme.primaryColor,
-          backgroundColor: theme.scaffoldBackgroundColor,
-          edgeOffset: 140,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [_buildAppBar(context), _buildFolderList(context)],
-          ),
+        body: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: () => controller.fetchFolders(refresh: true),
+              color: theme.primaryColor,
+              backgroundColor: theme.scaffoldBackgroundColor,
+              edgeOffset: 140,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [_buildAppBar(context), _buildFolderList(context)],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: FolderBottomBar(controller: controller),
+            ),
+          ],
         ),
       ),
     );
@@ -56,6 +65,22 @@ class FolderView extends GetView<FolderController> {
       toolbarHeight: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
+      leading: CustomGlassButton(
+        onPressed: () => Get.toNamed(Routes.SETTINGS),
+        width: 44,
+        height: 44,
+        shape: GlassShape.circle,
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Icon(
+          CupertinoIcons.settings_solid,
+          fontWeight: FontWeight.bold,
+          color: theme.primaryColor,
+          size: 30,
+        ),
+      ),
       title: Text(
         "Folders",
         style: theme.textTheme.titleMedium?.copyWith(
@@ -72,47 +97,47 @@ class FolderView extends GetView<FolderController> {
         ),
       ),
       actions: [
-        CustomGlassButton(
-          onPressed: () => Get.to(
-            () => FolderCreateModal(controller: controller),
-            fullscreenDialog: true,
-            transition: Transition.cupertino,
-          ),
-          width: 44,
-          height: 44,
-          shape: GlassShape.circle,
-          blur: 10,
-          opacity: 0.15,
-          thickness: 8,
-          padding: EdgeInsets.zero,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Icon(CupertinoIcons.folder, color: theme.primaryColor, size: 24),
-              Positioned(
-                right: -2,
-                top: -1,
-                child: Container(
-                  width: 13,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: theme.primaryColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      CupertinoIcons.plus,
-                      color: Colors.white,
-                      size: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        // CustomGlassButton(
+        //   onPressed: () => Get.to(
+        //     () => FolderCreateModal(controller: controller),
+        //     fullscreenDialog: true,
+        //     transition: Transition.cupertino,
+        //   ),
+        //   width: 44,
+        //   height: 44,
+        //   shape: GlassShape.circle,
+        //   blur: 10,
+        //   opacity: 0.15,
+        //   thickness: 8,
+        //   padding: EdgeInsets.zero,
+        //   child: Stack(
+        //     clipBehavior: Clip.none,
+        //     alignment: Alignment.center,
+        //     children: [
+        //       Icon(CupertinoIcons.folder, color: theme.primaryColor, size: 24),
+        //       Positioned(
+        //         right: -2,
+        //         top: -1,
+        //         child: Container(
+        //           width: 13,
+        //           height: 14,
+        //           decoration: BoxDecoration(
+        //             color: theme.primaryColor,
+        //             shape: BoxShape.circle,
+        //           ),
+        //           child: const Center(
+        //             child: Icon(
+        //               CupertinoIcons.plus,
+        //               color: Colors.white,
+        //               size: 10,
+        //               fontWeight: FontWeight.bold,
+        //             ),
+        //           ),
+        //         ),
+        //       ),
+        //     ],
+        //   ),
+        // ),
         Obx(() => _buildEditButton(context)),
       ],
     );
@@ -153,6 +178,17 @@ class FolderView extends GetView<FolderController> {
     );
   }
 
+  void _createFolderInSection(BuildContext context, String sectionKeyword) {
+    Get.to(
+      () => FolderCreateModal(
+        controller: controller,
+        sectionKeyword: sectionKeyword,
+      ),
+      fullscreenDialog: true,
+      transition: Transition.cupertino,
+    );
+  }
+
   Widget _buildFolderList(BuildContext context) {
     final theme = Theme.of(context);
     return SliverToBoxAdapter(
@@ -173,13 +209,14 @@ class FolderView extends GetView<FolderController> {
               title: "Pii Cloud",
               isExpanded: controller.isICloudExpanded,
               onTap: controller.toggleICloud,
+              onCreateFolder: () => _createFolderInSection(context, 'iCloud'),
             ),
             Obx(
               () => controller.isICloudExpanded.value
                   ? _buildFolderGroup(context, controller.iCloudFolders)
                   : const SizedBox.shrink(),
             ),
-            const SizedBox(height: 24),
+            // const SizedBox(height: 24),
             // FolderSectionHeader(
             //   title: "Shared",
             //   isExpanded: controller.isSharedExpanded,
@@ -195,6 +232,7 @@ class FolderView extends GetView<FolderController> {
               title: "On My Phone",
               isExpanded: controller.isOnMyiPhoneExpanded,
               onTap: controller.toggleOnMyiPhone,
+              onCreateFolder: () => _createFolderInSection(context, ''),
             ),
             Obx(
               () => controller.isOnMyiPhoneExpanded.value

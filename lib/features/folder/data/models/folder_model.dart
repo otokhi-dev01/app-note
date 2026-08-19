@@ -28,7 +28,10 @@ class FolderModel extends Folder {
     return FolderModel(
       id: asInt(json['FolderId'] ?? json['id'] ?? json['Id']),
       parentId: asInt(
-        json['ParentFolderId'] ?? json['parentFolderId'] ?? json['ParentId'] ?? json['parentId'],
+        json['ParentFolderId'] ??
+            json['parentFolderId'] ??
+            json['ParentId'] ??
+            json['parentId'],
       ),
       name: asString(json['FolderName'] ?? json['Name'] ?? json['name']).trim(),
       iconName: asString(json['IconName'] ?? json['iconName']),

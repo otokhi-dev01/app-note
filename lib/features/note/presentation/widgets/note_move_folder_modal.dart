@@ -262,9 +262,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.8,
-                      ),
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                   Icon(
@@ -299,7 +297,11 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
     );
   }
 
-  Widget _buildFolderTile(BuildContext context, AppColors colors, Folder folder) {
+  Widget _buildFolderTile(
+    BuildContext context,
+    AppColors colors,
+    Folder folder,
+  ) {
     final isCurrent = folder.id == currentFolderId;
     final isSystem = ["Notes", "All on My iPhone"].contains(folder.name);
 

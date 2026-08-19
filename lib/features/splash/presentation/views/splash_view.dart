@@ -134,7 +134,7 @@ class SplashView extends GetView<SplashController> {
                       opacity: 0.1,
                       child: Center(
                         child: Text(
-                          "High Fidelity Note Taking",
+                          "app_tagline".tr,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.5),

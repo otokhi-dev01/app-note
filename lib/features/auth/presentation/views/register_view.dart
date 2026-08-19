@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
 
 class RegisterView extends GetView<AuthController> {
@@ -72,7 +73,7 @@ class RegisterView extends GetView<AuthController> {
                   return Opacity(
                     opacity: opacity > 0.8 ? 1.0 : 0.0,
                     child: Text(
-                      "Register",
+                      "register_title".tr,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 17,
@@ -92,7 +93,7 @@ class RegisterView extends GetView<AuthController> {
                     return Opacity(
                       opacity: percentage.clamp(0.0, 1.0),
                       child: Text(
-                        "Register",
+                        "register_title".tr,
                         style: theme.textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 30,
@@ -102,6 +103,12 @@ class RegisterView extends GetView<AuthController> {
                   },
                 ),
               ),
+              actions: const [
+                Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: LanguageToggleButton(),
+                ),
+              ],
             ),
             SliverFillRemaining(
               hasScrollBody: false,
@@ -124,7 +131,7 @@ class RegisterView extends GetView<AuthController> {
                     ),
                     const SizedBox(height: 15),
                     Text(
-                          "Create Account",
+                          "register_create_account".tr,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 30,
@@ -136,7 +143,7 @@ class RegisterView extends GetView<AuthController> {
 
                     const SizedBox(height: 8),
                     Text(
-                      "Sign up to get started",
+                      "register_subtitle".tr,
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 100.ms),
 
@@ -173,14 +180,14 @@ class RegisterView extends GetView<AuthController> {
                               _buildTextField(
                                 context,
                                 controller: controller.nameController,
-                                hint: "Full Name",
+                                hint: "full_name_hint".tr,
                                 icon: FontAwesomeIcons.user,
                               ),
                               const SizedBox(height: 16),
                               _buildTextField(
                                 context,
                                 controller: controller.phoneController,
-                                hint: "Phone Number",
+                                hint: "phone_number_hint".tr,
                                 icon: FontAwesomeIcons.phone,
                                 keyboardType: TextInputType.phone,
                               ),
@@ -189,7 +196,7 @@ class RegisterView extends GetView<AuthController> {
                                 () => _buildTextField(
                                   context,
                                   controller: controller.passwordController,
-                                  hint: "Password",
+                                  hint: "password_hint".tr,
                                   icon: FontAwesomeIcons.lock,
                                   isPassword:
                                       !controller.isPasswordVisible.value,
@@ -212,7 +219,7 @@ class RegisterView extends GetView<AuthController> {
                                   context,
                                   controller:
                                       controller.confirmPasswordController,
-                                  hint: "Confirm Password",
+                                  hint: "confirm_password_hint".tr,
                                   icon: FontAwesomeIcons.lock,
                                   isPassword: !controller
                                       .isConfirmPasswordVisible
@@ -259,9 +266,9 @@ class RegisterView extends GetView<AuthController> {
                                               strokeWidth: 2,
                                             ),
                                           )
-                                        : const Text(
-                                            "REGISTER",
-                                            style: TextStyle(
+                                        : Text(
+                                            "register_button".tr,
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
                                             ),
@@ -281,7 +288,7 @@ class RegisterView extends GetView<AuthController> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Already have an account?",
+                          "register_have_account".tr,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
@@ -294,7 +301,7 @@ class RegisterView extends GetView<AuthController> {
                             padding: const EdgeInsets.symmetric(horizontal: 5),
                           ),
                           child: Text(
-                            "Login",
+                            "login_link".tr,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: AppTheme.folderPink,
                               fontWeight: FontWeight.bold,

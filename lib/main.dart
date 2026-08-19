@@ -7,7 +7,7 @@ import 'package:Note/app.dart';
 
 /*
   App: OTOKHI NOTE APP
-  Date: 08.17.2026 update by nona_developer in the evening at 10:00pm
+  Date: 08.19.2026 update by nona in the evening at 8:00pm
   Update by: branch nona_developer
   Update by: branch nona
   Feature: All the feature and the logic and integration with api

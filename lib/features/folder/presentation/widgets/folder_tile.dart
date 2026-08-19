@@ -155,9 +155,7 @@ class _ExpandToggle extends StatelessWidget {
             curve: Curves.easeOut,
             child: Icon(
               Icons.arrow_forward_ios,
-              color: theme.colorScheme.onSurfaceVariant.withValues(
-                alpha: 0.35,
-              ),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
               size: 16,
             ),
           ),

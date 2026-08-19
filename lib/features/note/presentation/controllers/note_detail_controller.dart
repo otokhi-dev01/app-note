@@ -525,9 +525,7 @@ class NoteDetailController extends GetxController {
     final hex =
         '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
     final current = qc.getSelectionStyle().attributes['background']?.value;
-    qc.formatSelection(
-      quill.BackgroundAttribute(current == hex ? null : hex),
-    );
+    qc.formatSelection(quill.BackgroundAttribute(current == hex ? null : hex));
   }
 
   void updateActiveBlockStyle(String style) {
@@ -728,6 +726,11 @@ class NoteDetailController extends GetxController {
 
         switch (result) {
           case Ok(:final value):
+            // Guest-mode "uploads" have nowhere to go but this device, so the
+            // repository hands back a real file it just copied into permanent
+            // storage rather than a server URL. Treating that path as a URL
+            // would send Image.network to a host that was never asked for it.
+            final isLocalFile = File(value.filePath).existsSync();
             blocks[i] = AttachmentBlock(
               id: block.id,
               attachmentId: value.attachmentId,
@@ -736,8 +739,10 @@ class NoteDetailController extends GetxController {
               // otherwise the block briefly (or, if the raw path is
               // malformed, permanently) carries an unresolved server path
               // and the image renders as unavailable right after saving.
-              url: normalizeAttachmentUrl(value.filePath) ?? value.filePath,
-              localPath: null,
+              url: isLocalFile
+                  ? null
+                  : (normalizeAttachmentUrl(value.filePath) ?? value.filePath),
+              localPath: isLocalFile ? value.filePath : null,
             );
             stateChanged = true;
           case Err(:final failure):

@@ -13,49 +13,73 @@ class FolderBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    // Same floating-pill footprint as the Search screen's bottom bar: a
+    // wide "Search" pill plus a circular accent button, both detached from
+    // the screen edges by the same outer padding.
     return SafeArea(
       top: false,
-      child: CustomGlassTabBar.bottom(
-        tabs: const [
-          CustomGlassTab(
-            icon: Icon(CupertinoIcons.folder),
-            activeIcon: Icon(CupertinoIcons.folder_fill),
-            label: 'Folders',
-            semanticLabel: 'Folders',
-          ),
-          CustomGlassTab(
-            icon: Icon(CupertinoIcons.profile_circled),
-            activeIcon: Icon(CupertinoIcons.profile_circled),
-            label: 'Profile',
-            semanticLabel: 'Profile',
-          ),
-          CustomGlassTab(
-            icon: Icon(CupertinoIcons.search),
-            label: 'Search',
-            semanticLabel: 'Search notes and folders',
-          ),
-        ],
-        selectedIndex: 0,
-        onTabSelected: (index) {
-          if (index == 1) {
-            Get.toNamed(Routes.PROFILE);
-          } else if (index == 2) {
-            Get.toNamed(Routes.SEARCH);
-          }
-        },
-        extraButton: CustomGlassTabBarExtraButton(
-          icon: const Icon(CupertinoIcons.square_pencil),
-          onTap: controller.createNewNote,
-          label: 'Create note',
-          iconColor: theme.primaryColor,
-          size: 65,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset > 0 ? 10 : 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: CustomGlassButton(
+                onPressed: () => Get.toNamed(Routes.SEARCH),
+                semanticLabel: 'Search notes and folders',
+                height: 50,
+                borderRadius: 30,
+                blur: 10,
+                opacity: 0.15,
+                thickness: 8,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      CupertinoIcons.search,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Search',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontSize: 17,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Spacer(),
+                    Icon(
+                      CupertinoIcons.mic_fill,
+                      color: theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            CustomGlassButton(
+              onPressed: controller.createNewNote,
+              semanticLabel: 'Create note',
+              width: 50,
+              height: 50,
+              shape: GlassShape.circle,
+              blur: 10,
+              opacity: 0.15,
+              thickness: 8,
+              padding: EdgeInsets.zero,
+              child: Icon(
+                CupertinoIcons.square_pencil,
+                color: theme.primaryColor,
+                size: 26,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        horizontalPadding: 12,
-        verticalPadding: 8,
-        barHeight: 64,
-        selectedIconColor: theme.primaryColor,
-        unselectedIconColor: theme.colorScheme.onSurfaceVariant,
-        adaptiveBrightness: true,
       ),
     );
   }

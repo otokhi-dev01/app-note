@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import 'package:Note/core/network/api_client.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
@@ -8,10 +9,14 @@ import 'package:Note/features/auth/domain/repositories/auth_repository.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/folder/data/datasources/folder_remote_data_source.dart';
 import 'package:Note/features/folder/data/repositories/folder_repository_impl.dart';
+import 'package:Note/features/folder/data/repositories/folder_repository_router.dart';
+import 'package:Note/features/folder/data/repositories/local_folder_repository.dart';
 import 'package:Note/features/folder/domain/repositories/folder_repository.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/data/datasources/note_remote_data_source.dart';
+import 'package:Note/features/note/data/repositories/local_note_repository.dart';
 import 'package:Note/features/note/data/repositories/note_repository_impl.dart';
+import 'package:Note/features/note/data/repositories/note_repository_router.dart';
 import 'package:Note/features/note/domain/repositories/note_repository.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 
@@ -25,6 +30,7 @@ class InitialBinding extends Bindings {
   void dependencies() {
     // ── Infrastructure ──────────────────────────────────────────────
     Get.put(SessionStorage(), permanent: true);
+    Get.put(GuestModeService(), permanent: true);
     Get.put(ApiClient(), permanent: true);
 
     // ── Datasources ─────────────────────────────────────────────────
@@ -40,12 +46,25 @@ class InitialBinding extends Bindings {
       ),
       fenix: true,
     );
+    Get.lazyPut(() => LocalFolderRepository(), fenix: true);
     Get.lazyPut<FolderRepository>(
-      () => FolderRepositoryImpl(Get.find<FolderRemoteDataSource>()),
+      () => FolderRepositoryRouter(
+        FolderRepositoryImpl(Get.find<FolderRemoteDataSource>()),
+        Get.find<LocalFolderRepository>(),
+        Get.find<GuestModeService>(),
+      ),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => LocalNoteRepository(Get.find<LocalFolderRepository>()),
       fenix: true,
     );
     Get.lazyPut<NoteRepository>(
-      () => NoteRepositoryImpl(Get.find<NoteRemoteDataSource>()),
+      () => NoteRepositoryRouter(
+        NoteRepositoryImpl(Get.find<NoteRemoteDataSource>()),
+        Get.find<LocalNoteRepository>(),
+        Get.find<GuestModeService>(),
+      ),
       fenix: true,
     );
 

@@ -1,3 +1,5 @@
+import 'package:get/get.dart';
+
 /// Input rules shared by the auth use cases.
 ///
 /// Each returns `null` when the value is acceptable, or the message to show the
@@ -9,17 +11,17 @@ class Validators {
   /// 8–15 digits, no separators — matches what the backend accepts.
   static String? phone(String value) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty) return 'Please enter your phone number.';
+    if (trimmed.isEmpty) return 'validator_phone_required'.tr;
     if (!RegExp(r'^[0-9]{8,15}$').hasMatch(trimmed)) {
-      return 'Please enter a valid phone number (8-15 digits).';
+      return 'validator_phone_invalid'.tr;
     }
     return null;
   }
 
   static String? password(String value) {
-    if (value.isEmpty) return 'Please enter a password.';
+    if (value.isEmpty) return 'validator_password_required'.tr;
     if (value.length < 6) {
-      return 'Password must be at least 6 characters long.';
+      return 'validator_password_too_short'.tr;
     }
     return null;
   }
