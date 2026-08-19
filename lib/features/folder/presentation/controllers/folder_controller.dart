@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/storage/display_preferences.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -32,6 +33,8 @@ class FolderController extends GetxController {
        _buildHierarchy = buildHierarchy,
        _getNotes = getNotes;
 
+  final _prefs = DisplayPreferences();
+
   final folders = <Folder>[].obs;
   final trashFolders = <Folder>[].obs;
   final deletedCount = 0.obs;
@@ -39,7 +42,7 @@ class FolderController extends GetxController {
   final archivedCount = 0.obs;
   final isLoading = true.obs;
   final isEditing = false.obs;
-  final isGroupedByDate = false.obs;
+  late final isGroupedByDate = _prefs.folderGroupByDate.obs;
 
   // Guards against duplicate API calls from double taps
   final isDeleting = false.obs;
@@ -69,8 +72,7 @@ class FolderController extends GetxController {
   void toggleNotesSection() =>
       isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
 
-  bool isFolderExpanded(int folderId) =>
-      !collapsedFolderIds.contains(folderId);
+  bool isFolderExpanded(int folderId) => !collapsedFolderIds.contains(folderId);
 
   void toggleFolderExpanded(int folderId) {
     if (collapsedFolderIds.contains(folderId)) {
@@ -82,6 +84,7 @@ class FolderController extends GetxController {
 
   void toggleDateGrouping() {
     isGroupedByDate.value = !isGroupedByDate.value;
+    _prefs.setFolderGroupByDate(isGroupedByDate.value);
     sortFolders();
     AppSnackbar.info(
       'Grouping Updated',

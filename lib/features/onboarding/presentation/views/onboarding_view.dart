@@ -102,10 +102,13 @@ class OnboardingView extends GetView<OnboardingController> {
                     borderRadius: BorderRadius.circular(22),
                   ),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'Skip',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    'onboarding_skip'.tr,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -363,8 +366,7 @@ class OnboardingView extends GetView<OnboardingController> {
               ),
               Obx(() {
                 final isLastPage =
-                    controller.currentPage.value ==
-                    controller.pages.length - 1;
+                    controller.currentPage.value == controller.pages.length - 1;
 
                 return ElevatedButton(
                   onPressed: controller.nextPage,
@@ -397,7 +399,9 @@ class OnboardingView extends GetView<OnboardingController> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          isLastPage ? 'Get Started' : 'Next',
+                          isLastPage
+                              ? 'onboarding_get_started'.tr
+                              : 'onboarding_next'.tr,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -424,9 +428,9 @@ class OnboardingView extends GetView<OnboardingController> {
               foregroundColor: theme.colorScheme.onSurfaceVariant,
               minimumSize: const Size(double.infinity, 44),
             ),
-            child: const Text(
-              'Continue without account',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            child: Text(
+              'onboarding_continue_guest'.tr,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ],

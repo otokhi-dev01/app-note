@@ -398,7 +398,7 @@ class SearchView extends GetView<sc.SearchController> {
             Expanded(
               child: CustomGlassContainer(
                 /// Change the search bar height here
-                height: 60,
+                height: 50,
 
                 showGlow: true,
                 thickness: 20,
@@ -475,8 +475,8 @@ class SearchView extends GetView<sc.SearchController> {
                   Get.back();
                 }
               },
-              width: 60,
-              height: 60,
+              width: 50,
+              height: 50,
               shape: GlassShape.circle,
               blur: 10,
               opacity: 0.15,

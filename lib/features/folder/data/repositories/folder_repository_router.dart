@@ -14,7 +14,8 @@ class FolderRepositoryRouter implements FolderRepository {
 
   const FolderRepositoryRouter(this._remote, this._local, this._guestMode);
 
-  FolderRepository get _active => _guestMode.isGuestMode.value ? _local : _remote;
+  FolderRepository get _active =>
+      _guestMode.isGuestMode.value ? _local : _remote;
 
   @override
   Future<Result<FolderBundle>> getFolders() => _active.getFolders();

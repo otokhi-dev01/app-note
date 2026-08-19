@@ -78,10 +78,10 @@ class AuthController extends GetxController {
         case Ok():
           _guestMode.disable();
           _persistRememberMe(phone);
-          AppSnackbar.success('Welcome', 'Login successful!');
+          AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
           Get.offAllNamed(Routes.FOLDER);
         case Err(:final failure):
-          AppSnackbar.failure('Login Failed', failure);
+          AppSnackbar.failure('login_failed_title'.tr, failure);
       }
     } finally {
       isLoading.value = false;
@@ -108,12 +108,12 @@ class AuthController extends GetxController {
         case Ok():
           _guestMode.disable();
           AppSnackbar.success(
-            'Success',
-            'Account created successfully! Please log in.',
+            'success_title'.tr,
+            'register_success_message'.tr,
           );
           Get.offAllNamed(Routes.LOGIN);
         case Err(:final failure):
-          AppSnackbar.failure('Registration Failed', failure);
+          AppSnackbar.failure('register_failed_title'.tr, failure);
       }
     } finally {
       isLoading.value = false;
@@ -153,20 +153,20 @@ class AuthController extends GetxController {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Reset Password',
+                'reset_password_title'.tr,
                 style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'Enter your phone number to receive a password reset link.',
+                'reset_password_desc'.tr,
                 style: Theme.of(sheetContext).textTheme.bodyMedium,
               ),
               const SizedBox(height: 24),
               CustomGlassTextField(
                 controller: forgotPhoneController,
-                placeholder: 'Phone Number',
+                placeholder: 'phone_number_hint'.tr,
                 prefixIcon: const Icon(Icons.phone, color: AppTheme.folderPink),
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.done,
@@ -181,7 +181,7 @@ class AuthController extends GetxController {
                     final phone = forgotPhoneController.text.trim();
                     final invalid = Validators.phone(phone);
                     if (invalid != null) {
-                      AppSnackbar.warning('Invalid phone', invalid);
+                      AppSnackbar.warning('invalid_phone_title'.tr, invalid);
                       return;
                     }
 
@@ -193,11 +193,13 @@ class AuthController extends GetxController {
                       // link was sent.
                       final result = await _forgotPassword(phone);
                       if (result case Err(:final failure)) {
-                        AppSnackbar.failure('Reset Password', failure);
+                        AppSnackbar.failure('reset_password_title'.tr, failure);
                       } else {
                         AppSnackbar.success(
-                          'Request Sent',
-                          'If an account exists for $phone, you will receive a reset link shortly.',
+                          'reset_request_sent_title'.tr,
+                          'reset_request_sent_message'.trParams({
+                            'phone': phone,
+                          }),
                         );
                       }
                     } finally {
@@ -209,9 +211,9 @@ class AuthController extends GetxController {
                   foregroundColor: Colors.white,
                   glassColor: AppTheme.folderPink,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: const Text(
-                    'SEND RESET LINK',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  child: Text(
+                    'send_reset_link'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

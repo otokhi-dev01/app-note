@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
 
 class LoginView extends GetView<AuthController> {
@@ -34,7 +35,7 @@ class LoginView extends GetView<AuthController> {
               padding: const EdgeInsets.symmetric(horizontal: 13),
               centerTitle: true,
               title: Text(
-                "Login",
+                "login_title".tr,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 17,
@@ -42,12 +43,13 @@ class LoginView extends GetView<AuthController> {
               ),
               largeTitlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
               largeTitle: Text(
-                "Login",
+                "login_title".tr,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 30,
                 ),
               ),
+              actions: const [LanguageToggleButton()],
             ),
             SliverFillRemaining(
               hasScrollBody: false,
@@ -69,7 +71,7 @@ class LoginView extends GetView<AuthController> {
                     ),
                     const SizedBox(height: 32),
                     Text(
-                          "Welcome Back",
+                          "login_welcome_back".tr,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 30,
@@ -80,7 +82,7 @@ class LoginView extends GetView<AuthController> {
                         .slideY(begin: 0.2, end: 0),
                     const SizedBox(height: 8),
                     Text(
-                      "Login to your account",
+                      "login_subtitle".tr,
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 300.ms),
                     const SizedBox(height: 15),
@@ -115,7 +117,7 @@ class LoginView extends GetView<AuthController> {
                               _buildTextField(
                                 context,
                                 controller: controller.phoneController,
-                                hint: "Phone Number",
+                                hint: "phone_number_hint".tr,
                                 icon: FontAwesomeIcons.phone,
                                 keyboardType: TextInputType.phone,
                               ),
@@ -124,7 +126,7 @@ class LoginView extends GetView<AuthController> {
                                 () => _buildTextField(
                                   context,
                                   controller: controller.passwordController,
-                                  hint: "Password",
+                                  hint: "password_hint".tr,
                                   icon: FontAwesomeIcons.lock,
                                   isPassword:
                                       !controller.isPasswordVisible.value,
@@ -159,16 +161,16 @@ class LoginView extends GetView<AuthController> {
                                   GestureDetector(
                                     onTap: controller.toggleRememberMe,
                                     child: Text(
-                                      "Remember Me",
+                                      "remember_me".tr,
                                       style: theme.textTheme.bodyMedium,
                                     ),
                                   ),
                                   const Spacer(),
                                   TextButton(
                                     onPressed: controller.forgotPassword,
-                                    child: const Text(
-                                      "Forgot Password\?",
-                                      style: TextStyle(
+                                    child: Text(
+                                      "forgot_password".tr,
+                                      style: const TextStyle(
                                         color: AppTheme.folderPink,
                                       ),
                                     ),
@@ -203,9 +205,9 @@ class LoginView extends GetView<AuthController> {
                                               strokeWidth: 2,
                                             ),
                                           )
-                                        : const Text(
-                                            "LOGIN",
-                                            style: TextStyle(
+                                        : Text(
+                                            "login_button".tr,
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
                                             ),
@@ -224,7 +226,7 @@ class LoginView extends GetView<AuthController> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Don't have an account?",
+                          "login_no_account".tr,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                             fontSize: 15,
@@ -237,7 +239,7 @@ class LoginView extends GetView<AuthController> {
                             padding: const EdgeInsets.symmetric(horizontal: 5),
                           ),
                           child: Text(
-                            "Register",
+                            "register_link".tr,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: AppTheme.folderPink,
                               fontWeight: FontWeight.bold,

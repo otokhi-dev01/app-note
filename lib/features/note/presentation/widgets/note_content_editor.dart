@@ -63,8 +63,9 @@ class NoteContentEditor extends StatelessWidget {
                       Text(
                         note?.folderName ?? "Notes",
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.5,
+                          ),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),

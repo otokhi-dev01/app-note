@@ -13,8 +13,15 @@ import 'package:Note/features/note/presentation/bindings/note_binding.dart';
 import 'package:Note/features/note/presentation/views/note_detail_view.dart';
 import 'package:Note/features/search/presentation/views/search_view.dart';
 import 'package:Note/features/search/presentation/bindings/search_binding.dart';
-import 'package:Note/features/profile/presentation/views/profile_view.dart';
 import 'package:Note/features/profile/presentation/bindings/profile_binding.dart';
+import 'package:Note/features/settings/presentation/views/settings_view.dart';
+import 'package:Note/features/settings/presentation/views/appearance_view.dart';
+import 'package:Note/features/settings/presentation/bindings/appearance_binding.dart';
+import 'package:Note/features/settings/presentation/views/help_center_view.dart';
+import 'package:Note/features/settings/presentation/views/note_preferences_view.dart';
+import 'package:Note/features/settings/presentation/bindings/note_preferences_binding.dart';
+import 'package:Note/features/settings/presentation/views/account_view.dart';
+import 'package:Note/features/settings/presentation/bindings/account_binding.dart';
 import 'package:Note/features/trash/presentation/views/recently_deleted_view.dart';
 import 'package:Note/features/trash/presentation/bindings/recently_deleted_binding.dart';
 import 'package:Note/features/archive/presentation/views/archive_view.dart';
@@ -66,9 +73,25 @@ class AppPages {
       binding: SearchBinding(),
     ),
     GetPage(
-      name: Routes.PROFILE,
-      page: () => const ProfileView(),
+      name: Routes.SETTINGS,
+      page: () => const SettingsView(),
       binding: ProfileBinding(),
+    ),
+    GetPage(
+      name: Routes.APPEARANCE,
+      page: () => const AppearanceView(),
+      binding: AppearanceBinding(),
+    ),
+    GetPage(name: Routes.HELP_CENTER, page: () => const HelpCenterView()),
+    GetPage(
+      name: Routes.NOTE_PREFERENCES,
+      page: () => const NotePreferencesView(),
+      binding: NotePreferencesBinding(),
+    ),
+    GetPage(
+      name: Routes.ACCOUNT,
+      page: () => const AccountView(),
+      binding: AccountBinding(),
     ),
     GetPage(
       name: Routes.RECENTLY_DELETED,

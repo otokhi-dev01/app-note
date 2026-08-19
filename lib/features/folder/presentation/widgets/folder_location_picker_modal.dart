@@ -43,9 +43,7 @@ class FolderLocationPickerModal extends StatelessWidget {
         ? controller.subtreeIds(excludeFolderId!)
         : const <int>{};
     final visible = controller.folders
-        .where(
-          (f) => !excluded.contains(f.id) && !controller.isSystemFolder(f),
-        )
+        .where((f) => !excluded.contains(f.id) && !controller.isSystemFolder(f))
         .toList();
     final tree = controller.buildHierarchy(visible);
 

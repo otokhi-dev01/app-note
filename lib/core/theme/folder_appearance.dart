@@ -97,10 +97,26 @@ class FolderAppearance {
   /// between the two picker tabs doesn't lose the folder's "meaning".
   /// Stored verbatim as [Folder.iconName] when picked.
   static const List<String> emojis = [
-    '📁', '💼', '🎓', '❤️', '⭐',
-    '📝', '🏠', '✈️', '💡', '💰',
-    '📅', '🚩', '⚡', '🎮', '🎵',
-    '📷', '🛒', '🎁', '💻', '👥',
+    '📁',
+    '💼',
+    '🎓',
+    '❤️',
+    '⭐',
+    '📝',
+    '🏠',
+    '✈️',
+    '💡',
+    '💰',
+    '📅',
+    '🚩',
+    '⚡',
+    '🎮',
+    '🎵',
+    '📷',
+    '🛒',
+    '🎁',
+    '💻',
+    '👥',
   ];
 
   static final EmojiParser _emojiParser = EmojiParser();

@@ -84,7 +84,8 @@ class NoteAttachmentBlock extends StatelessWidget {
         label: '$semanticsLabel. Tap to edit and save.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => _openImageEditor(context), // Logic: Tap to Edit instantly
+          onTap: () =>
+              _openImageEditor(context), // Logic: Tap to Edit instantly
           onLongPress: () =>
               _showDeleteMenu(context), // Logic: Hold to show delete popup
           child: Container(
@@ -122,8 +123,9 @@ class NoteAttachmentBlock extends StatelessWidget {
                       top: 8,
                       right: 8,
                       child: GestureDetector(
-                        onTap: () =>
-                            _openImageEditor(context), // Logic: Direct pencil tool
+                        onTap: () => _openImageEditor(
+                          context,
+                        ), // Logic: Direct pencil tool
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -264,7 +266,6 @@ class NoteAttachmentBlock extends StatelessWidget {
       AppSnackbar.error('Error', 'Could not open that file');
     }
   }
-
 }
 
 class _AttachmentImage extends StatelessWidget {

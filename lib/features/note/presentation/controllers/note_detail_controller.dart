@@ -525,9 +525,7 @@ class NoteDetailController extends GetxController {
     final hex =
         '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
     final current = qc.getSelectionStyle().attributes['background']?.value;
-    qc.formatSelection(
-      quill.BackgroundAttribute(current == hex ? null : hex),
-    );
+    qc.formatSelection(quill.BackgroundAttribute(current == hex ? null : hex));
   }
 
   void updateActiveBlockStyle(String style) {

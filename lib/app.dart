@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/di/injector.dart';
+import 'package:Note/core/localization/app_translations.dart';
+import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -29,6 +31,9 @@ class NoteApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeStorage.theme,
+      translations: AppTranslations(),
+      locale: LanguagePreferences().locale,
+      fallbackLocale: const Locale('en', 'US'),
     );
   }
 }

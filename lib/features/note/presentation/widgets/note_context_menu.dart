@@ -33,8 +33,8 @@ class NoteContextMenu extends StatelessWidget {
         IOSMenuAction(
           label: "Sort By",
           icon: Icons.swap_vert_rounded,
-          subtitle: "Default (Date Edited)",
-          onTap: () => controller.updateSorting("Date Edited"),
+          subtitle: controller.sortByName.value ? "Name" : "Date Edited",
+          onTap: () => controller.toggleSortByName(),
         ),
         IOSMenuAction(
           label: "Group By Date",

@@ -18,6 +18,7 @@ import 'package:Note/features/folder/domain/entities/folder.dart';
 class FolderCreateLogic extends GetxController {
   final Folder? folder;
   final int? parentId;
+  final String sectionKeyword;
   final FolderController mainController;
 
   /// How to leave this screen once saved/cancelled. Defaults to popping back
@@ -30,6 +31,7 @@ class FolderCreateLogic extends GetxController {
   FolderCreateLogic({
     this.folder,
     this.parentId,
+    this.sectionKeyword = '',
     required this.mainController,
     this.onDone,
   });
@@ -58,9 +60,12 @@ class FolderCreateLogic extends GetxController {
 
   /// The section keyword ('iCloud' / 'Shared' / '') baked into the folder
   /// being renamed, captured once up front so a rename can reapply it — the
-  /// Name field only ever shows/edits the part the user actually typed.
+  /// Name field only ever shows/edits the part the user actually typed. For a
+  /// brand-new folder opened from a section header's own "+" button, this is
+  /// [sectionKeyword] instead, so the folder lands in the section it was
+  /// created from.
   late final String _originalSectionKeyword = folder == null
-      ? ''
+      ? sectionKeyword
       : mainController.sectionKeywordOf(folder!);
 
   @override
@@ -194,6 +199,7 @@ class FolderCreateLogic extends GetxController {
 class FolderCreateModal extends StatefulWidget {
   final Folder? folder;
   final int? parentId;
+  final String sectionKeyword;
   final FolderController controller;
   final VoidCallback? onDone;
 
@@ -201,6 +207,7 @@ class FolderCreateModal extends StatefulWidget {
     super.key,
     this.folder,
     this.parentId,
+    this.sectionKeyword = '',
     required this.controller,
     this.onDone,
   });
@@ -219,11 +226,14 @@ class _FolderCreateModalState extends State<FolderCreateModal>
     super.initState();
     final tag = widget.folder != null
         ? 'rename_${widget.folder!.id}'
-        : (widget.parentId != null ? 'sub_${widget.parentId}' : 'create');
+        : (widget.parentId != null
+              ? 'sub_${widget.parentId}'
+              : 'create_${widget.sectionKeyword}');
     _c = Get.put(
       FolderCreateLogic(
         folder: widget.folder,
         parentId: widget.parentId,
+        sectionKeyword: widget.sectionKeyword,
         mainController: widget.controller,
         onDone: widget.onDone,
       ),

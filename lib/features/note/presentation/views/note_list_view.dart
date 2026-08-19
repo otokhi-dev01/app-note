@@ -11,6 +11,8 @@ import 'package:Note/features/note/presentation/widgets/note_list_tile.dart';
 import 'package:Note/features/note/presentation/widgets/note_grid_tile.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/core/utils/note_grouping.dart';
 
 class NoteListView extends GetView<NoteController> {
@@ -49,7 +51,7 @@ class NoteListView extends GetView<NoteController> {
             () => CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-                _buildAppBar(context, folderName),
+                _buildAppBar(context, folderName, folderId),
                 if (controller.viewMode.value == "gallery")
                   _buildNoteGrid(context, folderId)
                 else
@@ -69,7 +71,7 @@ class NoteListView extends GetView<NoteController> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, String title) {
+  Widget _buildAppBar(BuildContext context, String title, int folderId) {
     final theme = Theme.of(context);
     return CustomGlassSliverAppBar(
       expandedHeight: 140,
@@ -99,7 +101,25 @@ class NoteListView extends GetView<NoteController> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      actions: [Obx(() => _buildActionIcon(context))],
+      actions: [
+        CustomGlassButton(
+          onPressed: () => _createFolder(folderId),
+          semanticLabel: 'Add Folder',
+          width: 44,
+          height: 44,
+          shape: GlassShape.circle,
+          blur: 10,
+          opacity: 0.15,
+          thickness: 8,
+          padding: EdgeInsets.zero,
+          child: Icon(
+            CupertinoIcons.folder_badge_plus,
+            color: theme.primaryColor,
+            size: 22,
+          ),
+        ),
+        Obx(() => _buildActionIcon(context)),
+      ],
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
       largeTitle: Text(
         title,
@@ -108,6 +128,19 @@ class NoteListView extends GetView<NoteController> {
           fontSize: 34,
         ),
       ),
+    );
+  }
+
+  /// Creates a subfolder of the folder currently being viewed ("All Notes"
+  /// creates at the top level instead, since it has no real folder id).
+  void _createFolder(int folderId) {
+    Get.to(
+      () => FolderCreateModal(
+        controller: Get.find<FolderController>(),
+        parentId: folderId == 0 ? null : folderId,
+      ),
+      fullscreenDialog: true,
+      transition: Transition.cupertino,
     );
   }
 

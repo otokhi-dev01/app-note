@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/storage/display_preferences.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -33,6 +34,8 @@ class NoteController extends GetxController {
        _moveNotes = moveNotes,
        _getFolders = getFolders;
 
+  final _prefs = DisplayPreferences();
+
   final notes = <Note>[].obs;
   final pinnedNotes = <Note>[].obs;
   final otherNotes = <Note>[].obs;
@@ -45,8 +48,9 @@ class NoteController extends GetxController {
 
   // View and editing modes
   final isEditing = false.obs;
-  final viewMode = 'list'.obs; // 'list' or 'gallery'
+  late final viewMode = _prefs.noteViewMode.obs; // 'list' or 'gallery'
   final isGroupedByDate = true.obs;
+  late final sortByName = _prefs.noteSortByName.obs;
   final selectedNoteIds = <int>{}.obs;
 
   @override
@@ -270,7 +274,10 @@ class NoteController extends GetxController {
           await fetchNotes(folderId: currentFolderId, refresh: true);
           _refreshFolderCounts();
           if (value.isComplete) {
-            AppSnackbar.success('Moved', 'Moved notes to ${folder.displayName}');
+            AppSnackbar.success(
+              'Moved',
+              'Moved notes to ${folder.displayName}',
+            );
           } else {
             AppSnackbar.warning(
               'Partially moved',
@@ -294,19 +301,53 @@ class NoteController extends GetxController {
 
   List<Note> _sorted(List<Note> list) {
     final copy = List<Note>.from(list);
-    copy.sort((a, b) {
-      final dateA = a.updatedAt ?? DateTime(0);
-      final dateB = b.updatedAt ?? DateTime(0);
-      return dateB.compareTo(dateA);
-    });
+    if (sortByName.value) {
+      copy.sort(
+        (a, b) => a.displayTitle.toLowerCase().compareTo(
+          b.displayTitle.toLowerCase(),
+        ),
+      );
+    } else {
+      copy.sort((a, b) {
+        final dateA = a.updatedAt ?? DateTime(0);
+        final dateB = b.updatedAt ?? DateTime(0);
+        return dateB.compareTo(dateA);
+      });
+    }
     return copy;
   }
 
-  void toggleViewMode() =>
-      viewMode.value = viewMode.value == 'list' ? 'gallery' : 'list';
+  /// Re-sorts the already-loaded lists in place, without a network round
+  /// trip — used when the sort preference changes mid-session.
+  void _resortLoaded() {
+    final active = _sorted([...pinnedNotes, ...otherNotes]);
+    pinnedNotes.assignAll(active.where((n) => n.isPinned));
+    otherNotes.assignAll(active.where((n) => !n.isPinned));
+    notes.assignAll(active);
 
-  void updateSorting(String criteria) =>
-      AppSnackbar.info('Sorting', 'Sorting by $criteria');
+    final archived = _sorted(archivedNotes);
+    pinnedArchivedNotes.assignAll(archived.where((n) => n.isPinned));
+    otherArchivedNotes.assignAll(archived.where((n) => !n.isPinned));
+    archivedNotes.assignAll(archived);
+  }
+
+  void applyViewMode(String mode) {
+    if (viewMode.value == mode) return;
+    viewMode.value = mode;
+    _prefs.setNoteViewMode(mode);
+  }
+
+  void toggleViewMode() =>
+      applyViewMode(viewMode.value == 'list' ? 'gallery' : 'list');
+
+  void applySortByName(bool value) {
+    if (sortByName.value == value) return;
+    sortByName.value = value;
+    _prefs.setNoteSortByName(value);
+    _resortLoaded();
+  }
+
+  void toggleSortByName() => applySortByName(!sortByName.value);
 
   void toggleDateGrouping() {
     isGroupedByDate.value = !isGroupedByDate.value;

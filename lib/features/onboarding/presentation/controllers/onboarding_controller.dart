@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -8,24 +7,23 @@ import 'package:Note/routes/app_pages.dart';
 class OnboardingController extends GetxController {
   final pageController = PageController();
   final currentPage = 0.obs;
-  final _storage = GetStorage();
   final _sessionService = Get.find<SessionStorage>();
   final _guestMode = Get.find<GuestModeService>();
 
   final pages = [
     OnboardingData(
-      title: "Capture Ideas",
-      description: "Quickly write down your thoughts whenever they strike.",
+      title: "onboarding_page1_title".tr,
+      description: "onboarding_page1_desc".tr,
       icon: Icons.lightbulb_outline,
     ),
     OnboardingData(
-      title: "Organize Folders",
-      description: "Keep your notes tidy with custom categories and colors.",
+      title: "onboarding_page2_title".tr,
+      description: "onboarding_page2_desc".tr,
       icon: Icons.folder_open,
     ),
     OnboardingData(
-      title: "Sync Anywhere",
-      description: "Your notes are always with you, across all your devices.",
+      title: "onboarding_page3_title".tr,
+      description: "onboarding_page3_desc".tr,
       icon: Icons.sync,
     ),
   ];
@@ -46,7 +44,6 @@ class OnboardingController extends GetxController {
   }
 
   void skipOnboarding() {
-    _storage.write('isFirstTime', false);
     if (!_sessionService.isLoggedIn) {
       Get.offAllNamed(Routes.LOGIN);
     } else {
@@ -58,7 +55,6 @@ class OnboardingController extends GetxController {
   /// Folders and notes created here live only on this device — see
   /// `FolderRepositoryRouter` / `NoteRepositoryRouter`.
   void continueWithoutAccount() {
-    _storage.write('isFirstTime', false);
     _guestMode.enable();
     Get.offAllNamed(Routes.FOLDER);
   }

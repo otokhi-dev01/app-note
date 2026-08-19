@@ -2,38 +2,28 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/storage/theme_storage.dart';
-import 'package:Note/core/usecase/usecase.dart';
-import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
+import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
-import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class ProfileController extends GetxController {
   final UpdateUserName _updateUserName;
   final UpdateProfileImage _updateProfileImage;
-  final Logout _logout;
   final ProfileRepository _profile;
-  final ThemeStorage _theme;
 
   ProfileController({
     required UpdateUserName updateUserName,
     required UpdateProfileImage updateProfileImage,
-    required Logout logout,
     required ProfileRepository profile,
-    required ThemeStorage theme,
   }) : _updateUserName = updateUserName,
        _updateProfileImage = updateProfileImage,
-       _logout = logout,
-       _profile = profile,
-       _theme = theme;
+       _profile = profile;
 
   final _picker = ImagePicker();
   final _guestMode = Get.find<GuestModeService>();
@@ -43,19 +33,21 @@ class ProfileController extends GetxController {
   final userName = ''.obs;
   final userPhone = ''.obs;
   final userImagePath = ''.obs;
-  final currentThemeMode = ThemeMode.system.obs;
 
   @override
   void onInit() {
     super.onInit();
     _loadUserData();
-    currentThemeMode.value = _theme.theme;
   }
 
   void _loadUserData() {
     final user = _profile.currentUser;
-    userName.value = user?.fullName ?? (isGuestMode.value ? 'Guest' : 'User Name');
-    userPhone.value = isGuestMode.value ? 'Not signed in' : (user?.phone ?? '');
+    userName.value =
+        user?.fullName ??
+        (isGuestMode.value ? 'guest_label'.tr : 'default_user_name'.tr);
+    userPhone.value = isGuestMode.value
+        ? 'not_signed_in'.tr
+        : (user?.phone ?? '');
 
     // The avatar is a local file path; drop it if the file is gone (app
     // reinstall, cache clear) so the UI falls back to the placeholder.
@@ -65,33 +57,53 @@ class ProfileController extends GetxController {
         : '';
   }
 
+  /// Glass bottom-sheet popup (matching the language picker / forgot-password
+  /// flows) rather than a center dialog, for a look consistent with the rest
+  /// of the app's newer glass surfaces.
   Future<void> updateUserName() async {
     final context = Get.context;
     if (context == null) return;
 
     final nameController = TextEditingController(text: userName.value);
     try {
-      await CustomGlassDialog.show<void>(
+      await CustomGlassSheet.show<void>(
         context: context,
-        title: 'Edit Name',
-        content: CustomGlassTextField(
-          controller: nameController,
-          autofocus: true,
-          placeholder: 'Enter your name',
-          textInputAction: TextInputAction.done,
-          textStyle: Get.textTheme.bodyLarge,
-          useOwnLayer: false,
-          onSubmitted: (_) => _saveUserName(nameController),
-        ),
-        actions: [
-          const CustomGlassDialogAction(label: 'Cancel', onPressed: _noOp),
-          CustomGlassDialogAction(
-            label: 'Save',
-            isPrimary: true,
-            closeOnPressed: false,
-            onPressed: () => _saveUserName(nameController),
+        isScrollable: false,
+        builder: (sheetContext) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'edit_name_title'.tr,
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              CustomGlassTextField(
+                controller: nameController,
+                autofocus: true,
+                placeholder: 'edit_name_hint'.tr,
+                textInputAction: TextInputAction.done,
+                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
+                useOwnLayer: false,
+                onSubmitted: (_) => _saveUserName(nameController),
+                suffixIcon: const Icon(
+                  Icons.check_circle_rounded,
+                  color: AppTheme.folderPink,
+                ),
+                onSuffixTap: () => _saveUserName(nameController),
+              ),
+            ],
+          ),
+        ),
       );
     } finally {
       nameController.dispose();
@@ -103,9 +115,9 @@ class ProfileController extends GetxController {
       case Ok(:final value):
         userName.value = value.fullName ?? userName.value;
         Get.back();
-        AppSnackbar.success('Saved', 'Name updated');
+        AppSnackbar.success('saved_title'.tr, 'name_updated_message'.tr);
       case Err(:final failure):
-        AppSnackbar.failure('Could not update name', failure);
+        AppSnackbar.failure('name_update_failed_title'.tr, failure);
     }
   }
 
@@ -119,28 +131,12 @@ class ProfileController extends GetxController {
     switch (await _updateProfileImage(image.path)) {
       case Ok():
         userImagePath.value = image.path;
-        AppSnackbar.success('Saved', 'Profile image updated');
+        AppSnackbar.success(
+          'saved_title'.tr,
+          'profile_image_updated_message'.tr,
+        );
       case Err(:final failure):
-        AppSnackbar.failure('Could not update profile image', failure);
+        AppSnackbar.failure('profile_image_update_failed_title'.tr, failure);
     }
   }
-
-  void changeTheme(ThemeMode mode) {
-    currentThemeMode.value = mode;
-    _theme.switchTheme(mode);
-  }
-
-  Future<void> logout() async {
-    await _logout(const NoParams());
-    // Show onboarding again on the next launch.
-    GetStorage().write('isFirstTime', true);
-    Get.offAllNamed(Routes.ONBOARDING);
-  }
-
-  /// Guest mode's way back to Welcome/Login — required so a device that
-  /// started with "Continue without account" can still create a real account
-  /// without reinstalling the app.
-  void goToLogin() => Get.offAllNamed(Routes.LOGIN);
 }
-
-void _noOp() {}

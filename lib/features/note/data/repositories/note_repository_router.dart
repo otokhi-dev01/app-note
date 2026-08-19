@@ -44,7 +44,11 @@ class NoteRepositoryRouter implements NoteRepository {
     required int folderId,
     required String title,
     int noteId = 0,
-  }) => _active.saveNoteMetadata(folderId: folderId, title: title, noteId: noteId);
+  }) => _active.saveNoteMetadata(
+    folderId: folderId,
+    title: title,
+    noteId: noteId,
+  );
 
   @override
   Future<Result<void>> saveNoteContent({
