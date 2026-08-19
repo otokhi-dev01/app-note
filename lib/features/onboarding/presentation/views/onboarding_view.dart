@@ -330,88 +330,105 @@ class OnboardingView extends GetView<OnboardingController> {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 22),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Obx(
-              () => Row(
-                children: List.generate(controller.pages.length, (index) {
-                  final isActive = controller.currentPage.value == index;
+          Row(
+            children: [
+              Expanded(
+                child: Obx(
+                  () => Row(
+                    children: List.generate(controller.pages.length, (index) {
+                      final isActive = controller.currentPage.value == index;
 
-                  return AnimatedContainer(
-                    duration: 300.ms,
-                    curve: Curves.easeOutCubic,
-                    margin: const EdgeInsets.only(right: 7),
-                    width: isActive ? 28 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? AppTheme.folderPink
-                          : theme.colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.18,
-                            ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  );
-                }),
+                      return AnimatedContainer(
+                        duration: 300.ms,
+                        curve: Curves.easeOutCubic,
+                        margin: const EdgeInsets.only(right: 7),
+                        width: isActive ? 28 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? AppTheme.folderPink
+                              : theme.colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.18,
+                                ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
               ),
+              Obx(() {
+                final isLastPage =
+                    controller.currentPage.value ==
+                    controller.pages.length - 1;
+
+                return ElevatedButton(
+                  onPressed: controller.nextPage,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(138, 56),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    elevation: 0,
+                    backgroundColor: AppTheme.folderPink,
+                    foregroundColor: AppTheme.bodyColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: 220.ms,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.12, 0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Row(
+                      key: ValueKey(isLastPage),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isLastPage ? 'Get Started' : 'Next',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          isLastPage
+                              ? Icons.check_rounded
+                              : Icons.arrow_forward_rounded,
+                          size: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+          TextButton(
+            onPressed: controller.continueWithoutAccount,
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurfaceVariant,
+              minimumSize: const Size(double.infinity, 44),
+            ),
+            child: const Text(
+              'Continue without account',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
-          Obx(() {
-            final isLastPage =
-                controller.currentPage.value == controller.pages.length - 1;
-
-            return ElevatedButton(
-              onPressed: controller.nextPage,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size(138, 56),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                elevation: 0,
-                backgroundColor: AppTheme.folderPink,
-                foregroundColor: AppTheme.bodyColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              child: AnimatedSwitcher(
-                duration: 220.ms,
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.12, 0),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Row(
-                  key: ValueKey(isLastPage),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      isLastPage ? 'Get Started' : 'Next',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      isLastPage
-                          ? Icons.check_rounded
-                          : Icons.arrow_forward_rounded,
-                      size: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
         ],
       ),
     );

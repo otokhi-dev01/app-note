@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
@@ -31,6 +32,7 @@ class AuthController extends GetxController {
        _forgotPassword = forgotPassword;
 
   final _storage = GetStorage();
+  final _guestMode = Get.find<GuestModeService>();
 
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
@@ -74,6 +76,7 @@ class AuthController extends GetxController {
 
       switch (result) {
         case Ok():
+          _guestMode.disable();
           _persistRememberMe(phone);
           AppSnackbar.success('Welcome', 'Login successful!');
           Get.offAllNamed(Routes.FOLDER);
@@ -103,6 +106,7 @@ class AuthController extends GetxController {
 
       switch (result) {
         case Ok():
+          _guestMode.disable();
           AppSnackbar.success(
             'Success',
             'Account created successfully! Please log in.',

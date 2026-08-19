@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
@@ -35,6 +36,9 @@ class ProfileController extends GetxController {
        _theme = theme;
 
   final _picker = ImagePicker();
+  final _guestMode = Get.find<GuestModeService>();
+
+  RxBool get isGuestMode => _guestMode.isGuestMode;
 
   final userName = ''.obs;
   final userPhone = ''.obs;
@@ -50,8 +54,8 @@ class ProfileController extends GetxController {
 
   void _loadUserData() {
     final user = _profile.currentUser;
-    userName.value = user?.fullName ?? 'User Name';
-    userPhone.value = user?.phone ?? '';
+    userName.value = user?.fullName ?? (isGuestMode.value ? 'Guest' : 'User Name');
+    userPhone.value = isGuestMode.value ? 'Not signed in' : (user?.phone ?? '');
 
     // The avatar is a local file path; drop it if the file is gone (app
     // reinstall, cache clear) so the UI falls back to the placeholder.
@@ -132,6 +136,11 @@ class ProfileController extends GetxController {
     GetStorage().write('isFirstTime', true);
     Get.offAllNamed(Routes.ONBOARDING);
   }
+
+  /// Guest mode's way back to Welcome/Login — required so a device that
+  /// started with "Continue without account" can still create a real account
+  /// without reinstalling the app.
+  void goToLogin() => Get.offAllNamed(Routes.LOGIN);
 }
 
 void _noOp() {}

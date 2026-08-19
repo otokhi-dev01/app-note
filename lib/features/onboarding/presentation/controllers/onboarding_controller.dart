@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/routes/app_pages.dart';
 
@@ -9,6 +10,7 @@ class OnboardingController extends GetxController {
   final currentPage = 0.obs;
   final _storage = GetStorage();
   final _sessionService = Get.find<SessionStorage>();
+  final _guestMode = Get.find<GuestModeService>();
 
   final pages = [
     OnboardingData(
@@ -50,6 +52,15 @@ class OnboardingController extends GetxController {
     } else {
       Get.offAllNamed(Routes.FOLDER);
     }
+  }
+
+  /// App Store guideline 5.1.1(v): note-taking must work without an account.
+  /// Folders and notes created here live only on this device — see
+  /// `FolderRepositoryRouter` / `NoteRepositoryRouter`.
+  void continueWithoutAccount() {
+    _storage.write('isFirstTime', false);
+    _guestMode.enable();
+    Get.offAllNamed(Routes.FOLDER);
   }
 }
 

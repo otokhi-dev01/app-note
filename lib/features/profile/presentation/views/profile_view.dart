@@ -120,19 +120,27 @@ class ProfileView extends GetView<ProfileController> {
                           Positioned(
                             bottom: 0,
                             right: 0,
-                            child: Material(
-                              color: AppTheme.folderPink,
-                              shape: const CircleBorder(),
-                              elevation: 4,
-                              child: InkWell(
-                                onTap: controller.updateProfileImage,
-                                customBorder: const CircleBorder(),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: Icon(
-                                    Icons.camera_alt_rounded,
-                                    size: 20,
-                                    color: Colors.white,
+                            child: Obx(
+                              () => Material(
+                                color: controller.isGuestMode.value
+                                    ? theme.colorScheme.surfaceContainerHighest
+                                    : AppTheme.folderPink,
+                                shape: const CircleBorder(),
+                                elevation: 4,
+                                child: InkWell(
+                                  onTap: controller.isGuestMode.value
+                                      ? null
+                                      : controller.updateProfileImage,
+                                  customBorder: const CircleBorder(),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Icon(
+                                      Icons.camera_alt_rounded,
+                                      size: 20,
+                                      color: controller.isGuestMode.value
+                                          ? theme.colorScheme.onSurfaceVariant
+                                          : Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -145,13 +153,15 @@ class ProfileView extends GetView<ProfileController> {
                     const SizedBox(height: 24),
 
                     // User Info Card
-                    InkWell(
-                      onTap: controller.updateUserName,
-                      borderRadius: BorderRadius.circular(20),
-                      child: Column(
-                        children: [
-                          Obx(
-                            () => Row(
+                    Obx(
+                      () => InkWell(
+                        onTap: controller.isGuestMode.value
+                            ? null
+                            : controller.updateUserName,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Column(
+                          children: [
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -163,24 +173,23 @@ class ProfileView extends GetView<ProfileController> {
                                         ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.edit_note_rounded,
-                                  size: 20,
-                                  color: theme.colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.5),
-                                ),
+                                if (!controller.isGuestMode.value) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.edit_note_rounded,
+                                    size: 20,
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                ],
                               ],
                             ),
-                          ),
-                          Obx(() {
-                            final phone = controller.userPhone.value;
-                            return Text(
-                              phone,
+                            Text(
+                              controller.userPhone.value,
                               style: theme.textTheme.bodyMedium,
-                            );
-                          }),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 
@@ -219,36 +228,10 @@ class ProfileView extends GetView<ProfileController> {
                     // Account Section
                     _buildSectionHeader(context, "Account"),
                     const SizedBox(height: 12),
-                    GlassCard(
-                      borderRadius: 28,
-                      children: [
-                        CustomGlassListTile(
-                          onTap: controller.logout,
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.logout_rounded,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                          ),
-                          title: const Text(
-                            "Sign Out",
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          trailing: const Icon(
-                            Icons.chevron_right_rounded,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ],
+                    Obx(
+                      () => controller.isGuestMode.value
+                          ? _buildGuestAccountCard(context)
+                          : _buildSignedInAccountCard(context),
                     ),
                   ],
                 ),
@@ -257,6 +240,71 @@ class ProfileView extends GetView<ProfileController> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildGuestAccountCard(BuildContext context) {
+    return GlassCard(
+      borderRadius: 28,
+      children: [
+        CustomGlassListTile(
+          onTap: controller.goToLogin,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.folderPink.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.login_rounded,
+              color: AppTheme.folderPink,
+              size: 20,
+            ),
+          ),
+          title: const Text(
+            "Log In or Create Account",
+            style: TextStyle(
+              color: AppTheme.folderPink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right_rounded,
+            color: AppTheme.folderPink,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSignedInAccountCard(BuildContext context) {
+    return GlassCard(
+      borderRadius: 28,
+      children: [
+        CustomGlassListTile(
+          onTap: controller.logout,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.logout_rounded,
+              color: Colors.red,
+              size: 20,
+            ),
+          ),
+          title: const Text(
+            "Sign Out",
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right_rounded,
+            color: Colors.red,
+          ),
+        ),
+      ],
     );
   }
 
