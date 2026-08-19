@@ -236,14 +236,14 @@ class LocalNoteRepository implements NoteRepository {
     required int displayOrder,
   }) async {
     final source = File(filePath);
-    if (!await source.exists()) {
+    if (!source.existsSync()) {
       return const Err(ValidationFailure('That file could not be found.'));
     }
 
     try {
       final dir = await getApplicationDocumentsDirectory();
       final attachmentsDir = Directory('${dir.path}/guest_attachments');
-      if (!await attachmentsDir.exists()) {
+      if (!attachmentsDir.existsSync()) {
         await attachmentsDir.create(recursive: true);
       }
 
@@ -274,7 +274,7 @@ class LocalNoteRepository implements NoteRepository {
     required String savePath,
   }) async {
     final source = File(url);
-    if (await source.exists()) {
+    if (source.existsSync()) {
       await source.copy(savePath);
       return Ok(savePath);
     }
@@ -300,7 +300,7 @@ class LocalNoteRepository implements NoteRepository {
       final path = block.localPath;
       if (path == null) continue;
       final file = File(path);
-      if (await file.exists()) await file.delete();
+      if (file.existsSync()) await file.delete();
     }
   }
 

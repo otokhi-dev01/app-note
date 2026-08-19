@@ -341,7 +341,7 @@ class _NetworkAttachmentImage extends StatelessWidget {
           ),
         );
       },
-      errorBuilder: (_, __, ___) => _AttachmentPlaceholder(),
+      errorBuilder: (_, _, _) => _AttachmentPlaceholder(),
     );
   }
 }

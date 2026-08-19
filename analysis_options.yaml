@@ -1,0 +1,22 @@
+# flutter_lints was already a dev dependency but nothing enabled it, so the
+# analyzer had been running with no lint rules at all.
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    # Bug-catching rules that are not part of the recommended set.
+    always_use_package_imports: true
+    avoid_slow_async_io: true
+    cancel_subscriptions: true
+    close_sinks: true
+    no_adjacent_strings_in_list: true
+    test_types_in_equals: true
+    throw_in_finally: true
+    unawaited_futures: true
+    unnecessary_statements: true
+
+    # Off deliberately: the route/DI constants are SCREAMING_CAPS throughout
+    # and the package itself is named `Note`. Renaming either would touch every
+    # file for no behavioural gain.
+    constant_identifier_names: false
+    package_names: false

@@ -64,8 +64,9 @@ class _DrawingPainter extends CustomPainter {
     for (int index = 0; index < points.length - 1; index++) {
       final currentPoint = points[index];
       final nextPoint = points[index + 1];
-      if (currentPoint != null && nextPoint != null)
+      if (currentPoint != null && nextPoint != null) {
         canvas.drawLine(currentPoint, nextPoint, paint);
+      }
     }
   }
 

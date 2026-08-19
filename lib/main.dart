@@ -36,6 +36,9 @@ Future<void> main() async {
 }
 
 bool _initializeDebugMemoryAllocations() {
+  // Touching it is the point: this forces the lazy singleton to
+  // initialise before the binding does.
+  // ignore: unnecessary_statements
   FlutterMemoryAllocations.instance;
   return true;
 }

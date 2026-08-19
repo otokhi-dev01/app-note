@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
@@ -21,9 +23,9 @@ class SplashController extends GetxController {
     // without account", has already seen onboarding — skip straight to
     // their notes instead of showing it again on every launch.
     if (_session.isLoggedIn || _guestMode.isGuestMode.value) {
-      Get.offAllNamed(Routes.FOLDER);
+      unawaited(Get.offAllNamed(Routes.FOLDER));
     } else {
-      Get.offAllNamed(Routes.ONBOARDING);
+      unawaited(Get.offAllNamed(Routes.ONBOARDING));
     }
   }
 }

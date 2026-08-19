@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/onboarding/presentation/controllers/onboarding_controller.dart';
+import 'package:Note/shared/widgets/app_logo.dart';
 
 class OnboardingView extends GetView<OnboardingController> {
   const OnboardingView({super.key});
@@ -63,15 +64,16 @@ class OnboardingView extends GetView<OnboardingController> {
       padding: const EdgeInsets.fromLTRB(24, 12, 16, 4),
       child: Row(
         children: [
-          ClipOval(
-            child: Image.asset(
-              'assets/icons/otokhi_logo_cover.jpg',
-              width: 60,
-              height: 60,
-              // fit: BoxFit.contain,
-            ),
-          ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
-          const SizedBox(width: 11),
+          const AppLogo(height: 40)
+              .animate()
+              .scale(
+                duration: 600.ms,
+                curve: Curves.easeOutBack,
+                begin: const Offset(0.9, 0.9),
+                end: const Offset(1, 1),
+              )
+              .fadeIn(duration: 400.ms),
+          const SizedBox(width: 12),
           Text(
             'OTOKHI',
             style: theme.textTheme.titleLarge?.copyWith(

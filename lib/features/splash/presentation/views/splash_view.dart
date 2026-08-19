@@ -1,11 +1,11 @@
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/splash/presentation/controllers/splash_controller.dart';
+import 'package:Note/shared/widgets/app_logo.dart';
 
 class SplashView extends GetView<SplashController> {
   const SplashView({super.key});
@@ -30,73 +30,19 @@ class SplashView extends GetView<SplashController> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.brightness == Brightness.dark
-                                  ? Colors.black54
-                                  : Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 30,
-                              offset: const Offset(0, 15),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/icons/otokhi_logo_cover.jpg',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.folderYellow,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: theme.colorScheme.surface,
-                                    width: 3,
-                                  ),
-                                ),
-                                child: FaIcon(
-                                  FontAwesomeIcons.penNib,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ).animate().scale(
-                              delay: 1200.ms,
-                              duration: 400.ms,
-                              curve: Curves.easeOutBack,
-                            ),
-                          ],
-                        ),
-                      )
+                  const AppLogo(height: 120, showGlow: true)
                       .animate()
                       .scale(
-                        duration: 1000.ms,
-                        curve: Curves.elasticOut,
-                        begin: const Offset(0.5, 0.5),
+                        duration: 900.ms,
+                        curve: Curves.easeOutBack,
+                        begin: const Offset(0.86, 0.86),
                         end: const Offset(1, 1),
                       )
                       .fadeIn(duration: 600.ms)
-                      .shimmer(delay: 1500.ms, duration: 2000.ms),
-                  const SizedBox(height: 40),
+                      .shimmer(delay: 1400.ms, duration: 1800.ms),
+                  const SizedBox(height: 36),
                   Text(
-                        "OTOKHI NOTE",
+                        "PIISIIT NOTE",
                         style: theme.textTheme.headlineLarge?.copyWith(
                           fontSize: 36,
                           letterSpacing: 1.5,

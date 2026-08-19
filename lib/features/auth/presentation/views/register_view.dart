@@ -8,6 +8,7 @@ import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:Note/shared/widgets/app_logo.dart';
 
 class RegisterView extends GetView<AuthController> {
   const RegisterView({super.key});
@@ -117,19 +118,16 @@ class RegisterView extends GetView<AuthController> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo
-                    ClipOval(
-                      child: Image.asset(
-                        'assets/icons/otokhi_logo_cover.jpg',
-                        width: 100,
-                        height: 100,
-                        fit: BoxFit.contain,
-                      ),
-                    ).animate().scale(
-                      duration: 600.ms,
-                      curve: Curves.easeOutBack,
-                    ),
-                    const SizedBox(height: 15),
+                    const AppLogo(height: 78)
+                        .animate()
+                        .scale(
+                          duration: 600.ms,
+                          curve: Curves.easeOutBack,
+                          begin: const Offset(0.9, 0.9),
+                          end: const Offset(1, 1),
+                        )
+                        .fadeIn(duration: 400.ms),
+                    const SizedBox(height: 20),
                     Text(
                           "register_create_account".tr,
                           style: theme.textTheme.headlineSmall?.copyWith(

@@ -188,7 +188,11 @@ class IOSActionMenu extends StatelessWidget {
     return InkWell(
       onTap: () {
         Get.back();
-        action.onTap();
+        // Most actions push a route of their own (rename modal, move sheet,
+        // delete confirm). Firing that in the same frame as the pop above
+        // makes GetX swallow the new route — the menu closes and nothing
+        // opens — so wait until this menu is actually off the stack.
+        WidgetsBinding.instance.addPostFrameCallback((_) => action.onTap());
       },
       child: Container(
         width: double.infinity,

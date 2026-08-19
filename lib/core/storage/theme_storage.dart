@@ -19,7 +19,7 @@ class ThemeStorage {
   }
 
   /// Save isDarkMode to local storage
-  _saveThemeToStorage(bool isDarkMode) => _storage.write(_key, isDarkMode);
+  void _saveThemeToStorage(bool isDarkMode) => _storage.write(_key, isDarkMode);
 
   /// Switch theme and save to local storage
   void switchTheme(ThemeMode mode) {

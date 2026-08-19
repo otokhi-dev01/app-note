@@ -98,7 +98,7 @@ class NoteBlockMapper {
         'type': 'attachment',
         'attachmentId': attachmentId,
         'displayName': displayName,
-        if (url != null) 'url': url,
+        'url': ?url,
       },
     TableBlock(:final id, :final rows) => {
       'id': id,
