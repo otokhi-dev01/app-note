@@ -6,14 +6,20 @@ import 'package:Note/features/note/presentation/controllers/note_detail_controll
 import 'package:Note/features/note/presentation/widgets/note_content_editor.dart';
 import 'package:Note/features/note/presentation/widgets/note_detail_more_popup.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart';
-import 'package:Note/features/note/presentation/widgets/note_editor_top_bar.dart';
 import 'package:Note/features/note/presentation/widgets/note_format_panel.dart';
 
-import 'package:Note/features/note/presentation/widgets/note_attachment_popup.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
-  const NoteDetailView({super.key});
+  // Must match the tag NoteBinding registered the controller under for this
+  // push (see NoteNavigation._newInstanceTag and app_pages.dart) so this page
+  // finds the instance built for it specifically, not whichever NOTE_DETAIL
+  // page opened first.
+  const NoteDetailView({super.key, this.tag});
+
+  @override
+  // ignore: overridden_fields
+  final String? tag;
 
   @override
   Widget build(BuildContext context) {
@@ -28,23 +34,9 @@ class NoteDetailView extends GetView<NoteDetailController> {
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
-            Obx(
-              () => controller.isLoading.value
-                  ? const Center(child: CircularProgressIndicator())
-                  : NoteContentEditor(controller: controller),
-            ),
-            Column(
-              children: [
-                NoteEditorTopBar(
-                  controller: controller,
-                  onShowMoreMenu: () => _showMoreMenu(context),
-                ),
-                Obx(
-                  () => controller.isReadOnly.value
-                      ? _buildReadOnlyBanner(context)
-                      : const SizedBox.shrink(),
-                ),
-              ],
+            NoteContentEditor(
+              controller: controller,
+              onShowMoreMenu: () => _showMoreMenu(context),
             ),
             // Floating Toolbar that follows keyboard
             Obx(() {
@@ -55,7 +47,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 alignment: Alignment.bottomCenter,
                 child: NoteEditorToolbar(
                   controller: controller,
-                  onShowAttachmentPopup: () => _showAttachmentPopup(context),
+                  onAttachmentAction: _handleAttachmentAction,
                 ),
               );
             }),
@@ -101,78 +93,27 @@ class NoteDetailView extends GetView<NoteDetailController> {
     NoteDetailMorePopup.show(context: context, controller: controller);
   }
 
-  void _showAttachmentPopup(BuildContext context) {
-    NoteAttachmentPopup.show(
-      context: context,
-      onAction: (type) {
-        switch (type) {
-          case 'camera':
-            controller.addAttachment(ImageSource.camera);
-          case 'gallery':
-            controller.addAttachment(ImageSource.gallery);
-          case 'drawing':
-            controller.startDrawing();
-          // These need a native scanner / audio recorder / file picker this
-          // app doesn't have yet — say so instead of the button doing
-          // nothing when tapped.
-          case 'scan_text':
-          case 'scan_docs':
-            AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
-          case 'audio':
-            AppSnackbar.info(
-              'Coming soon',
-              'Audio recording isn\'t available yet.',
-            );
-          case 'file':
-            controller.addFileAttachment();
-        }
-      },
-    );
-  }
-
-  Widget _buildReadOnlyBanner(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      color: Colors.orange.withValues(alpha: 0.1),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'This note is in Recently Deleted. Restore it to make changes.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.orange[800],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              AppSnackbar.warning(
-                'Tip',
-                'Use Recently Deleted to restore this note.',
-              );
-            },
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              'OK',
-              style: TextStyle(
-                color: Colors.orange[900],
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _handleAttachmentAction(String type) {
+    switch (type) {
+      case 'camera':
+        controller.addAttachment(ImageSource.camera);
+      case 'gallery':
+        controller.addAttachment(ImageSource.gallery);
+      case 'drawing':
+        controller.startDrawing();
+      // These need a native scanner / audio recorder / file picker this
+      // app doesn't have yet — say so instead of the button doing
+      // nothing when tapped.
+      case 'scan_text':
+      case 'scan_docs':
+        AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
+      case 'audio':
+        AppSnackbar.info(
+          'Coming soon',
+          'Audio recording isn\'t available yet.',
+        );
+      case 'file':
+        controller.addFileAttachment();
+    }
   }
 }

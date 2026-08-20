@@ -19,6 +19,7 @@ import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
+import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
@@ -26,6 +27,16 @@ import 'package:Note/features/note/presentation/controllers/note_controller.dart
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
+
+/// Placeholder text kept in a checklist item's [TextEditingController] while
+/// the item is otherwise empty. iOS never delivers a key event for the
+/// on-screen keyboard's Backspace — the text-input channel only reports the
+/// resulting value — so an item with truly empty text gives Backspace
+/// nothing to report a change on. This invisible character gives it
+/// something to delete, which [NoteChecklistBlock]'s input formatter reads
+/// as "Backspace at the start of an empty item" and strips before the text
+/// ever reaches [NoteDetailController.onUpdateChecklistItem].
+final String kChecklistItemPlaceholder = String.fromCharCode(0x200B);
 
 /// Drives the note editor.
 ///
@@ -182,10 +193,75 @@ class NoteDetailController extends GetxController {
       } catch (_) {
         doc = quill.Document()..insert(0, content);
       }
-      return quill.QuillController(
+      final qc = quill.QuillController(
         document: doc,
         selection: const TextSelection.collapsed(offset: 0),
       );
+      qc.addListener(() => _handleMarkdownShortcut(blockId));
+      return qc;
+    });
+  }
+
+  /// iOS-Notes/Notion-style markdown shortcuts: typing "# " or "## " at the
+  /// start of an otherwise-empty line switches that block to Heading /
+  /// Subheading style, and "- " or "* " converts the still-empty text block
+  /// straight into a checklist — the typed marker is consumed rather than
+  /// left behind as literal text.
+  void _handleMarkdownShortcut(String blockId) {
+    final qc = quillControllers[blockId];
+    if (qc == null) return;
+    final raw = qc.document.toPlainText();
+    final text = raw.endsWith('\n') ? raw.substring(0, raw.length - 1) : raw;
+
+    String? newStyle;
+    int prefixLength = 0;
+    bool toChecklist = false;
+
+    if (text == '# ') {
+      newStyle = 'heading';
+      prefixLength = 2;
+    } else if (text == '## ') {
+      newStyle = 'subheading';
+      prefixLength = 3;
+    } else if (text == '- ' || text == '* ') {
+      toChecklist = true;
+    } else {
+      return;
+    }
+
+    final index = blocks.indexWhere((b) => b.id == blockId);
+    if (index == -1) return;
+    final block = blocks[index];
+    if (block is! TextBlock) return;
+
+    // Deferred: this fires from inside the QuillController's own change
+    // notification, and both branches replace/dispose that controller.
+    Future.microtask(() {
+      if (toChecklist) {
+        quillControllers.remove(blockId)?.dispose();
+        final newItem = ChecklistItem(id: _generateId(), text: '');
+        blocks[index] = ChecklistBlock(id: blockId, items: [newItem]);
+        // Keep typing straight into the new item — same as every other
+        // block-replacing mutation here (onChecklistItemEnter,
+        // _exitChecklist) — instead of silently dropping the keyboard.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          getBlockFocusNode('${blockId}_${newItem.id}').requestFocus();
+        });
+      } else {
+        qc.replaceText(
+          0,
+          prefixLength,
+          '',
+          const TextSelection.collapsed(offset: 0),
+        );
+        blocks[index] = TextBlock(
+          id: block.id,
+          text: block.text,
+          style: newStyle!,
+        );
+        currentBlockStyle.value = newStyle;
+      }
+      blocks.refresh();
     });
   }
 
@@ -209,6 +285,20 @@ class NoteDetailController extends GetxController {
     } else {
       FocusManager.instance.primaryFocus?.unfocus();
     }
+  }
+
+  /// iOS-Notes-style "tap anywhere to keep typing": tapping the empty space
+  /// below the note's content jumps the cursor into the last text block,
+  /// creating one first if the note doesn't have one yet.
+  void focusLastTextBlock() {
+    final lastText = blocks.whereType<TextBlock>().lastOrNull;
+    if (lastText != null) {
+      getBlockFocusNode(lastText.id).requestFocus();
+      return;
+    }
+    addTextBlock();
+    final created = blocks.whereType<TextBlock>().lastOrNull;
+    if (created != null) getBlockFocusNode(created.id).requestFocus();
   }
 
   // --- Block Actions ---
@@ -236,6 +326,14 @@ class NoteDetailController extends GetxController {
         ],
       ),
     );
+  }
+
+  /// Quick-compose shortcut from inside an already-open note — pushes a
+  /// fresh blank note in the same folder, leaving this one where it is on
+  /// the nav stack underneath.
+  void createNewNote() {
+    final folderId = currentNote.value?.folderId ?? 0;
+    NoteNavigation.toNewNote(folderId);
   }
 
   Future<void> startDrawing() async {
@@ -419,6 +517,56 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// iOS-Notes-style checklist Return key: on a non-empty item, inserts a
+  /// new empty item right below and focuses it (rather than a literal
+  /// newline inside the same item). On an empty item, exits the list —
+  /// leaving the rest of the checklist in place and continuing as a normal
+  /// paragraph, or replacing the whole checklist if it was the only item.
+  void onChecklistItemEnter(int blockIndex, int itemIndex) {
+    if (isReadOnly.value) return;
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+    final item = block.items[itemIndex];
+
+    if (item.text.trim().isEmpty) {
+      _exitChecklist(blockIndex, itemIndex);
+      return;
+    }
+
+    final newItem = ChecklistItem(id: _generateId(), text: '');
+    final newItems = List<ChecklistItem>.from(block.items)
+      ..insert(itemIndex + 1, newItem);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
+    blocks.refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getBlockFocusNode('${block.id}_${newItem.id}').requestFocus();
+    });
+  }
+
+  void _exitChecklist(int blockIndex, int itemIndex) {
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+
+    if (block.items.length == 1) {
+      final newBlock = TextBlock(id: block.id, text: '', style: 'body');
+      blocks[blockIndex] = newBlock;
+      blocks.refresh();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        getBlockFocusNode(newBlock.id).requestFocus();
+      });
+      return;
+    }
+
+    final newItems = List<ChecklistItem>.from(block.items)..removeAt(itemIndex);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
+    final newBlock = TextBlock(id: _generateId(), text: '', style: 'body');
+    blocks.insert(blockIndex + 1, newBlock);
+    blocks.refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getBlockFocusNode(newBlock.id).requestFocus();
+    });
+  }
+
   void toggleChecklistItem(int blockIndex, int itemIndex) {
     final block = blocks[blockIndex];
     if (block is ChecklistBlock) {
@@ -457,6 +605,57 @@ class NoteDetailController extends GetxController {
       blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
       blocks.refresh();
     }
+  }
+
+  /// iOS-Notes-style checklist Backspace: pressed at the very start of an
+  /// item, it deletes that item and merges its text onto the end of the
+  /// item above, focusing there at the merge point — the reverse of
+  /// [onChecklistItemEnter]. Pressed on the first item there is nothing
+  /// above to merge into: it collapses the whole list back into a plain
+  /// paragraph if that was the only item, otherwise it's a no-op.
+  void onChecklistItemBackspace(int blockIndex, int itemIndex) {
+    if (isReadOnly.value) return;
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+
+    if (itemIndex == 0) {
+      if (block.items.length > 1) return;
+      final newBlock = TextBlock(id: block.id, text: '', style: 'body');
+      blocks[blockIndex] = newBlock;
+      blocks.refresh();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        getBlockFocusNode(newBlock.id).requestFocus();
+      });
+      return;
+    }
+
+    final item = block.items[itemIndex];
+    final previous = block.items[itemIndex - 1];
+    final mergedText = previous.text + item.text;
+    final newItems = List<ChecklistItem>.from(block.items);
+    newItems[itemIndex - 1] = ChecklistItem(
+      id: previous.id,
+      text: mergedText,
+      checked: previous.checked,
+    );
+    newItems.removeAt(itemIndex);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
+    blocks.refresh();
+
+    final previousKey = '${block.id}_${previous.id}';
+    final mergeOffset = previous.text.length;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final displayText = mergedText.isEmpty
+          ? kChecklistItemPlaceholder
+          : mergedText;
+      getTextController(previousKey, displayText).value = TextEditingValue(
+        text: displayText,
+        selection: TextSelection.collapsed(
+          offset: mergedText.isEmpty ? displayText.length : mergeOffset,
+        ),
+      );
+      getBlockFocusNode(previousKey).requestFocus();
+    });
   }
 
   // --- Table Actions ---
@@ -550,8 +749,31 @@ class NoteDetailController extends GetxController {
 
   void deleteBlock(int index) {
     if (isReadOnly.value) return;
+    _deleteLocalAttachmentFile(blocks[index]);
     blocks.removeAt(index);
     blocks.refresh();
+  }
+
+  /// Removes an attachment/drawing block's on-device copy along with the
+  /// block itself, so deleting a picture actually frees the space it was
+  /// taking up in the app's local storage instead of leaving it orphaned
+  /// there forever. `localPath` always points inside this app's own sandbox
+  /// (image_picker/file_picker's cache, or `guest_attachments/` — see
+  /// LocalNoteRepository), never a file another app owns, so it's always
+  /// safe to delete outright.
+  void _deleteLocalAttachmentFile(NoteBlock block) {
+    final path = switch (block) {
+      AttachmentBlock(:final localPath) => localPath,
+      DrawingBlock(:final localPath) => localPath,
+      _ => null,
+    };
+    if (path == null || path.isEmpty) return;
+    try {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    } catch (e) {
+      debugPrint('[DELETE ATTACHMENT FILE ERROR] $e');
+    }
   }
 
   void _insertBlock(NoteBlock block) {
@@ -583,7 +805,7 @@ class NoteDetailController extends GetxController {
 
   // --- SAVE FLOW ---
 
-  Future<void> saveNote() async {
+  Future<void> saveNote({bool silent = false}) async {
     if (isSaving.value || isReadOnly.value) return;
 
     Get.focusScope?.unfocus();
@@ -630,13 +852,32 @@ class NoteDetailController extends GetxController {
         return;
       }
 
-      // Re-fetch so server-assigned ids and attachment URLs land locally.
-      await fetchNoteDetail(noteId);
+      // BUG FIX: this used to re-fetch the whole note here, which disposed
+      // every quill/text controller and replaced `blocks` with whatever the
+      // server had — silently discarding anything typed during this save's
+      // (multi-request) network round-trip. We already have everything a
+      // re-fetch would provide: the real id came back from the metadata
+      // save above, and _handleAttachmentUploads already patches attachment
+      // urls/ids into `blocks` in place — so just carry those forward
+      // locally instead of clobbering live edits.
+      final previous = currentNote.value;
+      currentNote.value = Note(
+        id: noteId,
+        folderId: folderId,
+        folderName: previous?.folderName ?? '',
+        title: title.isEmpty ? 'Untitled Note' : title,
+        content: blocks.toList(),
+        isPinned: previous?.isPinned ?? false,
+        isArchived: previous?.isArchived ?? false,
+        isLocked: previous?.isLocked ?? false,
+        updatedAt: DateTime.now(),
+        attachmentCount: previous?.attachmentCount ?? 0,
+      );
 
       if (failedUploads.isNotEmpty) {
-        // These never reached the server, so they aren't part of what the
-        // fetch above just loaded — re-attach them so the picture isn't
-        // lost, and say so instead of claiming a clean save.
+        // These never reached the server, so re-attach them locally too —
+        // otherwise the picture is silently lost even though everything
+        // else just saved successfully.
         blocks.addAll(failedUploads);
         blocks.refresh();
         AppSnackbar.warning(
@@ -645,12 +886,40 @@ class NoteDetailController extends GetxController {
               ? 'Note saved, but 1 image could not be uploaded. Try saving again.'
               : 'Note saved, but ${failedUploads.length} images could not be uploaded. Try saving again.',
         );
-      } else {
+      } else if (!silent) {
         AppSnackbar.success('Saved', 'Note saved');
       }
     } finally {
       isSaving.value = false;
     }
+  }
+
+  /// Used when leaving the editor (e.g. the back button): saves like
+  /// [saveNote] normally would, except a brand-new, still-empty note
+  /// (`id == 0`, no title, no real block content) is left alone instead of
+  /// being persisted as an empty note.
+  Future<void> saveAndExitIfNeeded() async {
+    final isNewNote = (currentNote.value?.id ?? 0) == 0;
+    if (isNewNote && !_hasNoteContent()) return;
+    await saveNote(silent: true);
+  }
+
+  bool _hasNoteContent() {
+    if (titleController.text.trim().isNotEmpty) return true;
+    for (final block in blocks) {
+      if (block is TextBlock) {
+        final plainText = quillControllers[block.id]
+                ?.document
+                .toPlainText() ??
+            block.text;
+        if (plainText.trim().isNotEmpty) return true;
+      } else {
+        // Any non-text block (checklist, attachment, drawing, table) is
+        // real content on its own.
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Converts the global background points into a temporary image and adds it as a block

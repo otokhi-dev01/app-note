@@ -17,6 +17,13 @@ class NoteBinding extends Bindings {
         getFolders: Get.find<GetFolders>(),
       ),
     );
+    // Tagged per push (see NoteNavigation._newInstanceTag): NOTE_DETAIL can be
+    // stacked on top of itself — opening a note, or starting a new one, from
+    // inside an already-open note — and without a unique tag GetX would hand
+    // back that still-alive note's singleton controller instead of building a
+    // fresh one for the new page.
+    final args = Get.arguments;
+    final tag = args is Map ? args['instanceTag']?.toString() : null;
     Get.lazyPut(
       () => NoteDetailController(
         getNoteDetail: Get.find<GetNoteDetail>(),
@@ -28,6 +35,7 @@ class NoteBinding extends Bindings {
         downloadAttachment: Get.find<DownloadAttachment>(),
         getFolders: Get.find<GetFolders>(),
       ),
+      tag: tag,
       fenix: true,
     );
   }

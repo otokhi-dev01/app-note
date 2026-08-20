@@ -22,7 +22,7 @@ class NoteApp extends StatelessWidget {
     final themeStorage = ThemeStorage();
 
     return GetMaterialApp(
-      title: 'Piisiit Note',
+      title: 'Pii Note',
       debugShowCheckedModeBanner: false,
       enableLog: kDebugMode,
       initialBinding: InitialBinding(),

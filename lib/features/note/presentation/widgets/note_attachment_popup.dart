@@ -1,59 +1,67 @@
 import 'package:flutter/cupertino.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
+/// The toolbar's attachment button, iOS-26 style: tapping it morphs the
+/// button itself into a glass pull-down menu anchored right where it was
+/// (matching the system's own "+" menu in Notes), instead of raising a
+/// full-width bottom action sheet.
 class NoteAttachmentPopup extends StatelessWidget {
-  final Function(String type) onAction;
+  final ValueChanged<String> onAction;
+  final Widget trigger;
 
-  const NoteAttachmentPopup({super.key, required this.onAction});
+  const NoteAttachmentPopup({
+    super.key,
+    required this.onAction,
+    required this.trigger,
+  });
 
-  static Future<void> show({
-    required BuildContext context,
-    required Function(String type) onAction,
-  }) {
-    return CustomGlassActionSheet.show(
-      context: context,
-      actions: [
-        CustomGlassActionSheetAction(
-          label: 'Scan Text',
-          icon: CupertinoIcons.viewfinder,
-          onPressed: () => onAction('scan_text'),
+  @override
+  Widget build(BuildContext context) {
+    return lg.GlassMenu(
+      trigger: trigger,
+      menuWidth: 250,
+      // The attachment button lives in the toolbar sitting right above the
+      // keyboard, so the menu must grow upward from it — opening downward
+      // (the auto-detected default) would put it underneath the keyboard,
+      // which is a native layer that always draws on top of Flutter's own
+      // content and would hide it. `bottomCenter` anchors the menu's
+      // bottom edge to the trigger so the body expands up instead.
+      menuAlignment: lg.GlassMenuAlignment.bottomCenter,
+      autoAdjustToScreen: true,
+      menuPadding: const EdgeInsets.all(12),
+      items: [
+        _item(context, 'Scan Text', CupertinoIcons.viewfinder, 'scan_text'),
+        _item(
+          context,
+          'Scan Documents',
+          CupertinoIcons.viewfinder_circle,
+          'scan_docs',
         ),
-        CustomGlassActionSheetAction(
-          label: 'Scan Documents',
-          icon: CupertinoIcons.viewfinder_circle,
-          onPressed: () => onAction('scan_docs'),
+        _item(context, 'Take Photo or Video', CupertinoIcons.camera, 'camera'),
+        _item(
+          context,
+          'Choose Photo or Video',
+          CupertinoIcons.photo_on_rectangle,
+          'gallery',
         ),
-        CustomGlassActionSheetAction(
-          label: 'Take Photo or Video',
-          icon: CupertinoIcons.camera,
-          onPressed: () => onAction('camera'),
-        ),
-        CustomGlassActionSheetAction(
-          label: 'Choose Photo or Video',
-          icon: CupertinoIcons.photo_on_rectangle,
-          onPressed: () => onAction('gallery'),
-        ),
-        CustomGlassActionSheetAction(
-          label: 'Drawing',
-          icon: CupertinoIcons.pencil_outline,
-          onPressed: () => onAction('drawing'),
-        ),
-        CustomGlassActionSheetAction(
-          label: 'Record Audio',
-          icon: CupertinoIcons.mic,
-          onPressed: () => onAction('audio'),
-        ),
-        CustomGlassActionSheetAction(
-          label: 'Attach File',
-          icon: CupertinoIcons.paperclip,
-          onPressed: () => onAction('file'),
-        ),
+        _item(context, 'Drawing', CupertinoIcons.pencil_outline, 'drawing'),
+        _item(context, 'Record Audio', CupertinoIcons.mic, 'audio'),
+        const lg.GlassMenuDivider(),
+        _item(context, 'Attach File', CupertinoIcons.paperclip, 'file'),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink();
+  lg.GlassMenuItem _item(
+    BuildContext context,
+    String title,
+    IconData icon,
+    String type,
+  ) {
+    return lg.GlassMenuItem(
+      title: title,
+      icon: Icon(icon),
+      onTap: () => onAction(type),
+    );
   }
 }
