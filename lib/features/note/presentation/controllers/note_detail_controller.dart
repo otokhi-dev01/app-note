@@ -894,6 +894,34 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Used when leaving the editor (e.g. the back button): saves like
+  /// [saveNote] normally would, except a brand-new, still-empty note
+  /// (`id == 0`, no title, no real block content) is left alone instead of
+  /// being persisted as an empty note.
+  Future<void> saveAndExitIfNeeded() async {
+    final isNewNote = (currentNote.value?.id ?? 0) == 0;
+    if (isNewNote && !_hasNoteContent()) return;
+    await saveNote(silent: true);
+  }
+
+  bool _hasNoteContent() {
+    if (titleController.text.trim().isNotEmpty) return true;
+    for (final block in blocks) {
+      if (block is TextBlock) {
+        final plainText = quillControllers[block.id]
+                ?.document
+                .toPlainText() ??
+            block.text;
+        if (plainText.trim().isNotEmpty) return true;
+      } else {
+        // Any non-text block (checklist, attachment, drawing, table) is
+        // real content on its own.
+        return true;
+      }
+    }
+    return false;
+  }
+
   /// Converts the global background points into a temporary image and adds it as a block
   Future<void> _flattenBackgroundDrawing() async {
     try {

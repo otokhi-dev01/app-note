@@ -11,6 +11,7 @@ import 'package:Note/features/folder/presentation/bindings/folder_binding.dart';
 import 'package:Note/features/note/presentation/views/note_list_view.dart';
 import 'package:Note/features/note/presentation/bindings/note_binding.dart';
 import 'package:Note/features/note/presentation/views/note_detail_view.dart';
+import 'package:Note/features/note/presentation/views/create_note_view.dart';
 import 'package:Note/features/search/presentation/views/search_view.dart';
 import 'package:Note/features/search/presentation/bindings/search_binding.dart';
 import 'package:Note/features/profile/presentation/bindings/profile_binding.dart';
@@ -71,7 +72,10 @@ class AppPages {
       page: () {
         final args = Get.arguments;
         final tag = args is Map ? args['instanceTag']?.toString() : null;
-        return NoteDetailView(tag: tag);
+        final noteId = args is Map ? args['noteId'] : null;
+        return (noteId == null || noteId == 0)
+            ? CreateNoteView(tag: tag)
+            : NoteDetailView(tag: tag);
       },
       binding: NoteBinding(),
     ),
