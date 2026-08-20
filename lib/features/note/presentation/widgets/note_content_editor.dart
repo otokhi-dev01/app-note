@@ -1,13 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
 import 'package:Note/features/note/presentation/widgets/note_checklist_block.dart';
+import 'package:Note/features/note/presentation/widgets/note_editor_header.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_top_bar.dart';
 import 'package:Note/features/note/presentation/widgets/note_scroll_utils.dart';
 import 'package:Note/features/note/presentation/widgets/note_table_block.dart';
@@ -17,12 +17,10 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class NoteContentEditor extends StatelessWidget {
   final NoteDetailController controller;
-  final VoidCallback onShowMoreMenu;
 
   const NoteContentEditor({
     super.key,
     required this.controller,
-    required this.onShowMoreMenu,
   });
 
   @override
@@ -44,7 +42,6 @@ class NoteContentEditor extends StatelessWidget {
 
             // BUG FIX: Gracefully handle null note during deletion cleanup
             final note = controller.currentNote.value;
-            final noteDate = note?.updatedAt ?? DateTime.now();
 
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -53,10 +50,7 @@ class NoteContentEditor extends StatelessWidget {
               // fight the cursor-follows-keyboard behavior above.
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
               slivers: [
-                NoteEditorTopBar(
-                  controller: controller,
-                  onShowMoreMenu: onShowMoreMenu,
-                ),
+                NoteEditorTopBar(controller: controller),
                 if (isReadOnly)
                   SliverToBoxAdapter(child: _buildReadOnlyBanner(context)),
                 if (isLoading)
@@ -73,17 +67,7 @@ class NoteContentEditor extends StatelessWidget {
                     ),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        Text(
-                          DateFormat(
-                            "MMMM d, yyyy 'at' h:mm a",
-                          ).format(noteDate),
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant
-                                .withValues(alpha: 0.6),
-                            fontSize: 13,
-                          ),
-                        ),
+                        NoteEditorHeader(controller: controller),
                         const SizedBox(height: 16),
                         TextField(
                           key: const ValueKey('note-title-field'),

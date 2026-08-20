@@ -168,21 +168,26 @@ class NoteListView extends GetView<NoteController> {
       );
     }
 
-    return CustomGlassButton(
-      onPressed: () =>
-          NoteContextMenu.show(context: context, controller: controller),
-      width: 44,
-      height: 44,
-      shape: GlassShape.circle,
-      blur: 10,
-      opacity: 0.15,
-      thickness: 8,
-      padding: EdgeInsets.zero,
-      child: Icon(
-        Icons.more_horiz,
-        color: theme.colorScheme.onSurface,
-        size: 24,
-        fontWeight: FontWeight.bold,
+    // The button itself morphs into the menu, so it hands its tap to
+    // NoteContextMenu rather than opening anything of its own.
+    return NoteContextMenu(
+      controller: controller,
+      triggerBuilder: (context, toggleMenu) => CustomGlassButton(
+        onPressed: toggleMenu,
+        semanticLabel: 'More options',
+        width: 44,
+        height: 44,
+        shape: GlassShape.circle,
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Icon(
+          Icons.more_horiz,
+          color: theme.colorScheme.onSurface,
+          size: 24,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
