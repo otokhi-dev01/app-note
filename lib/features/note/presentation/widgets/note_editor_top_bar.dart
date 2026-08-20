@@ -15,57 +15,54 @@ class NoteEditorTopBar extends StatelessWidget {
     required this.onShowMoreMenu,
   });
 
+  // A sliver (not a fixed-position overlay) so it scrolls with the note
+  // body the same way every other screen's CustomGlassSliverAppBar does
+  // (Folder, Recently Deleted, Note List) — pinned at a fixed compact
+  // height rather than expanding into a large title, since the note's own
+  // title is edited inline in the content below.
   @override
   Widget build(BuildContext context) {
-    final topPadding = MediaQuery.paddingOf(context).top;
+    final color = Theme.of(context).colorScheme.onSurface;
+    // Only while actively editing (keyboard up) — once it's dismissed
+    // (tapping away, or after Save itself unfocuses), the bar goes back to
+    // the plain back/undo/share/more row instead of keeping a checkmark
+    // around with nothing left to confirm.
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Container(
-      color: Colors.transparent,
-      padding: EdgeInsets.only(top: topPadding),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: SizedBox(
-          height: 45,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _GlassIconButton(
-                icon: CupertinoIcons.chevron_left,
-                onTap: Get.back,
-                size: 44,
-                iconSize: 28,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-              Row(
-                children: [
-                  _GlassIconButton(
-                    icon: CupertinoIcons.arrow_uturn_left,
-                    onTap: controller.undo,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: 15),
-                  _GlassIconButton(
-                    icon: CupertinoIcons.share,
-                    onTap: controller.shareNote,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: 15),
-                  MoreButton(
-                    onPressed: onShowMoreMenu,
-                    iconColor: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: 15),
-                  Obx(
-                    () => controller.isReadOnly.value
-                        ? const SizedBox.shrink()
-                        : _SaveButton(controller: controller),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+    return CustomGlassSliverAppBar(
+      toolbarHeight: 52,
+      expandedHeight: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      leading: _GlassIconButton(
+        icon: CupertinoIcons.chevron_left,
+        // The note list only re-fetches after returning here when the popped
+        // result is `true` (see NoteListTile/NoteGridTile) — without this,
+        // edits made in this screen (deleting an attachment, retitling, …)
+        // never show up until the list is refreshed some other way.
+        onTap: () => Get.back(result: true),
+        size: 44,
+        iconSize: 28,
+        color: color,
       ),
+      actions: [
+        _GlassIconButton(
+          icon: CupertinoIcons.arrow_uturn_left,
+          onTap: controller.undo,
+          color: color,
+        ),
+        _GlassIconButton(
+          icon: CupertinoIcons.share,
+          onTap: controller.shareNote,
+          color: color,
+        ),
+        MoreButton(onPressed: onShowMoreMenu, iconColor: color),
+        if (isKeyboardVisible)
+          Obx(
+            () => controller.isReadOnly.value
+                ? const SizedBox.shrink()
+                : Row(children: [_SaveButton(controller: controller)]),
+          ),
+      ],
     );
   }
 }

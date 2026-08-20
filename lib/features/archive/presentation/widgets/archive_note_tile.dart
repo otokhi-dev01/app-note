@@ -31,9 +31,13 @@ class ArchiveNoteTile extends StatelessWidget {
           if (isEditing) {
             controller.toggleSelectNote(note.id);
           } else {
-            NoteNavigation.toDetail(note)?.then((value) {
-              if (value == true) controller.fetchNotes(refresh: true);
-            });
+            // Always refresh, not just when the popped result is `true` —
+            // an iOS swipe-back gesture leaves this note without ever
+            // running the button's explicit `Get.back(result: true)`, so
+            // relying on that alone missed edits made in the detail screen.
+            NoteNavigation.toDetail(
+              note,
+            )?.then((_) => controller.fetchNotes(refresh: true));
           }
         },
       );

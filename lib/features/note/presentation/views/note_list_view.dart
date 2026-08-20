@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/note/presentation/widgets/note_context_menu.dart';
 import 'package:Note/features/note/presentation/widgets/note_list_tile.dart';
 import 'package:Note/features/note/presentation/widgets/note_grid_tile.dart';
@@ -22,7 +23,9 @@ class NoteListView extends GetView<NoteController> {
   Widget build(BuildContext context) {
     final Folder? folder = Get.arguments is Folder ? Get.arguments : null;
     final theme = Theme.of(context);
-    final folderName = folder?.name ?? "All Notes";
+    final folderName = folder != null
+        ? FolderAppearance.displayName(folder.name)
+        : "All Notes";
     final int folderId = folder?.id ?? 0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(

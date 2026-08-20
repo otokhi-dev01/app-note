@@ -19,6 +19,7 @@ import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
+import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
@@ -182,10 +183,71 @@ class NoteDetailController extends GetxController {
       } catch (_) {
         doc = quill.Document()..insert(0, content);
       }
-      return quill.QuillController(
+      final qc = quill.QuillController(
         document: doc,
         selection: const TextSelection.collapsed(offset: 0),
       );
+      qc.addListener(() => _handleMarkdownShortcut(blockId));
+      return qc;
+    });
+  }
+
+  /// iOS-Notes/Notion-style markdown shortcuts: typing "# " or "## " at the
+  /// start of an otherwise-empty line switches that block to Heading /
+  /// Subheading style, and "- " or "* " converts the still-empty text block
+  /// straight into a checklist — the typed marker is consumed rather than
+  /// left behind as literal text.
+  void _handleMarkdownShortcut(String blockId) {
+    final qc = quillControllers[blockId];
+    if (qc == null) return;
+    final raw = qc.document.toPlainText();
+    final text = raw.endsWith('\n') ? raw.substring(0, raw.length - 1) : raw;
+
+    String? newStyle;
+    int prefixLength = 0;
+    bool toChecklist = false;
+
+    if (text == '# ') {
+      newStyle = 'heading';
+      prefixLength = 2;
+    } else if (text == '## ') {
+      newStyle = 'subheading';
+      prefixLength = 3;
+    } else if (text == '- ' || text == '* ') {
+      toChecklist = true;
+    } else {
+      return;
+    }
+
+    final index = blocks.indexWhere((b) => b.id == blockId);
+    if (index == -1) return;
+    final block = blocks[index];
+    if (block is! TextBlock) return;
+
+    // Deferred: this fires from inside the QuillController's own change
+    // notification, and both branches replace/dispose that controller.
+    Future.microtask(() {
+      if (toChecklist) {
+        quillControllers.remove(blockId)?.dispose();
+        blocks[index] = ChecklistBlock(
+          id: blockId,
+          items: [ChecklistItem(id: _generateId(), text: '')],
+        );
+      } else {
+        qc.replaceText(
+          0,
+          prefixLength,
+          '',
+          const TextSelection.collapsed(offset: 0),
+        );
+        blocks[index] = TextBlock(
+          id: block.id,
+          text: block.text,
+          style: newStyle!,
+        );
+        currentBlockStyle.value = newStyle;
+      }
+      blocks.refresh();
     });
   }
 
@@ -209,6 +271,20 @@ class NoteDetailController extends GetxController {
     } else {
       FocusManager.instance.primaryFocus?.unfocus();
     }
+  }
+
+  /// iOS-Notes-style "tap anywhere to keep typing": tapping the empty space
+  /// below the note's content jumps the cursor into the last text block,
+  /// creating one first if the note doesn't have one yet.
+  void focusLastTextBlock() {
+    final lastText = blocks.whereType<TextBlock>().lastOrNull;
+    if (lastText != null) {
+      getBlockFocusNode(lastText.id).requestFocus();
+      return;
+    }
+    addTextBlock();
+    final created = blocks.whereType<TextBlock>().lastOrNull;
+    if (created != null) getBlockFocusNode(created.id).requestFocus();
   }
 
   // --- Block Actions ---
@@ -236,6 +312,14 @@ class NoteDetailController extends GetxController {
         ],
       ),
     );
+  }
+
+  /// Quick-compose shortcut from inside an already-open note — pushes a
+  /// fresh blank note in the same folder, leaving this one where it is on
+  /// the nav stack underneath.
+  void createNewNote() {
+    final folderId = currentNote.value?.folderId ?? 0;
+    NoteNavigation.toNewNote(folderId);
   }
 
   Future<void> startDrawing() async {
@@ -417,6 +501,56 @@ class NoteDetailController extends GetxController {
       blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
       blocks.refresh();
     }
+  }
+
+  /// iOS-Notes-style checklist Return key: on a non-empty item, inserts a
+  /// new empty item right below and focuses it (rather than a literal
+  /// newline inside the same item). On an empty item, exits the list —
+  /// leaving the rest of the checklist in place and continuing as a normal
+  /// paragraph, or replacing the whole checklist if it was the only item.
+  void onChecklistItemEnter(int blockIndex, int itemIndex) {
+    if (isReadOnly.value) return;
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+    final item = block.items[itemIndex];
+
+    if (item.text.trim().isEmpty) {
+      _exitChecklist(blockIndex, itemIndex);
+      return;
+    }
+
+    final newItem = ChecklistItem(id: _generateId(), text: '');
+    final newItems = List<ChecklistItem>.from(block.items)
+      ..insert(itemIndex + 1, newItem);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
+    blocks.refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getBlockFocusNode('${block.id}_${newItem.id}').requestFocus();
+    });
+  }
+
+  void _exitChecklist(int blockIndex, int itemIndex) {
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+
+    if (block.items.length == 1) {
+      final newBlock = TextBlock(id: block.id, text: '', style: 'body');
+      blocks[blockIndex] = newBlock;
+      blocks.refresh();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        getBlockFocusNode(newBlock.id).requestFocus();
+      });
+      return;
+    }
+
+    final newItems = List<ChecklistItem>.from(block.items)..removeAt(itemIndex);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
+    final newBlock = TextBlock(id: _generateId(), text: '', style: 'body');
+    blocks.insert(blockIndex + 1, newBlock);
+    blocks.refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getBlockFocusNode(newBlock.id).requestFocus();
+    });
   }
 
   void toggleChecklistItem(int blockIndex, int itemIndex) {
@@ -630,13 +764,32 @@ class NoteDetailController extends GetxController {
         return;
       }
 
-      // Re-fetch so server-assigned ids and attachment URLs land locally.
-      await fetchNoteDetail(noteId);
+      // BUG FIX: this used to re-fetch the whole note here, which disposed
+      // every quill/text controller and replaced `blocks` with whatever the
+      // server had — silently discarding anything typed during this save's
+      // (multi-request) network round-trip. We already have everything a
+      // re-fetch would provide: the real id came back from the metadata
+      // save above, and _handleAttachmentUploads already patches attachment
+      // urls/ids into `blocks` in place — so just carry those forward
+      // locally instead of clobbering live edits.
+      final previous = currentNote.value;
+      currentNote.value = Note(
+        id: noteId,
+        folderId: folderId,
+        folderName: previous?.folderName ?? '',
+        title: title.isEmpty ? 'Untitled Note' : title,
+        content: blocks.toList(),
+        isPinned: previous?.isPinned ?? false,
+        isArchived: previous?.isArchived ?? false,
+        isLocked: previous?.isLocked ?? false,
+        updatedAt: DateTime.now(),
+        attachmentCount: previous?.attachmentCount ?? 0,
+      );
 
       if (failedUploads.isNotEmpty) {
-        // These never reached the server, so they aren't part of what the
-        // fetch above just loaded — re-attach them so the picture isn't
-        // lost, and say so instead of claiming a clean save.
+        // These never reached the server, so re-attach them locally too —
+        // otherwise the picture is silently lost even though everything
+        // else just saved successfully.
         blocks.addAll(failedUploads);
         blocks.refresh();
         AppSnackbar.warning(

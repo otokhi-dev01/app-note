@@ -78,108 +78,127 @@ class NoteAttachmentBlock extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 16),
-      child: Semantics(
-        button: true,
-        image: true,
-        label: '$semanticsLabel. Tap to edit and save.',
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () =>
-              _openImageEditor(context), // Logic: Tap to Edit instantly
-          onLongPress: () =>
-              _showDeleteMenu(context), // Logic: Hold to show delete popup
-          child: Container(
-            constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Stack(
-                fit: StackFit.passthrough,
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 240,
-                    child: _AttachmentImage(block: block),
+      // CupertinoContextMenu lays its child out with unbounded constraints
+      // while computing the hold-to-preview zoom, so `width: double.infinity`
+      // below can't resolve against it — LayoutBuilder captures the real
+      // available width here (bounded, from the normal layout pass) and
+      // pins the container to that concrete number instead.
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tileWidth = constraints.maxWidth;
+          return Semantics(
+            button: true,
+            image: true,
+            label: '$semanticsLabel. Tap to edit and save.',
+            // Native iOS-style hold-to-preview menu (Edit / Share / Delete)
+            // instead of the glass action sheet, matching the system's own
+            // long-press-on-photo menu.
+            child: CupertinoContextMenu(
+              actions: _contextMenuActions(context),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () =>
+                    _openImageEditor(context), // Logic: Tap to Edit instantly
+                child: Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 300,
+                    minHeight: 120,
                   ),
-                  // "Tap to Edit" overlay hint
-                  if (!controller.isReadOnly.value)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: () => _openImageEditor(
-                          context,
-                        ), // Logic: Direct pencil tool
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                  width: tileWidth,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.black.withValues(alpha: 0.08),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.2 : 0.06,
+                        ),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: Stack(
+                      fit: StackFit.passthrough,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: 240,
+                          child: _AttachmentImage(block: block),
+                        ),
+                        // "Tap to Edit" overlay hint
+                        if (!controller.isReadOnly.value)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () => _openImageEditor(
+                                context,
+                              ), // Logic: Direct pencil tool
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.pencil,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
                             ),
                           ),
-                          child: const Icon(
-                            CupertinoIcons.pencil,
-                            color: Colors.white,
-                            size: 18,
+                        if (block.displayName.trim().isNotEmpty)
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.7),
+                                    Colors.black.withValues(alpha: 0.0),
+                                  ],
+                                ),
+                              ),
+                              child: Text(
+                                block.displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                      ],
                     ),
-                  if (block.displayName.trim().isNotEmpty)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.7),
-                              Colors.black.withValues(alpha: 0.0),
-                            ],
-                          ),
-                        ),
-                        child: Text(
-                          block.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -224,6 +243,51 @@ class NoteAttachmentBlock extends StatelessWidget {
     } catch (e) {
       debugPrint('Error opening native editor: $e');
       AppSnackbar.error('Error', 'Could not open image editor');
+    }
+  }
+
+  List<Widget> _contextMenuActions(BuildContext context) {
+    return [
+      CupertinoContextMenuAction(
+        trailingIcon: CupertinoIcons.pencil,
+        onPressed: () {
+          Navigator.of(context).pop();
+          _openImageEditor(context);
+        },
+        child: const Text('Edit Image'),
+      ),
+      CupertinoContextMenuAction(
+        trailingIcon: CupertinoIcons.share,
+        onPressed: () {
+          Navigator.of(context).pop();
+          _shareImage(context);
+        },
+        child: const Text('Share'),
+      ),
+      if (!controller.isReadOnly.value)
+        CupertinoContextMenuAction(
+          isDestructiveAction: true,
+          trailingIcon: CupertinoIcons.trash,
+          onPressed: () {
+            Navigator.of(context).pop();
+            controller.deleteBlock(blockIndex);
+          },
+          child: const Text('Delete'),
+        ),
+    ];
+  }
+
+  Future<void> _shareImage(BuildContext context) async {
+    final path = normalizeLocalPath(block.localPath);
+    if (path == null || !File(path).existsSync()) {
+      AppSnackbar.info('Not available', 'This image isn\'t on the device.');
+      return;
+    }
+    try {
+      await Share.shareXFiles([XFile(path)]);
+    } catch (e) {
+      debugPrint('[IMAGE SHARE ERROR] $e');
+      AppSnackbar.error('Error', 'Could not share that image');
     }
   }
 

@@ -3,139 +3,200 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
 import 'package:Note/features/note/presentation/widgets/note_checklist_block.dart';
+import 'package:Note/features/note/presentation/widgets/note_editor_top_bar.dart';
+import 'package:Note/features/note/presentation/widgets/note_scroll_utils.dart';
 import 'package:Note/features/note/presentation/widgets/note_table_block.dart';
 import 'package:Note/features/note/presentation/widgets/interactive_drawing_canvas.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class NoteContentEditor extends StatelessWidget {
   final NoteDetailController controller;
+  final VoidCallback onShowMoreMenu;
 
-  const NoteContentEditor({super.key, required this.controller});
-
-  static const double _topBarControlSize = 40;
+  const NoteContentEditor({
+    super.key,
+    required this.controller,
+    required this.onShowMoreMenu,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final horizontalInset = _editorInset(context);
-    final baseTopPadding =
-        MediaQuery.paddingOf(context).top + _topBarControlSize + 16;
     final bottomPadding = MediaQuery.viewInsetsOf(context).bottom + 140;
 
     return Stack(
       children: [
         _PageContent(
+          // Same scroll architecture as the rest of the app (Folder,
+          // Recently Deleted, Note List): a CustomScrollView whose app bar
+          // is a sliver that scrolls with the content instead of floating
+          // as a separately-positioned fixed overlay.
           child: Obx(() {
+            final isLoading = controller.isLoading.value;
             final isReadOnly = controller.isReadOnly.value;
-            final topPadding = baseTopPadding + (isReadOnly ? 52 : 0);
 
             // BUG FIX: Gracefully handle null note during deletion cleanup
             final note = controller.currentNote.value;
             final noteDate = note?.updatedAt ?? DateTime.now();
 
-            return ListView(
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: EdgeInsets.fromLTRB(
-                horizontalInset,
-                topPadding,
-                horizontalInset,
-                bottomPadding,
-              ),
-              children: [
-                GestureDetector(
-                  onTap: isReadOnly ? null : controller.moveNote,
-                  behavior: HitTestBehavior.opaque,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        CupertinoIcons.folder,
-                        size: 12,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        note?.folderName ?? "Notes",
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.5,
+            return CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              // iOS Notes lets you scroll the note up and down while typing
+              // without the keyboard dropping — dismissing on drag would
+              // fight the cursor-follows-keyboard behavior above.
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+              slivers: [
+                NoteEditorTopBar(
+                  controller: controller,
+                  onShowMoreMenu: onShowMoreMenu,
+                ),
+                if (isReadOnly)
+                  SliverToBoxAdapter(child: _buildReadOnlyBanner(context)),
+                if (isLoading)
+                  const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalInset,
+                      16,
+                      horizontalInset,
+                      bottomPadding,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        Text(
+                          DateFormat(
+                            "MMMM d, yyyy 'at' h:mm a",
+                          ).format(noteDate),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.6),
+                            fontSize: 13,
                           ),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat("MMMM d, yyyy 'at' h:mm a").format(noteDate),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
+                        const SizedBox(height: 16),
+                        TextField(
+                          key: const ValueKey('note-title-field'),
+                          controller: controller.titleController,
+                          enabled: !isReadOnly,
+                          // iOS Notes opens a brand-new note with the cursor
+                          // already blinking and the keyboard up, ready to
+                          // type — match that instead of requiring an extra
+                          // tap to focus in.
+                          autofocus: !isReadOnly && note?.id == 0,
+                          onTap: () => controller.activeBlockIndex.value = -1,
+                          cursorColor: AppTheme.folderYellow,
+                          cursorWidth: 1.5,
+                          maxLines: null,
+                          keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => controller.focusFirstTextBlock(),
+                          textCapitalization: TextCapitalization.sentences,
+                          style: theme.textTheme.headlineLarge?.copyWith(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Title',
+                            hintStyle: theme.textTheme.headlineLarge?.copyWith(
+                              fontSize: 32,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.3),
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            isCollapsed: true,
+                            filled: false,
+                            fillColor: Colors.transparent,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...controller.blocks.asMap().entries.map(
+                          (entry) =>
+                              _buildBlock(context, entry.value, entry.key),
+                        ),
+                        if (!isReadOnly)
+                          GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onTap: controller.focusLastTextBlock,
+                            child: const SizedBox(
+                              height: 250,
+                              width: double.infinity,
+                            ),
+                          ),
+                      ]),
                     ),
-                    fontSize: 13,
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  key: const ValueKey('note-title-field'),
-                  controller: controller.titleController,
-                  enabled: !isReadOnly,
-                  onTap: () => controller.activeBlockIndex.value = -1,
-                  cursorColor: AppTheme.folderYellow,
-                  cursorWidth: 1.5,
-                  maxLines: null,
-                  keyboardType: TextInputType.text,
-                  textInputAction: TextInputAction.next,
-                  onSubmitted: (_) => controller.focusFirstTextBlock(),
-                  textCapitalization: TextCapitalization.sentences,
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'Title',
-                    hintStyle: theme.textTheme.headlineLarge?.copyWith(
-                      fontSize: 32,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.3,
-                      ),
-                    ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    isCollapsed: true,
-                    filled: false,
-                    fillColor: Colors.transparent,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...controller.blocks.asMap().entries.map(
-                  (entry) => _buildBlock(context, entry.value, entry.key),
-                ),
               ],
             );
           }),
         ),
         // Search Bar Overlay
         Obx(() {
-          final isReadOnly = controller.isReadOnly.value;
-          final searchTopPadding =
-              MediaQuery.paddingOf(context).top + 60 + (isReadOnly ? 52 : 0);
+          final searchTopPadding = MediaQuery.paddingOf(context).top + 60;
           return controller.isSearchVisible.value
               ? _buildSearchBar(context, searchTopPadding)
               : const SizedBox.shrink();
         }),
       ],
+    );
+  }
+
+  Widget _buildReadOnlyBanner(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      color: Colors.orange.withValues(alpha: 0.1),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'This note is in Recently Deleted. Restore it to make changes.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.orange[800],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              AppSnackbar.warning(
+                'Tip',
+                'Use Recently Deleted to restore this note.',
+              );
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'OK',
+              style: TextStyle(
+                color: Colors.orange[900],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -214,13 +275,35 @@ class NoteContentEditor extends StatelessWidget {
     if (block is DrawingBlock) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: InteractiveDrawingCanvas(
-          key: ValueKey('drawing-${block.id}'),
-          onSave: (path) => controller.updateDrawing(blockIndex, path),
+        child: GestureDetector(
+          // Same long-press-to-delete pattern as attachment images, so a
+          // drawing can be removed like any other block.
+          onLongPress: () => _showDeleteDrawingMenu(context, blockIndex),
+          child: InteractiveDrawingCanvas(
+            key: ValueKey('drawing-${block.id}'),
+            onSave: (path) => controller.updateDrawing(blockIndex, path),
+          ),
         ),
       );
     }
     return const SizedBox.shrink();
+  }
+
+  void _showDeleteDrawingMenu(BuildContext context, int blockIndex) {
+    if (controller.isReadOnly.value) return;
+
+    CustomGlassActionSheet.show(
+      context: context,
+      title: "Drawing Options",
+      actions: [
+        CustomGlassActionSheetAction(
+          label: "Delete Drawing",
+          icon: CupertinoIcons.trash,
+          isDestructive: true,
+          onPressed: () => controller.deleteBlock(blockIndex),
+        ),
+      ],
+    );
   }
 
   Widget _buildTextBlock(
@@ -237,18 +320,21 @@ class NoteContentEditor extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Focus(
-        onFocusChange: (hasFocus) {
-          if (hasFocus) {
-            controller.activeBlockIndex.value = blockIndex;
-            controller.currentBlockStyle.value = block.style;
-          }
-        },
-        child: quill.QuillEditor.basic(
-          controller: quillController,
-          focusNode: focusNode,
-          config: quill.QuillEditorConfig(
-            customStyles: _paragraphStylesFor(context, block.style),
+      child: Builder(
+        builder: (blockContext) => Focus(
+          onFocusChange: (hasFocus) {
+            if (hasFocus) {
+              controller.activeBlockIndex.value = blockIndex;
+              controller.currentBlockStyle.value = block.style;
+              ensureBlockVisible(blockContext);
+            }
+          },
+          child: quill.QuillEditor.basic(
+            controller: quillController,
+            focusNode: focusNode,
+            config: quill.QuillEditorConfig(
+              customStyles: _paragraphStylesFor(context, block.style),
+            ),
           ),
         ),
       ),

@@ -27,7 +27,12 @@ class NoteNavigation {
         // The full note travels along so a deleted note can still render
         // without a detail fetch that would 404.
         'note': note,
+        'instanceTag': _newInstanceTag(),
       },
+      // Every entry point shares the same route name (Routes.NOTE_DETAIL),
+      // so opening one note from within another would otherwise collide
+      // with GetX's `preventDuplicates` (on by default) and silently no-op.
+      preventDuplicates: false,
     );
   }
 
@@ -38,6 +43,16 @@ class NoteNavigation {
       'folderId': folderId,
       'isArchived': false,
       'isDeleted': false,
+      'instanceTag': _newInstanceTag(),
     },
+    preventDuplicates: false,
   );
+
+  // NoteBinding registers NoteDetailController under this tag (see
+  // note_binding.dart) so every push gets its own instance. Without it, opening
+  // a note — or starting a new one — from inside an already-open note would
+  // hand back that note's still-alive singleton controller instead of a fresh
+  // one, so the "new" page would just keep showing whatever was underneath it.
+  static String _newInstanceTag() =>
+      'note_${DateTime.now().microsecondsSinceEpoch}';
 }

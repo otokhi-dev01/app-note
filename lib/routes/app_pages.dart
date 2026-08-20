@@ -64,7 +64,15 @@ class AppPages {
     ),
     GetPage(
       name: Routes.NOTE_DETAIL,
-      page: () => const NoteDetailView(),
+      // Captured once, here, rather than re-read from Get.arguments on every
+      // widget rebuild: this closure runs exactly once per push, while this
+      // route is unambiguously the current one — see NoteNavigation and
+      // NoteBinding for why every push needs its own controller tag.
+      page: () {
+        final args = Get.arguments;
+        final tag = args is Map ? args['instanceTag']?.toString() : null;
+        return NoteDetailView(tag: tag);
+      },
       binding: NoteBinding(),
     ),
     GetPage(

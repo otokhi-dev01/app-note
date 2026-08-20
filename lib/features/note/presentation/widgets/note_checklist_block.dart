@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_scroll_utils.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 
 class NoteChecklistBlock extends StatelessWidget {
@@ -93,32 +95,54 @@ class NoteChecklistBlock extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: TextField(
-            key: ValueKey('checklist-${block.id}-${item.id}'),
-            controller: controller.getTextController(
-              '${block.id}_${item.id}',
-              item.text,
-            ),
-            enabled: !controller.isReadOnly.value,
-            onChanged: (value) =>
-                controller.onUpdateChecklistItem(blockIndex, itemIndex, value),
-            cursorColor: theme.primaryColor,
-            cursorWidth: 1.5,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            textCapitalization: TextCapitalization.sentences,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              height: 1.45,
-              decoration: item.checked ? TextDecoration.lineThrough : null,
-              decorationColor: theme.colorScheme.onSurfaceVariant,
-            ),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              isCollapsed: true,
-              filled: false,
-              fillColor: Colors.transparent,
+          child: Builder(
+            builder: (itemContext) => Focus(
+              onFocusChange: (hasFocus) {
+                if (hasFocus) ensureBlockVisible(itemContext);
+              },
+              child: TextField(
+                key: ValueKey('checklist-${block.id}-${item.id}'),
+                controller: controller.getTextController(
+                  '${block.id}_${item.id}',
+                  item.text,
+                ),
+                focusNode: controller.getBlockFocusNode(
+                  '${block.id}_${item.id}',
+                ),
+                enabled: !controller.isReadOnly.value,
+                onChanged: (value) => controller.onUpdateChecklistItem(
+                  blockIndex,
+                  itemIndex,
+                  value,
+                ),
+                // iOS Notes never inserts a literal newline into a checklist
+                // item — Return always starts a new item (or exits the list
+                // on an empty one) instead.
+                inputFormatters: [
+                  _EnterKeyFormatter(
+                    () =>
+                        controller.onChecklistItemEnter(blockIndex, itemIndex),
+                  ),
+                ],
+                cursorColor: theme.primaryColor,
+                cursorWidth: 1.5,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  height: 1.45,
+                  decoration: item.checked ? TextDecoration.lineThrough : null,
+                  decorationColor: theme.colorScheme.onSurfaceVariant,
+                ),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  isCollapsed: true,
+                  filled: false,
+                  fillColor: Colors.transparent,
+                ),
+              ),
             ),
           ),
         ),
@@ -133,5 +157,26 @@ class NoteChecklistBlock extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+/// Intercepts a Return keypress on a multiline [TextField] before the
+/// newline is ever inserted, calling [onEnter] and keeping the field's text
+/// unchanged instead.
+class _EnterKeyFormatter extends TextInputFormatter {
+  final VoidCallback onEnter;
+
+  _EnterKeyFormatter(this.onEnter);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.contains('\n')) {
+      onEnter();
+      return oldValue;
+    }
+    return newValue;
   }
 }
