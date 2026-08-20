@@ -33,34 +33,12 @@ class FolderSectionHeader extends StatelessWidget {
         thickness: 6,
         padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: GestureDetector(
                 onTap: onTap,
                 behavior: HitTestBehavior.opaque,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(title, style: theme.textTheme.titleLarge),
-                    ),
-                    Obx(
-                      () => SizedBox(
-                        width: 36,
-                        height: 36,
-                        child: Center(
-                          child: Icon(
-                            isExpanded.value
-                                ? CupertinoIcons.chevron_down
-                                : CupertinoIcons.chevron_forward,
-                            color: AppTheme.folderPink,
-                            size: 25,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: Text(title, style: theme.textTheme.titleLarge),
               ),
             ),
             if (onCreateFolder != null) ...[
@@ -80,7 +58,52 @@ class FolderSectionHeader extends StatelessWidget {
                 ),
               ),
             ],
+            // Last in the row, after the "+", so the arrow lands in the same
+            // place on every section header. Sections with no "+" of their own
+            // (Sources) already put it there, so keeping it ahead of the button
+            // on the two that do left the arrows unaligned down the column.
+            _SectionExpandToggle(isExpanded: isExpanded, onTap: onTap),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The section's disclosure arrow.
+///
+/// Same glyph and rotate-on-expand behavior as the one on a folder row with
+/// subfolders (`_ExpandToggle` in folder_tile.dart) — a section is the same
+/// idea one level up, so it should not read as a different control. It keeps
+/// its own tap target rather than riding on the title's: the "+" now sits
+/// between the two, so one gesture area can no longer span both.
+class _SectionExpandToggle extends StatelessWidget {
+  final RxBool isExpanded;
+  final VoidCallback onTap;
+
+  const _SectionExpandToggle({required this.isExpanded, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Center(
+            child: AnimatedRotation(
+              turns: isExpanded.value ? 0.25 : 0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: const Icon(
+                Icons.arrow_forward_ios,
+                color: AppTheme.folderPink,
+                size: 20,
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -57,7 +57,7 @@ class SettingsView extends GetView<ProfileController> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildIdentity(context),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
                     _buildSectionLabel(context, "section_preferences".tr),
                     const SizedBox(height: 10),
                     _buildCard(context, [
@@ -65,21 +65,32 @@ class SettingsView extends GetView<ProfileController> {
                       _buildRow(
                         context,
                         icon: CupertinoIcons.paintbrush_fill,
+                        tint: _SettingsTint.appearance,
                         title: "appearance_title".tr,
                         onTap: () => Get.toNamed(Routes.APPEARANCE),
                       ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.list_bullet,
+                        tint: _SettingsTint.notePreferences,
                         title: "note_preferences_title".tr,
                         onTap: () => Get.toNamed(Routes.NOTE_PREFERENCES),
                       ),
-                      _buildRow(
-                        context,
-                        icon: CupertinoIcons.globe,
-                        title: "language_title".tr,
-                        trailingText: LanguagePreferences().language.label,
-                        onTap: () => showLanguagePickerSheet(context),
+                      // The row itself is the menu's trigger, so it morphs
+                      // into the pull-down in place. `morphFromZero` because
+                      // the row is far wider than the menu — without it the
+                      // body would spawn as a glass blob the width of the
+                      // whole card.
+                      LanguagePickerMenu(
+                        morphFromZero: true,
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.globe,
+                          tint: _SettingsTint.language,
+                          title: "language_title".tr,
+                          trailingText: LanguagePreferences().language.label,
+                          onTap: toggleMenu,
+                        ),
                       ),
                     ]),
                     const SizedBox(height: 28),
@@ -89,6 +100,7 @@ class SettingsView extends GetView<ProfileController> {
                       _buildRow(
                         context,
                         icon: CupertinoIcons.question_circle_fill,
+                        tint: _SettingsTint.helpCenter,
                         title: "help_center_title".tr,
                         onTap: () => Get.toNamed(Routes.HELP_CENTER),
                       ),
@@ -145,9 +157,14 @@ class SettingsView extends GetView<ProfileController> {
     );
   }
 
-  /// The avatar and name are editable right here — tap the camera badge to
-  /// change the photo, tap the name to rename — rather than linking out to a
-  /// separate Profile screen.
+  /// The account card at the top of the screen: avatar, name, and whatever
+  /// identifies the account below it.
+  ///
+  /// Laid out as a row inside the same glass card as the settings groups
+  /// rather than as a centred portrait — it reads as the first item of the
+  /// list that way, which is where an account belongs on this screen. Both
+  /// edit affordances survive the move: the camera badge still changes the
+  /// photo, and the name is still tappable to rename.
   Widget _buildIdentity(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -155,90 +172,105 @@ class SettingsView extends GetView<ProfileController> {
       final isGuest = controller.isGuestMode.value;
       final imagePath = controller.userImagePath.value;
       final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
+      final subtitle = controller.userPhone.value;
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          children: [
-            Stack(
+      return _buildCard(context, [
+        InkWell(
+          onTap: isGuest ? null : controller.updateUserName,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: [
-                CircleAvatar(
-                  radius: 44,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage: hasImage ? FileImage(File(imagePath)) : null,
-                  child: hasImage
-                      ? null
-                      : Icon(
-                          CupertinoIcons.person_fill,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          size: 44,
-                        ),
-                ),
-                if (!isGuest)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Material(
-                      color: theme.colorScheme.primary,
-                      shape: const CircleBorder(),
-                      elevation: 2,
-                      child: InkWell(
-                        onTap: controller.updateProfileImage,
-                        customBorder: const CircleBorder(),
-                        child: const Padding(
-                          padding: EdgeInsets.all(6.0),
-                          child: Icon(
-                            CupertinoIcons.camera_fill,
-                            size: 16,
-                            color: Colors.white,
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      backgroundImage: hasImage
+                          ? FileImage(File(imagePath))
+                          : null,
+                      child: hasImage
+                          ? null
+                          : Icon(
+                              CupertinoIcons.person_fill,
+                              color: theme.colorScheme.onSurfaceVariant,
+                              size: 30,
+                            ),
+                    ),
+                    if (!isGuest)
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Material(
+                          color: theme.colorScheme.primary,
+                          shape: const CircleBorder(),
+                          elevation: 2,
+                          child: InkWell(
+                            onTap: controller.updateProfileImage,
+                            customBorder: const CircleBorder(),
+                            child: const Padding(
+                              padding: EdgeInsets.all(5),
+                              child: Icon(
+                                CupertinoIcons.camera_fill,
+                                size: 13,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: isGuest ? null : controller.updateUserName,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      controller.userName.value,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (!isGuest) ...[
-                      const SizedBox(width: 6),
-                      Icon(
-                        CupertinoIcons.pencil,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.6,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
-              ),
-            ),
-            if (controller.userPhone.value.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                controller.userPhone.value,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              controller.userName.value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 19,
+                              ),
+                            ),
+                          ),
+                          if (!isGuest) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              CupertinoIcons.pencil,
+                              size: 14,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ],
+              ],
+            ),
+          ),
         ),
-      );
+      ]);
     });
   }
 
@@ -247,11 +279,15 @@ class SettingsView extends GetView<ProfileController> {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
-        text,
-        style: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.bold,
+        // Grouped-list headers are a quiet label above the card, not a
+        // heading in their own right — the card underneath carries the
+        // weight, so this steps back to muted uppercase.
+        text.toUpperCase(),
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+          fontWeight: FontWeight.w600,
           letterSpacing: 0.6,
+          fontSize: 12,
         ),
       ),
     );
@@ -260,7 +296,7 @@ class SettingsView extends GetView<ProfileController> {
   Widget _buildCard(BuildContext context, List<Widget> rows) {
     final theme = Theme.of(context);
     return CustomGlassContainer(
-      borderRadius: 18,
+      borderRadius: 22,
       clipBehavior: Clip.antiAlias,
       padding: EdgeInsets.zero,
       showGlow: true,
@@ -271,7 +307,9 @@ class SettingsView extends GetView<ProfileController> {
             if (i < rows.length - 1)
               Divider(
                 height: 1,
-                indent: 56,
+                // 16 padding + 30 badge + 12 gap: the rule starts where the
+                // labels do, the way a grouped iOS list separates its rows.
+                indent: 58,
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
               ),
           ],
@@ -283,6 +321,7 @@ class SettingsView extends GetView<ProfileController> {
   Widget _buildRow(
     BuildContext context, {
     required IconData icon,
+    required Color tint,
     required String title,
     String? trailingText,
     VoidCallback? onTap,
@@ -291,11 +330,11 @@ class SettingsView extends GetView<ProfileController> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 22),
-            const SizedBox(width: 16),
+            _IconBadge(icon: icon, tint: tint),
+            const SizedBox(width: 12),
             Expanded(child: Text(title, style: theme.textTheme.bodyLarge)),
             if (trailingText != null) ...[
               Text(
@@ -326,15 +365,14 @@ class SettingsView extends GetView<ProfileController> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
-          Icon(
-            CupertinoIcons.moon_fill,
-            color: theme.colorScheme.onSurfaceVariant,
-            size: 22,
+          const _IconBadge(
+            icon: CupertinoIcons.moon_fill,
+            tint: _SettingsTint.darkMode,
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           Expanded(
             child: Text("dark_mode".tr, style: theme.textTheme.bodyLarge),
           ),
@@ -394,4 +432,47 @@ class SettingsView extends GetView<ProfileController> {
     await Get.find<Logout>()(const NoParams());
     unawaited(Get.offAllNamed(Routes.ONBOARDING));
   }
+}
+
+
+/// The tinted square behind a settings row's glyph.
+///
+/// The colour is what tells the rows apart at a glance in a grouped list —
+/// the icons themselves are small and similarly weighted, so a reader scans
+/// for "the green one" long before they read the label.
+class _IconBadge extends StatelessWidget {
+  final IconData icon;
+  final Color tint;
+
+  const _IconBadge({required this.icon, required this.tint});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      // White on every tint rather than a per-badge foreground: these squares
+      // are saturated enough that white is the legible choice on all of them,
+      // and a single rule keeps a new row from having to pick a pair.
+      child: Icon(icon, color: Colors.white, size: 17),
+    );
+  }
+}
+
+/// Row badge colours.
+///
+/// Deliberately not pulled from the theme's palette: this screen's rows want
+/// to be told apart from each other, which a single seeded scheme can't do.
+/// They hold in both light and dark, so they are not re-declared per theme.
+abstract final class _SettingsTint {
+  static const darkMode = Color(0xFF5E5CE6);
+  static const appearance = Color(0xFFFF9F0A);
+  static const notePreferences = Color(0xFF32ADE6);
+  static const language = Color(0xFF30D158);
+  static const helpCenter = Color(0xFF8E8E93);
 }

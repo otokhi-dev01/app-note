@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_content_editor.dart';
-import 'package:Note/features/note/presentation/widgets/note_detail_more_popup.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart';
 import 'package:Note/features/note/presentation/widgets/note_format_panel.dart';
 
@@ -34,10 +33,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
         extendBodyBehindAppBar: true,
         body: Stack(
           children: [
-            NoteContentEditor(
-              controller: controller,
-              onShowMoreMenu: () => _showMoreMenu(context),
-            ),
+            NoteContentEditor(controller: controller),
             // Floating Toolbar that follows keyboard
             Obx(() {
               if (controller.isLoading.value || controller.isReadOnly.value) {
@@ -87,10 +83,6 @@ class NoteDetailView extends GetView<NoteDetailController> {
           ? Brightness.light
           : Brightness.dark,
     );
-  }
-
-  void _showMoreMenu(BuildContext context) {
-    NoteDetailMorePopup.show(context: context, controller: controller);
   }
 
   void _handleAttachmentAction(String type) {

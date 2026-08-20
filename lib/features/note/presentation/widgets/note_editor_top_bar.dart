@@ -4,15 +4,21 @@ import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_detail_more_popup.dart';
 
 class NoteEditorTopBar extends StatelessWidget {
   final NoteDetailController controller;
-  final VoidCallback onShowMoreMenu;
+
+  /// What Back does. Defaults to save-then-close, which is right for a note
+  /// that already exists. [CreateNoteView] overrides it: a blank new note must
+  /// never be written just because the user backed out of it, so it goes
+  /// through `saveAndExitIfNeeded` instead.
+  final VoidCallback? onBack;
 
   const NoteEditorTopBar({
     super.key,
     required this.controller,
-    required this.onShowMoreMenu,
+    this.onBack,
   });
 
   // A sliver (not a fixed-position overlay) so it scrolls with the note
@@ -46,7 +52,7 @@ class NoteEditorTopBar extends StatelessWidget {
         // otherwise have no save path at all — there's no autosave anywhere
         // else in this controller. Save silently here as a safety net
         // before leaving, regardless of how the note was edited.
-        onTap: () => _saveAndClose(controller),
+        onTap: onBack ?? () => _saveAndClose(controller),
         size: 44,
         iconSize: 28,
         color: color,
@@ -62,7 +68,14 @@ class NoteEditorTopBar extends StatelessWidget {
           onTap: controller.shareNote,
           color: color,
         ),
-        MoreButton(onPressed: onShowMoreMenu, iconColor: color),
+        // The button is the menu's trigger now — it morphs into the pull-down
+        // rather than calling out to a screen-level popup, so the screens no
+        // longer route a callback down here just to open it.
+        NoteDetailMorePopup(
+          controller: controller,
+          triggerBuilder: (context, toggleMenu) =>
+              MoreButton(onPressed: toggleMenu, iconColor: color),
+        ),
         if (isKeyboardVisible)
           Obx(
             () => controller.isReadOnly.value

@@ -27,6 +27,7 @@ dependencies:
   liquid_glass_widgets: ^0.29.5
   file_picker: ^8.1.2
   flutter_emoji: ^2.5.1
+  pdf: ^3.13.0
 
 dev_dependencies:
   flutter_launcher_icons: "^0.14.4"

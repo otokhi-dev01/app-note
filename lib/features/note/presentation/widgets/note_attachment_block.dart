@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ios_image_editor/ios_image_editor.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:share_plus/share_plus.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/glass_surfaces.dart';
@@ -10,6 +11,7 @@ import 'package:Note/features/note/presentation/controllers/note_detail_controll
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/utils/attachment_url.dart';
+import 'package:Note/core/utils/image_pdf.dart';
 
 const _imageExtensions = {
   'jpg',
@@ -59,14 +61,24 @@ class NoteAttachmentBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!_looksLikeImage(block)) {
+      final isPdf = looksLikePdf(block.displayName);
       return Padding(
         padding: const EdgeInsets.only(top: 8, bottom: 16),
         child: _FileTile(
           block: block,
           isReadOnly: controller.isReadOnly.value,
+          isPdf: isPdf,
           onTap: () => _openOrShareFile(context),
           onLongPress: () => _showDeleteMenu(context, isImage: false),
           onDelete: () => controller.deleteBlock(blockIndex),
+          // A PDF this app built from a picture is edited by going back to
+          // that picture — the document is a rendered output, not the thing
+          // being marked up. Offered for any PDF because whether the original
+          // is still on this device is a question only the controller can
+          // answer (it has to hit the filesystem), and it reports the miss.
+          onEdit: isPdf
+              ? () => controller.editPdfSourceImage(blockIndex)
+              : null,
         ),
       );
     }
@@ -79,152 +91,22 @@ class NoteAttachmentBlock extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 16),
-      // CupertinoContextMenu lays its child out with unbounded constraints
-      // while computing the hold-to-preview zoom, so `width: double.infinity`
-      // below can't resolve against it — LayoutBuilder captures the real
-      // available width here (bounded, from the normal layout pass) and
-      // pins the container to that concrete number instead.
+      // The tile pins itself to a concrete width rather than
+      // `double.infinity`: GlassMenu lays its trigger out as a child of its
+      // own Stack, and LayoutBuilder is what still reports the real bounded
+      // width from the normal layout pass.
       child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tileWidth = constraints.maxWidth;
-          return Semantics(
-            button: true,
-            image: true,
-            label: '$semanticsLabel. Tap to edit and save.',
-            // Native iOS-style hold-to-preview menu (Edit / Share / Delete)
-            // instead of the glass action sheet, matching the system's own
-            // long-press-on-photo menu.
-            child: CupertinoContextMenu(
-              actions: _contextMenuActions(context),
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () =>
-                    _openImageEditor(context), // Logic: Tap to Edit instantly
-                child: Container(
-                  constraints: const BoxConstraints(
-                    maxHeight: 300,
-                    minHeight: 120,
-                  ),
-                  width: tileWidth,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : Colors.black.withValues(alpha: 0.08),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.2 : 0.06,
-                        ),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Stack(
-                      fit: StackFit.passthrough,
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 240,
-                          child: _AttachmentImage(block: block),
-                        ),
-                        // "Tap to Edit" overlay hint
-                        if (!controller.isReadOnly.value)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: GestureDetector(
-                              onTap: () => _openImageEditor(
-                                context,
-                              ), // Logic: Direct pencil tool
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  CupertinoIcons.pencil,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ),
-                        // Direct delete button, so removing a picture doesn't
-                        // require finding the long-press menu first.
-                        if (!controller.isReadOnly.value)
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: GestureDetector(
-                              onTap: () => controller.deleteBlock(blockIndex),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.5),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                  ),
-                                ),
-                                child: const Icon(
-                                  CupertinoIcons.trash,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (block.displayName.trim().isNotEmpty)
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
-                                  colors: [
-                                    Colors.black.withValues(alpha: 0.7),
-                                    Colors.black.withValues(alpha: 0.0),
-                                  ],
-                                ),
-                              ),
-                              child: Text(
-                                block.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
+        builder: (context, constraints) => _ImageTile(
+          block: block,
+          width: constraints.maxWidth,
+          isReadOnly: controller.isReadOnly.value,
+          semanticsLabel: semanticsLabel,
+          isDark: isDark,
+          onEdit: () => _openImageEditor(context),
+          onConvertToPdf: () => controller.convertAttachmentToPdf(blockIndex),
+          onShare: () => _shareImage(context),
+          onDelete: () => controller.deleteBlock(blockIndex),
+        ),
       ),
     );
   }
@@ -272,37 +154,6 @@ class NoteAttachmentBlock extends StatelessWidget {
     }
   }
 
-  List<Widget> _contextMenuActions(BuildContext context) {
-    return [
-      CupertinoContextMenuAction(
-        trailingIcon: CupertinoIcons.pencil,
-        onPressed: () {
-          Navigator.of(context).pop();
-          _openImageEditor(context);
-        },
-        child: const Text('Edit Image'),
-      ),
-      CupertinoContextMenuAction(
-        trailingIcon: CupertinoIcons.share,
-        onPressed: () {
-          Navigator.of(context).pop();
-          _shareImage(context);
-        },
-        child: const Text('Share'),
-      ),
-      if (!controller.isReadOnly.value)
-        CupertinoContextMenuAction(
-          isDestructiveAction: true,
-          trailingIcon: CupertinoIcons.trash,
-          onPressed: () {
-            Navigator.of(context).pop();
-            controller.deleteBlock(blockIndex);
-          },
-          child: const Text('Delete'),
-        ),
-    ];
-  }
-
   Future<void> _shareImage(BuildContext context) async {
     final path = normalizeLocalPath(block.localPath);
     if (path == null || !File(path).existsSync()) {
@@ -330,6 +181,18 @@ class NoteAttachmentBlock extends StatelessWidget {
             icon: CupertinoIcons.pencil,
             onPressed: () => _openImageEditor(context),
           ),
+        if (isImage)
+          CustomGlassActionSheetAction(
+            label: "Convert to PDF",
+            icon: CupertinoIcons.doc_richtext,
+            onPressed: () => controller.convertAttachmentToPdf(blockIndex),
+          ),
+        if (!isImage && looksLikePdf(block.displayName))
+          CustomGlassActionSheetAction(
+            label: "Edit Original Image",
+            icon: CupertinoIcons.pencil,
+            onPressed: () => controller.editPdfSourceImage(blockIndex),
+          ),
         CustomGlassActionSheetAction(
           label: isImage ? "Delete Picture" : "Delete File",
           icon: CupertinoIcons.trash,
@@ -355,6 +218,174 @@ class NoteAttachmentBlock extends StatelessWidget {
       debugPrint('[FILE SHARE ERROR] $e');
       AppSnackbar.error('Error', 'Could not open that file');
     }
+  }
+}
+
+/// An image attachment, with its actions on a glass pull-down menu.
+///
+/// Stateful only to own the [lg.GlassMenuController]: the menu is opened by a
+/// long press on the picture rather than by a tap on its own trigger — a tap
+/// goes straight to the markup editor, as it did before — so something has to
+/// drive it from outside, and that handle has to survive rebuilds.
+class _ImageTile extends StatefulWidget {
+  final AttachmentBlock block;
+  final double width;
+  final bool isReadOnly;
+  final bool isDark;
+  final String semanticsLabel;
+  final VoidCallback onEdit;
+  final VoidCallback onConvertToPdf;
+  final VoidCallback onShare;
+  final VoidCallback onDelete;
+
+  const _ImageTile({
+    required this.block,
+    required this.width,
+    required this.isReadOnly,
+    required this.isDark,
+    required this.semanticsLabel,
+    required this.onEdit,
+    required this.onConvertToPdf,
+    required this.onShare,
+    required this.onDelete,
+  });
+
+  @override
+  State<_ImageTile> createState() => _ImageTileState();
+}
+
+class _ImageTileState extends State<_ImageTile> {
+  final _menuController = lg.GlassMenuController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      image: true,
+      label: '${widget.semanticsLabel}. Tap to edit, long press for options.',
+      child: lg.GlassMenu(
+        controller: _menuController,
+        menuWidth: 250,
+        // Left to auto-detect: an attachment can sit anywhere in a note, so
+        // whether the menu has room to open downward depends on how far the
+        // reader has scrolled — unlike the toolbar and app-bar menus, whose
+        // triggers are pinned to one edge.
+        autoAdjustToScreen: true,
+        menuPadding: const EdgeInsets.all(12),
+        // The trigger is the picture itself — far larger than the menu — so
+        // the body blooms from a point rather than growing out of a glass
+        // blob the size of the whole tile.
+        morphFromZero: true,
+        triggerBuilder: (context, _) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          // Tap still goes straight to the editor; the menu is what the long
+          // press is for.
+          onTap: widget.onEdit,
+          onLongPress: _menuController.open,
+          child: _buildImage(),
+        ),
+        items: _menuItems(),
+      ),
+    );
+  }
+
+  List<Widget> _menuItems() {
+    return [
+      lg.GlassMenuItem(
+        title: 'Edit Image',
+        icon: const Icon(CupertinoIcons.pencil),
+        onTap: widget.onEdit,
+      ),
+      if (!widget.isReadOnly)
+        lg.GlassMenuItem(
+          title: 'Convert to PDF',
+          icon: const Icon(CupertinoIcons.doc_richtext),
+          onTap: widget.onConvertToPdf,
+        ),
+      lg.GlassMenuItem(
+        title: 'Share',
+        icon: const Icon(CupertinoIcons.share),
+        onTap: widget.onShare,
+      ),
+      if (!widget.isReadOnly) ...[
+        const lg.GlassMenuDivider(),
+        lg.GlassMenuItem(
+          title: 'Delete',
+          icon: const Icon(CupertinoIcons.trash),
+          isDestructive: true,
+          onTap: widget.onDelete,
+        ),
+      ],
+    ];
+  }
+
+  Widget _buildImage() {
+    final block = widget.block;
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
+      width: widget.width,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: widget.isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.black.withValues(alpha: 0.08),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 240,
+              child: _AttachmentImage(block: block),
+            ),
+            if (block.displayName.trim().isNotEmpty)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.black.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                  child: Text(
+                    block.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -459,9 +490,14 @@ class _AttachmentPlaceholder extends StatelessWidget {
 class _FileTile extends StatelessWidget {
   final AttachmentBlock block;
   final bool isReadOnly;
+  final bool isPdf;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onDelete;
+
+  /// Reopens the picture a converted PDF was built from. `null` for anything
+  /// with no image behind it, which hides the pencil entirely.
+  final VoidCallback? onEdit;
 
   const _FileTile({
     required this.block,
@@ -469,6 +505,8 @@ class _FileTile extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onDelete,
+    this.isPdf = false,
+    this.onEdit,
   });
 
   @override
@@ -509,7 +547,7 @@ class _FileTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  CupertinoIcons.doc,
+                  isPdf ? CupertinoIcons.doc_richtext : CupertinoIcons.doc,
                   size: 20,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -538,6 +576,20 @@ class _FileTile extends StatelessWidget {
                 ),
               ),
               if (!isReadOnly) ...[
+                if (onEdit != null) ...[
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onEdit,
+                    child: Icon(
+                      CupertinoIcons.pencil,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 Icon(
                   CupertinoIcons.square_arrow_up,
                   size: 18,

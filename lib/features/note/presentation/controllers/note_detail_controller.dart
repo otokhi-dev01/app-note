@@ -16,6 +16,7 @@ import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
+import 'package:Note/core/utils/image_pdf.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -493,6 +494,133 @@ class NoteDetailController extends GetxController {
     return dot == -1 ? '' : name.substring(dot);
   }
 
+  /// Turns an image attachment into a one-page PDF in place.
+  ///
+  /// The block keeps its id — that's what [buildImagePdf] files the editable
+  /// original under — but goes back to `attachmentId: 0` because the PDF is a
+  /// different file than whatever was uploaded for the image, so the next save
+  /// has to upload it fresh.
+  Future<void> convertAttachmentToPdf(int blockIndex) async {
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock) return;
+
+    final imagePath = await _resolveEditableImagePath(block);
+    if (imagePath == null) return;
+
+    try {
+      final name = _pdfNameFor(block.displayName);
+      final pdfPath = await buildImagePdf(
+        imagePath: imagePath,
+        blockId: block.id,
+        title: name,
+      );
+      await storePdfSourceImage(imagePath: imagePath, blockId: block.id);
+
+      // The image's own file is safe to drop now — its bytes live on both in
+      // the PDF and in the stored source copy. Deliberately not
+      // `_deleteLocalAttachmentFile`: that also clears the block's PDF
+      // storage, which at this point holds the document just written.
+      _deleteFileAt(normalizeLocalPath(block.localPath));
+
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        displayName: name,
+        localPath: pdfPath,
+        // The old url still points at the image on the server; carrying it
+        // over would make the PDF block render that picture instead.
+        url: null,
+      );
+      blocks.refresh();
+      AppSnackbar.success('Converted', '$name is ready');
+    } catch (e) {
+      debugPrint('[PDF CONVERT ERROR] $e');
+      AppSnackbar.error('Error', 'Could not convert that image to PDF');
+    }
+  }
+
+  /// Re-opens the picture a PDF block was built from in the markup editor and
+  /// rebuilds the PDF from the edited result.
+  ///
+  /// Only works where the source copy is: a PDF attached from Files, or one
+  /// converted on another device, has nothing to go back to.
+  Future<void> editPdfSourceImage(int blockIndex) async {
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock) return;
+
+    final sourcePath = await findPdfSourceImage(block.id);
+    if (sourcePath == null || !File(sourcePath).existsSync()) {
+      AppSnackbar.info(
+        'Not editable',
+        'The original image for this PDF isn\'t on this device.',
+      );
+      return;
+    }
+
+    try {
+      final editedPath = await IOSImageEditor.editImage(sourcePath);
+      if (editedPath == null || editedPath.isEmpty) return;
+
+      // The editor usually writes the markup back into the file it was handed,
+      // but re-store whenever it hands back somewhere else so the next edit
+      // still starts from the newest version.
+      if (editedPath != sourcePath) {
+        await storePdfSourceImage(imagePath: editedPath, blockId: block.id);
+      }
+
+      final pdfPath = await buildImagePdf(
+        imagePath: editedPath,
+        blockId: block.id,
+        title: block.displayName,
+      );
+
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        displayName: block.displayName,
+        localPath: pdfPath,
+        url: null,
+      );
+      blocks.refresh();
+    } catch (e) {
+      debugPrint('[PDF EDIT ERROR] $e');
+      AppSnackbar.error('Error', 'Could not edit that PDF');
+    }
+  }
+
+  /// A local file for [block]'s image, downloading it first when the block
+  /// only has a server copy. `null` means there's nothing to work from and the
+  /// reason has already been reported.
+  Future<String?> _resolveEditableImagePath(AttachmentBlock block) async {
+    final localPath = normalizeLocalPath(block.localPath);
+    if (localPath != null && File(localPath).existsSync()) return localPath;
+
+    final url = normalizeAttachmentUrl(block.url);
+    if (url == null || url.isEmpty) {
+      AppSnackbar.error('Error', 'Image source not available');
+      return null;
+    }
+    final cached = await cacheAttachmentForEditing(url);
+    if (cached == null || !File(cached).existsSync()) return null;
+    return cached;
+  }
+
+  /// `receipt.jpg` becomes `receipt.pdf`; a name with no extension just gains
+  /// one. Keeping a real `.pdf` on the end is what makes the block render as a
+  /// document tile rather than a broken image.
+  String _pdfNameFor(String displayName) {
+    final name = displayName.trim();
+    if (name.isEmpty) return 'Document.pdf';
+    final dot = name.lastIndexOf('.');
+    return '${dot <= 0 ? name : name.substring(0, dot)}.pdf';
+  }
+
   void updateDrawing(int blockIndex, String path) {
     if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
@@ -767,6 +895,14 @@ class NoteDetailController extends GetxController {
       DrawingBlock(:final localPath) => localPath,
       _ => null,
     };
+    // A converted PDF also has an editable original filed away under its
+    // block id, which `localPath` says nothing about — clear that too so
+    // deleting the block doesn't strand it.
+    if (block is AttachmentBlock) unawaited(deletePdfFiles(block.id));
+    _deleteFileAt(path);
+  }
+
+  void _deleteFileAt(String? path) {
     if (path == null || path.isEmpty) return;
     try {
       final file = File(path);
