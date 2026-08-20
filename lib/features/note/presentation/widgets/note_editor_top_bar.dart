@@ -39,7 +39,14 @@ class NoteEditorTopBar extends StatelessWidget {
         // result is `true` (see NoteListTile/NoteGridTile) — without this,
         // edits made in this screen (deleting an attachment, retitling, …)
         // never show up until the list is refreshed some other way.
-        onTap: () => Get.back(result: true),
+        //
+        // The Save button only renders while the keyboard is up, so an edit
+        // made without ever bringing up the keyboard (toggling a checklist
+        // item, deleting an attachment via its own button, …) would
+        // otherwise have no save path at all — there's no autosave anywhere
+        // else in this controller. Save silently here as a safety net
+        // before leaving, regardless of how the note was edited.
+        onTap: () => _saveAndClose(controller),
         size: 44,
         iconSize: 28,
         color: color,
@@ -65,6 +72,13 @@ class NoteEditorTopBar extends StatelessWidget {
       ],
     );
   }
+}
+
+Future<void> _saveAndClose(NoteDetailController controller) async {
+  if (!controller.isReadOnly.value) {
+    await controller.saveNote(silent: true);
+  }
+  Get.back(result: true);
 }
 
 class _GlassIconButton extends StatelessWidget {

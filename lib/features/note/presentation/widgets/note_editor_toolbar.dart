@@ -2,15 +2,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_attachment_popup.dart';
 
 class NoteEditorToolbar extends StatelessWidget {
   final NoteDetailController controller;
-  final VoidCallback onShowAttachmentPopup;
+  final ValueChanged<String> onAttachmentAction;
 
   const NoteEditorToolbar({
     super.key,
     required this.controller,
-    required this.onShowAttachmentPopup,
+    required this.onAttachmentAction,
   });
 
   @override
@@ -34,11 +35,11 @@ class NoteEditorToolbar extends StatelessWidget {
           child: isKeyboardVisible
               ? _ExpandedToolbar(
                   controller: controller,
-                  onShowAttachmentPopup: onShowAttachmentPopup,
+                  onAttachmentAction: onAttachmentAction,
                 )
               : _IdleToolbar(
                   controller: controller,
-                  onShowAttachmentPopup: onShowAttachmentPopup,
+                  onAttachmentAction: onAttachmentAction,
                 ),
         ),
       ),
@@ -52,11 +53,11 @@ class NoteEditorToolbar extends StatelessWidget {
 /// as the note list screen's bottom bar.
 class _IdleToolbar extends StatelessWidget {
   final NoteDetailController controller;
-  final VoidCallback onShowAttachmentPopup;
+  final ValueChanged<String> onAttachmentAction;
 
   const _IdleToolbar({
     required this.controller,
-    required this.onShowAttachmentPopup,
+    required this.onAttachmentAction,
   });
 
   @override
@@ -84,14 +85,20 @@ class _IdleToolbar extends StatelessWidget {
                   semanticLabel: 'Checklist',
                 ),
                 const SizedBox(width: 6),
-                _ToolbarButton(
-                  icon: CupertinoIcons.paperclip,
-                  onTap: onShowAttachmentPopup,
-                  semanticLabel: 'Attachment',
+                NoteAttachmentPopup(
+                  onAction: onAttachmentAction,
+                  trigger: const _ToolbarTriggerIcon(
+                    icon: CupertinoIcons.paperclip,
+                    semanticLabel: 'Attachment',
+                  ),
                 ),
                 const SizedBox(width: 6),
                 _ToolbarButton(
-                  icon: CupertinoIcons.pencil,
+                  // A plain pencil means "Drawing" everywhere else in this
+                  // toolbar/editor (the expanded bar's drawing button, the
+                  // "tap to edit" overlay on images) — textformat matches
+                  // what this button actually opens (the format panel).
+                  icon: CupertinoIcons.textformat,
                   onTap: controller.toggleFormatPanel,
                   semanticLabel: 'Format',
                 ),
@@ -128,11 +135,11 @@ class _IdleToolbar extends StatelessWidget {
 /// accessory bar that sits right above the keyboard.
 class _ExpandedToolbar extends StatelessWidget {
   final NoteDetailController controller;
-  final VoidCallback onShowAttachmentPopup;
+  final ValueChanged<String> onAttachmentAction;
 
   const _ExpandedToolbar({
     required this.controller,
-    required this.onShowAttachmentPopup,
+    required this.onAttachmentAction,
   });
 
   @override
@@ -169,10 +176,12 @@ class _ExpandedToolbar extends StatelessWidget {
               semanticLabel: 'Table',
             ),
             const SizedBox(width: 4),
-            _ToolbarButton(
-              icon: CupertinoIcons.paperclip,
-              onTap: onShowAttachmentPopup,
-              semanticLabel: 'Attachment',
+            NoteAttachmentPopup(
+              onAction: onAttachmentAction,
+              trigger: const _ToolbarTriggerIcon(
+                icon: CupertinoIcons.paperclip,
+                semanticLabel: 'Attachment',
+              ),
             ),
             const SizedBox(width: 4),
             _ToolbarButton(
@@ -216,6 +225,37 @@ class _ToolbarButton extends StatelessWidget {
             color: Theme.of(
               context,
             ).colorScheme.onSurface, // Uses adaptive theme color
+            size: 26,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Same look as [_ToolbarButton] but with no gesture handling of its own —
+/// [NoteAttachmentPopup]'s [GlassMenu] wraps this in its own tap detector and
+/// morphs it directly into the pull-down menu, so a second, competing
+/// GestureDetector here (as a plain [IconButton] would add) would only fight
+/// it for the tap.
+class _ToolbarTriggerIcon extends StatelessWidget {
+  final IconData icon;
+  final String semanticLabel;
+
+  const _ToolbarTriggerIcon({required this.icon, required this.semanticLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: SizedBox(
+        width: 46,
+        height: 46,
+        child: Center(
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurface,
             size: 26,
           ),
         ),

@@ -279,9 +279,39 @@ class NoteContentEditor extends StatelessWidget {
           // Same long-press-to-delete pattern as attachment images, so a
           // drawing can be removed like any other block.
           onLongPress: () => _showDeleteDrawingMenu(context, blockIndex),
-          child: InteractiveDrawingCanvas(
-            key: ValueKey('drawing-${block.id}'),
-            onSave: (path) => controller.updateDrawing(blockIndex, path),
+          child: Stack(
+            children: [
+              InteractiveDrawingCanvas(
+                key: ValueKey('drawing-${block.id}'),
+                onSave: (path) => controller.updateDrawing(blockIndex, path),
+              ),
+              // Direct delete button, matching the one on image/file
+              // attachments — same reasoning: don't make removal depend on
+              // finding the long-press menu first.
+              if (!controller.isReadOnly.value)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => controller.deleteBlock(blockIndex),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: const Icon(
+                        CupertinoIcons.trash,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       );

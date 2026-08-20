@@ -8,7 +8,6 @@ import 'package:Note/features/note/presentation/widgets/note_detail_more_popup.d
 import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart';
 import 'package:Note/features/note/presentation/widgets/note_format_panel.dart';
 
-import 'package:Note/features/note/presentation/widgets/note_attachment_popup.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
@@ -48,7 +47,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 alignment: Alignment.bottomCenter,
                 child: NoteEditorToolbar(
                   controller: controller,
-                  onShowAttachmentPopup: () => _showAttachmentPopup(context),
+                  onAttachmentAction: _handleAttachmentAction,
                 ),
               );
             }),
@@ -94,32 +93,27 @@ class NoteDetailView extends GetView<NoteDetailController> {
     NoteDetailMorePopup.show(context: context, controller: controller);
   }
 
-  void _showAttachmentPopup(BuildContext context) {
-    NoteAttachmentPopup.show(
-      context: context,
-      onAction: (type) {
-        switch (type) {
-          case 'camera':
-            controller.addAttachment(ImageSource.camera);
-          case 'gallery':
-            controller.addAttachment(ImageSource.gallery);
-          case 'drawing':
-            controller.startDrawing();
-          // These need a native scanner / audio recorder / file picker this
-          // app doesn't have yet — say so instead of the button doing
-          // nothing when tapped.
-          case 'scan_text':
-          case 'scan_docs':
-            AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
-          case 'audio':
-            AppSnackbar.info(
-              'Coming soon',
-              'Audio recording isn\'t available yet.',
-            );
-          case 'file':
-            controller.addFileAttachment();
-        }
-      },
-    );
+  void _handleAttachmentAction(String type) {
+    switch (type) {
+      case 'camera':
+        controller.addAttachment(ImageSource.camera);
+      case 'gallery':
+        controller.addAttachment(ImageSource.gallery);
+      case 'drawing':
+        controller.startDrawing();
+      // These need a native scanner / audio recorder / file picker this
+      // app doesn't have yet — say so instead of the button doing
+      // nothing when tapped.
+      case 'scan_text':
+      case 'scan_docs':
+        AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
+      case 'audio':
+        AppSnackbar.info(
+          'Coming soon',
+          'Audio recording isn\'t available yet.',
+        );
+      case 'file':
+        controller.addFileAttachment();
+    }
   }
 }

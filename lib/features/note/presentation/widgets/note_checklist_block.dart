@@ -96,54 +96,78 @@ class NoteChecklistBlock extends StatelessWidget {
         ),
         Expanded(
           child: Builder(
-            builder: (itemContext) => Focus(
-              onFocusChange: (hasFocus) {
-                if (hasFocus) ensureBlockVisible(itemContext);
-              },
-              child: TextField(
-                key: ValueKey('checklist-${block.id}-${item.id}'),
-                controller: controller.getTextController(
-                  '${block.id}_${item.id}',
-                  item.text,
-                ),
-                focusNode: controller.getBlockFocusNode(
-                  '${block.id}_${item.id}',
-                ),
-                enabled: !controller.isReadOnly.value,
-                onChanged: (value) => controller.onUpdateChecklistItem(
-                  blockIndex,
-                  itemIndex,
-                  value,
-                ),
-                // iOS Notes never inserts a literal newline into a checklist
-                // item — Return always starts a new item (or exits the list
-                // on an empty one) instead.
-                inputFormatters: [
-                  _EnterKeyFormatter(
-                    () =>
-                        controller.onChecklistItemEnter(blockIndex, itemIndex),
+            builder: (itemContext) {
+              final fieldKey = '${block.id}_${item.id}';
+              final textController = controller.getTextController(
+                fieldKey,
+                item.text,
+              );
+              // Prime a truly-empty item with the invisible placeholder so a
+              // later Backspace-at-start has something to delete — see
+              // kChecklistItemPlaceholder for why this is necessary.
+              if (textController.text.isEmpty) {
+                textController.value = TextEditingValue(
+                  text: kChecklistItemPlaceholder,
+                  selection: TextSelection.collapsed(
+                    offset: kChecklistItemPlaceholder.length,
                   ),
-                ],
-                cursorColor: theme.primaryColor,
-                cursorWidth: 1.5,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                textCapitalization: TextCapitalization.sentences,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  height: 1.45,
-                  decoration: item.checked ? TextDecoration.lineThrough : null,
-                  decorationColor: theme.colorScheme.onSurfaceVariant,
+                );
+              }
+
+              return Focus(
+                onFocusChange: (hasFocus) {
+                  if (hasFocus) ensureBlockVisible(itemContext);
+                },
+                child: TextField(
+                  key: ValueKey('checklist-${block.id}-${item.id}'),
+                  controller: textController,
+                  focusNode: controller.getBlockFocusNode(fieldKey),
+                  enabled: !controller.isReadOnly.value,
+                  onChanged: (value) => controller.onUpdateChecklistItem(
+                    blockIndex,
+                    itemIndex,
+                    value.startsWith(kChecklistItemPlaceholder)
+                        ? value.substring(kChecklistItemPlaceholder.length)
+                        : value,
+                  ),
+                  // iOS Notes never inserts a literal newline into a
+                  // checklist item — Return always starts a new item (or
+                  // exits the list on an empty one) instead. Backspace at
+                  // the start of an empty item deletes it and merges into
+                  // the item above, same as iOS Notes.
+                  inputFormatters: [
+                    _ChecklistTextFormatter(
+                      onEnter: () => controller.onChecklistItemEnter(
+                        blockIndex,
+                        itemIndex,
+                      ),
+                      onBackspaceAtStart: () => controller
+                          .onChecklistItemBackspace(blockIndex, itemIndex),
+                    ),
+                  ],
+                  cursorColor: theme.primaryColor,
+                  cursorWidth: 1.5,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    height: 1.45,
+                    decoration: item.checked
+                        ? TextDecoration.lineThrough
+                        : null,
+                    decorationColor: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isCollapsed: true,
+                    filled: false,
+                    fillColor: Colors.transparent,
+                  ),
                 ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  isCollapsed: true,
-                  filled: false,
-                  fillColor: Colors.transparent,
-                ),
-              ),
-            ),
+              );
+            },
           ),
         ),
         if (!controller.isReadOnly.value && block.items.length > 1)
@@ -162,11 +186,18 @@ class NoteChecklistBlock extends StatelessWidget {
 
 /// Intercepts a Return keypress on a multiline [TextField] before the
 /// newline is ever inserted, calling [onEnter] and keeping the field's text
-/// unchanged instead.
-class _EnterKeyFormatter extends TextInputFormatter {
+/// unchanged instead. Also watches for the item's placeholder character
+/// (see [kChecklistItemPlaceholder]) being deleted, which is what an
+/// otherwise-invisible Backspace-on-empty-item press looks like once it
+/// reaches a formatter, and reports that as [onBackspaceAtStart].
+class _ChecklistTextFormatter extends TextInputFormatter {
   final VoidCallback onEnter;
+  final VoidCallback onBackspaceAtStart;
 
-  _EnterKeyFormatter(this.onEnter);
+  _ChecklistTextFormatter({
+    required this.onEnter,
+    required this.onBackspaceAtStart,
+  });
 
   @override
   TextEditingValue formatEditUpdate(
@@ -176,6 +207,10 @@ class _EnterKeyFormatter extends TextInputFormatter {
     if (newValue.text.contains('\n')) {
       onEnter();
       return oldValue;
+    }
+    if (oldValue.text == kChecklistItemPlaceholder && newValue.text.isEmpty) {
+      onBackspaceAtStart();
+      return newValue;
     }
     return newValue;
   }

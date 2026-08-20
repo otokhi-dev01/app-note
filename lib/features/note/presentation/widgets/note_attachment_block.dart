@@ -66,6 +66,7 @@ class NoteAttachmentBlock extends StatelessWidget {
           isReadOnly: controller.isReadOnly.value,
           onTap: () => _openOrShareFile(context),
           onLongPress: () => _showDeleteMenu(context, isImage: false),
+          onDelete: () => controller.deleteBlock(blockIndex),
         ),
       );
     }
@@ -153,6 +154,31 @@ class NoteAttachmentBlock extends StatelessWidget {
                                 ),
                                 child: const Icon(
                                   CupertinoIcons.pencil,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        // Direct delete button, so removing a picture doesn't
+                        // require finding the long-press menu first.
+                        if (!controller.isReadOnly.value)
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: GestureDetector(
+                              onTap: () => controller.deleteBlock(blockIndex),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.trash,
                                   color: Colors.white,
                                   size: 18,
                                 ),
@@ -435,12 +461,14 @@ class _FileTile extends StatelessWidget {
   final bool isReadOnly;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final VoidCallback onDelete;
 
   const _FileTile({
     required this.block,
     required this.isReadOnly,
     required this.onTap,
     required this.onLongPress,
+    required this.onDelete,
   });
 
   @override
@@ -509,7 +537,7 @@ class _FileTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!isReadOnly)
+              if (!isReadOnly) ...[
                 Icon(
                   CupertinoIcons.square_arrow_up,
                   size: 18,
@@ -517,6 +545,22 @@ class _FileTile extends StatelessWidget {
                     alpha: 0.6,
                   ),
                 ),
+                const SizedBox(width: 12),
+                // Own tap target so deleting doesn't depend on finding the
+                // long-press menu — separate from the tile's own onTap
+                // (open/share) above.
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onDelete,
+                  child: Icon(
+                    CupertinoIcons.trash,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

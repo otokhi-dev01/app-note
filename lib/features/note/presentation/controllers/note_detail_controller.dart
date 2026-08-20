@@ -28,6 +28,16 @@ import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 
+/// Placeholder text kept in a checklist item's [TextEditingController] while
+/// the item is otherwise empty. iOS never delivers a key event for the
+/// on-screen keyboard's Backspace — the text-input channel only reports the
+/// resulting value — so an item with truly empty text gives Backspace
+/// nothing to report a change on. This invisible character gives it
+/// something to delete, which [NoteChecklistBlock]'s input formatter reads
+/// as "Backspace at the start of an empty item" and strips before the text
+/// ever reaches [NoteDetailController.onUpdateChecklistItem].
+final String kChecklistItemPlaceholder = String.fromCharCode(0x200B);
+
 /// Drives the note editor.
 ///
 /// Block manipulation (text, checklists, tables, drawings, Quill state) is
@@ -229,10 +239,14 @@ class NoteDetailController extends GetxController {
     Future.microtask(() {
       if (toChecklist) {
         quillControllers.remove(blockId)?.dispose();
-        blocks[index] = ChecklistBlock(
-          id: blockId,
-          items: [ChecklistItem(id: _generateId(), text: '')],
-        );
+        final newItem = ChecklistItem(id: _generateId(), text: '');
+        blocks[index] = ChecklistBlock(id: blockId, items: [newItem]);
+        // Keep typing straight into the new item — same as every other
+        // block-replacing mutation here (onChecklistItemEnter,
+        // _exitChecklist) — instead of silently dropping the keyboard.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          getBlockFocusNode('${blockId}_${newItem.id}').requestFocus();
+        });
       } else {
         qc.replaceText(
           0,
@@ -593,6 +607,57 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// iOS-Notes-style checklist Backspace: pressed at the very start of an
+  /// item, it deletes that item and merges its text onto the end of the
+  /// item above, focusing there at the merge point — the reverse of
+  /// [onChecklistItemEnter]. Pressed on the first item there is nothing
+  /// above to merge into: it collapses the whole list back into a plain
+  /// paragraph if that was the only item, otherwise it's a no-op.
+  void onChecklistItemBackspace(int blockIndex, int itemIndex) {
+    if (isReadOnly.value) return;
+    final block = blocks[blockIndex];
+    if (block is! ChecklistBlock) return;
+
+    if (itemIndex == 0) {
+      if (block.items.length > 1) return;
+      final newBlock = TextBlock(id: block.id, text: '', style: 'body');
+      blocks[blockIndex] = newBlock;
+      blocks.refresh();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        getBlockFocusNode(newBlock.id).requestFocus();
+      });
+      return;
+    }
+
+    final item = block.items[itemIndex];
+    final previous = block.items[itemIndex - 1];
+    final mergedText = previous.text + item.text;
+    final newItems = List<ChecklistItem>.from(block.items);
+    newItems[itemIndex - 1] = ChecklistItem(
+      id: previous.id,
+      text: mergedText,
+      checked: previous.checked,
+    );
+    newItems.removeAt(itemIndex);
+    blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
+    blocks.refresh();
+
+    final previousKey = '${block.id}_${previous.id}';
+    final mergeOffset = previous.text.length;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final displayText = mergedText.isEmpty
+          ? kChecklistItemPlaceholder
+          : mergedText;
+      getTextController(previousKey, displayText).value = TextEditingValue(
+        text: displayText,
+        selection: TextSelection.collapsed(
+          offset: mergedText.isEmpty ? displayText.length : mergeOffset,
+        ),
+      );
+      getBlockFocusNode(previousKey).requestFocus();
+    });
+  }
+
   // --- Table Actions ---
 
   void updateTableCell(
@@ -684,8 +749,31 @@ class NoteDetailController extends GetxController {
 
   void deleteBlock(int index) {
     if (isReadOnly.value) return;
+    _deleteLocalAttachmentFile(blocks[index]);
     blocks.removeAt(index);
     blocks.refresh();
+  }
+
+  /// Removes an attachment/drawing block's on-device copy along with the
+  /// block itself, so deleting a picture actually frees the space it was
+  /// taking up in the app's local storage instead of leaving it orphaned
+  /// there forever. `localPath` always points inside this app's own sandbox
+  /// (image_picker/file_picker's cache, or `guest_attachments/` — see
+  /// LocalNoteRepository), never a file another app owns, so it's always
+  /// safe to delete outright.
+  void _deleteLocalAttachmentFile(NoteBlock block) {
+    final path = switch (block) {
+      AttachmentBlock(:final localPath) => localPath,
+      DrawingBlock(:final localPath) => localPath,
+      _ => null,
+    };
+    if (path == null || path.isEmpty) return;
+    try {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    } catch (e) {
+      debugPrint('[DELETE ATTACHMENT FILE ERROR] $e');
+    }
   }
 
   void _insertBlock(NoteBlock block) {
@@ -717,7 +805,7 @@ class NoteDetailController extends GetxController {
 
   // --- SAVE FLOW ---
 
-  Future<void> saveNote() async {
+  Future<void> saveNote({bool silent = false}) async {
     if (isSaving.value || isReadOnly.value) return;
 
     Get.focusScope?.unfocus();
@@ -798,7 +886,7 @@ class NoteDetailController extends GetxController {
               ? 'Note saved, but 1 image could not be uploaded. Try saving again.'
               : 'Note saved, but ${failedUploads.length} images could not be uploaded. Try saving again.',
         );
-      } else {
+      } else if (!silent) {
         AppSnackbar.success('Saved', 'Note saved');
       }
     } finally {
