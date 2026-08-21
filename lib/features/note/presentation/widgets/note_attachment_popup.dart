@@ -44,9 +44,10 @@ class NoteAttachmentPopup extends StatelessWidget {
           CupertinoIcons.photo_on_rectangle,
           'gallery',
         ),
-        _item(context, 'Drawing', CupertinoIcons.pencil_outline, 'drawing'),
-        _item(context, 'Record Audio', CupertinoIcons.mic, 'audio'),
+
+        // _item(context, 'Drawing', CupertinoIcons.pencil_outline, 'drawing'),
         const lg.GlassMenuDivider(),
+        _item(context, 'Record Audio', CupertinoIcons.mic, 'audio'),
         _item(context, 'Attach File', CupertinoIcons.paperclip, 'file'),
       ],
     );

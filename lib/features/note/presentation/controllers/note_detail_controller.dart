@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:cunning_document_scanner/cunning_document_scanner.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'
+    as mlkit;
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,6 +27,7 @@ import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
+import 'package:Note/features/note/presentation/widgets/note_audio_recorder_sheet.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
@@ -411,6 +415,32 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// "Choose Photo or Video" from the attachment sheet — one gallery pick
+  /// that can return either media type, unlike [addAttachment] which is
+  /// locked to whichever `isVideo` says before the picker even opens.
+  Future<void> addMediaAttachment() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final XFile? file = await _picker.pickMedia(imageQuality: 80);
+      if (file == null) return;
+
+      _insertBlock(
+        AttachmentBlock(
+          id: _generateId(),
+          displayName: file.name,
+          localPath: file.path,
+          attachmentId: 0,
+        ),
+      );
+      blocks.refresh();
+      addTextBlock();
+    } catch (e) {
+      debugPrint('[GALLERY ERROR] $e');
+      AppSnackbar.error('Error', 'Could not access gallery');
+    }
+  }
+
   /// "Attach File" from the attachment sheet — any file type, not just
   /// photos/video. Reuses the same upload path as [addAttachment]; the
   /// block renders as a generic file tile when it isn't an image.
@@ -438,6 +468,129 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// "Scan Documents" — the native document camera (perspective-corrected,
+  /// cropped pages, same as Notes.app). A single page attaches as an image,
+  /// same as any other photo; multiple pages are bound into one PDF so the
+  /// scan attaches as the single document it represents rather than a run of
+  /// loose images.
+  Future<void> scanDocuments() async {
+    if (isReadOnly.value) return;
+
+    try {
+      // Without this, the scanner writes PNGs (its default) while the block
+      // below names the file "Scan.jpg" — display doesn't care (image
+      // decoding goes by content, not extension) but it's a real mismatch
+      // for anything downstream that trusts the name, and PNG is needlessly
+      // large for a scanned page. JPEG matches every other photo attachment
+      // in this file, which all go through image_picker's own compression.
+      final pages = await CunningDocumentScanner.getPictures(
+        iosScannerOptions: IosScannerOptions(
+          imageFormat: IosImageFormat.jpg,
+          jpgCompressionQuality: 0.8,
+        ),
+      );
+      if (pages == null || pages.isEmpty) return;
+
+      if (pages.length == 1) {
+        _insertBlock(
+          AttachmentBlock(
+            id: _generateId(),
+            displayName: 'Scan.jpg',
+            localPath: pages.first,
+            attachmentId: 0,
+          ),
+        );
+      } else {
+        final id = _generateId();
+        final pdfPath = await buildMultiPageImagePdf(
+          imagePaths: pages,
+          blockId: id,
+          title: 'Scanned Document',
+        );
+        _insertBlock(
+          AttachmentBlock(
+            id: id,
+            displayName: 'Scanned Document.pdf',
+            localPath: pdfPath,
+            attachmentId: 0,
+          ),
+        );
+      }
+      blocks.refresh();
+      addTextBlock();
+    } catch (e) {
+      debugPrint('[SCAN DOCS ERROR] $e');
+      AppSnackbar.error('Error', 'Could not scan document');
+    }
+  }
+
+  /// "Scan Text" — captures one page with the same document camera as
+  /// [scanDocuments], runs on-device text recognition over it, and drops the
+  /// result in as a new text block rather than attaching the photo itself.
+  Future<void> scanText() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final pages = await CunningDocumentScanner.getPictures(noOfPages: 1);
+      final path = pages?.firstOrNull;
+      if (path == null) return;
+
+      final recognizer = mlkit.TextRecognizer(
+        script: mlkit.TextRecognitionScript.latin,
+      );
+      final mlkit.RecognizedText result;
+      try {
+        result = await recognizer.processImage(
+          mlkit.InputImage.fromFilePath(path),
+        );
+      } finally {
+        unawaited(recognizer.close());
+      }
+
+      final text = result.text.trim();
+      if (text.isEmpty) {
+        AppSnackbar.info(
+          'No text found',
+          "Couldn't find any text in that scan.",
+        );
+        return;
+      }
+
+      _insertBlock(TextBlock(id: _generateId(), text: text, style: 'body'));
+      blocks.refresh();
+      addTextBlock();
+    } catch (e) {
+      debugPrint('[SCAN TEXT ERROR] $e');
+      AppSnackbar.error('Error', 'Could not scan text');
+    }
+  }
+
+  /// "Record Audio" — the sheet owns the entire record/stop/cancel flow and
+  /// only calls back once, with a finished file. This just attaches it the
+  /// same way every other pick does.
+  Future<void> recordAudio() async {
+    if (isReadOnly.value) return;
+
+    await Get.to(
+      () => NoteAudioRecorderSheet(
+        onRecorded: (path, displayName) {
+          _insertBlock(
+            AttachmentBlock(
+              id: _generateId(),
+              displayName: displayName,
+              localPath: path,
+              attachmentId: 0,
+            ),
+          );
+          blocks.refresh();
+          addTextBlock();
+        },
+      ),
+      fullscreenDialog: true,
+      transition: Transition.cupertino,
+    );
+  }
+
   /// Resolves a local file for [remoteUrl] so the image editor has something to
   /// open. Returns `null` and reports the reason if the download fails.
   Future<String?> cacheAttachmentForEditing(String remoteUrl) async {
@@ -454,6 +607,32 @@ class NoteDetailController extends GetxController {
         return value;
       case Err(:final failure):
         AppSnackbar.failure('Could not prepare image for editing', failure);
+        return null;
+    }
+  }
+
+  /// Resolves a local file for a remote audio attachment so the player has
+  /// something to open — the audio equivalent of [cacheAttachmentForEditing].
+  /// Kept separate rather than generalizing that one: it hardcodes `.png`
+  /// for the image editor, and playback needs the file's real extension so
+  /// the platform decoder picks the right codec.
+  Future<String?> cacheAttachmentForPlayback(
+    String remoteUrl, {
+    required String extension,
+  }) async {
+    final directory = await getTemporaryDirectory();
+    final savePath =
+        '${directory.path}/playback_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+    final result = await _downloadAttachment(
+      DownloadAttachmentParams(url: remoteUrl, savePath: savePath),
+    );
+
+    switch (result) {
+      case Ok(:final value):
+        return value;
+      case Err(:final failure):
+        AppSnackbar.failure('Could not load audio', failure);
         return null;
     }
   }

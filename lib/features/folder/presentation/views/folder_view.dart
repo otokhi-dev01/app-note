@@ -76,7 +76,6 @@ class FolderView extends GetView<FolderController> {
         padding: EdgeInsets.zero,
         child: Icon(
           CupertinoIcons.settings_solid,
-          fontWeight: FontWeight.bold,
           color: theme.primaryColor,
           size: 30,
         ),

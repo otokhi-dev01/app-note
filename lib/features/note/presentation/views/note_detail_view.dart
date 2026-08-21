@@ -7,8 +7,6 @@ import 'package:Note/features/note/presentation/widgets/note_content_editor.dart
 import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart';
 import 'package:Note/features/note/presentation/widgets/note_format_panel.dart';
 
-import 'package:Note/core/feedback/app_snackbar.dart';
-
 class NoteDetailView extends GetView<NoteDetailController> {
   // Must match the tag NoteBinding registered the controller under for this
   // push (see NoteNavigation._newInstanceTag and app_pages.dart) so this page
@@ -90,20 +88,15 @@ class NoteDetailView extends GetView<NoteDetailController> {
       case 'camera':
         controller.addAttachment(ImageSource.camera);
       case 'gallery':
-        controller.addAttachment(ImageSource.gallery);
+        controller.addMediaAttachment();
       case 'drawing':
         controller.startDrawing();
-      // These need a native scanner / audio recorder / file picker this
-      // app doesn't have yet — say so instead of the button doing
-      // nothing when tapped.
       case 'scan_text':
+        controller.scanText();
       case 'scan_docs':
-        AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
+        controller.scanDocuments();
       case 'audio':
-        AppSnackbar.info(
-          'Coming soon',
-          'Audio recording isn\'t available yet.',
-        );
+        controller.recordAudio();
       case 'file':
         controller.addFileAttachment();
     }

@@ -74,8 +74,7 @@ class FolderBottomBar extends StatelessWidget {
               child: Icon(
                 CupertinoIcons.square_pencil,
                 color: theme.primaryColor,
-                size: 26,
-                fontWeight: FontWeight.bold,
+                size: 30,
               ),
             ),
           ],

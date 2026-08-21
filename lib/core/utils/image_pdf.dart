@@ -66,6 +66,40 @@ Future<String> buildImagePdf({
   return file.path;
 }
 
+/// Writes a multi-page PDF, one page per image in [imagePaths] in order, and
+/// returns its path.
+///
+/// Used for a multi-page document scan, where each page keeps its own
+/// aspect ratio rather than being letterboxed onto a shared size. Single-page
+/// callers should use [buildImagePdf] instead — building a one-page
+/// [pw.Document] here would work identically, but that name reads clearer at
+/// the call site for the common case.
+Future<String> buildMultiPageImagePdf({
+  required List<String> imagePaths,
+  required String blockId,
+  String? title,
+}) async {
+  final document = pw.Document(title: title);
+  for (final imagePath in imagePaths) {
+    final bytes = await File(imagePath).readAsBytes();
+    final image = pw.MemoryImage(bytes);
+    document.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat(
+          image.width!.toDouble(),
+          image.height!.toDouble(),
+        ),
+        build: (context) => pw.Image(image, fit: pw.BoxFit.fill),
+      ),
+    );
+  }
+
+  final dir = await _pdfDir();
+  final file = File('${dir.path}/$blockId.pdf');
+  await file.writeAsBytes(await document.save(), flush: true);
+  return file.path;
+}
+
 /// Keeps [imagePath] as the editable original behind [blockId]'s PDF.
 ///
 /// Copied rather than referenced because the picture it comes from is usually

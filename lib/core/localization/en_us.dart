@@ -74,13 +74,16 @@ const Map<String, String> enUS = {
   // Settings
   'settings_title': 'Settings',
   'section_preferences': 'PREFERENCES',
+  'section_preferences_footer': 'Choose how the app looks and how notes behave.',
   'section_support': 'SUPPORT',
+  'section_support_footer': 'Get help or reach out if something isn\'t working.',
   'dark_mode': 'Dark Mode',
   'appearance_title': 'Appearance',
   'note_preferences_title': 'Note Preferences',
   'help_center_title': 'Help Center',
   'log_out': 'Log Out',
   'log_in_create_account': 'Log In or Create Account',
+  'version_label': 'Version',
 
   // Profile rename
   'edit_name_title': 'Edit Name',

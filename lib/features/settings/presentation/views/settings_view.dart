@@ -19,10 +19,15 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_picker_sheet.dart';
 
 /// The front door for app-wide settings, reached from the gear button on the
-/// Folders screen. Flat card layout (rather than the rest of the app's
-/// liquid glass) — every row here is either real, working functionality or
+/// Folders screen. Every row here is either real, working functionality or
 /// nothing at all: no fake subscription, storage quota, password change, or
 /// two-factor auth, since none of that exists in this app.
+///
+/// Restyled for iOS 26's Liquid Glass language: concentric-radius cards,
+/// glossy gradient icon badges with a colour-matched glow, a soft halo
+/// behind the avatar, section footnotes and an about-style footer the way
+/// Apple's own Settings app closes a group, and [_SettingsPressable] rows
+/// that dim on press instead of showing a Material ripple.
 ///
 /// Profile editing (avatar/name) used to be its own screen reached via a
 /// "Personal Information" row; it's folded directly into the identity block
@@ -52,12 +57,12 @@ class SettingsView extends GetView<ProfileController> {
             _buildAppBar(context),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildIdentity(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     _buildSectionLabel(context, "section_preferences".tr),
                     const SizedBox(height: 10),
                     _buildCard(context, [
@@ -93,6 +98,10 @@ class SettingsView extends GetView<ProfileController> {
                         ),
                       ),
                     ]),
+                    _buildSectionFooter(
+                      context,
+                      "section_preferences_footer".tr,
+                    ),
                     const SizedBox(height: 28),
                     _buildSectionLabel(context, "section_support".tr),
                     const SizedBox(height: 10),
@@ -105,8 +114,11 @@ class SettingsView extends GetView<ProfileController> {
                         onTap: () => Get.toNamed(Routes.HELP_CENTER),
                       ),
                     ]),
-                    const SizedBox(height: 32),
+                    _buildSectionFooter(context, "section_support_footer".tr),
+                    const SizedBox(height: 34),
                     _buildAccountAction(context),
+                    const SizedBox(height: 24),
+                    _buildVersionFooter(context),
                   ],
                 ),
               ),
@@ -164,7 +176,8 @@ class SettingsView extends GetView<ProfileController> {
   /// rather than as a centred portrait — it reads as the first item of the
   /// list that way, which is where an account belongs on this screen. Both
   /// edit affordances survive the move: the camera badge still changes the
-  /// photo, and the name is still tappable to rename.
+  /// photo, and the name is still tappable to rename. The soft tinted halo
+  /// behind the avatar is the one "hero" flourish this row allows itself.
   Widget _buildIdentity(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -175,28 +188,42 @@ class SettingsView extends GetView<ProfileController> {
       final subtitle = controller.userPhone.value;
 
       return _buildCard(context, [
-        InkWell(
+        _SettingsPressable(
           onTap: isGuest ? null : controller.updateUserName,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
                 Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      backgroundImage: hasImage
-                          ? FileImage(File(imagePath))
-                          : null,
-                      child: hasImage
-                          ? null
-                          : Icon(
-                              CupertinoIcons.person_fill,
-                              color: theme.colorScheme.onSurfaceVariant,
-                              size: 30,
-                            ),
+                    Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            theme.colorScheme.primary.withValues(alpha: 0.55),
+                            theme.colorScheme.primary.withValues(alpha: 0.05),
+                          ],
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 32,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        backgroundImage: hasImage
+                            ? FileImage(File(imagePath))
+                            : null,
+                        child: hasImage
+                            ? null
+                            : Icon(
+                                CupertinoIcons.person_fill,
+                                color: theme.colorScheme.onSurfaceVariant,
+                                size: 32,
+                              ),
+                      ),
                     ),
                     if (!isGuest)
                       Positioned(
@@ -207,10 +234,13 @@ class SettingsView extends GetView<ProfileController> {
                           shape: const CircleBorder(),
                           elevation: 2,
                           child: InkWell(
-                            onTap: controller.updateProfileImage,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              controller.updateProfileImage();
+                            },
                             customBorder: const CircleBorder(),
                             child: const Padding(
-                              padding: EdgeInsets.all(5),
+                              padding: EdgeInsets.all(6),
                               child: Icon(
                                 CupertinoIcons.camera_fill,
                                 size: 13,
@@ -222,7 +252,7 @@ class SettingsView extends GetView<ProfileController> {
                       ),
                   ],
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,7 +267,7 @@ class SettingsView extends GetView<ProfileController> {
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                fontSize: 19,
+                                fontSize: 20,
                               ),
                             ),
                           ),
@@ -253,7 +283,7 @@ class SettingsView extends GetView<ProfileController> {
                         ],
                       ),
                       if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           subtitle,
                           maxLines: 1,
@@ -293,10 +323,27 @@ class SettingsView extends GetView<ProfileController> {
     );
   }
 
+  /// A quiet footnote under a settings group, the way Apple's own Settings
+  /// app explains what a section does rather than leaving the row titles to
+  /// speak for themselves.
+  Widget _buildSectionFooter(BuildContext context, String text) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, right: 12, top: 8),
+      child: Text(
+        text,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          height: 1.3,
+        ),
+      ),
+    );
+  }
+
   Widget _buildCard(BuildContext context, List<Widget> rows) {
     final theme = Theme.of(context);
     return CustomGlassContainer(
-      borderRadius: 22,
+      borderRadius: 24,
       clipBehavior: Clip.antiAlias,
       padding: EdgeInsets.zero,
       showGlow: true,
@@ -327,7 +374,7 @@ class SettingsView extends GetView<ProfileController> {
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
-    return InkWell(
+    return _SettingsPressable(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -379,9 +426,12 @@ class SettingsView extends GetView<ProfileController> {
           Switch.adaptive(
             value: isDark,
             activeThumbColor: theme.colorScheme.primary,
-            onChanged: (value) => ThemeStorage().switchTheme(
-              value ? ThemeMode.dark : ThemeMode.light,
-            ),
+            onChanged: (value) {
+              HapticFeedback.lightImpact();
+              ThemeStorage().switchTheme(
+                value ? ThemeMode.dark : ThemeMode.light,
+              );
+            },
           ),
         ],
       ),
@@ -394,10 +444,17 @@ class SettingsView extends GetView<ProfileController> {
     return Obx(() {
       final isGuest = guestMode.isGuestMode.value;
       return CustomGlassButton(
-        onPressed: isGuest ? _goToLogin : () => _logout(),
+        onPressed: () {
+          HapticFeedback.mediumImpact();
+          if (isGuest) {
+            _goToLogin();
+          } else {
+            unawaited(_logout());
+          }
+        },
         semanticLabel: isGuest ? "log_in_create_account".tr : "log_out".tr,
         width: double.infinity,
-        borderRadius: 18,
+        borderRadius: 24,
         foregroundColor: isGuest ? AppTheme.folderPink : Colors.red,
         glassColor: (isGuest ? AppTheme.folderPink : Colors.red).withValues(
           alpha: 0.12,
@@ -426,6 +483,31 @@ class SettingsView extends GetView<ProfileController> {
     });
   }
 
+  /// The quiet app-identity footer real Settings screens close on: no
+  /// action, just a reminder of what you're inside. "Piisiit Note" and the
+  /// version number are placeholders — wire them up to `package_info_plus`
+  /// when you're ready, or delete this call in `build` if you'd rather skip
+  /// it entirely.
+  Widget _buildVersionFooter(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.45),
+    );
+    final versionLabel = "version_label".tr;
+    return Center(
+      child: Column(
+        children: [
+          Text(
+            "Pii Note",
+            style: mutedStyle?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 2),
+          Text("$versionLabel 1.0.0", style: mutedStyle),
+        ],
+      ),
+    );
+  }
+
   void _goToLogin() => Get.offAllNamed(Routes.LOGIN);
 
   Future<void> _logout() async {
@@ -434,12 +516,64 @@ class SettingsView extends GetView<ProfileController> {
   }
 }
 
+/// A settings-row tap target with an iOS-flavoured press state — a soft dim
+/// rather than a Material ripple — plus a light haptic tick so rows feel
+/// native instead of borrowed from Android.
+class _SettingsPressable extends StatefulWidget {
+  final VoidCallback? onTap;
+  final Widget child;
+
+  const _SettingsPressable({required this.onTap, required this.child});
+
+  @override
+  State<_SettingsPressable> createState() => _SettingsPressableState();
+}
+
+class _SettingsPressableState extends State<_SettingsPressable> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (widget.onTap == null || _pressed == value) return;
+    setState(() => _pressed = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      enabled: widget.onTap != null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _setPressed(true),
+        onTapCancel: () => _setPressed(false),
+        onTapUp: (_) => _setPressed(false),
+        onTap: widget.onTap == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                widget.onTap!();
+              },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          color: _pressed
+              ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
+              : Colors.transparent,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
 
 /// The tinted square behind a settings row's glyph.
 ///
 /// The colour is what tells the rows apart at a glance in a grouped list —
 /// the icons themselves are small and similarly weighted, so a reader scans
-/// for "the green one" long before they read the label.
+/// for "the green one" long before they read the label. Iced with a top-lit
+/// gradient, a hairline glass edge, and a soft colour-matched glow so the
+/// badges read as glossy little app icons rather than flat tiles.
 class _IconBadge extends StatelessWidget {
   final IconData icon;
   final Color tint;
@@ -453,8 +587,23 @@ class _IconBadge extends StatelessWidget {
       height: 30,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: tint,
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color.lerp(tint, Colors.white, 0.2)!, tint],
+        ),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.25),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: tint.withValues(alpha: 0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       // White on every tint rather than a per-badge foreground: these squares
       // are saturated enough that white is the legible choice on all of them,
