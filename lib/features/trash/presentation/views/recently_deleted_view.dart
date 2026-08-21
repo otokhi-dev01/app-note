@@ -11,6 +11,7 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/ios_confirmation_dialog.dart';
 import 'package:Note/features/trash/presentation/controllers/recently_deleted_controller.dart';
 import 'package:Note/features/trash/presentation/widgets/slidable_note_tile.dart';
+import 'package:Note/features/trash/presentation/widgets/trash_item_context_menu.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 
@@ -354,42 +355,45 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: Obx(() {
         final isSelected = controller.selectedFolderIds.contains(folder.id);
         final isEditing = controller.isEditing.value;
-        return CustomGlassListTile(
-          standalone: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 4,
-          ),
-          onTap: isEditing
-              ? () => controller.toggleSelectFolder(folder.id)
-              : () => _showRestoreDialog(context, folder: folder),
-          onLongPress: isEditing
-              ? null
-              : () => _showItemContextMenu(context, folder: folder),
-          leading: isEditing
-              ? _buildSelectionIndicator(context, isSelected)
-              : const Icon(
-                  CupertinoIcons.folder,
-                  color: AppTheme.folderPink,
-                  size: 28,
-                ),
-          title: Text(
-            folder.displayName,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 17,
-              letterSpacing: -0.4,
+
+        return TrashItemContextMenu(
+          folder: folder,
+          controller: controller,
+          triggerBuilder: (context, openMenu) => CustomGlassListTile(
+            standalone: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 4,
             ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              "Folder  •  ${folder.noteCount} notes",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.6,
+            onTap: isEditing
+                ? () => controller.toggleSelectFolder(folder.id)
+                : () => _showRestoreDialog(context, folder: folder),
+            onLongPress: isEditing ? null : openMenu,
+            leading: isEditing
+                ? _buildSelectionIndicator(context, isSelected)
+                : const Icon(
+                    CupertinoIcons.folder,
+                    color: AppTheme.folderPink,
+                    size: 28,
+                  ),
+            title: Text(
+              folder.displayName,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                letterSpacing: -0.4,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                "Folder  •  ${folder.noteCount} notes",
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
+                  fontSize: 13,
                 ),
-                fontSize: 13,
               ),
             ),
           ),
@@ -411,95 +415,57 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: Obx(() {
         final isSelected = controller.selectedNoteIds.contains(note.id);
         final isEditing = controller.isEditing.value;
-        return CustomGlassListTile(
-          standalone: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 4,
-          ),
-          onTap: isEditing
-              ? () => controller.toggleSelectNote(note.id)
-              : () => _showRestoreDialog(context, note: note),
-          onLongPress: isEditing
-              ? null
-              : () => _showItemContextMenu(context, note: note),
-          leading: isEditing
-              ? _buildSelectionIndicator(context, isSelected)
-              : null,
-          title: Text(
-            note.displayTitle,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              fontSize: 17,
-              letterSpacing: -0.4,
+
+        return TrashItemContextMenu(
+          note: note,
+          controller: controller,
+          triggerBuilder: (context, openMenu) => CustomGlassListTile(
+            standalone: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 4,
             ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              "${DateFormatter.relative(note.updatedAt)}  ${NoteSnippet.of(note)}",
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.6,
-                ),
-                fontSize: 13,
+            onTap: isEditing
+                ? () => controller.toggleSelectNote(note.id)
+                : () => _showRestoreDialog(context, note: note),
+            onLongPress: isEditing ? null : openMenu,
+            leading: isEditing
+                ? _buildSelectionIndicator(context, isSelected)
+                : null,
+            title: Text(
+              note.displayTitle,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 17,
+                letterSpacing: -0.4,
               ),
             ),
-          ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
-            size: 20,
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                "${DateFormatter.relative(note.updatedAt)}  ${NoteSnippet.of(note)}",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            trailing: Icon(
+              Icons.chevron_right,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+              size: 20,
+            ),
           ),
         );
       }),
     );
   }
 
-  void _showItemContextMenu(
-    BuildContext context, {
-    Note? note,
-    Folder? folder,
-  }) {
-    CustomGlassActionSheet.show(
-      context: context,
-      title: "Trash Options",
-      actions: [
-        CustomGlassActionSheetAction(
-          label: "Restore",
-          icon: CupertinoIcons.arrow_counterclockwise,
-          onPressed: () {
-            if (note != null) {
-              controller.recoverItem(noteId: note.id);
-            } else if (folder != null) {
-              controller.recoverItem(folderId: folder.id);
-            }
-          },
-        ),
-        if (controller.canDeletePermanently)
-          CustomGlassActionSheetAction(
-            label: "Delete Permanently",
-            icon: CupertinoIcons.trash,
-            isDestructive: true,
-            onPressed: () {
-              if (note != null) {
-                controller.deleteItemPermanently(
-                  noteId: note.id,
-                  name: note.title,
-                );
-              } else if (folder != null) {
-                controller.deleteItemPermanently(
-                  folderId: folder.id,
-                  name: folder.displayName,
-                );
-              }
-            },
-          ),
-      ],
-    );
-  }
+  // DELETED: _showItemContextMenu as it's now handled by TrashItemContextMenu
 
   void _showRestoreDialog(BuildContext context, {Note? note, Folder? folder}) {
     IOSConfirmationDialog.show(

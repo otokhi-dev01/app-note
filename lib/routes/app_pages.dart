@@ -14,6 +14,7 @@ import 'package:Note/features/note/presentation/views/note_detail_view.dart';
 import 'package:Note/features/note/presentation/views/create_note_view.dart';
 import 'package:Note/features/search/presentation/views/search_view.dart';
 import 'package:Note/features/search/presentation/bindings/search_binding.dart';
+import 'package:Note/features/profile/presentation/views/profile_view.dart';
 import 'package:Note/features/profile/presentation/bindings/profile_binding.dart';
 import 'package:Note/features/settings/presentation/views/settings_view.dart';
 import 'package:Note/features/settings/presentation/views/appearance_view.dart';
@@ -83,6 +84,11 @@ class AppPages {
       name: Routes.SEARCH,
       page: () => const SearchView(),
       binding: SearchBinding(),
+    ),
+    GetPage(
+      name: Routes.PROFILE,
+      page: () => const ProfileView(),
+      binding: ProfileBinding(),
     ),
     GetPage(
       name: Routes.SETTINGS,

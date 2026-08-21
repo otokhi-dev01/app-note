@@ -721,6 +721,52 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Restores the original image that was used to build a PDF attachment.
+  ///
+  /// This is the inverse of [convertAttachmentToPdf]. It only works if the
+  /// source image is still on this device's local storage.
+  Future<void> convertPdfToImage(int blockIndex) async {
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock) return;
+
+    final sourcePath = await findPdfSourceImage(block.id);
+    if (sourcePath == null || !File(sourcePath).existsSync()) {
+      AppSnackbar.info(
+        'Not reversible',
+        'The original image for this PDF is no longer on this device.',
+      );
+      return;
+    }
+
+    try {
+      final name = _imageNameFor(block.displayName, sourcePath);
+
+      // We move the source image out of the PDF storage back into the app's
+      // general attachment area.
+      final imageFile = File(sourcePath);
+      final newPath = await _moveToAttachments(imageFile);
+
+      // Clear the PDF storage for this block since it's no longer a PDF.
+      await deletePdfFiles(block.id);
+
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        displayName: name,
+        localPath: newPath,
+        url: null,
+      );
+      blocks.refresh();
+      AppSnackbar.success('Restored', 'Attachment is an image again');
+    } catch (e) {
+      debugPrint('[IMAGE RESTORE ERROR] $e');
+      AppSnackbar.error('Error', 'Could not convert back to image');
+    }
+  }
+
   /// Re-opens the picture a PDF block was built from in the markup editor and
   /// rebuilds the PDF from the edited result.
   ///
@@ -788,6 +834,29 @@ class NoteDetailController extends GetxController {
     final cached = await cacheAttachmentForEditing(url);
     if (cached == null || !File(cached).existsSync()) return null;
     return cached;
+  }
+
+  /// `receipt.pdf` becomes `receipt.jpg` (or whatever the source image was).
+  String _imageNameFor(String displayName, String sourcePath) {
+    final name = displayName.trim();
+    final extension = _extensionOf(sourcePath);
+    if (name.toLowerCase().endsWith('.pdf')) {
+      return '${name.substring(0, name.length - 4)}$extension';
+    }
+    return 'Restored Image$extension';
+  }
+
+  /// Copies a file into the app's persistent attachment storage.
+  Future<String> _moveToAttachments(File file) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final attachmentsDir = Directory('${dir.path}/guest_attachments');
+    if (!attachmentsDir.existsSync()) {
+      await attachmentsDir.create(recursive: true);
+    }
+
+    final name = 'restored_${DateTime.now().millisecondsSinceEpoch}${_extensionOf(file.path)}';
+    final dest = await file.copy('${attachmentsDir.path}/$name');
+    return dest.path;
   }
 
   /// `receipt.jpg` becomes `receipt.pdf`; a name with no extension just gains

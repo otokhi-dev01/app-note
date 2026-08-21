@@ -1,5 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:Note/core/usecase/usecase.dart';
+import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
+import 'package:Note/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -138,5 +142,10 @@ class ProfileController extends GetxController {
       case Err(:final failure):
         AppSnackbar.failure('profile_image_update_failed_title'.tr, failure);
     }
+  }
+
+  Future<void> logout() async {
+    await Get.find<Logout>()(const NoParams());
+    unawaited(Get.offAllNamed(Routes.ONBOARDING));
   }
 }

@@ -53,6 +53,8 @@ class NoteController extends GetxController {
   late final sortByName = _prefs.noteSortByName.obs;
   final selectedNoteIds = <int>{}.obs;
 
+  bool isSelected(int id) => selectedNoteIds.contains(id);
+
   @override
   void onInit() {
     super.onInit();
@@ -71,14 +73,13 @@ class NoteController extends GetxController {
     } else {
       selectedNoteIds.add(id);
     }
+    selectedNoteIds.refresh();
   }
 
   /// Narrows the selection to a single note — used by the per-tile context
   /// menu, which acts on one note while reusing the batch operations.
   void selectOnly(int id) {
-    selectedNoteIds
-      ..clear()
-      ..add(id);
+    selectedNoteIds.assignAll({id});
   }
 
   Future<void> fetchNotes({int? folderId, bool refresh = false}) async {
