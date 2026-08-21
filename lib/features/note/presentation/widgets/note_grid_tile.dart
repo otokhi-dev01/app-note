@@ -9,6 +9,7 @@ import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/ios_action_menu.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_item_context_menu.dart';
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
@@ -37,172 +38,137 @@ class NoteGridTile extends StatelessWidget {
 
     return Obx(() {
       final isEditing = controller.isEditing.value;
-      final isSelected = controller.selectedNoteIds.contains(note.id);
+      final isSelected = controller.isSelected(note.id);
 
-      return GestureDetector(
-        onTap: () {
-          if (isEditing) {
-            controller.toggleSelectNote(note.id);
-          } else {
-            // Always refresh, not just when the popped result is `true` —
-            // an iOS swipe-back gesture leaves this note without ever
-            // running the button's explicit `Get.back(result: true)`, so
-            // relying on that alone missed edits made in the detail screen.
-            NoteNavigation.toDetail(
-              note,
-            )?.then((_) => controller.fetchNotes(folderId: folderId));
-          }
-        },
-        onLongPress: isEditing
-            ? null
-            : () =>
-                  _showContextMenu(context), // Logic: Hold to show delete popup
-        child: CustomGlassContainer(
-          borderRadius: 20,
-          opacity: 0.1,
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top Section: Image or Text Preview
-                  Expanded(
-                    flex: 3,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                      child: _buildTopPreview(context, visualBlock),
-                    ),
-                  ),
-
-                  // Bottom Section: Title and Metadata
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12.0),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface.withValues(alpha: 0.3),
+      return NoteItemContextMenu(
+        note: note,
+        folderId: folderId,
+        controller: controller,
+        triggerBuilder: (context, openMenu) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (controller.isEditing.value) {
+              controller.toggleSelectNote(note.id);
+            } else {
+              NoteNavigation.toDetail(note)?.then(
+                (_) => controller.fetchNotes(folderId: folderId),
+              );
+            }
+          },
+          onLongPress: controller.isEditing.value ? null : openMenu,
+          child: CustomGlassContainer(
+            borderRadius: 20,
+            opacity: 0.1,
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Section: Image or Text Preview
+                    Expanded(
+                      flex: 3,
+                      child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(20),
+                          top: Radius.circular(20),
+                        ),
+                        child: _buildTopPreview(context, visualBlock),
+                      ),
+                    ),
+
+                    // Bottom Section: Title and Metadata
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          color:
+                              theme.colorScheme.surface.withValues(alpha: 0.3),
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(20),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              note.displayTitle,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  DateFormatter.relative(note.updatedAt),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (note.attachmentCount > 0)
+                                  Icon(
+                                    CupertinoIcons.paperclip,
+                                    size: 12,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            note.displayTitle,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                DateFormatter.relative(note.updatedAt),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 11,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              if (note.attachmentCount > 0)
-                                Icon(
-                                  CupertinoIcons.paperclip,
-                                  size: 12,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
                     ),
-                  ),
-                ],
-              ),
-
-              // Selection Overlay
-              if (isEditing)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected
-                          ? theme.colorScheme.onSurface
-                          : Colors.black26,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    child: isSelected
-                        ? Icon(
-                            Icons.check,
-                            color: theme.colorScheme.surface,
-                            size: 14,
-                          )
-                        : null,
-                  ),
-                )
-              else if (note.isPinned)
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Icon(
-                    Icons.push_pin,
-                    color: theme.primaryColor,
-                    size: 16,
-                  ),
+                  ],
                 ),
-            ],
+
+                // Selection Overlay
+                if (isEditing)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isSelected
+                            ? theme.colorScheme.onSurface
+                            : Colors.black26,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: isSelected
+                          ? Icon(
+                              Icons.check,
+                              color: theme.colorScheme.surface,
+                              size: 14,
+                            )
+                          : null,
+                    ),
+                  )
+                else if (note.isPinned)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Icon(
+                      Icons.push_pin,
+                      color: theme.primaryColor,
+                      size: 16,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       );
     });
   }
 
-  void _showContextMenu(BuildContext context) {
-    IOSActionMenu.show(
-      context: context,
-      type: IOSMenuType.popup,
-      title: "Note Options",
-      actions: [
-        IOSMenuAction(
-          label: note.isPinned ? "Unpin Note" : "Pin Note",
-          icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
-          onTap: () async {
-            await controller.updateNoteState(note.id, isPinned: !note.isPinned);
-            await controller.fetchNotes(folderId: folderId, refresh: true);
-          },
-        ),
-        IOSMenuAction(
-          label: "Move Note",
-          icon: CupertinoIcons.folder_badge_plus,
-          onTap: () {
-            controller.selectOnly(note.id);
-            controller.moveSelectedNotes(context, folderId);
-          },
-        ),
-        IOSMenuAction(
-          label: "Delete",
-          icon: CupertinoIcons.trash,
-          isDestructive: true,
-          onTap: () async {
-            if (await AppDialogs.confirmDeleteNotes(1)) {
-              controller.selectOnly(note.id);
-              await controller.deleteSelectedNotes(folderId);
-            }
-          },
-        ),
-      ],
-    );
-  }
+  // DELETED: _showContextMenu as it's now handled by NoteItemContextMenu
 
   Widget _buildTopPreview(BuildContext context, NoteBlock? visualBlock) {
     if (visualBlock != null) {

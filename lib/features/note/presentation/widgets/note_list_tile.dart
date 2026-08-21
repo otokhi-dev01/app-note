@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_item_context_menu.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/app_note_tile.dart';
 import 'package:Note/shared/widgets/ios_action_menu.dart';
@@ -26,63 +27,32 @@ class NoteListTile extends StatelessWidget {
     return Obx(() {
       final isEditing = controller.isEditing.value;
 
-      return AppNoteTile(
+      return NoteItemContextMenu(
         note: note,
-        isEditing: isEditing,
-        isSelected: controller.selectedNoteIds.contains(note.id),
-        showAttachmentThumbnail: true,
-        onTap: () {
-          if (isEditing) {
-            controller.toggleSelectNote(note.id);
-          } else {
-            // Always refresh, not just when the popped result is `true` —
-            // an iOS swipe-back gesture leaves this note without ever
-            // running the button's explicit `Get.back(result: true)`, so
-            // relying on that alone missed edits made in the detail screen.
-            NoteNavigation.toDetail(
-              note,
-            )?.then((_) => controller.fetchNotes(folderId: folderId));
-          }
-        },
-        onLongPress: () => _showContextMenu(context),
+        folderId: folderId,
+        controller: controller,
+        triggerBuilder: (context, openMenu) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (controller.isEditing.value) {
+              controller.toggleSelectNote(note.id);
+            } else {
+              NoteNavigation.toDetail(note)?.then(
+                (_) => controller.fetchNotes(folderId: folderId),
+              );
+            }
+          },
+          onLongPress: controller.isEditing.value ? null : openMenu,
+          child: AppNoteTile(
+            note: note,
+            isEditing: controller.isEditing.value,
+            isSelected: controller.isSelected(note.id),
+            showAttachmentThumbnail: true,
+          ),
+        ),
       );
     });
   }
 
-  void _showContextMenu(BuildContext context) {
-    IOSActionMenu.show(
-      context: context,
-      type: IOSMenuType.popup,
-      title: "Note Options",
-      actions: [
-        IOSMenuAction(
-          label: note.isPinned ? "Unpin Note" : "Pin Note",
-          icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
-          onTap: () async {
-            await controller.updateNoteState(note.id, isPinned: !note.isPinned);
-            await controller.fetchNotes(folderId: folderId, refresh: true);
-          },
-        ),
-        IOSMenuAction(
-          label: "Move Note",
-          icon: CupertinoIcons.folder_badge_plus,
-          onTap: () {
-            controller.selectOnly(note.id);
-            controller.moveSelectedNotes(context, folderId);
-          },
-        ),
-        IOSMenuAction(
-          label: "Delete",
-          icon: CupertinoIcons.trash,
-          isDestructive: true,
-          onTap: () async {
-            if (await AppDialogs.confirmDeleteNotes(1)) {
-              controller.selectOnly(note.id);
-              await controller.deleteSelectedNotes(folderId);
-            }
-          },
-        ),
-      ],
-    );
-  }
+  // DELETED: _showContextMenu as it's now handled by NoteItemContextMenu
 }

@@ -10,6 +10,7 @@ abstract class Routes {
   static const NOTE_DETAIL = '/note-detail';
   static const SEARCH = '/search';
   static const RECENTLY_DELETED = '/recently-deleted';
+  static const PROFILE = '/profile';
   static const SETTINGS = '/settings';
   static const APPEARANCE = '/settings/appearance';
   static const HELP_CENTER = '/settings/help-center';

@@ -37,10 +37,9 @@ String _extensionOf(String path) {
 
 /// Writes a single-page PDF containing [imagePath] and returns its path.
 ///
-/// The page takes the image's own aspect ratio instead of being letterboxed
-/// onto A4 — a converted screenshot or receipt should come out the shape it
-/// went in. [blockId] names the output, so re-converting the same block
-/// overwrites its previous PDF rather than piling up files.
+/// Standardized to A4 format with margins, like a PDF printer. [blockId] names
+/// the output, so re-converting the same block overwrites its previous PDF
+/// rather than piling up files.
 Future<String> buildImagePdf({
   required String imagePath,
   required String blockId,
@@ -52,11 +51,11 @@ Future<String> buildImagePdf({
   final document = pw.Document(title: title);
   document.addPage(
     pw.Page(
-      pageFormat: PdfPageFormat(
-        image.width!.toDouble(),
-        image.height!.toDouble(),
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(32),
+      build: (context) => pw.Center(
+        child: pw.Image(image, fit: pw.BoxFit.contain),
       ),
-      build: (context) => pw.Image(image, fit: pw.BoxFit.fill),
     ),
   );
 
@@ -69,11 +68,8 @@ Future<String> buildImagePdf({
 /// Writes a multi-page PDF, one page per image in [imagePaths] in order, and
 /// returns its path.
 ///
-/// Used for a multi-page document scan, where each page keeps its own
-/// aspect ratio rather than being letterboxed onto a shared size. Single-page
-/// callers should use [buildImagePdf] instead — building a one-page
-/// [pw.Document] here would work identically, but that name reads clearer at
-/// the call site for the common case.
+/// Standardized to A4 format with margins. Multi-page document scans are
+/// rendered as a cohesive document where each page fits into the print area.
 Future<String> buildMultiPageImagePdf({
   required List<String> imagePaths,
   required String blockId,
@@ -85,11 +81,11 @@ Future<String> buildMultiPageImagePdf({
     final image = pw.MemoryImage(bytes);
     document.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(
-          image.width!.toDouble(),
-          image.height!.toDouble(),
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (context) => pw.Center(
+          child: pw.Image(image, fit: pw.BoxFit.contain),
         ),
-        build: (context) => pw.Image(image, fit: pw.BoxFit.fill),
       ),
     );
   }

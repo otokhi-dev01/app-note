@@ -96,4 +96,15 @@ const Map<String, String> enUS = {
   'guest_label': 'Guest',
   'default_user_name': 'User Name',
   'not_signed_in': 'Not signed in',
+
+  // Profile View
+  'profile_title': 'Profile',
+  'full_name_label': 'Full Name',
+  'phone_label': 'Phone Number',
+  'account_status_label': 'Account Status',
+  'guest_status': 'Guest Mode',
+  'verified_status': 'Verified Account',
+  'joined_label': 'Joined',
+  'tier_label': 'Account Tier',
+  'not_available': 'Not available',
 };

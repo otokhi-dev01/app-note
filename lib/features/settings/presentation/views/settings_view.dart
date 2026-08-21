@@ -189,7 +189,7 @@ class SettingsView extends GetView<ProfileController> {
 
       return _buildCard(context, [
         _SettingsPressable(
-          onTap: isGuest ? null : controller.updateUserName,
+          onTap: () => Get.toNamed(Routes.PROFILE),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
@@ -225,31 +225,6 @@ class SettingsView extends GetView<ProfileController> {
                               ),
                       ),
                     ),
-                    if (!isGuest)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Material(
-                          color: theme.colorScheme.primary,
-                          shape: const CircleBorder(),
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              controller.updateProfileImage();
-                            },
-                            customBorder: const CircleBorder(),
-                            child: const Padding(
-                              padding: EdgeInsets.all(6),
-                              child: Icon(
-                                CupertinoIcons.camera_fill,
-                                size: 13,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
                 const SizedBox(width: 16),
@@ -274,10 +249,10 @@ class SettingsView extends GetView<ProfileController> {
                           if (!isGuest) ...[
                             const SizedBox(width: 6),
                             Icon(
-                              CupertinoIcons.pencil,
+                              CupertinoIcons.chevron_forward,
                               size: 14,
                               color: theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.6),
+                                  .withValues(alpha: 0.4),
                             ),
                           ],
                         ],

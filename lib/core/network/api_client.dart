@@ -39,13 +39,6 @@ class ApiClient extends GetxService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          if (kDebugMode) {
-            debugPrint("--> ${options.method} ${options.uri}");
-            if (!_isSensitiveEndpoint(options.path) && options.data != null) {
-              debugPrint("Request Data: ${options.data}");
-            }
-          }
-
           final session = Get.find<SessionStorage>();
           if (session.isLoggedIn) {
             options.headers['Authorization'] = 'Bearer ${session.token.value}';
@@ -53,18 +46,10 @@ class ApiClient extends GetxService {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          if (kDebugMode) {
-            debugPrint(
-              "<-- ${response.statusCode} ${response.requestOptions.uri}",
-            );
-          }
           return handler.next(response);
         },
         onError: (e, handler) {
           if (kDebugMode) {
-            debugPrint(
-              "<-- ERROR ${e.response?.statusCode} ${e.requestOptions.uri}",
-            );
             // Only log error body if not a sensitive endpoint
             if (!_isSensitiveEndpoint(e.requestOptions.path)) {
               _printErrorResponse(e.response?.data);
