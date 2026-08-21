@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -8,7 +9,7 @@ import 'package:Note/features/folder/presentation/widgets/folder_context_menu.da
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 
-class FolderTile extends StatelessWidget {
+class FolderTile extends StatefulWidget {
   final Folder folder;
   final FolderController controller;
   final int depth;
@@ -21,110 +22,129 @@ class FolderTile extends StatelessWidget {
   });
 
   @override
+  State<FolderTile> createState() => _FolderTileState();
+}
+
+class _FolderTileState extends State<FolderTile> {
+  // Owned by the tile (not rebuilt with it) so long-press, the edit-mode tap,
+  // and the "..." button can all drive the same open menu across rebuilds —
+  // see FolderContextMenu's doc comment for why this can't be a triggerBuilder.
+  final _menuController = lg.GlassMenuController();
+
+  @override
   Widget build(BuildContext context) {
+    final folder = widget.folder;
+    final controller = widget.controller;
     final theme = Theme.of(context);
-    final leftPadding = 20.0 + (depth * 20.0);
+    final leftPadding = 20.0 + (widget.depth * 20.0);
 
     return Obx(() {
       final isEditing = controller.isEditing.value;
       final isSystem = controller.isSystemFolder(folder);
 
-      return Opacity(
-        opacity: (isEditing && isSystem) ? 0.3 : 1.0,
-        child: CustomGlassListTile(
-          contentPadding: EdgeInsets.only(
-            left: leftPadding,
-            right: 20,
-            top: 4,
-            bottom: 4,
-          ),
-          onTap: (isEditing && isSystem)
-              ? null
-              : () {
-                  if (isEditing && !isSystem) {
-                    _showContextMenu(context);
-                  } else {
-                    Get.toNamed(
-                      Routes.NOTE_LIST,
-                      arguments: folder,
-                    )?.then((value) => controller.fetchFolders());
-                  }
-                },
-          onLongPress: isSystem ? null : () => _showContextMenu(context),
-          // Renders the icon + color chosen in the folder editor
-          leading: FolderGlyph(folder: folder, size: 25),
-          title: Text(
-            folder.displayName,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.4,
-            ),
-          ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              "Folder  •  ${folder.noteCount} notes",
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.6,
-                ),
-                fontSize: 13,
+      return Stack(
+        children: [
+          Opacity(
+            opacity: (isEditing && isSystem) ? 0.3 : 1.0,
+            child: CustomGlassListTile(
+              contentPadding: EdgeInsets.only(
+                left: leftPadding,
+                right: 20,
+                top: 4,
+                bottom: 4,
               ),
-            ),
-          ),
-          trailing: isEditing && !isSystem
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: () => _showContextMenu(context),
-                      icon: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppTheme.folderPink,
-                            width: 1.2,
+              onTap: (isEditing && isSystem)
+                  ? null
+                  : () {
+                      if (isEditing && !isSystem) {
+                        _menuController.open();
+                      } else {
+                        Get.toNamed(
+                          Routes.NOTE_LIST,
+                          arguments: folder,
+                        )?.then((value) => controller.fetchFolders());
+                      }
+                    },
+              onLongPress: isSystem ? null : () => _menuController.open(),
+              // Renders the icon + color chosen in the folder editor
+              leading: FolderGlyph(folder: folder, size: 25),
+              title: Text(
+                folder.displayName,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  "Folder  •  ${folder.noteCount} notes",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              trailing: isEditing && !isSystem
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => _menuController.open(),
+                          icon: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppTheme.folderPink,
+                                width: 1.2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.more_horiz,
+                              color: AppTheme.folderPink,
+                              size: 16,
+                            ),
                           ),
                         ),
-                        child: const Icon(
-                          Icons.more_horiz,
-                          color: AppTheme.folderPink,
-                          size: 16,
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.reorder,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.4,
+                          ),
+                          size: 22,
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.reorder,
+                      ],
+                    )
+                  : folder.subFolders.isNotEmpty
+                  ? _ExpandToggle(controller: controller, folder: folder)
+                  : Icon(
+                      Icons.arrow_forward_ios,
                       color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.4,
+                        alpha: 0.2,
                       ),
-                      size: 22,
+                      size: 16,
                     ),
-                  ],
-                )
-              : folder.subFolders.isNotEmpty
-              ? _ExpandToggle(controller: controller, folder: folder)
-              : Icon(
-                  Icons.arrow_forward_ios,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.2,
-                  ),
-                  size: 16,
-                ),
-        ),
+            ),
+          ),
+          // Anchors the menu's morph near the "..." button/top-right corner
+          // regardless of which trigger (long-press, tap, button) opened it.
+          Positioned(
+            top: 8,
+            right: 16,
+            child: FolderContextMenu(
+              folder: folder,
+              controller: controller,
+              menuController: _menuController,
+            ),
+          ),
+        ],
       );
     });
-  }
-
-  void _showContextMenu(BuildContext context) {
-    FolderContextMenu.show(
-      context: context,
-      folder: folder,
-      controller: controller,
-    );
   }
 }
 

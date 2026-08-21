@@ -71,13 +71,16 @@ const Map<String, String> kmKH = {
   // Settings
   'settings_title': 'ការកំណត់',
   'section_preferences': 'ចំណូលចិត្ត',
+  'section_preferences_footer': 'ជ្រើសរើសរបៀបដែលកម្មវិធីបង្ហាញ និងរបៀបដែលកំណត់ត្រាដំណើរការ។',
   'section_support': 'ជំនួយ',
+  'section_support_footer': 'ស្វែងរកជំនួយ ឬទាក់ទងមកកាន់យើងប្រសិនបើមានបញ្ហា។',
   'dark_mode': 'របៀបងងឹត',
   'appearance_title': 'រូបរាង',
   'note_preferences_title': 'ចំណូលចិត្តកំណត់ត្រា',
   'help_center_title': 'មជ្ឈមណ្ឌលជំនួយ',
   'log_out': 'ចាកចេញ',
   'log_in_create_account': 'ចូល ឬបង្កើតគណនី',
+  'version_label': 'កំណែ',
 
   // Profile rename
   'edit_name_title': 'កែឈ្មោះ',

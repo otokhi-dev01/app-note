@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +9,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:share_plus/share_plus.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/glass_surfaces.dart';
+import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
@@ -23,6 +26,8 @@ const _imageExtensions = {
   'webp',
   'bmp',
 };
+
+const _audioExtensions = {'m4a', 'mp3', 'wav', 'aac', 'caf', 'ogg'};
 
 /// True if any source we have for this attachment carries a recognized image
 /// extension.
@@ -46,6 +51,19 @@ bool _looksLikeImage(AttachmentBlock block) {
   return false;
 }
 
+/// Same reasoning as [_looksLikeImage], for audio attachments (recordings,
+/// or anything picked through "Attach File" that happens to be a sound).
+bool _looksLikeAudio(AttachmentBlock block) {
+  for (final candidate in [block.displayName, block.localPath, block.url]) {
+    final name = candidate?.trim() ?? '';
+    if (name.isEmpty || !name.contains('.')) continue;
+    if (_audioExtensions.contains(name.split('.').last.toLowerCase())) {
+      return true;
+    }
+  }
+  return false;
+}
+
 class NoteAttachmentBlock extends StatelessWidget {
   final AttachmentBlock block;
   final int blockIndex;
@@ -60,6 +78,18 @@ class NoteAttachmentBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_looksLikeAudio(block)) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 16),
+        child: _AudioTile(
+          block: block,
+          isReadOnly: controller.isReadOnly.value,
+          controller: controller,
+          onDelete: () => controller.deleteBlock(blockIndex),
+        ),
+      );
+    }
+
     if (!_looksLikeImage(block)) {
       final isPdf = looksLikePdf(block.displayName);
       return Padding(
@@ -615,6 +645,249 @@ class _FileTile extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A voice recording (or any picked audio file) with in-app play/pause,
+/// scrubbing, and a live position readout — the audio equivalent of the
+/// image tile's inline preview, rather than routing straight to the share
+/// sheet like a generic file.
+class _AudioTile extends StatefulWidget {
+  final AttachmentBlock block;
+  final bool isReadOnly;
+  final NoteDetailController controller;
+  final VoidCallback onDelete;
+
+  const _AudioTile({
+    required this.block,
+    required this.isReadOnly,
+    required this.controller,
+    required this.onDelete,
+  });
+
+  @override
+  State<_AudioTile> createState() => _AudioTileState();
+}
+
+class _AudioTileState extends State<_AudioTile> {
+  final _player = AudioPlayer();
+  StreamSubscription<Duration>? _durationSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<void>? _completeSub;
+
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+  bool _isPlaying = false;
+  // Only while a remote-only recording is being pulled down for its first
+  // play — never true for one that's already on the device.
+  bool _isLoading = false;
+  String? _resolvedLocalPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _durationSub = _player.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+    _positionSub = _player.onPositionChanged.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+    _completeSub = _player.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = false;
+          _position = Duration.zero;
+        });
+      }
+    });
+
+    // Duration up front costs nothing extra for a file already on this
+    // device — only a remote-only recording waits for a tap, since that
+    // means a network download.
+    final localPath = normalizeLocalPath(widget.block.localPath);
+    if (localPath != null && File(localPath).existsSync()) {
+      _resolvedLocalPath = localPath;
+      unawaited(_player.setSourceDeviceFile(localPath));
+    }
+  }
+
+  @override
+  void dispose() {
+    _durationSub?.cancel();
+    _positionSub?.cancel();
+    _completeSub?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
+  Future<void> _togglePlay() async {
+    if (_isPlaying) {
+      await _player.pause();
+      if (mounted) setState(() => _isPlaying = false);
+      return;
+    }
+
+    var path = _resolvedLocalPath;
+    if (path == null) {
+      final networkUrl = normalizeAttachmentUrl(widget.block.url);
+      if (networkUrl == null) {
+        AppSnackbar.info('Not available', "This recording isn't on the device.");
+        return;
+      }
+
+      setState(() => _isLoading = true);
+      final name = widget.block.displayName;
+      final ext = name.contains('.') ? '.${name.split('.').last}' : '.m4a';
+      path = await widget.controller.cacheAttachmentForPlayback(
+        networkUrl,
+        extension: ext,
+      );
+      if (mounted) setState(() => _isLoading = false);
+      if (path == null) return;
+      _resolvedLocalPath = path;
+      await _player.setSourceDeviceFile(path);
+    }
+
+    try {
+      await _player.resume();
+      if (mounted) setState(() => _isPlaying = true);
+    } catch (e) {
+      debugPrint('[AUDIO PLAY ERROR] $e');
+      AppSnackbar.error('Error', 'Could not play that recording');
+    }
+  }
+
+  String _format(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final name = widget.block.displayName.trim().isEmpty
+        ? 'Recording'
+        : widget.block.displayName;
+    final hasDuration = _duration > Duration.zero;
+
+    return Semantics(
+      button: true,
+      label: 'Audio recording: $name',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.08),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _isLoading ? null : _togglePlay,
+              child: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppTheme.folderPink,
+                  shape: BoxShape.circle,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Icon(
+                        _isPlaying
+                            ? CupertinoIcons.pause_fill
+                            : CupertinoIcons.play_fill,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  if (hasDuration)
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 2,
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 5,
+                        ),
+                        overlayShape: const RoundSliderOverlayShape(
+                          overlayRadius: 10,
+                        ),
+                      ),
+                      child: Slider(
+                        value: _position.inMilliseconds
+                            .clamp(0, _duration.inMilliseconds)
+                            .toDouble(),
+                        max: _duration.inMilliseconds.toDouble(),
+                        onChanged: (value) {
+                          setState(
+                            () => _position = Duration(
+                              milliseconds: value.round(),
+                            ),
+                          );
+                        },
+                        onChangeEnd: (value) => _player.seek(
+                          Duration(milliseconds: value.round()),
+                        ),
+                      ),
+                    ),
+                  Text(
+                    hasDuration
+                        ? '${_format(_position)} / ${_format(_duration)}'
+                        : 'Tap to play',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!widget.isReadOnly) ...[
+              const SizedBox(width: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onDelete,
+                child: Icon(
+                  CupertinoIcons.trash,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

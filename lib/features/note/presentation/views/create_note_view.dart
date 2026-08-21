@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
-import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_block_list.dart';
@@ -109,17 +108,15 @@ class CreateNoteView extends GetView<NoteDetailController> {
       case 'camera':
         controller.addAttachment(ImageSource.camera);
       case 'gallery':
-        controller.addAttachment(ImageSource.gallery);
+        controller.addMediaAttachment();
       case 'drawing':
         controller.startDrawing();
       case 'scan_text':
+        controller.scanText();
       case 'scan_docs':
-        AppSnackbar.info('Coming soon', 'Scanning isn\'t available yet.');
+        controller.scanDocuments();
       case 'audio':
-        AppSnackbar.info(
-          'Coming soon',
-          'Audio recording isn\'t available yet.',
-        );
+        controller.recordAudio();
       case 'file':
         controller.addFileAttachment();
     }
