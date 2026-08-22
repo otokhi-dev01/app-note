@@ -95,6 +95,22 @@ class Logout extends UseCase<void, NoParams> {
   Future<Result<void>> call(NoParams params) => _repository.logout();
 }
 
+class DeleteAccount extends UseCase<void, String> {
+  final AuthRepository _repository;
+
+  const DeleteAccount(this._repository);
+
+  @override
+  Future<Result<void>> call(String password) {
+    if (password.isEmpty) {
+      return Future.value(
+        const Err(ValidationFailure('Please enter your password to confirm.')),
+      );
+    }
+    return _repository.deleteAccount(password: password);
+  }
+}
+
 class LoadSession extends UseCase<AuthSession?, NoParams> {
   final AuthRepository _repository;
 

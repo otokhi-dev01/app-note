@@ -1,21 +1,19 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
 
 /// The profile screen's "more" menu, iOS-26 style: a glossy pull-down for
-/// secondary actions like renaming or managing the account, matching the 
+/// secondary actions like renaming or managing the account, matching the
 /// pattern of [NoteDetailMorePopup] and [NoteContextMenu].
 class ProfileMorePopup extends StatelessWidget {
   final ProfileController controller;
 
-  /// Builds the trigger (the "…" button or the rename affordance) that the 
+  /// Builds the trigger (the "…" button or the rename affordance) that the
   /// menu grows out of.
   final Widget Function(BuildContext context, VoidCallback toggleMenu)
-      triggerBuilder;
+  triggerBuilder;
 
   const ProfileMorePopup({
     super.key,

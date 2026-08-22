@@ -117,6 +117,7 @@ class SettingsView extends GetView<ProfileController> {
                     _buildSectionFooter(context, "section_support_footer".tr),
                     const SizedBox(height: 34),
                     _buildAccountAction(context),
+                    _buildDeleteAccountAction(context),
                     const SizedBox(height: 24),
                     _buildVersionFooter(context),
                   ],
@@ -453,6 +454,34 @@ class SettingsView extends GetView<ProfileController> {
               ),
             ),
           ],
+        ),
+      );
+    });
+  }
+
+  /// A quiet text link below Sign Out, the way Apple ID settings separates
+  /// "Delete Account" from signing out — same destructive intent, different
+  /// order of consequence, so it shouldn't share a button with Sign Out or
+  /// be one accidental tap away from it. Routes to [Routes.ACCOUNT], which
+  /// owns the actual confirm + password-reauth + delete flow. Guest mode has
+  /// no account to delete, so this only shows once signed in.
+  Widget _buildDeleteAccountAction(BuildContext context) {
+    final guestMode = Get.find<GuestModeService>();
+
+    return Obx(() {
+      if (guestMode.isGuestMode.value) return const SizedBox.shrink();
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Center(
+          child: TextButton(
+            onPressed: () => Get.toNamed(Routes.ACCOUNT),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(
+              "delete_account_title".tr,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
         ),
       );
     });

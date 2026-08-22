@@ -80,6 +80,7 @@ const Map<String, String> kmKH = {
   'help_center_title': 'មជ្ឈមណ្ឌលជំនួយ',
   'log_out': 'ចាកចេញ',
   'log_in_create_account': 'ចូល ឬបង្កើតគណនី',
+  'delete_account_title': 'លុបគណនី',
   'version_label': 'កំណែ',
 
   // Profile rename

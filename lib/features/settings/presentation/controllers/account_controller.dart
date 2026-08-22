@@ -1,21 +1,29 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
+import 'package:Note/core/error/result.dart';
+import 'package:Note/core/feedback/app_dialogs.dart';
+import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class AccountController extends GetxController {
   final Logout _logout;
+  final DeleteAccount _deleteAccount;
   final GuestModeService _guestMode;
 
   AccountController({
     required Logout logout,
+    required DeleteAccount deleteAccount,
     required GuestModeService guestMode,
   }) : _logout = logout,
+       _deleteAccount = deleteAccount,
        _guestMode = guestMode;
 
   RxBool get isGuestMode => _guestMode.isGuestMode;
@@ -31,4 +39,94 @@ class AccountController extends GetxController {
   /// started with "Continue without account" can still create a real account
   /// without reinstalling the app.
   void goToLogin() => Get.offAllNamed(Routes.LOGIN);
+
+  /// "Delete Account" — a destructive-action warning first, then a password
+  /// prompt as the reauthentication step Apple's guideline 5.1.1(v) allows,
+  /// so the account can't be wiped by anyone who just picks up an unlocked
+  /// phone. [DeleteAccount] hits the server to actually erase the account
+  /// and its data; this only handles confirming intent and clearing up
+  /// afterward.
+  Future<void> startDeleteAccount() async {
+    final confirmed = await AppDialogs.confirm(
+      title:
+          'Permanently delete your account? All your notes, folders, and '
+          'attachments will be erased and cannot be recovered.',
+      confirmLabel: 'Delete Account',
+    );
+    if (!confirmed) return;
+    unawaited(_promptPasswordAndDelete());
+  }
+
+  Future<void> _promptPasswordAndDelete() async {
+    final context = Get.context;
+    if (context == null) return;
+
+    final passwordController = TextEditingController();
+    try {
+      await CustomGlassSheet.show<void>(
+        context: context,
+        isScrollable: false,
+        builder: (sheetContext) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Confirm Your Password',
+                style: Theme.of(sheetContext).textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Enter your password to permanently delete your account.',
+                style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              CustomGlassTextField(
+                controller: passwordController,
+                autofocus: true,
+                obscureText: true,
+                placeholder: 'Password',
+                textInputAction: TextInputAction.done,
+                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
+                useOwnLayer: false,
+                onSubmitted: (_) => _confirmDelete(passwordController),
+                suffixIcon: const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.red,
+                ),
+                onSuffixTap: () => _confirmDelete(passwordController),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      passwordController.dispose();
+    }
+  }
+
+  Future<void> _confirmDelete(TextEditingController controller) async {
+    switch (await _deleteAccount(controller.text)) {
+      case Ok():
+        // offAllNamed replaces the whole stack, taking this open sheet down
+        // with it — same as logout, show onboarding again on next launch.
+        unawaited(GetStorage().write('isFirstTime', true));
+        unawaited(Get.offAllNamed(Routes.ONBOARDING));
+        AppSnackbar.success(
+          'Account Deleted',
+          'Your account and its data have been permanently deleted.',
+        );
+      case Err(:final failure):
+        AppSnackbar.failure('Could not delete account', failure);
+    }
+  }
 }

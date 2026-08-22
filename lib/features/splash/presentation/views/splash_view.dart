@@ -42,7 +42,7 @@ class SplashView extends GetView<SplashController> {
                       .shimmer(delay: 1400.ms, duration: 1800.ms),
                   const SizedBox(height: 36),
                   Text(
-                        "PIISIIT NOTE",
+                        "PII NOTE",
                         style: theme.textTheme.headlineLarge?.copyWith(
                           fontSize: 36,
                           letterSpacing: 1.5,

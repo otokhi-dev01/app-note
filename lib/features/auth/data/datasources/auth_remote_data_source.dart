@@ -35,6 +35,22 @@ class AuthRemoteDataSource extends GetxService {
     }
   }
 
+  /// Permanently deletes the account server-side — the backend must actually
+  /// erase (or irrecoverably anonymize) the user's record and their data,
+  /// not just flip a disabled/inactive flag. [password] reauthenticates the
+  /// request so a stolen/unlocked session token alone can't destroy the
+  /// account.
+  Future<void> deleteAccount(String password) async {
+    try {
+      await _api.dio.post(
+        '/api/auth/delete-account',
+        data: {'password': password},
+      );
+    } on dio.DioException catch (e) {
+      throw ApiErrorParser.toException(e);
+    }
+  }
+
   /// Not supported: no `/api/auth/forgot-password` route exists.
   /// See [ApiCapabilities.forgotPassword].
   ///

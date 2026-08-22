@@ -83,6 +83,7 @@ const Map<String, String> enUS = {
   'help_center_title': 'Help Center',
   'log_out': 'Log Out',
   'log_in_create_account': 'Log In or Create Account',
+  'delete_account_title': 'Delete Account',
   'version_label': 'Version',
 
   // Profile rename

@@ -1,13 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-
-import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_item_context_menu.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/app_note_tile.dart';
-import 'package:Note/shared/widgets/ios_action_menu.dart';
 
 /// A note row in the folder's note list: tap to open, long-press for actions.
 class NoteListTile extends StatelessWidget {
@@ -25,8 +22,6 @@ class NoteListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final isEditing = controller.isEditing.value;
-
       return NoteItemContextMenu(
         note: note,
         folderId: folderId,
@@ -37,9 +32,9 @@ class NoteListTile extends StatelessWidget {
             if (controller.isEditing.value) {
               controller.toggleSelectNote(note.id);
             } else {
-              NoteNavigation.toDetail(note)?.then(
-                (_) => controller.fetchNotes(folderId: folderId),
-              );
+              NoteNavigation.toDetail(
+                note,
+              )?.then((_) => controller.fetchNotes(folderId: folderId));
             }
           },
           onLongPress: controller.isEditing.value ? null : openMenu,

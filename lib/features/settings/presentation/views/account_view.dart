@@ -76,7 +76,14 @@ class AccountView extends GetView<AccountController> {
                 child: Obx(
                   () => controller.isGuestMode.value
                       ? _buildGuestCard(context)
-                      : _buildSignedInCard(context),
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildSignedInCard(context),
+                            const SizedBox(height: 28),
+                            _buildDeleteAccountSection(context),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -147,6 +154,63 @@ class AccountView extends GetView<AccountController> {
             CupertinoIcons.chevron_forward,
             color: Colors.red,
             size: 18,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Its own group, separate from Sign Out — deleting the account is a
+  /// different order of consequence and Apple's guideline 5.1.1(v) wants it
+  /// reachable without being mistakable for signing out.
+  Widget _buildDeleteAccountSection(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GlassCard(
+          borderRadius: 28,
+          children: [
+            CustomGlassListTile(
+              onTap: controller.startDeleteAccount,
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  CupertinoIcons.delete_solid,
+                  color: Colors.red,
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                "Delete Account",
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              trailing: const Icon(
+                CupertinoIcons.chevron_forward,
+                color: Colors.red,
+                size: 18,
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, right: 12, top: 8),
+          child: Text(
+            "Permanently deletes your account and all your notes, folders, "
+            "and attachments. This cannot be undone.",
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant.withValues(
+                alpha: 0.6,
+              ),
+              height: 1.3,
+            ),
           ),
         ),
       ],
