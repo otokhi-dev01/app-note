@@ -2,12 +2,10 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/date_formatter.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/ios_action_menu.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_item_context_menu.dart';
 import 'package:Note/core/utils/note_snippet.dart';
@@ -50,9 +48,9 @@ class NoteGridTile extends StatelessWidget {
             if (controller.isEditing.value) {
               controller.toggleSelectNote(note.id);
             } else {
-              NoteNavigation.toDetail(note)?.then(
-                (_) => controller.fetchNotes(folderId: folderId),
-              );
+              NoteNavigation.toDetail(
+                note,
+              )?.then((_) => controller.fetchNotes(folderId: folderId));
             }
           },
           onLongPress: controller.isEditing.value ? null : openMenu,
@@ -82,8 +80,9 @@ class NoteGridTile extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12.0),
                         decoration: BoxDecoration(
-                          color:
-                              theme.colorScheme.surface.withValues(alpha: 0.3),
+                          color: theme.colorScheme.surface.withValues(
+                            alpha: 0.3,
+                          ),
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(20),
                           ),
@@ -178,9 +177,9 @@ class NoteGridTile extends StatelessWidget {
     // Even if visualBlock is null, if the count > 0, we might have an image not yet parsed
     // (though Note fix should have caught it)
     if (note.attachmentCount > 0) {
-      return const _GridPlaceholder(
+      return _GridPlaceholder(
         icon: CupertinoIcons.photo,
-        label: "Loading Image...",
+        label: "note_list_loading_image".tr,
       );
     }
 

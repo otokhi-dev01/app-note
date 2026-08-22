@@ -202,6 +202,7 @@ class _CreateNoteBody extends StatelessWidget {
                   TextField(
                     key: const ValueKey('create-note-title-field'),
                     controller: controller.titleController,
+                    focusNode: controller.titleFocusNode,
                     enabled: !isReadOnly,
                     // A brand-new note opens with the cursor already in the
                     // title, keyboard up — no extra tap needed to start
@@ -221,7 +222,7 @@ class _CreateNoteBody extends StatelessWidget {
                       letterSpacing: -0.5,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Title',
+                      hintText: 'note_editor_title_hint'.tr,
                       hintStyle: theme.textTheme.headlineLarge?.copyWith(
                         fontSize: 32,
                         color: theme.colorScheme.onSurfaceVariant.withValues(
@@ -239,20 +240,25 @@ class _CreateNoteBody extends StatelessWidget {
                   const SizedBox(height: 12),
                   NoteBlockList(
                     controller: controller,
-                    textPlaceholder: 'Start writing...',
+                    textPlaceholder: 'note_editor_start_writing_placeholder'.tr,
                   ),
-                  if (!isReadOnly)
-                    GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: controller.focusLastTextBlock,
-                      child: const SizedBox(
-                        height: 250,
-                        width: double.infinity,
-                      ),
-                    ),
                 ]),
               ),
             ),
+            // iOS-Notes-style "tap anywhere to keep typing": fills whatever
+            // viewport space is left below the content, however little or
+            // much that is, rather than only catching taps in a fixed-height
+            // strip that leaves the rest of a short note's blank space dead.
+            if (!isReadOnly)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                fillOverscroll: false,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: controller.focusLastTextBlock,
+                  child: const SizedBox(width: double.infinity),
+                ),
+              ),
           ],
         );
       }),

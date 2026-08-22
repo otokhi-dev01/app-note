@@ -55,7 +55,7 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                 ),
               ),
               title: Text(
-                "Note Preferences",
+                "note_preferences_title".tr,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 17,
@@ -63,7 +63,7 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
               ),
               largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
               largeTitle: Text(
-                "Note Preferences",
+                "note_preferences_title".tr,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 30,
@@ -75,14 +75,14 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    _buildSectionHeader(context, "Default View"),
+                    _buildSectionHeader(context, "note_preferences_default_view".tr),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,
                       children: [
                         _buildOption(
                           context,
-                          title: "List",
+                          title: "note_preferences_list".tr,
                           icon: Icons.list_rounded,
                           isSelected: () => controller.viewMode.value == 'list',
                           onTap: () => controller.setViewMode('list'),
@@ -90,7 +90,7 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                         const Divider(indent: 56, height: 1),
                         _buildOption(
                           context,
-                          title: "Grid",
+                          title: "note_preferences_grid".tr,
                           icon: Icons.grid_view_rounded,
                           isSelected: () =>
                               controller.viewMode.value == 'gallery',
@@ -99,14 +99,14 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    _buildSectionHeader(context, "Sort Notes By"),
+                    _buildSectionHeader(context, "note_preferences_sort_by".tr),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,
                       children: [
                         _buildOption(
                           context,
-                          title: "Date Edited",
+                          title: "note_preferences_date_edited".tr,
                           icon: Icons.access_time_rounded,
                           isSelected: () => !controller.sortByName.value,
                           onTap: () => controller.setSortByName(false),
@@ -114,7 +114,7 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                         const Divider(indent: 56, height: 1),
                         _buildOption(
                           context,
-                          title: "Name",
+                          title: "note_preferences_name".tr,
                           icon: Icons.sort_by_alpha_rounded,
                           isSelected: () => controller.sortByName.value,
                           onTap: () => controller.setSortByName(true),
@@ -122,7 +122,7 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    _buildSectionHeader(context, "Folders"),
+                    _buildSectionHeader(context, "note_preferences_folders_section".tr),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,
@@ -142,12 +142,14 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                                 size: 20,
                               ),
                             ),
-                            title: const Text(
-                              "Group by Date",
-                              style: TextStyle(fontWeight: FontWeight.w500),
+                            title: Text(
+                              "note_preferences_group_by_date".tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            subtitle: const Text(
-                              "Off sorts folders manually, by name",
+                            subtitle: Text(
+                              "note_preferences_group_by_date_desc".tr,
                             ),
                             trailing: Switch.adaptive(
                               value: controller.folderGroupByDate.value,

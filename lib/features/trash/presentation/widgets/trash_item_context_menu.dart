@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-
 import 'package:Note/features/trash/presentation/controllers/recently_deleted_controller.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -15,7 +14,7 @@ class TrashItemContextMenu extends StatelessWidget {
   final Folder? folder;
   final RecentlyDeletedController controller;
   final Widget Function(BuildContext context, VoidCallback openMenu)
-      triggerBuilder;
+  triggerBuilder;
 
   const TrashItemContextMenu({
     super.key,
@@ -39,7 +38,7 @@ class TrashItemContextMenu extends StatelessWidget {
           triggerBuilder(context, menuController.open),
       items: [
         _item(
-          title: 'Restore',
+          title: 'trash_restore'.tr,
           icon: CupertinoIcons.arrow_counterclockwise,
           onTap: () {
             if (note != null) {
@@ -52,7 +51,7 @@ class TrashItemContextMenu extends StatelessWidget {
         if (controller.canDeletePermanently) ...[
           const lg.GlassMenuDivider(),
           _item(
-            title: 'Delete Permanently',
+            title: 'trash_delete_permanently'.tr,
             icon: CupertinoIcons.trash,
             onTap: () {
               if (note != null) {

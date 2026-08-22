@@ -304,7 +304,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                         child: _buildSection(
                           context,
                           colors,
-                          label: 'Name',
+                          label: 'folder_name_label'.tr,
                           child: _buildNameField(context, _c, colors),
                         ),
                       ),
@@ -315,7 +315,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                         child: _buildSection(
                           context,
                           colors,
-                          label: 'Location',
+                          label: 'folder_location_label'.tr,
                           child: _buildLocationRow(context, _c, colors),
                         ),
                       ),
@@ -326,7 +326,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                         child: _buildSection(
                           context,
                           colors,
-                          label: 'Color',
+                          label: 'folder_color_label'.tr,
                           child: _buildColorPicker(context, _c, colors),
                         ),
                       ),
@@ -337,7 +337,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                         child: _buildSection(
                           context,
                           colors,
-                          label: 'Icon',
+                          label: 'folder_icon_label'.tr,
                           child: _buildIconPicker(context, _c, colors),
                         ),
                       ),
@@ -348,7 +348,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                         child: _buildSection(
                           context,
                           colors,
-                          label: 'Emoji',
+                          label: 'folder_emoji_label'.tr,
                           child: _buildEmojiPicker(context, _c, colors),
                         ),
                       ),
@@ -379,7 +379,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
     AppColors colors,
   ) {
     final theme = Theme.of(context);
-    final label = c.isRenaming ? 'Edit Folder' : 'New Folder';
+    final label = c.isRenaming ? 'folder_edit_title'.tr : 'folder_new_title'.tr;
 
     return CustomGlassSliverAppBar(
       expandedHeight: 140,
@@ -395,7 +395,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
       ),
       leading: CustomGlassButton(
         onPressed: c.cancel,
-        semanticLabel: 'Cancel',
+        semanticLabel: 'folder_cancel'.tr,
         width: 44,
         height: 44,
         shape: GlassShape.circle,
@@ -412,7 +412,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
           final onAccent = AppColors.onAccent(c.color);
           return CustomGlassButton(
             onPressed: c.canSave ? c.save : null,
-            semanticLabel: 'Save folder',
+            semanticLabel: 'folder_save'.tr,
             width: 44,
             height: 44,
             shape: GlassShape.circle,
@@ -498,7 +498,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
           ),
           const SizedBox(height: 18),
           Text(
-            name.isEmpty ? 'New Folder' : name,
+            name.isEmpty ? 'folder_new_title'.tr : name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -522,11 +522,16 @@ class _FolderCreateModalState extends State<FolderCreateModal>
   String _previewSubtitle(FolderCreateLogic c) {
     if (c.isRenaming) {
       final count = c.folder!.noteCount;
-      return 'Folder  •  $count ${count == 1 ? 'note' : 'notes'}';
+      final key = count == 1
+          ? 'folder_notes_count_one'
+          : 'folder_notes_count_other';
+      return key.trParams({'count': '$count'});
     }
     final parent = c.parentFolder;
-    if (parent != null) return 'Subfolder of ${parent.displayName}';
-    return 'Folder  •  No notes yet';
+    if (parent != null) {
+      return 'folder_subfolder_of'.trParams({'parent': parent.displayName});
+    }
+    return 'folder_no_notes_yet'.tr;
   }
 
   // ── Grouped section wrapper: uppercase label + content ───────────────────────
@@ -566,7 +571,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
       () => CustomGlassTextField(
         controller: c.nameController,
         focusNode: c.nameFocusNode,
-        placeholder: 'Name',
+        placeholder: 'folder_name_label'.tr,
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => c.save(),
         height: 56,
@@ -619,7 +624,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    parent?.displayName ?? 'On My iPhone',
+                    parent?.displayName ?? 'folder_on_my_iphone'.tr,
                     style: TextStyle(
                       color: colors.primaryText,
                       fontSize: 16,
@@ -777,8 +782,8 @@ class _FolderCreateModalState extends State<FolderCreateModal>
             c.mainController.onConvertToSmartFolder(c.folder!);
           } else {
             AppSnackbar.info(
-              'Save first',
-              'Save this folder, then make it a Smart Folder from Edit Folder.',
+              'folder_save_first_title'.tr,
+              'folder_save_first_message'.tr,
             );
           }
         },
@@ -811,7 +816,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Make Into Smart Folder',
+                      'folder_make_smart_title'.tr,
                       style: TextStyle(
                         color: colors.primaryText,
                         fontSize: 16,
@@ -821,7 +826,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Organize using tags and other filters',
+                      'folder_make_smart_subtitle'.tr,
                       style: TextStyle(
                         color: colors.secondaryText,
                         fontSize: 13,
@@ -866,7 +871,7 @@ class _ColorSwatch extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: 'Folder color $hex',
+      label: 'folder_color_semantic'.trParams({'hex': hex}),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -945,7 +950,7 @@ class _IconCell extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: option.label,
+      label: option.label.tr,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,

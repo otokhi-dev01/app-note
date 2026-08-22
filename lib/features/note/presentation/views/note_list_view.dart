@@ -25,7 +25,7 @@ class NoteListView extends GetView<NoteController> {
     final theme = Theme.of(context);
     final folderName = folder != null
         ? FolderAppearance.displayName(folder.name)
-        : "All Notes";
+        : "note_list_all_notes".tr;
     final int folderId = folder?.id ?? 0;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -107,7 +107,7 @@ class NoteListView extends GetView<NoteController> {
       actions: [
         CustomGlassButton(
           onPressed: () => _createFolder(folderId),
-          semanticLabel: 'Add Folder',
+          semanticLabel: "note_list_add_folder".tr,
           width: 44,
           height: 44,
           shape: GlassShape.circle,
@@ -174,7 +174,7 @@ class NoteListView extends GetView<NoteController> {
       controller: controller,
       triggerBuilder: (context, toggleMenu) => CustomGlassButton(
         onPressed: toggleMenu,
-        semanticLabel: 'More options',
+        semanticLabel: "note_list_more_options".tr,
         width: 44,
         height: 44,
         shape: GlassShape.circle,
@@ -217,7 +217,7 @@ class NoteListView extends GetView<NoteController> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  "No Notes",
+                  "note_list_empty_title".tr,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.5,
@@ -240,7 +240,7 @@ class NoteListView extends GetView<NoteController> {
             if (pinnedNotes.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
-                child: Text("Pinned", style: theme.textTheme.titleLarge),
+                child: Text("note_list_pinned".tr, style: theme.textTheme.titleLarge),
               ),
               GridView.builder(
                 shrinkWrap: true,
@@ -267,7 +267,7 @@ class NoteListView extends GetView<NoteController> {
               if (otherNotes.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
-                  child: Text("Notes", style: theme.textTheme.titleLarge),
+                  child: Text("note_list_notes".tr, style: theme.textTheme.titleLarge),
                 ),
             ],
             if (otherNotes.isNotEmpty)
@@ -332,7 +332,7 @@ class NoteListView extends GetView<NoteController> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primaryColor,
                   ),
-                  child: const Text("Retry"),
+                  child: Text("note_list_retry".tr),
                 ),
               ],
             ),
@@ -354,7 +354,7 @@ class NoteListView extends GetView<NoteController> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  "No Notes",
+                  "note_list_empty_title".tr,
                   style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.5,
@@ -371,7 +371,7 @@ class NoteListView extends GetView<NoteController> {
       final otherNotes = controller.otherNotes;
       final groupedNotes = controller.isGroupedByDate.value
           ? NoteGrouping.byDate(otherNotes)
-          : {"Notes": otherNotes};
+          : {"note_list_notes".tr: otherNotes};
 
       return SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
@@ -388,7 +388,7 @@ class NoteListView extends GetView<NoteController> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Pinned", style: theme.textTheme.titleLarge),
+                      child: Text("note_list_pinned".tr, style: theme.textTheme.titleLarge),
                     ),
                     GlassCard(
                       borderRadius: 30,

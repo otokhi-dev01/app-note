@@ -22,6 +22,11 @@ abstract class AuthRepository {
 
   Future<Result<void>> logout();
 
+  /// Permanently deletes the signed-in user's account and every record tied
+  /// to it on the server — not a deactivation/soft-delete. [password]
+  /// reauthenticates the request. Clears the local session on success.
+  Future<Result<void>> deleteAccount({required String password});
+
   /// Restores a persisted session on cold start, if there is one.
   Future<Result<AuthSession?>> loadSession();
 }

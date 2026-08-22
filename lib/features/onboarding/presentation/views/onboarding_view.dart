@@ -1,4 +1,3 @@
-import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -75,47 +74,13 @@ class OnboardingView extends GetView<OnboardingController> {
               .fadeIn(duration: 400.ms),
           const SizedBox(width: 12),
           Text(
-            'OTOKHI',
+            'Pii Note',
             style: theme.textTheme.titleLarge?.copyWith(
               fontSize: 25,
               fontWeight: FontWeight.bold,
               letterSpacing: -0.3,
             ),
           ),
-          const Spacer(),
-          Obx(() {
-            final isLastPage =
-                controller.currentPage.value == controller.pages.length - 1;
-
-            if (isLastPage) {
-              return const SizedBox(width: 70, height: 44);
-            }
-
-            return CustomGlassContainer(
-              width: 70,
-              height: 44,
-              child: TextButton(
-                onPressed: _skipToLastPage,
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.onSurfaceVariant,
-                  minimumSize: const Size(70, 44),
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                ),
-                child: Center(
-                  child: Text(
-                    'onboarding_skip'.tr,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
         ],
       ),
     );
@@ -331,6 +296,13 @@ class OnboardingView extends GetView<OnboardingController> {
     );
   }
 
+  /// Every action a first-run visitor could want — guest, sign in, or
+  /// register — sits here, unconditionally, on every onboarding page. App
+  /// Store guideline 5.1.1(v) requires that non-account features stay
+  /// reachable without registering; putting "Continue without account" as
+  /// the same kind of primary, full-width button as the other two (rather
+  /// than a smaller de-emphasized link below a "Next" CTA) makes that an
+  /// equally obvious choice instead of one a reviewer has to notice.
   Widget _buildBottomSection(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -339,112 +311,82 @@ class OnboardingView extends GetView<OnboardingController> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Obx(
-                  () => Row(
-                    children: List.generate(controller.pages.length, (index) {
-                      final isActive = controller.currentPage.value == index;
+          Obx(
+            () => Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(controller.pages.length, (index) {
+                final isActive = controller.currentPage.value == index;
 
-                      return AnimatedContainer(
-                        duration: 300.ms,
-                        curve: Curves.easeOutCubic,
-                        margin: const EdgeInsets.only(right: 7),
-                        width: isActive ? 28 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? AppTheme.folderPink
-                              : theme.colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.18,
-                                ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-              ),
-              Obx(() {
-                final isLastPage =
-                    controller.currentPage.value == controller.pages.length - 1;
-
-                return ElevatedButton(
-                  onPressed: controller.nextPage,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(138, 56),
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    elevation: 0,
-                    backgroundColor: AppTheme.folderPink,
-                    foregroundColor: AppTheme.bodyColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: 220.ms,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.12, 0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Row(
-                      key: ValueKey(isLastPage),
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          isLastPage
-                              ? 'onboarding_get_started'.tr
-                              : 'onboarding_next'.tr,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                return AnimatedContainer(
+                  duration: 300.ms,
+                  curve: Curves.easeOutCubic,
+                  margin: const EdgeInsets.symmetric(horizontal: 3.5),
+                  width: isActive ? 28 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? AppTheme.folderPink
+                        : theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.18,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          isLastPage
-                              ? Icons.check_rounded
-                              : Icons.arrow_forward_rounded,
-                          size: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ],
-                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 );
               }),
-            ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: controller.continueWithoutAccount,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
+                elevation: 0,
+                backgroundColor: AppTheme.folderPink,
+                foregroundColor: AppTheme.bodyColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+              child: Text(
+                'onboarding_continue_guest'.tr,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: controller.goToLogin,
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
+                foregroundColor: AppTheme.folderPink,
+                side: const BorderSide(color: AppTheme.folderPink, width: 1.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+              ),
+              child: Text(
+                'login_title'.tr,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
           TextButton(
-            onPressed: controller.continueWithoutAccount,
+            onPressed: controller.goToRegister,
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.onSurfaceVariant,
               minimumSize: const Size(double.infinity, 44),
             ),
             child: Text(
-              'onboarding_continue_guest'.tr,
+              'onboarding_create_account'.tr,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  void _skipToLastPage() {
-    controller.pageController.animateToPage(
-      controller.pages.length - 1,
-      duration: 450.ms,
-      curve: Curves.easeOutCubic,
     );
   }
 }

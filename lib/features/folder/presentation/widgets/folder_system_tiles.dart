@@ -37,7 +37,10 @@ class FolderSystemTiles extends StatelessWidget {
             color: theme.primaryColor,
             size: 25,
           ),
-          title: Text("Recently Deleted", style: theme.textTheme.bodyLarge),
+          title: Text(
+            "folder_recently_deleted".tr,
+            style: theme.textTheme.bodyLarge,
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -76,7 +79,7 @@ class FolderSystemTiles extends StatelessWidget {
             color: theme.primaryColor,
             size: 25,
           ),
-          title: Text("Archive", style: theme.textTheme.bodyLarge),
+          title: Text("folder_archive".tr, style: theme.textTheme.bodyLarge),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

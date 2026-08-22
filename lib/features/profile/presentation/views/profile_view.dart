@@ -1,21 +1,17 @@
 import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
-import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/features/profile/presentation/widgets/profile_more_popup.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/glass_surfaces.dart';
 
 /// A modern, standalone user profile screen.
-/// 
-/// Replaces the simple identity row in Settings with a dedicated destination 
-/// that treats the user's identity as a first-class feature. Designed with 
-/// "Liquid Glass" aesthetics: a large hero avatar with a matching soft halo, 
+///
+/// Replaces the simple identity row in Settings with a dedicated destination
+/// that treats the user's identity as a first-class feature. Designed with
+/// "Liquid Glass" aesthetics: a large hero avatar with a matching soft halo,
 /// grouped glass cards for details, and a clear, focused layout.
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -221,7 +217,9 @@ class ProfileView extends GetView<ProfileController> {
             Text(
               controller.userPhone.value,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.7,
+                ),
                 fontSize: 16,
               ),
             ),
@@ -260,8 +258,8 @@ class ProfileView extends GetView<ProfileController> {
             context,
             icon: CupertinoIcons.phone_fill,
             label: "phone_label".tr,
-            value: controller.userPhone.value.isEmpty 
-                ? "not_available".tr 
+            value: controller.userPhone.value.isEmpty
+                ? "not_available".tr
                 : controller.userPhone.value,
           ),
           Divider(
@@ -273,7 +271,9 @@ class ProfileView extends GetView<ProfileController> {
             context,
             icon: CupertinoIcons.shield_fill,
             label: "account_status_label".tr,
-            value: controller.isGuestMode.value ? "guest_status".tr : "verified_status".tr,
+            value: controller.isGuestMode.value
+                ? "guest_status".tr
+                : "verified_status".tr,
           ),
         ],
       ),
@@ -305,7 +305,9 @@ class ProfileView extends GetView<ProfileController> {
                     Text(
                       label,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -322,7 +324,9 @@ class ProfileView extends GetView<ProfileController> {
                 Icon(
                   CupertinoIcons.chevron_forward,
                   size: 14,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.4,
+                  ),
                 ),
             ],
           ),
@@ -348,7 +352,7 @@ class ProfileView extends GetView<ProfileController> {
           child: _buildStatItem(
             context,
             title: "tier_label".tr,
-            value: "Free",
+            value: "profile_tier_free".tr,
             icon: CupertinoIcons.star_fill,
           ),
         ),
@@ -370,7 +374,11 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: theme.colorScheme.primary.withValues(alpha: 0.7)),
+          Icon(
+            icon,
+            size: 20,
+            color: theme.colorScheme.primary.withValues(alpha: 0.7),
+          ),
           const SizedBox(height: 12),
           Text(
             title,

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_popup.dart';
@@ -82,14 +83,14 @@ class _IdleToolbar extends StatelessWidget {
                 _ToolbarButton(
                   icon: Icons.checklist_rounded,
                   onTap: controller.addChecklistBlock,
-                  semanticLabel: 'Checklist',
+                  semanticLabel: 'note_editor_checklist_label'.tr,
                 ),
                 const SizedBox(width: 6),
                 NoteAttachmentPopup(
                   onAction: onAttachmentAction,
-                  trigger: const _ToolbarTriggerIcon(
+                  trigger: _ToolbarTriggerIcon(
                     icon: CupertinoIcons.paperclip,
-                    semanticLabel: 'Attachment',
+                    semanticLabel: 'note_editor_attachment_label'.tr,
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -100,7 +101,7 @@ class _IdleToolbar extends StatelessWidget {
                   // what this button actually opens (the format panel).
                   icon: CupertinoIcons.textformat,
                   onTap: controller.toggleFormatPanel,
-                  semanticLabel: 'Format',
+                  semanticLabel: 'note_editor_format_label'.tr,
                 ),
               ],
             ),
@@ -109,7 +110,7 @@ class _IdleToolbar extends StatelessWidget {
         const Spacer(),
         CustomGlassButton(
           onPressed: controller.createNewNote,
-          semanticLabel: 'Create note',
+          semanticLabel: 'note_editor_create_note_label'.tr,
           width: 50,
           height: 50,
           shape: GlassShape.circle,
@@ -161,33 +162,33 @@ class _ExpandedToolbar extends StatelessWidget {
             _ToolbarButton(
               icon: CupertinoIcons.textformat,
               onTap: controller.toggleFormatPanel,
-              semanticLabel: 'Format',
+              semanticLabel: 'note_editor_format_label'.tr,
             ),
             const SizedBox(width: 4),
             _ToolbarButton(
               icon: Icons.checklist_rounded,
               onTap: controller.addChecklistBlock,
-              semanticLabel: 'Checklist',
+              semanticLabel: 'note_editor_checklist_label'.tr,
             ),
             const SizedBox(width: 4),
             _ToolbarButton(
               icon: Icons.table_chart_outlined,
               onTap: controller.addTableBlock,
-              semanticLabel: 'Table',
+              semanticLabel: 'note_editor_table_label'.tr,
             ),
             const SizedBox(width: 4),
             NoteAttachmentPopup(
               onAction: onAttachmentAction,
-              trigger: const _ToolbarTriggerIcon(
+              trigger: _ToolbarTriggerIcon(
                 icon: CupertinoIcons.paperclip,
-                semanticLabel: 'Attachment',
+                semanticLabel: 'note_editor_attachment_label'.tr,
               ),
             ),
             const SizedBox(width: 4),
             _ToolbarButton(
               icon: CupertinoIcons.pencil_circle,
               onTap: controller.startDrawing,
-              semanticLabel: 'Drawing',
+              semanticLabel: 'note_editor_drawing_label'.tr,
             ),
           ],
         ),

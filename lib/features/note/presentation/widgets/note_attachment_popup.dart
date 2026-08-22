@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
 /// The toolbar's attachment button, iOS-26 style: tapping it morphs the
@@ -30,25 +31,40 @@ class NoteAttachmentPopup extends StatelessWidget {
       autoAdjustToScreen: true,
       menuPadding: const EdgeInsets.all(12),
       items: [
-        _item(context, 'Scan Text', CupertinoIcons.viewfinder, 'scan_text'),
         _item(
           context,
-          'Scan Documents',
+          'note_editor_scan_text'.tr,
+          CupertinoIcons.viewfinder,
+          'scan_text',
+        ),
+        _item(
+          context,
+          'note_editor_scan_docs'.tr,
           CupertinoIcons.viewfinder_circle,
           'scan_docs',
         ),
-        _item(context, 'Take Photo or Video', CupertinoIcons.camera, 'camera'),
         _item(
           context,
-          'Choose Photo or Video',
+          'note_editor_take_photo_video'.tr,
+          CupertinoIcons.camera,
+          'camera',
+        ),
+        _item(
+          context,
+          'note_editor_choose_photo_video'.tr,
           CupertinoIcons.photo_on_rectangle,
           'gallery',
         ),
 
         // _item(context, 'Drawing', CupertinoIcons.pencil_outline, 'drawing'),
         const lg.GlassMenuDivider(),
-        _item(context, 'Record Audio', CupertinoIcons.mic, 'audio'),
-        _item(context, 'Attach File', CupertinoIcons.paperclip, 'file'),
+        _item(context, 'note_editor_record_audio'.tr, CupertinoIcons.mic, 'audio'),
+        _item(
+          context,
+          'note_editor_attach_file'.tr,
+          CupertinoIcons.paperclip,
+          'file',
+        ),
       ],
     );
   }

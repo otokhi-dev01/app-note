@@ -43,17 +43,17 @@ class FolderContextMenu extends StatelessWidget {
         menuPadding: const EdgeInsets.all(12),
         items: [
           _item(
-            title: 'Move Folder',
+            title: 'folder_move'.tr,
             icon: CupertinoIcons.folder,
             onTap: () => controller.onMoveFolder(folder),
           ),
           _item(
-            title: 'Rename Folder',
+            title: 'folder_rename'.tr,
             icon: Icons.edit_note_rounded,
             onTap: () => controller.onRenameFolder(folder),
           ),
           _item(
-            title: 'Add Folder',
+            title: 'folder_add'.tr,
             icon: CupertinoIcons.folder_badge_plus,
             onTap: () {
               Get.to(
@@ -67,21 +67,23 @@ class FolderContextMenu extends StatelessWidget {
             },
           ),
           _item(
-            title: 'Group By Date',
+            title: 'folder_group_by_date'.tr,
             icon: controller.isGroupedByDate.value
                 ? Icons.calendar_view_day_rounded
                 : Icons.calendar_view_day_outlined,
-            subtitle: controller.isGroupedByDate.value ? 'On' : 'Off',
+            subtitle: controller.isGroupedByDate.value
+                ? 'folder_status_on'.tr
+                : 'folder_status_off'.tr,
             onTap: () => controller.onToggleGroupByDate(folder),
           ),
           _item(
-            title: 'Delete Folder',
+            title: 'folder_delete'.tr,
             icon: CupertinoIcons.delete,
             isDestructive: true,
             onTap: () => controller.onDeleteFolder(folder),
           ),
           _item(
-            title: 'Convert to Smart Folder',
+            title: 'folder_convert_smart'.tr,
             icon: Icons.auto_fix_high_rounded,
             onTap: () => controller.onConvertToSmartFolder(folder),
           ),

@@ -50,6 +50,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<void>> logout() => guard(() => _session.clearSession());
 
   @override
+  Future<Result<void>> deleteAccount({required String password}) =>
+      guard(() async {
+        await _remote.deleteAccount(password);
+        await _session.clearSession();
+      });
+
+  @override
   Future<Result<AuthSession?>> loadSession() => guard(() async {
     await _session.loadSession();
     final token = _session.token.value;

@@ -81,7 +81,7 @@ class FolderView extends GetView<FolderController> {
         ),
       ),
       title: Text(
-        "Folders",
+        "folder_title".tr,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 17,
@@ -89,7 +89,7 @@ class FolderView extends GetView<FolderController> {
       ),
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
       largeTitle: Text(
-        "Folders",
+        "folder_title".tr,
         style: theme.textTheme.headlineLarge?.copyWith(
           fontWeight: FontWeight.bold,
           fontSize: 34,
@@ -171,7 +171,7 @@ class FolderView extends GetView<FolderController> {
       opacity: 0.15,
       thickness: 8,
       child: Text(
-        "Edit",
+        "folder_edit".tr,
         style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 17),
       ),
     );
@@ -205,7 +205,7 @@ class FolderView extends GetView<FolderController> {
           children: [
             const SizedBox(height: 12),
             FolderSectionHeader(
-              title: "Pii Cloud",
+              title: "folder_section_icloud".tr,
               isExpanded: controller.isICloudExpanded,
               onTap: controller.toggleICloud,
               onCreateFolder: () => _createFolderInSection(context, 'iCloud'),
@@ -228,7 +228,7 @@ class FolderView extends GetView<FolderController> {
             ),
             const SizedBox(height: 24),
             FolderSectionHeader(
-              title: "On My Phone",
+              title: "folder_section_on_my_phone".tr,
               isExpanded: controller.isOnMyiPhoneExpanded,
               onTap: controller.toggleOnMyiPhone,
               onCreateFolder: () => _createFolderInSection(context, ''),
@@ -242,7 +242,7 @@ class FolderView extends GetView<FolderController> {
 
             // SYSTEM "SOURCES" SECTION
             FolderSectionHeader(
-              title: "Sources",
+              title: "folder_section_sources".tr,
               isExpanded: controller.isNotesSectionExpanded,
               onTap: controller.toggleNotesSection,
             ),

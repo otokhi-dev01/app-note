@@ -28,7 +28,7 @@ class FolderBottomBar extends StatelessWidget {
             Expanded(
               child: CustomGlassButton(
                 onPressed: () => Get.toNamed(Routes.SEARCH),
-                semanticLabel: 'Search notes and folders',
+                semanticLabel: 'folder_search_semantic'.tr,
                 height: 50,
                 borderRadius: 30,
                 blur: 10,
@@ -44,7 +44,7 @@ class FolderBottomBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Search',
+                      'folder_search_label'.tr,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontSize: 17,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -63,7 +63,7 @@ class FolderBottomBar extends StatelessWidget {
             const SizedBox(width: 12),
             CustomGlassButton(
               onPressed: controller.createNewNote,
-              semanticLabel: 'Create note',
+              semanticLabel: 'folder_create_note_semantic'.tr,
               width: 50,
               height: 50,
               shape: GlassShape.circle,

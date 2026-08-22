@@ -67,7 +67,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
       title: Text(
-        "Recently Deleted",
+        "trash_title".tr,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 17,
@@ -117,7 +117,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                     opacity: 0.15,
                     thickness: 8,
                     child: Text(
-                      "Edit",
+                      "trash_edit".tr,
                       style: TextStyle(
                         color: theme.colorScheme.onSurface,
                         fontSize: 17,
@@ -130,7 +130,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       largeTitleAlignment: Alignment.bottomCenter,
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
       largeTitle: Text(
-        "Recently Deleted",
+        "trash_title".tr,
         style: theme.textTheme.headlineLarge?.copyWith(
           fontWeight: FontWeight.bold,
           fontSize: 27,
@@ -151,7 +151,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$totalItems ${totalItems == 1 ? 'Item' : 'Items'}',
+                'trash_item_count_one'.trPluralParams('trash_item_count_other', totalItems, {
+                  'count': '$totalItems',
+                }),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.6,
@@ -160,7 +162,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Notes are available here for 30 days. After that time, notes will be permanently deleted. This may take up to 40 days.",
+                "trash_retention_notice".tr,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.5,
@@ -204,7 +206,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "No Deleted Items",
+                    "trash_empty_state".tr,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant.withValues(
                         alpha: 0.5,
@@ -226,7 +228,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               if (index == 0) {
                 return _buildSection(
                   context,
-                  "Folders",
+                  "trash_folders_section".tr,
                   controller.deletedFolders,
                   isFolder: true,
                 );
@@ -234,7 +236,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               if (index == 1) {
                 return _buildSection(
                   context,
-                  "Notes",
+                  "trash_notes_section".tr,
                   controller.deletedNotes,
                   isFolder: false,
                 );
@@ -243,7 +245,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               if (index == 0) {
                 return _buildSection(
                   context,
-                  "Folders",
+                  "trash_folders_section".tr,
                   controller.deletedFolders,
                   isFolder: true,
                 );
@@ -252,7 +254,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               if (index == 0) {
                 return _buildSection(
                   context,
-                  "Notes",
+                  "trash_notes_section".tr,
                   controller.deletedNotes,
                   isFolder: false,
                 );
@@ -272,7 +274,6 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
     required bool isFolder,
   }) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,54 +289,25 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             ),
           ),
         ),
-
-        // Native iOS Styled Container
-        Material(
-          color: Colors.transparent,
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? AppTheme.darkCardColor : AppTheme.cardColor,
-              borderRadius: BorderRadius.circular(28),
-              border: isDark
-                  ? Border.all(
-                      color: Colors.white.withValues(alpha: 0.04),
-                      width: 0.5,
-                    )
-                  : null,
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.035),
-                        blurRadius: 18,
-                        offset: const Offset(0, 7),
-                      ),
-                    ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (int i = 0; i < items.length; i++) ...[
-                    if (isFolder)
-                      _buildFolderTile(context, items[i] as Folder)
-                    else
-                      _buildNoteTile(context, items[i] as Note),
-                    if (i < items.length - 1)
-                      Divider(
-                        indent: 20,
-                        endIndent: 20,
-                        height: 1,
-                        thickness: 0.5,
-                        color: theme.dividerColor.withValues(alpha: 0.35),
-                      ),
-                  ],
-                ],
-              ),
-            ),
-          ),
+        GlassCard(
+          borderRadius: 28,
+          padding: EdgeInsets.zero,
+          children: [
+            for (int i = 0; i < items.length; i++) ...[
+              if (isFolder)
+                _buildFolderTile(context, items[i] as Folder)
+              else
+                _buildNoteTile(context, items[i] as Note),
+              if (i < items.length - 1)
+                Divider(
+                  indent: 20,
+                  endIndent: 20,
+                  height: 1,
+                  thickness: 0.5,
+                  color: theme.dividerColor.withValues(alpha: 0.35),
+                ),
+            ],
+          ],
         ),
         const SizedBox(height: 16),
       ],
@@ -371,11 +343,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             onLongPress: isEditing ? null : openMenu,
             leading: isEditing
                 ? _buildSelectionIndicator(context, isSelected)
-                : const Icon(
-                    CupertinoIcons.folder,
-                    color: AppTheme.folderPink,
-                    size: 28,
-                  ),
+                : FolderGlyph(folder: folder, size: 28),
             title: Text(
               folder.displayName,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -387,7 +355,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                "Folder  •  ${folder.noteCount} notes",
+                "trash_folder_subtitle".trParams({
+                  'count': '${folder.noteCount}',
+                }),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.6,
@@ -469,9 +439,10 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
 
   void _showRestoreDialog(BuildContext context, {Note? note, Folder? folder}) {
     IOSConfirmationDialog.show(
-      title:
-          "This ${note != null ? 'note' : 'folder'} is in Recently Deleted. You must restore it before viewing or editing.",
-      confirmLabel: "Restore",
+      title: note != null
+          ? "trash_restore_note_message".tr
+          : "trash_restore_folder_message".tr,
+      confirmLabel: "trash_restore".tr,
       isDestructive: false,
       onConfirm: () {
         if (note != null) {
@@ -515,7 +486,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               Expanded(
                 child: _actionButton(
                   context,
-                  "Delete",
+                  "trash_delete".tr,
                   color: Colors.redAccent,
                   onTap: controller.deletePermanentlySelectedItems,
                 ),
@@ -525,7 +496,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             Expanded(
               child: _actionButton(
                 context,
-                "Recover",
+                "trash_recover".tr,
                 onTap: controller.recoverSelectedItems,
               ),
             ),

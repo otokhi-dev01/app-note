@@ -79,7 +79,9 @@ class _FolderTileState extends State<FolderTile> {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text(
-                  "Folder  •  ${folder.noteCount} notes",
+                  "folder_tile_subtitle".trParams({
+                    'count': '${folder.noteCount}',
+                  }),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.6,

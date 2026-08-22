@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class SlidableNoteTile extends StatefulWidget {
   final Widget child;
@@ -100,14 +101,14 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _buildActionButton(
-                    "Move",
+                    "trash_move".tr,
                     CupertinoIcons.folder_fill,
                     const Color(0xFF5856D6),
                     widget.onMove,
                   ),
                   if (widget.onDelete != null)
                     _buildActionButton(
-                      "Delete",
+                      "trash_delete".tr,
                       CupertinoIcons.trash_fill,
                       const Color(0xFFFF3B30),
                       widget.onDelete!,

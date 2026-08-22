@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_emoji/flutter_emoji.dart';
+import 'package:get/get.dart';
 
 import 'package:Note/features/folder/domain/entities/folder.dart';
 
@@ -50,6 +51,10 @@ class FolderGlyph extends StatelessWidget {
 class FolderIconOption {
   final String name;
   final IconData icon;
+
+  /// Translation key for the label shown under this icon in the picker —
+  /// resolve with `.tr` at display time, not stored pre-translated (this
+  /// list is `const`, so it can't call `.tr` itself).
   final String label;
 
   const FolderIconOption(this.name, this.icon, this.label);
@@ -67,30 +72,58 @@ class FolderAppearance {
   static const String defaultColorValue = '#FF69B4';
 
   static const List<FolderIconOption> icons = [
-    FolderIconOption('folder', CupertinoIcons.folder_fill, 'Folder'),
-    FolderIconOption('work', CupertinoIcons.briefcase_fill, 'Work'),
-    FolderIconOption('school', CupertinoIcons.book_fill, 'School'),
-    FolderIconOption('favorite', CupertinoIcons.heart_fill, 'Favorite'),
-    FolderIconOption('star', CupertinoIcons.star_fill, 'Star'),
-    FolderIconOption('note', CupertinoIcons.doc_text_fill, 'Note'),
-    FolderIconOption('home', CupertinoIcons.house_fill, 'Home'),
-    FolderIconOption('travel', CupertinoIcons.airplane, 'Travel'),
-    FolderIconOption('idea', CupertinoIcons.lightbulb_fill, 'Idea'),
-    FolderIconOption('money', CupertinoIcons.money_dollar_circle_fill, 'Money'),
-    FolderIconOption('calendar', CupertinoIcons.calendar, 'Calendar'),
-    FolderIconOption('flag', CupertinoIcons.flag_fill, 'Flag'),
-    FolderIconOption('bolt', CupertinoIcons.bolt_fill, 'Bolt'),
-    FolderIconOption('game', CupertinoIcons.game_controller_solid, 'Game'),
-    FolderIconOption('music', CupertinoIcons.music_note_2, 'Music'),
-    FolderIconOption('photo', CupertinoIcons.photo_fill, 'Photo'),
-    FolderIconOption('cart', CupertinoIcons.cart_fill, 'Shopping'),
-    FolderIconOption('gift', CupertinoIcons.gift_fill, 'Gift'),
+    FolderIconOption('folder', CupertinoIcons.folder_fill, 'folder_icon_folder'),
+    FolderIconOption('work', CupertinoIcons.briefcase_fill, 'folder_icon_work'),
+    FolderIconOption('school', CupertinoIcons.book_fill, 'folder_icon_school'),
+    FolderIconOption(
+      'favorite',
+      CupertinoIcons.heart_fill,
+      'folder_icon_favorite',
+    ),
+    FolderIconOption('star', CupertinoIcons.star_fill, 'folder_icon_star'),
+    FolderIconOption('note', CupertinoIcons.doc_text_fill, 'folder_icon_note'),
+    FolderIconOption('home', CupertinoIcons.house_fill, 'folder_icon_home'),
+    FolderIconOption('travel', CupertinoIcons.airplane, 'folder_icon_travel'),
+    FolderIconOption(
+      'idea',
+      CupertinoIcons.lightbulb_fill,
+      'folder_icon_idea',
+    ),
+    FolderIconOption(
+      'money',
+      CupertinoIcons.money_dollar_circle_fill,
+      'folder_icon_money',
+    ),
+    FolderIconOption(
+      'calendar',
+      CupertinoIcons.calendar,
+      'folder_icon_calendar',
+    ),
+    FolderIconOption('flag', CupertinoIcons.flag_fill, 'folder_icon_flag'),
+    FolderIconOption('bolt', CupertinoIcons.bolt_fill, 'folder_icon_bolt'),
+    FolderIconOption(
+      'game',
+      CupertinoIcons.game_controller_solid,
+      'folder_icon_game',
+    ),
+    FolderIconOption('music', CupertinoIcons.music_note_2, 'folder_icon_music'),
+    FolderIconOption('photo', CupertinoIcons.photo_fill, 'folder_icon_photo'),
+    FolderIconOption(
+      'cart',
+      CupertinoIcons.cart_fill,
+      'folder_icon_shopping',
+    ),
+    FolderIconOption('gift', CupertinoIcons.gift_fill, 'folder_icon_gift'),
     FolderIconOption(
       'code',
       CupertinoIcons.chevron_left_slash_chevron_right,
-      'Code',
+      'folder_icon_code',
     ),
-    FolderIconOption('people', CupertinoIcons.person_2_fill, 'People'),
+    FolderIconOption(
+      'people',
+      CupertinoIcons.person_2_fill,
+      'folder_icon_people',
+    ),
   ];
 
   /// Emoji alternative to [icons] — the same 20 concepts, so switching
@@ -161,9 +194,9 @@ class FolderAppearance {
 
   /// The display label for [sectionKeywordOf]'s return value.
   static String sectionLabel(String keyword) => switch (keyword) {
-    'iCloud' => 'Pii Cloud',
-    'Shared' => 'Shared',
-    _ => 'On My iPhone',
+    'iCloud' => 'folder_section_icloud'.tr,
+    'Shared' => 'folder_section_shared'.tr,
+    _ => 'folder_on_my_iphone'.tr,
   };
 
   /// Strips the section/status keyword out of [name], leaving just the part

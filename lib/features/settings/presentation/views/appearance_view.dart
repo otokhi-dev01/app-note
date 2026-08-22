@@ -55,7 +55,7 @@ class AppearanceView extends GetView<AppearanceController> {
                 ),
               ),
               title: Text(
-                "Appearance",
+                "appearance_title".tr,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 17,
@@ -63,7 +63,7 @@ class AppearanceView extends GetView<AppearanceController> {
               ),
               largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
               largeTitle: Text(
-                "Appearance",
+                "appearance_title".tr,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 34,
@@ -78,21 +78,21 @@ class AppearanceView extends GetView<AppearanceController> {
                   children: [
                     _buildThemeOption(
                       context,
-                      title: "System Default",
+                      title: "appearance_system_default".tr,
                       icon: Icons.brightness_auto_rounded,
                       mode: ThemeMode.system,
                     ),
                     const Divider(indent: 56, height: 1),
                     _buildThemeOption(
                       context,
-                      title: "Light Mode",
+                      title: "appearance_light_mode".tr,
                       icon: Icons.light_mode_rounded,
                       mode: ThemeMode.light,
                     ),
                     const Divider(indent: 56, height: 1),
                     _buildThemeOption(
                       context,
-                      title: "Dark Mode",
+                      title: "dark_mode".tr,
                       icon: Icons.dark_mode_rounded,
                       mode: ThemeMode.dark,
                     ),

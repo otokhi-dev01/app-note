@@ -11,26 +11,22 @@ class _FaqEntry {
   const _FaqEntry(this.question, this.answer);
 }
 
-const _faqEntries = [
+List<_FaqEntry> get _faqEntries => [
   _FaqEntry(
-    'How do I create a note without an account?',
-    'From the welcome screen, tap "Continue without account." Notes you create '
-        'this way are saved only on this device.',
+    'help_center_faq_q1'.tr,
+    'help_center_faq_a1'.tr,
   ),
   _FaqEntry(
-    'How do I organize notes into folders?',
-    'Tap the "+" on the Pii Cloud or On My Phone section header on the Folders '
-        'screen to create a folder there, then move notes into it from the note\'s '
-        'options menu.',
+    'help_center_faq_q2'.tr,
+    'help_center_faq_a2'.tr,
   ),
   _FaqEntry(
-    'How do I change the app\'s appearance?',
-    'Go to Settings > Appearance and choose System Default, Light, or Dark.',
+    'help_center_faq_q3'.tr,
+    'help_center_faq_a3'.tr,
   ),
   _FaqEntry(
-    'Where did a deleted note go?',
-    'Deleted notes and folders move to Recently Deleted, where they can be '
-        'restored.',
+    'help_center_faq_q4'.tr,
+    'help_center_faq_a4'.tr,
   ),
 ];
 
@@ -84,7 +80,7 @@ class HelpCenterView extends StatelessWidget {
                 ),
               ),
               title: Text(
-                "Help Center",
+                "help_center_title".tr,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 17,
@@ -92,7 +88,7 @@ class HelpCenterView extends StatelessWidget {
               ),
               largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
               largeTitle: Text(
-                "Help Center",
+                "help_center_title".tr,
                 style: theme.textTheme.headlineLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 34,

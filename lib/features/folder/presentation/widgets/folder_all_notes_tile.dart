@@ -27,7 +27,7 @@ class FolderAllNotesTile extends StatelessWidget {
                   Routes.NOTE_LIST,
                   arguments: Folder(
                     id: 0,
-                    name: "All on My iphone",
+                    name: "folder_all_notes".tr,
                     iconName: "folder",
                     colorValue: "#FFB703",
                     sortOrder: 0,
@@ -39,7 +39,7 @@ class FolderAllNotesTile extends StatelessWidget {
             size: 25,
           ),
           title: Text(
-            "All on My iphone",
+            "folder_all_notes".tr,
             style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16),
           ),
           trailing: Row(

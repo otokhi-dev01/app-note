@@ -1,13 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-
-import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_item_context_menu.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/app_note_tile.dart';
-import 'package:Note/shared/widgets/ios_action_menu.dart';
 
 /// A note row in the folder's note list: tap to open, long-press for actions.
 class NoteListTile extends StatelessWidget {
@@ -25,7 +22,14 @@ class NoteListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      // Read directly in this closure, not inside triggerBuilder below:
+      // Obx only tracks .value reads made synchronously while its own
+      // builder runs. triggerBuilder is a callback GlassMenu invokes later,
+      // outside that scope — reading isEditing/isSelected only in there
+      // registers no observable at all, which is exactly what threw
+      // "the improper use of a GetX has been detected" here.
       final isEditing = controller.isEditing.value;
+      final isSelected = controller.isSelected(note.id);
 
       return NoteItemContextMenu(
         note: note,
@@ -34,19 +38,19 @@ class NoteListTile extends StatelessWidget {
         triggerBuilder: (context, openMenu) => GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            if (controller.isEditing.value) {
+            if (isEditing) {
               controller.toggleSelectNote(note.id);
             } else {
-              NoteNavigation.toDetail(note)?.then(
-                (_) => controller.fetchNotes(folderId: folderId),
-              );
+              NoteNavigation.toDetail(
+                note,
+              )?.then((_) => controller.fetchNotes(folderId: folderId));
             }
           },
-          onLongPress: controller.isEditing.value ? null : openMenu,
+          onLongPress: isEditing ? null : openMenu,
           child: AppNoteTile(
             note: note,
-            isEditing: controller.isEditing.value,
-            isSelected: controller.isSelected(note.id),
+            isEditing: isEditing,
+            isSelected: isSelected,
             showAttachmentThumbnail: true,
           ),
         ),

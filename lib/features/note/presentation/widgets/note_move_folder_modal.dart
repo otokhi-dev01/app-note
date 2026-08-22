@@ -109,7 +109,9 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                                 ),
                               ),
                               Text(
-                                "${currentFolder.noteCount} Notes",
+                                "note_list_folder_note_count".trParams({
+                                  'count': '${currentFolder.noteCount}',
+                                }),
                                 style: TextStyle(
                                   color: colors.secondaryText,
                                   fontSize: 16,
@@ -128,7 +130,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                       children: [
                         _buildActionTile(
                           icon: CupertinoIcons.folder_badge_plus,
-                          label: "New Folder",
+                          label: "note_list_new_folder".tr,
                           onTap: onCreateNewFolder ?? () {},
                         ),
                       ],
@@ -138,7 +140,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                     _buildFolderSection(
                       context,
                       colors,
-                      title: "Pii Cloud",
+                      title: "note_list_pii_cloud".tr,
                       folders: _iCloudFolders,
                       isExpanded: _isICloudExpanded,
                       onToggle: _toggleICloud,
@@ -146,7 +148,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                     _buildFolderSection(
                       context,
                       colors,
-                      title: "On My iPhone",
+                      title: "note_list_on_my_iphone".tr,
                       folders: _onMyPhoneFolders,
                       isExpanded: _isOnMyPhoneExpanded,
                       onToggle: _toggleOnMyPhone,
@@ -175,7 +177,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
       title: Text(
-        "Select a Folder",
+        "note_list_select_a_folder".tr,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 17,
@@ -183,7 +185,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
       ),
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
-        semanticLabel: 'Back',
+        semanticLabel: 'note_list_back'.tr,
         width: 44,
         height: 44,
         shape: GlassShape.circle,
@@ -200,7 +202,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
       largeTitleAlignment: Alignment.bottomCenter,
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
       largeTitle: Text(
-        "Select a Folder",
+        "note_list_select_a_folder".tr,
         style: theme.textTheme.headlineLarge?.copyWith(
           fontWeight: FontWeight.bold,
           fontSize: 34,

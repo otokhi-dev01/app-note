@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-
 import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
@@ -14,7 +13,7 @@ class NoteItemContextMenu extends StatelessWidget {
   final int folderId;
   final NoteController controller;
   final Widget Function(BuildContext context, VoidCallback openMenu)
-      triggerBuilder;
+  triggerBuilder;
 
   const NoteItemContextMenu({
     super.key,
@@ -36,10 +35,11 @@ class NoteItemContextMenu extends StatelessWidget {
       // Morphing from zero makes the menu "bloom" from the touch point rather
       // than appearing as a large pre-formed glass slab.
       morphFromZero: true,
-      triggerBuilder: (context, _) => triggerBuilder(context, menuController.open),
+      triggerBuilder: (context, _) =>
+          triggerBuilder(context, menuController.open),
       items: [
         _item(
-          title: note.isPinned ? 'Unpin' : 'Pin',
+          title: note.isPinned ? 'note_list_unpin'.tr : 'note_list_pin'.tr,
           icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
           onTap: () async {
             await controller.updateNoteState(note.id, isPinned: !note.isPinned);
@@ -47,7 +47,7 @@ class NoteItemContextMenu extends StatelessWidget {
           },
         ),
         _item(
-          title: 'Move',
+          title: 'note_list_move'.tr,
           icon: CupertinoIcons.folder_badge_plus,
           onTap: () {
             controller.selectOnly(note.id);
@@ -56,7 +56,7 @@ class NoteItemContextMenu extends StatelessWidget {
         ),
         const lg.GlassMenuDivider(),
         _item(
-          title: 'Delete',
+          title: 'note_list_delete'.tr,
           icon: CupertinoIcons.trash,
           onTap: () async {
             if (await AppDialogs.confirmDeleteNotes(1)) {

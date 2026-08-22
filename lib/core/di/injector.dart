@@ -79,6 +79,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => Register(repo()), fenix: true);
     Get.lazyPut(() => ForgotPassword(repo()), fenix: true);
     Get.lazyPut(() => Logout(repo()), fenix: true);
+    Get.lazyPut(() => DeleteAccount(repo()), fenix: true);
     Get.lazyPut(() => LoadSession(repo()), fenix: true);
   }
 

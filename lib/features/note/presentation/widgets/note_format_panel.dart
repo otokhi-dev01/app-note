@@ -37,7 +37,7 @@ class NoteFormatPanel extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Format",
+                'note_editor_format_title'.tr,
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.bold,
@@ -66,22 +66,22 @@ class NoteFormatPanel extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _StyleButton(
-                  label: "Title",
+                  label: 'note_editor_style_title'.tr,
                   style: "title",
                   controller: controller,
                 ),
                 _StyleButton(
-                  label: "Heading",
+                  label: 'note_editor_style_heading'.tr,
                   style: "heading",
                   controller: controller,
                 ),
                 _StyleButton(
-                  label: "Subheading",
+                  label: 'note_editor_style_subheading'.tr,
                   style: "subheading",
                   controller: controller,
                 ),
                 _StyleButton(
-                  label: "Body",
+                  label: 'note_editor_style_body'.tr,
                   style: "body",
                   controller: controller,
                 ),
@@ -147,8 +147,7 @@ class NoteFormatPanel extends StatelessWidget {
               ),
               _IconButton(
                 icon: Icons.format_indent_increase_rounded,
-                onTap: () =>
-                    controller.applyInlineFormat(quill.Attribute.indent),
+                onTap: controller.applyIndent,
               ),
               _IconButton(
                 icon: Icons.view_column_rounded,

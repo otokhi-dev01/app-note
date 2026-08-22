@@ -62,7 +62,7 @@ class ArchiveView extends GetView<NoteController> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
       title: Text(
-        "Archive",
+        "note_list_archive_title".tr,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 17,
@@ -110,7 +110,7 @@ class ArchiveView extends GetView<NoteController> {
                   opacity: 0.15,
                   thickness: 8,
                   child: Text(
-                    "Edit",
+                    "note_list_edit".tr,
                     style: TextStyle(
                       color: theme.colorScheme.onSurface,
                       fontSize: 18,
@@ -123,7 +123,7 @@ class ArchiveView extends GetView<NoteController> {
       largeTitleAlignment: Alignment.bottomCenter,
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
       largeTitle: Text(
-        "Archive",
+        "note_list_archive_title".tr,
         style: theme.textTheme.headlineLarge?.copyWith(
           fontWeight: FontWeight.bold,
           fontSize: 34,
@@ -142,7 +142,10 @@ class ArchiveView extends GetView<NoteController> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${controller.archivedNotes.length} ${controller.archivedNotes.length == 1 ? 'Note' : 'Notes'}',
+                (controller.archivedNotes.length == 1
+                        ? 'note_list_archived_count_one'
+                        : 'note_list_archived_count_other')
+                    .trParams({'count': '${controller.archivedNotes.length}'}),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.6,
@@ -151,7 +154,7 @@ class ArchiveView extends GetView<NoteController> {
               ),
               const SizedBox(height: 12),
               Text(
-                "Archived notes are kept separate from your main notes list. You can restore them at any time.",
+                "note_list_archive_description".tr,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.5,
@@ -178,17 +181,21 @@ class ArchiveView extends GetView<NoteController> {
       }
 
       if (controller.archivedNotes.isEmpty) {
-        return const SliverFillRemaining(
+        return SliverFillRemaining(
           hasScrollBody: false,
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(CupertinoIcons.archivebox, size: 60, color: Colors.grey),
-                SizedBox(height: 16),
+                const Icon(
+                  CupertinoIcons.archivebox,
+                  size: 60,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 16),
                 Text(
-                  "No Archived Notes",
-                  style: TextStyle(color: Colors.grey, fontSize: 18),
+                  "note_list_no_archived_notes".tr,
+                  style: const TextStyle(color: Colors.grey, fontSize: 18),
                 ),
               ],
             ),
@@ -279,7 +286,7 @@ class ArchiveView extends GetView<NoteController> {
             Expanded(
               child: _actionButton(
                 context,
-                "Delete",
+                "note_list_delete".tr,
                 color: Colors.redAccent,
                 onTap: () => controller.deleteSelectedNotes(0),
               ),
@@ -288,12 +295,12 @@ class ArchiveView extends GetView<NoteController> {
             Expanded(
               child: _actionButton(
                 context,
-                "Unarchive",
+                "note_list_unarchive".tr,
                 onTap: () {
                   // Implementation for unarchiving selected notes
                   AppSnackbar.info(
-                    'Info',
-                    'Unarchive functionality coming soon',
+                    'note_list_info_title'.tr,
+                    'note_list_unarchive_coming_soon'.tr,
                   );
                 },
               ),

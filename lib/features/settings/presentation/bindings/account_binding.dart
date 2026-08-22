@@ -10,6 +10,7 @@ class AccountBinding extends Bindings {
     Get.put(
       AccountController(
         logout: Get.find<Logout>(),
+        deleteAccount: Get.find<DeleteAccount>(),
         guestMode: Get.find<GuestModeService>(),
       ),
     );
