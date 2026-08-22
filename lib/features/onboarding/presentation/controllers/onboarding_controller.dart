@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/routes/app_pages.dart';
 
 class OnboardingController extends GetxController {
   final pageController = PageController();
   final currentPage = 0.obs;
-  final _sessionService = Get.find<SessionStorage>();
   final _guestMode = Get.find<GuestModeService>();
 
   final pages = [
@@ -32,25 +30,6 @@ class OnboardingController extends GetxController {
     currentPage.value = index;
   }
 
-  void nextPage() {
-    if (currentPage.value < pages.length - 1) {
-      pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeIn,
-      );
-    } else {
-      skipOnboarding();
-    }
-  }
-
-  void skipOnboarding() {
-    if (!_sessionService.isLoggedIn) {
-      Get.offAllNamed(Routes.LOGIN);
-    } else {
-      Get.offAllNamed(Routes.FOLDER);
-    }
-  }
-
   /// App Store guideline 5.1.1(v): note-taking must work without an account.
   /// Folders and notes created here live only on this device — see
   /// `FolderRepositoryRouter` / `NoteRepositoryRouter`.
@@ -58,6 +37,13 @@ class OnboardingController extends GetxController {
     _guestMode.enable();
     Get.offAllNamed(Routes.FOLDER);
   }
+
+  /// Pushed, not `offAllNamed` — Login/Register have a back button that
+  /// should return here, since a visitor who backs out of either isn't
+  /// signed in or guest yet and still needs a way to actually use the app.
+  void goToLogin() => Get.toNamed(Routes.LOGIN);
+
+  void goToRegister() => Get.toNamed(Routes.REGISTER);
 }
 
 class OnboardingData {

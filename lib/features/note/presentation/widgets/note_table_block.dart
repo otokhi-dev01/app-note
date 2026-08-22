@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 
@@ -76,19 +77,19 @@ class NoteTableBlock extends StatelessWidget {
                 children: [
                   _TableActionButton(
                     icon: CupertinoIcons.add,
-                    label: 'Row',
+                    label: 'note_editor_row_label'.tr,
                     onTap: () => controller.addTableRow(blockIndex),
                   ),
                   const SizedBox(width: 12),
                   _TableActionButton(
                     icon: CupertinoIcons.add,
-                    label: 'Column',
+                    label: 'note_editor_column_label'.tr,
                     onTap: () => controller.addTableColumn(blockIndex),
                   ),
                   const Spacer(),
                   _TableActionButton(
                     icon: CupertinoIcons.trash,
-                    label: 'Delete',
+                    label: 'note_editor_delete'.tr,
                     color: Colors.redAccent.withValues(alpha: 0.8),
                     onTap: () => controller.deleteBlock(blockIndex),
                   ),

@@ -45,7 +45,9 @@ class FolderSectionHeader extends StatelessWidget {
               const SizedBox(width: 8),
               IconButton(
                 onPressed: onCreateFolder,
-                tooltip: 'Create folder in $title',
+                tooltip: 'folder_create_folder_in'.trParams({
+                  'section': title,
+                }),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints.tightFor(
                   width: 36,

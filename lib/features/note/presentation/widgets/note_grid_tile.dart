@@ -177,9 +177,9 @@ class NoteGridTile extends StatelessWidget {
     // Even if visualBlock is null, if the count > 0, we might have an image not yet parsed
     // (though Note fix should have caught it)
     if (note.attachmentCount > 0) {
-      return const _GridPlaceholder(
+      return _GridPlaceholder(
         icon: CupertinoIcons.photo,
-        label: "Loading Image...",
+        label: "note_list_loading_image".tr,
       );
     }
 

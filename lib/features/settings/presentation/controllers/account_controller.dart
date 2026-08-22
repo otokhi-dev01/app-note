@@ -48,10 +48,8 @@ class AccountController extends GetxController {
   /// afterward.
   Future<void> startDeleteAccount() async {
     final confirmed = await AppDialogs.confirm(
-      title:
-          'Permanently delete your account? All your notes, folders, and '
-          'attachments will be erased and cannot be recovered.',
-      confirmLabel: 'Delete Account',
+      title: 'account_delete_confirm_title'.tr,
+      confirmLabel: 'account_delete_button'.tr,
     );
     if (!confirmed) return;
     unawaited(_promptPasswordAndDelete());
@@ -78,13 +76,14 @@ class AccountController extends GetxController {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Confirm Your Password',
-                style: Theme.of(sheetContext).textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                'account_confirm_password_title'.tr,
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Enter your password to permanently delete your account.',
+                'account_confirm_password_subtitle'.tr,
                 style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                 ),
@@ -94,7 +93,7 @@ class AccountController extends GetxController {
                 controller: passwordController,
                 autofocus: true,
                 obscureText: true,
-                placeholder: 'Password',
+                placeholder: 'password_hint'.tr,
                 textInputAction: TextInputAction.done,
                 textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
                 useOwnLayer: false,
@@ -122,11 +121,11 @@ class AccountController extends GetxController {
         unawaited(GetStorage().write('isFirstTime', true));
         unawaited(Get.offAllNamed(Routes.ONBOARDING));
         AppSnackbar.success(
-          'Account Deleted',
-          'Your account and its data have been permanently deleted.',
+          'account_deleted_title'.tr,
+          'account_deleted_message'.tr,
         );
       case Err(:final failure):
-        AppSnackbar.failure('Could not delete account', failure);
+        AppSnackbar.failure('account_delete_failed_title'.tr, failure);
     }
   }
 }

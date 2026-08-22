@@ -39,21 +39,27 @@ class NoteDetailMorePopup extends StatelessWidget {
         menuPadding: const EdgeInsets.all(12),
         items: [
           _item(
-            title: controller.isPinned.value ? 'Unpin' : 'Pin',
+            title: controller.isPinned.value
+                ? 'note_editor_unpin'.tr
+                : 'note_editor_pin'.tr,
             icon: controller.isPinned.value
                 ? CupertinoIcons.pin_slash
                 : CupertinoIcons.pin,
             onTap: controller.togglePin,
           ),
           _item(
-            title: controller.isArchived.value ? 'Unarchive' : 'Archive',
+            title: controller.isArchived.value
+                ? 'note_editor_unarchive'.tr
+                : 'note_editor_archive'.tr,
             icon: controller.isArchived.value
                 ? CupertinoIcons.archivebox_fill
                 : CupertinoIcons.archivebox,
             onTap: controller.toggleArchive,
           ),
           _item(
-            title: controller.isLocked.value ? 'Unlock' : 'Lock',
+            title: controller.isLocked.value
+                ? 'note_editor_unlock'.tr
+                : 'note_editor_lock'.tr,
             icon: controller.isLocked.value
                 ? CupertinoIcons.lock_fill
                 : CupertinoIcons.lock,
@@ -61,18 +67,23 @@ class NoteDetailMorePopup extends StatelessWidget {
           ),
           const lg.GlassMenuDivider(),
           _item(
-            title: 'Move',
+            title: 'note_editor_move'.tr,
             icon: CupertinoIcons.folder,
             onTap: controller.moveNote,
           ),
           _item(
-            title: 'Find in Note',
+            title: 'note_editor_find_in_note'.tr,
             icon: CupertinoIcons.doc_text_search,
             onTap: controller.toggleSearch,
           ),
+          _item(
+            title: 'note_editor_export_pdf'.tr,
+            icon: CupertinoIcons.doc_richtext,
+            onTap: controller.exportNoteToPdf,
+          ),
           const lg.GlassMenuDivider(),
           _item(
-            title: 'Delete',
+            title: 'note_editor_delete'.tr,
             icon: CupertinoIcons.trash,
             onTap: controller.deleteNote,
             isDestructive: true,

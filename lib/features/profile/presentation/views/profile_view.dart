@@ -352,7 +352,7 @@ class ProfileView extends GetView<ProfileController> {
           child: _buildStatItem(
             context,
             title: "tier_label".tr,
-            value: "Free",
+            value: "profile_tier_free".tr,
             icon: CupertinoIcons.star_fill,
           ),
         ),

@@ -132,10 +132,10 @@ class NoteBlockList extends StatelessWidget {
 
     CustomGlassActionSheet.show(
       context: context,
-      title: "Drawing Options",
+      title: 'note_editor_drawing_options_title'.tr,
       actions: [
         CustomGlassActionSheetAction(
-          label: "Delete Drawing",
+          label: 'note_editor_delete_drawing'.tr,
           icon: CupertinoIcons.trash,
           isDestructive: true,
           onPressed: () => controller.deleteBlock(blockIndex),

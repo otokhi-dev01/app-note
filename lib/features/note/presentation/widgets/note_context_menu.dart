@@ -47,37 +47,41 @@ class NoteContextMenu extends StatelessWidget {
         items: [
           _item(
             title: controller.viewMode.value == 'list'
-                ? 'View as Gallery'
-                : 'View as List',
+                ? 'note_list_view_as_gallery'.tr
+                : 'note_list_view_as_list'.tr,
             icon: controller.viewMode.value == 'list'
                 ? Icons.grid_view_rounded
                 : Icons.list_rounded,
             onTap: controller.toggleViewMode,
           ),
           _item(
-            title: 'Select Notes',
+            title: 'note_list_select_notes'.tr,
             icon: Icons.check_circle_outline,
             onTap: controller.toggleEditing,
           ),
           const lg.GlassMenuDivider(),
           _item(
-            title: 'Sort By',
+            title: 'note_list_sort_by'.tr,
             icon: Icons.swap_vert_rounded,
-            subtitle: controller.sortByName.value ? 'Name' : 'Date Edited',
+            subtitle: controller.sortByName.value
+                ? 'note_list_sort_name'.tr
+                : 'note_list_sort_date_edited'.tr,
             onTap: controller.toggleSortByName,
           ),
           _item(
-            title: 'Group By Date',
+            title: 'note_list_group_by_date'.tr,
             icon: Icons.calendar_view_day_rounded,
             // Reads the flag the toggle actually writes. The old menu had
             // "Default (On)" hardcoded here, so it kept claiming grouping was
             // on after it had been switched off.
-            subtitle: controller.isGroupedByDate.value ? 'On' : 'Off',
+            subtitle: controller.isGroupedByDate.value
+                ? 'note_list_on'.tr
+                : 'note_list_off'.tr,
             onTap: controller.toggleDateGrouping,
           ),
           const lg.GlassMenuDivider(),
           _item(
-            title: 'View Attachments',
+            title: 'note_list_view_attachments'.tr,
             icon: Icons.attach_file_rounded,
             onTap: controller.viewAllAttachments,
           ),

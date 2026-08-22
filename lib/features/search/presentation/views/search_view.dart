@@ -100,7 +100,7 @@ class SearchView extends GetView<sc.SearchController> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  'Search',
+                  'note_list_search'.tr,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 28,
@@ -133,7 +133,7 @@ class SearchView extends GetView<sc.SearchController> {
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 16),
             child: Text(
-              'Suggested',
+              'note_list_suggested'.tr,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
@@ -234,7 +234,7 @@ class SearchView extends GetView<sc.SearchController> {
       if (controller.noteResults.isEmpty && controller.folderResults.isEmpty) {
         return Center(
           child: Text(
-            'No results found',
+            'note_list_no_results'.tr,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -251,7 +251,7 @@ class SearchView extends GetView<sc.SearchController> {
           if (controller.folderResults.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.only(left: 8, bottom: 12),
-              child: Text('Folders', style: theme.textTheme.titleLarge),
+              child: Text('note_list_folders'.tr, style: theme.textTheme.titleLarge),
             ),
 
             GlassCard(
@@ -301,7 +301,7 @@ class SearchView extends GetView<sc.SearchController> {
             if (controller.pinnedNoteResults.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(left: 8, bottom: 12),
-                child: Text('Pinned Notes', style: theme.textTheme.titleLarge),
+                child: Text('note_list_pinned_notes'.tr, style: theme.textTheme.titleLarge),
               ),
 
               GlassCard(
@@ -329,7 +329,7 @@ class SearchView extends GetView<sc.SearchController> {
             if (controller.otherNoteResults.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(left: 8, bottom: 12),
-                child: Text('Notes', style: theme.textTheme.titleLarge),
+                child: Text('note_list_notes'.tr, style: theme.textTheme.titleLarge),
               ),
 
               GlassCard(
@@ -369,7 +369,7 @@ class SearchView extends GetView<sc.SearchController> {
         NoteNavigation.toDetail(note);
       },
       title: Text(
-        note.title.isEmpty ? 'New Note' : note.title,
+        note.title.isEmpty ? 'note_list_new_note'.tr : note.title,
         style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
       ),
       trailing: GlassListTile.chevron,
@@ -432,7 +432,7 @@ class SearchView extends GetView<sc.SearchController> {
                           fontSize: 17,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Search',
+                          hintText: 'note_list_search'.tr,
                           hintStyle: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.5),

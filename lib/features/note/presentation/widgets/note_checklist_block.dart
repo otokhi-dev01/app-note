@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_scroll_utils.dart';
@@ -42,7 +43,7 @@ class NoteChecklistBlock extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      "Add Item",
+                      'note_editor_add_item'.tr,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.primaryColor,
                         fontWeight: FontWeight.w500,
@@ -71,8 +72,8 @@ class NoteChecklistBlock extends StatelessWidget {
           button: true,
           checked: item.checked,
           label: item.checked
-              ? 'Mark checklist item incomplete'
-              : 'Mark checklist item complete',
+              ? 'note_editor_mark_item_incomplete'.tr
+              : 'note_editor_mark_item_complete'.tr,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => controller.toggleChecklistItem(blockIndex, itemIndex),

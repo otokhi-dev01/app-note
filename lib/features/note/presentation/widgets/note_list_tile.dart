@@ -22,6 +22,15 @@ class NoteListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      // Read directly in this closure, not inside triggerBuilder below:
+      // Obx only tracks .value reads made synchronously while its own
+      // builder runs. triggerBuilder is a callback GlassMenu invokes later,
+      // outside that scope — reading isEditing/isSelected only in there
+      // registers no observable at all, which is exactly what threw
+      // "the improper use of a GetX has been detected" here.
+      final isEditing = controller.isEditing.value;
+      final isSelected = controller.isSelected(note.id);
+
       return NoteItemContextMenu(
         note: note,
         folderId: folderId,
@@ -29,7 +38,7 @@ class NoteListTile extends StatelessWidget {
         triggerBuilder: (context, openMenu) => GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            if (controller.isEditing.value) {
+            if (isEditing) {
               controller.toggleSelectNote(note.id);
             } else {
               NoteNavigation.toDetail(
@@ -37,11 +46,11 @@ class NoteListTile extends StatelessWidget {
               )?.then((_) => controller.fetchNotes(folderId: folderId));
             }
           },
-          onLongPress: controller.isEditing.value ? null : openMenu,
+          onLongPress: isEditing ? null : openMenu,
           child: AppNoteTile(
             note: note,
-            isEditing: controller.isEditing.value,
-            isSelected: controller.isSelected(note.id),
+            isEditing: isEditing,
+            isSelected: isSelected,
             showAttachmentThumbnail: true,
           ),
         ),

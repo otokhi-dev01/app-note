@@ -20,10 +20,12 @@ import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/image_pdf.dart';
+import 'package:Note/core/utils/note_pdf.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/routes/note_navigation.dart';
+import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
@@ -89,10 +91,18 @@ class NoteDetailController extends GetxController {
 
   // --- UI Controllers & Cache ---
   final titleController = TextEditingController();
+  final titleFocusNode = FocusNode();
   final blocks = <NoteBlock>[].obs;
   final Map<String, quill.QuillController> quillControllers = {};
   final Map<String, TextEditingController> textControllers = {};
   final Map<String, FocusNode> blockFocusNodes = {};
+  // Last-seen Document.length per text block, so its change listener can
+  // tell "a delete just emptied this block" (length dropped to 1, the bare
+  // trailing newline) apart from every other kind of edit — see
+  // [_handleTextBlockEmptied].
+  final Map<String, int> _lastTextBlockLength = {};
+  // Set for the duration of qc.undo() only — see [undo].
+  bool _suppressEmptiedCheck = false;
 
   // --- State ---
   final activeBlockIndex = (-1).obs;
@@ -165,7 +175,12 @@ class NoteDetailController extends GetxController {
     _clearControllers();
     blocks.assignAll(note.content);
 
-    if (blocks.isEmpty && !isReadOnly.value) {
+    // A note whose last saved block is an image, checklist, table, or
+    // drawing reopens with nowhere obvious to tap and keep writing — Apple
+    // Notes always leaves a blank line under whatever you last added.
+    // `blocks.isEmpty` alone missed this: it only covered a note with zero
+    // content, not "content, but none of it trailing text."
+    if (!isReadOnly.value && (blocks.isEmpty || blocks.last is! TextBlock)) {
       addTextBlock();
     }
   }
@@ -202,9 +217,43 @@ class NoteDetailController extends GetxController {
         document: doc,
         selection: const TextSelection.collapsed(offset: 0),
       );
-      qc.addListener(() => _handleMarkdownShortcut(blockId));
+      _lastTextBlockLength[blockId] = doc.length;
+      qc.addListener(() {
+        _handleMarkdownShortcut(blockId);
+        _handleTextBlockEmptied(blockId);
+      });
       return qc;
     });
+  }
+
+  /// iOS 26 Notes-style body Backspace, detected the only way that's
+  /// actually reliable on a touch device: [QuillEditorConfig.onKeyPressed]
+  /// and raw `Focus.onKeyEvent` interception both explicitly don't fire for
+  /// the on-screen keyboard's Backspace key (only for a hardware keyboard) —
+  /// and there's no signal at all for "Backspace pressed while already
+  /// empty," on any keyboard, because there's nothing to delete so no edit
+  /// ever reaches the document. What *is* reliable: watching for the
+  /// transition itself — a delete that brings a block's length down to 1
+  /// (the bare trailing newline every [quill.Document] carries) is
+  /// unambiguously "the user just backspaced the last character out of this
+  /// block," so that's the moment [onTextBlockBackspace] runs instead.
+  void _handleTextBlockEmptied(String blockId) {
+    final qc = quillControllers[blockId];
+    if (qc == null) return;
+
+    final previousLength = _lastTextBlockLength[blockId] ?? qc.document.length;
+    final currentLength = qc.document.length;
+    _lastTextBlockLength[blockId] = currentLength;
+
+    if (_suppressEmptiedCheck) return;
+    if (currentLength != 1 || previousLength <= 1) return;
+
+    final index = blocks.indexWhere((b) => b.id == blockId);
+    if (index == -1) return;
+    // Deferred: this fires from inside the QuillController's own change
+    // notification, and onTextBlockBackspace mutates blocks / disposes this
+    // same controller.
+    Future.microtask(() => onTextBlockBackspace(index));
   }
 
   /// iOS-Notes/Notion-style markdown shortcuts: typing "# " or "## " at the
@@ -304,6 +353,50 @@ class NoteDetailController extends GetxController {
     addTextBlock();
     final created = blocks.whereType<TextBlock>().lastOrNull;
     if (created != null) getBlockFocusNode(created.id).requestFocus();
+  }
+
+  /// iOS 26 Notes-style body Backspace: once a block has just been
+  /// backspaced down to empty (see [_handleTextBlockEmptied], the caller),
+  /// this deletes that block outright and moves the cursor to the end of
+  /// whatever's above — the previous text block, or back into the title if
+  /// this was the first block in the note. Mirrors
+  /// [onChecklistItemBackspace]'s scoping: with a non-text block (image,
+  /// checklist, table, drawing) above it to fall back to, it's a no-op
+  /// rather than attempting to merge rich content across block types.
+  void onTextBlockBackspace(int blockIndex) {
+    if (isReadOnly.value) return;
+    final block = blocks[blockIndex];
+    if (block is! TextBlock) return;
+
+    final qc = quillControllers[block.id];
+    if (qc == null || !qc.document.isEmpty()) return;
+
+    if (blockIndex == 0) {
+      deleteBlock(blockIndex);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        titleController.selection = TextSelection.collapsed(
+          offset: titleController.text.length,
+        );
+        titleFocusNode.requestFocus();
+      });
+      return;
+    }
+
+    final previous = blocks[blockIndex - 1];
+    deleteBlock(blockIndex);
+
+    if (previous is TextBlock) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final previousQc = quillControllers[previous.id];
+        if (previousQc == null) return;
+        final end = previousQc.document.length - 1;
+        previousQc.updateSelection(
+          TextSelection.collapsed(offset: end < 0 ? 0 : end),
+          quill.ChangeSource.local,
+        );
+        getBlockFocusNode(previous.id).requestFocus();
+      });
+    }
   }
 
   // --- Block Actions ---
@@ -416,23 +509,26 @@ class NoteDetailController extends GetxController {
   }
 
   /// "Choose Photo or Video" from the attachment sheet — one gallery pick
-  /// that can return either media type, unlike [addAttachment] which is
-  /// locked to whichever `isVideo` says before the picker even opens.
+  /// that can return several photos and videos in any mix, unlike
+  /// [addAttachment] which is locked to whichever `isVideo` says before the
+  /// picker even opens and returns at most one file.
   Future<void> addMediaAttachment() async {
     if (isReadOnly.value) return;
 
     try {
-      final XFile? file = await _picker.pickMedia(imageQuality: 80);
-      if (file == null) return;
+      final files = await _picker.pickMultipleMedia(imageQuality: 80);
+      if (files.isEmpty) return;
 
-      _insertBlock(
-        AttachmentBlock(
-          id: _generateId(),
-          displayName: file.name,
-          localPath: file.path,
-          attachmentId: 0,
-        ),
-      );
+      for (final file in files) {
+        _insertBlock(
+          AttachmentBlock(
+            id: _generateId(),
+            displayName: file.name,
+            localPath: file.path,
+            attachmentId: 0,
+          ),
+        );
+      }
       blocks.refresh();
       addTextBlock();
     } catch (e) {
@@ -1092,6 +1188,18 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// `Attribute.indent` carries no level, so running it through
+  /// [applyInlineFormat] clears indentation instead of increasing it —
+  /// indentation is stepped via [quill.QuillController.indentSelection].
+  void applyIndent({bool increase = true}) {
+    if (isReadOnly.value || activeBlockIndex.value < 0) return;
+    final block = blocks[activeBlockIndex.value];
+    if (block is TextBlock) {
+      final qc = quillControllers[block.id];
+      qc?.indentSelection(increase);
+    }
+  }
+
   /// Toggles a highlight in [color] on the current selection — off if it's
   /// already that color, applied otherwise (never stacks multiple colors).
   void applyHighlight(Color color) {
@@ -1125,7 +1233,13 @@ class NoteDetailController extends GetxController {
 
   void deleteBlock(int index) {
     if (isReadOnly.value) return;
-    _deleteLocalAttachmentFile(blocks[index]);
+    final block = blocks[index];
+    _deleteLocalAttachmentFile(block);
+    if (block is TextBlock) {
+      quillControllers.remove(block.id)?.dispose();
+      _lastTextBlockLength.remove(block.id);
+    }
+    blockFocusNodes.remove(block.id)?.dispose();
     blocks.removeAt(index);
     blocks.refresh();
   }
@@ -1464,6 +1578,136 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Where a note with no folder of its own lives — same fallback
+  /// [NoteEditorHeader] shows on-screen, so an unfiled or not-yet-saved
+  /// note (e.g. one still open on the Create Note screen) doesn't read as
+  /// having no folder at all.
+  static String get _defaultFolderName => 'note_editor_default_folder_name'.tr;
+
+  /// The folder line exactly as [NoteEditorHeader] resolves and shows it:
+  /// prefer the live [Folder] record (its `displayName` already strips the
+  /// iCloud/Shared section keyword the API bakes into raw names), fall back
+  /// to the note's own `folderName`, and finally to [_defaultFolderName].
+  /// Both the on-screen header and [exportNoteToPdf] call this — keeping it
+  /// in one place means the PDF can't quietly drift from what's shown while
+  /// editing, which is exactly what happened before this existed: the export
+  /// used to read only `currentNote.value?.folderName`, which is empty for a
+  /// brand-new note, so the PDF's folder line was silently blank for any
+  /// note exported before its first save.
+  String resolveFolderLabel() {
+    final note = currentNote.value;
+    final folder = resolveFolder(note?.folderId ?? 0);
+    final resolved = folder?.displayName ?? '';
+    if (resolved.isNotEmpty) return resolved;
+    final fromNote = note?.folderName.trim() ?? '';
+    if (fromNote.isNotEmpty) return FolderAppearance.displayName(fromNote);
+    return _defaultFolderName;
+  }
+
+  /// The live [Folder] record for [folderId], or `null` when there isn't
+  /// one to draw from — an unfiled note, or a folder list that hasn't been
+  /// loaded in this session. [NoteEditorHeader] uses this directly for the
+  /// folder glyph; [resolveFolderLabel] uses it for the name.
+  Folder? resolveFolder(int folderId) {
+    if (folderId == 0 || !Get.isRegistered<FolderController>()) return null;
+    return _findFolder(Get.find<FolderController>().folders, folderId);
+  }
+
+  Folder? _findFolder(List<Folder> folders, int id) {
+    for (final folder in folders) {
+      if (folder.id == id) return folder;
+      final nested = _findFolder(folder.subFolders, id);
+      if (nested != null) return nested;
+    }
+    return null;
+  }
+
+  /// "Export as PDF" — the whole note (folder name, title, timestamp, and
+  /// every block in reading order: text, checklists, tables, images,
+  /// drawings) as one printable document, handed to the OS share sheet.
+  /// Distinct from [convertAttachmentToPdf], which turns a single picture
+  /// attachment into its own PDF — this exports the note itself.
+  Future<void> exportNoteToPdf() async {
+    _syncBlocks();
+    final title = titleController.text.trim();
+    final folderName = resolveFolderLabel();
+    final noteDate = currentNote.value?.updatedAt ?? DateTime.now();
+
+    try {
+      // Every image/drawing needs a local file before the PDF builder can
+      // embed it — download whatever's remote-only first so building the
+      // document itself never has to touch the network.
+      final resolvedImagePaths = <String, String>{};
+      for (final block in blocks) {
+        String? localPath;
+        String? remoteUrl;
+        switch (block) {
+          case AttachmentBlock(:final displayName):
+            if (!_looksLikeImageName(displayName)) continue;
+            localPath = normalizeLocalPath(block.localPath);
+            remoteUrl = normalizeAttachmentUrl(block.url);
+          case DrawingBlock():
+            localPath = normalizeLocalPath(block.localPath);
+            remoteUrl = normalizeAttachmentUrl(block.url);
+          default:
+            continue;
+        }
+
+        if (localPath != null && File(localPath).existsSync()) {
+          resolvedImagePaths[block.id] = localPath;
+        } else if (remoteUrl != null) {
+          final cached = await cacheAttachmentForEditing(remoteUrl);
+          if (cached != null) resolvedImagePaths[block.id] = cached;
+        }
+      }
+
+      final path = await buildNotePdf(
+        folderName: folderName,
+        title: title.isEmpty ? 'Untitled Note' : title,
+        date: noteDate,
+        blocks: blocks.toList(),
+        resolvedImagePaths: resolvedImagePaths,
+      );
+
+      // Required, not just for iPad/Mac's popover: some share_plus/iOS
+      // combinations reject shareXFiles outright with "sharePositionOrigin:
+      // argument must be set" when it's omitted, even on iPhone — see
+      // shareNote's identical anchor computation just above.
+      final context = Get.context;
+      final box = context?.findRenderObject() as RenderBox?;
+      final origin = box != null
+          ? box.localToGlobal(Offset.zero) & box.size
+          : null;
+
+      await Share.shareXFiles([XFile(path)], sharePositionOrigin: origin);
+    } catch (e) {
+      debugPrint('[EXPORT PDF ERROR] $e');
+      AppSnackbar.error('Error', 'Could not export this note as a PDF');
+    }
+  }
+
+  /// Same extension set [note_attachment_block.dart] uses to decide an
+  /// attachment renders as a picture rather than a generic file tile — an
+  /// image attachment is worth resolving to a local file for the PDF export;
+  /// anything else (a document, an audio recording) is exported as a named
+  /// placeholder line instead.
+  static const _imageExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'heic',
+    'heif',
+    'webp',
+    'bmp',
+  };
+
+  bool _looksLikeImageName(String name) {
+    final trimmed = name.trim();
+    if (!trimmed.contains('.')) return false;
+    return _imageExtensions.contains(trimmed.split('.').last.toLowerCase());
+  }
+
   /// Undoes the last edit in whichever text block currently has focus, using
   /// each block's own Quill edit history. Title changes and non-text blocks
   /// (checklists, tables, attachments) aren't tracked by this — there's no
@@ -1484,7 +1728,14 @@ class NoteDetailController extends GetxController {
       AppSnackbar.info('Nothing to undo', '');
       return;
     }
+    // Undoing a block down to its last character empties it the same way a
+    // real Backspace would, and both report as ChangeSource.local — nothing
+    // in the change itself says "this was Undo." Suppressing the block-
+    // deletion listener for this one call is what keeps Undo reverting only
+    // the text edit instead of also removing the block and moving focus.
+    _suppressEmptiedCheck = true;
     qc.undo();
+    _suppressEmptiedCheck = false;
   }
 
   Future<void> togglePin() async {
@@ -1683,6 +1934,7 @@ class NoteDetailController extends GetxController {
       c.dispose();
     }
     quillControllers.clear();
+    _lastTextBlockLength.clear();
     for (var c in textControllers.values) {
       c.dispose();
     }
@@ -1696,6 +1948,7 @@ class NoteDetailController extends GetxController {
   @override
   void onClose() {
     titleController.dispose();
+    titleFocusNode.dispose();
     _clearControllers();
     searchFocusNode.dispose();
     super.onClose();

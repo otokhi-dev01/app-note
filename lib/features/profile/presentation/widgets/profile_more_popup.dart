@@ -38,20 +38,22 @@ class ProfileMorePopup extends StatelessWidget {
               onTap: controller.updateUserName,
             ),
             _item(
-              title: 'Change Photo',
+              title: 'profile_change_photo'.tr,
               icon: CupertinoIcons.camera,
               onTap: controller.updateProfileImage,
             ),
             const lg.GlassMenuDivider(),
           ],
           _item(
-            title: 'Account Settings',
+            title: 'profile_account_settings'.tr,
             icon: CupertinoIcons.person_crop_circle_fill,
             onTap: () => Get.toNamed(Routes.ACCOUNT),
           ),
           const lg.GlassMenuDivider(),
           _item(
-            title: controller.isGuestMode.value ? 'Log In' : 'Log Out',
+            title: controller.isGuestMode.value
+                ? 'profile_log_in'.tr
+                : 'log_out'.tr,
             icon: controller.isGuestMode.value
                 ? CupertinoIcons.arrow_right_circle
                 : CupertinoIcons.square_arrow_right,

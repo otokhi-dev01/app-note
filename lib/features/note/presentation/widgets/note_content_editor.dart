@@ -72,6 +72,7 @@ class NoteContentEditor extends StatelessWidget {
                         TextField(
                           key: const ValueKey('note-title-field'),
                           controller: controller.titleController,
+                          focusNode: controller.titleFocusNode,
                           enabled: !isReadOnly,
                           // iOS Notes opens a brand-new note with the cursor
                           // already blinking and the keyboard up, ready to
@@ -92,7 +93,7 @@ class NoteContentEditor extends StatelessWidget {
                             letterSpacing: -0.5,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'Title',
+                            hintText: 'note_editor_title_hint'.tr,
                             hintStyle: theme.textTheme.headlineLarge?.copyWith(
                               fontSize: 32,
                               color: theme.colorScheme.onSurfaceVariant
@@ -111,16 +112,22 @@ class NoteContentEditor extends StatelessWidget {
                           (entry) =>
                               _buildBlock(context, entry.value, entry.key),
                         ),
-                        if (!isReadOnly)
-                          GestureDetector(
-                            behavior: HitTestBehavior.translucent,
-                            onTap: controller.focusLastTextBlock,
-                            child: const SizedBox(
-                              height: 250,
-                              width: double.infinity,
-                            ),
-                          ),
                       ]),
+                    ),
+                  ),
+                // iOS-Notes-style "tap anywhere to keep typing": fills
+                // whatever viewport space is left below the content, however
+                // little or much that is, rather than only catching taps in
+                // a fixed-height strip that leaves the rest of a short
+                // note's blank space dead.
+                if (!isReadOnly && !isLoading)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    fillOverscroll: false,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: controller.focusLastTextBlock,
+                      child: const SizedBox(width: double.infinity),
                     ),
                   ),
               ],
@@ -151,7 +158,7 @@ class NoteContentEditor extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'This note is in Recently Deleted. Restore it to make changes.',
+              'note_editor_readonly_banner_message'.tr,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: Colors.orange[800],
                 fontWeight: FontWeight.w500,
@@ -162,8 +169,8 @@ class NoteContentEditor extends StatelessWidget {
             onPressed: () {
               Get.back();
               AppSnackbar.warning(
-                'Tip',
-                'Use Recently Deleted to restore this note.',
+                'note_editor_readonly_tip_title'.tr,
+                'note_editor_readonly_tip_message'.tr,
               );
             },
             style: TextButton.styleFrom(
@@ -172,7 +179,7 @@ class NoteContentEditor extends StatelessWidget {
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
             child: Text(
-              'OK',
+              'note_editor_ok'.tr,
               style: TextStyle(
                 color: Colors.orange[900],
                 fontWeight: FontWeight.bold,
@@ -212,8 +219,8 @@ class NoteContentEditor extends StatelessWidget {
                 child: TextField(
                   focusNode: controller.searchFocusNode,
                   onChanged: (v) => controller.searchQuery.value = v,
-                  decoration: const InputDecoration(
-                    hintText: "Find in note...",
+                  decoration: InputDecoration(
+                    hintText: 'note_editor_search_hint'.tr,
                     border: InputBorder.none,
                     isCollapsed: true,
                     filled: false,
@@ -308,10 +315,10 @@ class NoteContentEditor extends StatelessWidget {
 
     CustomGlassActionSheet.show(
       context: context,
-      title: "Drawing Options",
+      title: 'note_editor_drawing_options_title'.tr,
       actions: [
         CustomGlassActionSheetAction(
-          label: "Delete Drawing",
+          label: 'note_editor_delete_drawing'.tr,
           icon: CupertinoIcons.trash,
           isDestructive: true,
           onPressed: () => controller.deleteBlock(blockIndex),

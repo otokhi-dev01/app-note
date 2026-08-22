@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
@@ -53,8 +54,8 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
     if (!await _recorder.hasPermission()) {
       if (!mounted) return;
       AppSnackbar.error(
-        'Microphone unavailable',
-        'Enable microphone access in Settings to record audio.',
+        'note_editor_mic_unavailable_title'.tr,
+        'note_editor_mic_unavailable_message'.tr,
       );
       Navigator.of(context).pop();
       return;
@@ -69,7 +70,10 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
     } catch (e) {
       debugPrint('[AUDIO RECORD ERROR] $e');
       if (!mounted) return;
-      AppSnackbar.error('Error', 'Could not start recording');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_start_recording'.tr,
+      );
       Navigator.of(context).pop();
       return;
     }
@@ -170,10 +174,10 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       onPressed: () => _finish(save: false),
-                      child: const Text('Cancel'),
+                      child: Text('note_editor_cancel'.tr),
                     ),
                     Text(
-                      'Record Audio',
+                      'note_editor_record_audio'.tr,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -198,7 +202,9 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _starting ? 'Starting…' : 'Recording',
+                        _starting
+                            ? 'note_editor_recording_starting'.tr
+                            : 'note_editor_recording_status'.tr,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),

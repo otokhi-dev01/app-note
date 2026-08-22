@@ -126,7 +126,7 @@ class FolderLocationPickerModal extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
       title: Text(
-        "Location",
+        "folder_location_label".tr,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 17,
@@ -134,7 +134,7 @@ class FolderLocationPickerModal extends StatelessWidget {
       ),
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
-        semanticLabel: 'Cancel',
+        semanticLabel: 'folder_cancel'.tr,
         width: 44,
         height: 44,
         shape: GlassShape.circle,
@@ -151,7 +151,7 @@ class FolderLocationPickerModal extends StatelessWidget {
       largeTitleAlignment: Alignment.bottomLeft,
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
       largeTitle: Text(
-        "Location",
+        "folder_location_label".tr,
         style: theme.textTheme.headlineLarge?.copyWith(
           fontWeight: FontWeight.bold,
           fontSize: 34,
@@ -174,7 +174,7 @@ class FolderLocationPickerModal extends StatelessWidget {
         size: 24,
       ),
       title: Text(
-        "On My iPhone",
+        "folder_on_my_iphone".tr,
         style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w400,

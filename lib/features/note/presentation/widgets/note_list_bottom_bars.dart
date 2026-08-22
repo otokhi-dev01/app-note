@@ -36,7 +36,7 @@ class NoteListBottomBar extends StatelessWidget {
             Expanded(
               child: CustomGlassButton(
                 onPressed: () => Get.toNamed(Routes.SEARCH),
-                semanticLabel: 'Search notes and folders',
+                semanticLabel: 'note_list_search_semantic'.tr,
                 height: 50,
                 borderRadius: 30,
                 blur: 10,
@@ -52,7 +52,7 @@ class NoteListBottomBar extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Search',
+                      'note_list_search'.tr,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontSize: 17,
                         color: theme.colorScheme.onSurfaceVariant,
@@ -73,7 +73,7 @@ class NoteListBottomBar extends StatelessWidget {
               onPressed: () => NoteNavigation.toNewNote(
                 folderId,
               )?.then((value) => controller.fetchNotes(folderId: folderId)),
-              semanticLabel: 'Create note',
+              semanticLabel: 'note_list_create_note'.tr,
               width: 50,
               height: 50,
               shape: GlassShape.circle,
@@ -113,15 +113,17 @@ class NoteListEditBar extends StatelessWidget {
         child: Obx(() {
           final selectedCount = controller.selectedNoteIds.length;
           final moveText = selectedCount == 0
-              ? "Move All"
+              ? "note_list_move_all".tr
               : selectedCount == 1
-              ? "Move"
-              : "Move ($selectedCount)";
+              ? "note_list_move".tr
+              : "note_list_move_count".trParams({'count': '$selectedCount'});
           final deleteText = selectedCount == 0
-              ? "Delete All"
+              ? "note_list_delete_all".tr
               : selectedCount == 1
-              ? "Delete"
-              : "Delete ($selectedCount)";
+              ? "note_list_delete".tr
+              : "note_list_delete_count".trParams({
+                  'count': '$selectedCount',
+                });
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -143,9 +145,11 @@ class NoteListEditBar extends StatelessWidget {
                         : selectedCount;
                     if (noteCount == 0) return;
                     IOSConfirmationDialog.show(
-                      title: "Delete $noteCount Notes?",
-                      message: "These notes will be moved to Recently Deleted.",
-                      confirmLabel: "Delete",
+                      title: "note_list_delete_confirm_title".trParams({
+                        'count': '$noteCount',
+                      }),
+                      message: "note_list_delete_confirm_message".tr,
+                      confirmLabel: "note_list_delete".tr,
                       onConfirm: () {
                         Get.back();
                         controller.deleteSelectedNotes(folderId);

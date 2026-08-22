@@ -54,7 +54,21 @@ class NoteModel extends Note {
       }
     }
 
-    // 2. Merge the sibling attachment array into the blocks
+    // 2. Merge the sibling attachment array into the blocks.
+    //
+    // The backend has no delete-attachment endpoint (only
+    // POST /api/note/attachment to upload), so removing an image/PDF block
+    // in the editor and saving only shrinks ContentJson — the server's
+    // Attachments row for that file is never actually deleted, and comes
+    // back on every future fetch. Blindly appending every attachment with
+    // no matching BlockId as a "new" block would resurrect exactly the
+    // thing the user just deleted. A note that already has real structured
+    // content (this app is the only thing that ever writes ContentJson) is
+    // trusted as the full picture, so an orphaned attachment there means
+    // "used to be referenced, no longer is" — i.e. deleted, not new. The
+    // append fallback below only fires for notes with no ContentJson at
+    // all, where there's no other way to know the attachment existed.
+    final bool hadStructuredContent = blocks.isNotEmpty;
     final dynamic rawAtts = json['Attachments'] ?? json['attachments'];
     final List rawAttachments = rawAtts is List ? rawAtts : const [];
 
@@ -89,7 +103,7 @@ class NoteModel extends Note {
           url: fullUrl ?? old.url,
           localPath: old.localPath,
         );
-      } else {
+      } else if (!hadStructuredContent) {
         // New block. Without a BlockId the attachment id stands in as the key.
         final attId = asInt(map['AttachmentId'] ?? map['id']);
         blocks.add(
