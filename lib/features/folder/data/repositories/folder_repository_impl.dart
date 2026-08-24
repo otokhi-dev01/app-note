@@ -70,15 +70,20 @@ class FolderRepositoryImpl implements FolderRepository {
       );
 
       final code = asInt(body['code']);
-      final succeeded = code == 200 || code == 201 || body['data'] != null;
-      if (!succeeded) {
-        throw ServerException(ApiErrorParser.messageFrom(body));
-      }
-
       final data = body['data'];
       final savedId = data is Map
           ? asInt(data['FolderId'] ?? data['folderId'] ?? data['id'])
           : 0;
+      // The backend's error envelope also puts field-level validation
+      // messages inside a non-null `data` map (`{ name: ["required"] }`), so
+      // `data != null` alone isn't a reliable success signal — that shape
+      // never resolves to a positive id, so `savedId > 0` only trusts `data`
+      // when it's the real success shape.
+      final succeeded = code == 200 || code == 201 || savedId > 0;
+      if (!succeeded) {
+        throw ServerException(ApiErrorParser.messageFrom(body));
+      }
+
       return savedId > 0 ? savedId : id;
     });
   }

@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/appearance_controller.dart';

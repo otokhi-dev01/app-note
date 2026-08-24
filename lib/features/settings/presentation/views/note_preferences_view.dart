@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/note_preferences_controller.dart';
@@ -75,7 +74,10 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    _buildSectionHeader(context, "note_preferences_default_view".tr),
+                    _buildSectionHeader(
+                      context,
+                      "note_preferences_default_view".tr,
+                    ),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,
@@ -122,7 +124,10 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    _buildSectionHeader(context, "note_preferences_folders_section".tr),
+                    _buildSectionHeader(
+                      context,
+                      "note_preferences_folders_section".tr,
+                    ),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,

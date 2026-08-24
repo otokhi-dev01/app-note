@@ -14,6 +14,7 @@ class RecentlyDeletedBinding extends Bindings {
         deleteRestoreNote: Get.find<DeleteRestoreNote>(),
         deleteRestoreFolder: Get.find<DeleteRestoreFolder>(),
         deleteNotePermanently: Get.find<DeleteNotePermanently>(),
+        deleteFolderPermanently: Get.find<DeleteFolderPermanently>(),
         emptyTrash: Get.find<EmptyTrash>(),
       ),
     );

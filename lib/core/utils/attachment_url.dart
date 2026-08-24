@@ -25,14 +25,20 @@ String? normalizeAttachmentUrl(String? value) {
     path = path.substring(1, path.length - 1).trim();
   }
 
+  // Already a well-formed absolute URL (`https://host/uploads/x`) — resolve
+  // it as-is rather than running it through the Windows-path extraction
+  // below, which only makes sense for a path that ISN'T already a proper
+  // URL. On a path with no dot-extension (e.g. a hash-named upload or an
+  // `/api/attachment/5` endpoint) that regex has nothing but the TLD in the
+  // hostname to latch onto, truncating a fine URL down to its bare domain.
+  final direct = Uri.tryParse(path);
+  if (direct != null && direct.hasScheme) return direct.toString();
+
   // A Windows-style absolute path (`C:/inetpub/wwwroot/uploads/x.jpg`) isn't
   // web-servable as-is — pull out just the `/`-rooted tail the server
   // actually serves the file at.
   final match = RegExp(r'(/[^)\]\s]+\.\w+)').firstMatch(path);
   if (match != null) path = match.group(0)!;
-
-  final uri = Uri.tryParse(path);
-  if (uri != null && uri.hasScheme) return uri.toString();
 
   try {
     return Uri.parse(ApiClient.baseUrl).resolve(path).toString();

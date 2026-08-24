@@ -1,9 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';

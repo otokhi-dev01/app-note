@@ -65,14 +65,16 @@ const Map<String, String> enUS = {
       'Password must be at least 6 characters long.',
 
   // Language picker
-  'language_title': 'Language',
+  'language_title': 'Languages',
 
   // Settings
   'settings_title': 'Settings',
   'section_preferences': 'PREFERENCES',
-  'section_preferences_footer': 'Choose how the app looks and how notes behave.',
+  'section_preferences_footer':
+      'Choose how the app looks and how notes behave.',
   'section_support': 'SUPPORT',
-  'section_support_footer': 'Get help or reach out if something isn\'t working.',
+  'section_support_footer':
+      'Get help or reach out if something isn\'t working.',
   'dark_mode': 'Dark Mode',
   'appearance_title': 'Appearance',
   'note_preferences_title': 'Note Preferences',
@@ -95,15 +97,38 @@ const Map<String, String> enUS = {
   'not_signed_in': 'Not signed in',
 
   // Profile View
-  'profile_title': 'Profile',
-  'full_name_label': 'Full Name',
-  'phone_label': 'Phone Number',
-  'account_status_label': 'Account Status',
+  'profile_title': 'Profile Details',
+  'full_name_label': 'Name',
+  'phone_label': 'Phone',
   'guest_status': 'Guest Mode',
-  'verified_status': 'Verified Account',
+  'verified_status_line': 'Verified Account',
   'joined_label': 'Joined',
   'tier_label': 'Account Tier',
   'not_available': 'Not available',
+  'save_action': 'Save',
+  'profile_updated_message': 'Profile updated',
+
+  // Profile — local-only fields (no backend support yet, see
+  // ProfileExtrasStorage)
+  'username_label': 'User',
+  'account_label': 'Account',
+  'email_label': 'Email',
+  'job_bio_label': 'Job & Bio',
+  'color_label': 'Color',
+  'edit_username_title': 'Edit User',
+  'edit_username_hint': 'Enter a username',
+  'edit_account_title': 'Edit Account',
+  'edit_account_hint': 'Enter an account name',
+  'edit_email_title': 'Edit Email',
+  'edit_email_hint': 'Enter your email',
+  'edit_job_bio_title': 'Edit Job & Bio',
+  'edit_job_hint': 'Job title',
+  'edit_bio_hint': 'A short bio',
+  'edit_color_title': 'Choose a Color',
+  'not_set': 'Not set',
+
+  // Settings drawer
+  'settings_drawer_view_profile': 'Profile Details',
 
   // Account (delete-account flow)
   'account_title': 'Account',
@@ -147,11 +172,11 @@ const Map<String, String> enUS = {
   'note_preferences_date_edited': 'Date Edited',
   'note_preferences_name': 'Name',
   'note_preferences_group_by_date': 'Group by Date',
-  'note_preferences_group_by_date_desc':
-      'Off sorts folders manually, by name',
+  'note_preferences_group_by_date_desc': 'Off sorts folders manually, by name',
 
   // Profile
   'profile_tier_free': 'Free',
+  'profile_basic_info': 'Basic Information',
   'profile_change_photo': 'Change Photo',
   'profile_account_settings': 'Account Settings',
   'profile_log_in': 'Log In',
@@ -329,6 +354,23 @@ const Map<String, String> enUS = {
   'note_editor_create_note_label': 'Create note',
   'note_editor_drawing_label': 'Drawing',
   'note_editor_table_label': 'Table',
+  'note_editor_bold_label': 'Bold',
+  'note_editor_italic_label': 'Italic',
+  'note_editor_underline_label': 'Underline',
+  'note_editor_bullet_list_label': 'Bullet list',
+  'note_editor_numbered_list_label': 'Numbered list',
+  'note_editor_link_label': 'Link',
+  'note_editor_strikethrough_label': 'Strikethrough',
+  'note_editor_highlight_label': 'Highlight',
+  'note_editor_align_left_label': 'Align left',
+  'note_editor_indent_label': 'Indent',
+  'note_editor_link_title': 'Add Link',
+  'note_editor_link_text_hint': 'Text to display',
+  'note_editor_link_url_hint': 'https://example.com',
+  'note_editor_link_add': 'Add Link',
+  'note_editor_link_focus_message': 'Place the cursor in your note first.',
+  'note_editor_invalid_link_title': 'Invalid Link',
+  'note_editor_invalid_link_message': 'Enter a valid website address.',
   'note_editor_format_title': 'Format',
   'note_editor_style_title': 'Title',
   'note_editor_style_heading': 'Heading',

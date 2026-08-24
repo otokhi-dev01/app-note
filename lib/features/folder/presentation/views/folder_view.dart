@@ -2,7 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_picker_sheet.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_section_header.dart';
@@ -11,7 +14,7 @@ import 'package:Note/features/folder/presentation/widgets/folder_all_notes_tile.
 import 'package:Note/features/folder/presentation/widgets/folder_system_tiles.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_bottom_bar.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
-import 'package:Note/routes/app_pages.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_drawer.dart';
 
 class FolderView extends GetView<FolderController> {
   const FolderView({super.key});
@@ -34,6 +37,7 @@ class FolderView extends GetView<FolderController> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
+        drawer: const SettingsDrawer(),
         body: Stack(
           children: [
             RefreshIndicator(
@@ -65,19 +69,21 @@ class FolderView extends GetView<FolderController> {
       toolbarHeight: 56,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
-      leading: CustomGlassButton(
-        onPressed: () => Get.toNamed(Routes.SETTINGS),
-        width: 44,
-        height: 44,
-        shape: GlassShape.circle,
-        blur: 10,
-        opacity: 0.15,
-        thickness: 8,
-        padding: EdgeInsets.zero,
-        child: Icon(
-          CupertinoIcons.settings_solid,
-          color: theme.primaryColor,
-          size: 30,
+      leading: Builder(
+        builder: (drawerContext) => CustomGlassButton(
+          onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+          width: 44,
+          height: 44,
+          shape: GlassShape.circle,
+          blur: 10,
+          opacity: 0.15,
+          thickness: 8,
+          padding: EdgeInsets.zero,
+          child: Icon(
+            CupertinoIcons.settings_solid,
+            color: theme.primaryColor,
+            size: 30,
+          ),
         ),
       ),
       title: Text(
@@ -137,8 +143,29 @@ class FolderView extends GetView<FolderController> {
         //     ],
         //   ),
         // ),
+        _buildLanguageButton(context),
         Obx(() => _buildEditButton(context)),
       ],
+    );
+  }
+
+  Widget _buildLanguageButton(BuildContext context) {
+    return LanguagePickerMenu(
+      menuAlignment: lg.GlassMenuAlignment.topRight,
+      triggerBuilder: (context, toggleMenu) => CustomGlassButton(
+        onPressed: toggleMenu,
+        width: 44,
+        height: 44,
+        shape: GlassShape.circle,
+        blur: 10,
+        opacity: 0.15,
+        thickness: 8,
+        padding: EdgeInsets.zero,
+        child: Text(
+          LanguagePreferences().language.flag,
+          style: const TextStyle(fontSize: 20),
+        ),
+      ),
     );
   }
 

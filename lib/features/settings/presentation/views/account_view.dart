@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
@@ -212,9 +211,7 @@ class AccountView extends GetView<AccountController> {
           child: Text(
             "account_delete_account_desc".tr,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(
-                alpha: 0.6,
-              ),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               height: 1.3,
             ),
           ),

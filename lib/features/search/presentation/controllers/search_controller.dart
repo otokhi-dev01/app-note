@@ -60,8 +60,13 @@ class SearchController extends GetxController {
 
   void onSearchChanged(String query) {
     searchQuery.value = query;
-    isSearching.value = query.isNotEmpty;
-    if (query.isEmpty) _clearResults();
+    // Matches `_run`'s blank check below — a whitespace-only query used to
+    // flip `isSearching` true (showing the results view) while `_run` still
+    // treated it as empty and cleared every list, landing on an empty
+    // "no results" state instead of the actual empty/suggestions one.
+    final isBlank = query.trim().isEmpty;
+    isSearching.value = !isBlank;
+    if (isBlank) _clearResults();
   }
 
   Future<void> _run(String query) async {

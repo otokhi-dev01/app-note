@@ -6,8 +6,8 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:Note/app.dart';
 
 /*
-  App: OTOKHI NOTE APP
-  Date: 08.19.2026 update by nona in the evening at 8:00pm
+  App: Pii Note App
+  Date: 08.24.2026 update by nona in the evening at 8:00pm
   Update by: branch nona_developer
   Update by: branch nona
   Feature: All the feature and the logic and integration with api

@@ -19,6 +19,10 @@ import 'package:Note/features/note/data/repositories/note_repository_impl.dart';
 import 'package:Note/features/note/data/repositories/note_repository_router.dart';
 import 'package:Note/features/note/domain/repositories/note_repository.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
+import 'package:Note/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
+import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
+import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 
 /// Wires the object graph bottom-up: storage → client → datasources →
 /// repositories → use cases.
@@ -71,6 +75,33 @@ class InitialBinding extends Bindings {
     _authUseCases();
     _folderUseCases();
     _noteUseCases();
+    _profile();
+  }
+
+  /// Permanent (not per-route) so the Settings drawer on the Folders screen
+  /// can read it without pushing through Profile/Settings first.
+  void _profile() {
+    Get.lazyPut<ProfileRepository>(
+      () => ProfileRepositoryImpl(Get.find<SessionStorage>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => UpdateUserName(Get.find<ProfileRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => UpdateProfileImage(Get.find<ProfileRepository>()),
+      fenix: true,
+    );
+    Get.put(
+      ProfileController(
+        updateUserName: Get.find<UpdateUserName>(),
+        updateProfileImage: Get.find<UpdateProfileImage>(),
+        profile: Get.find<ProfileRepository>(),
+        forgotPassword: Get.find<ForgotPassword>(),
+      ),
+      permanent: true,
+    );
   }
 
   void _authUseCases() {
@@ -88,6 +119,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => GetFolders(repo()), fenix: true);
     Get.lazyPut(() => SaveFolder(repo()), fenix: true);
     Get.lazyPut(() => DeleteRestoreFolder(repo()), fenix: true);
+    Get.lazyPut(() => DeleteFolderPermanently(repo()), fenix: true);
     Get.lazyPut(() => const BuildFolderHierarchy(), fenix: true);
   }
 

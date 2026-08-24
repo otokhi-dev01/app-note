@@ -131,25 +131,52 @@ class NoteController extends GetxController {
       return;
     }
 
-    // Optimistic local update so the row reacts before the next fetch.
-    final index = notes.indexWhere((n) => n.id == id);
-    if (index != -1) {
-      final old = notes[index];
-      notes[index] = Note(
-        id: old.id,
-        folderId: old.folderId,
-        folderName: old.folderName,
-        title: old.title,
-        content: old.content,
-        isPinned: isPinned ?? old.isPinned,
-        isArchived: isArchived ?? old.isArchived,
-        isLocked: old.isLocked,
-        updatedAt: DateTime.now(),
-        deletedAt: old.deletedAt,
-        attachmentCount: old.attachmentCount,
-      );
-      notes.refresh();
+    _applyNoteStateLocally(id, isPinned: isPinned, isArchived: isArchived);
+  }
+
+  /// Optimistic local update so the row reacts before the next fetch. A note
+  /// can jump partitions here — pin toggles pinned/other, archive toggles
+  /// active/archived — so every list the UI actually renders from
+  /// ([pinnedNotes]/[otherNotes]/[pinnedArchivedNotes]/[otherArchivedNotes]),
+  /// not just [notes], has to move with it, re-sorted the same way
+  /// [fetchNotes] does.
+  void _applyNoteStateLocally(int id, {bool? isPinned, bool? isArchived}) {
+    Note? old;
+    for (final n in [...notes, ...archivedNotes]) {
+      if (n.id == id) {
+        old = n;
+        break;
+      }
     }
+    if (old == null) return;
+
+    final updated = Note(
+      id: old.id,
+      folderId: old.folderId,
+      folderName: old.folderName,
+      title: old.title,
+      content: old.content,
+      isPinned: isPinned ?? old.isPinned,
+      isArchived: isArchived ?? old.isArchived,
+      isLocked: old.isLocked,
+      updatedAt: DateTime.now(),
+      deletedAt: old.deletedAt,
+      attachmentCount: old.attachmentCount,
+    );
+
+    notes.removeWhere((n) => n.id == id);
+    archivedNotes.removeWhere((n) => n.id == id);
+    (updated.isArchived ? archivedNotes : notes).add(updated);
+
+    final activeSorted = _sorted(notes);
+    notes.assignAll(activeSorted);
+    pinnedNotes.assignAll(activeSorted.where((n) => n.isPinned));
+    otherNotes.assignAll(activeSorted.where((n) => !n.isPinned));
+
+    final archivedSorted = _sorted(archivedNotes);
+    archivedNotes.assignAll(archivedSorted);
+    pinnedArchivedNotes.assignAll(archivedSorted.where((n) => n.isPinned));
+    otherArchivedNotes.assignAll(archivedSorted.where((n) => !n.isPinned));
   }
 
   Future<void> deleteSelectedNotes(int folderId) async {

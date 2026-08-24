@@ -8,6 +8,10 @@ import 'package:Note/features/note/presentation/widgets/note_detail_more_popup.d
 
 class NoteEditorTopBar extends StatelessWidget {
   final NoteDetailController controller;
+  final String? title;
+  final bool showShare;
+  final bool showMore;
+  final bool alwaysShowSave;
 
   /// What Back does. Defaults to save-then-close, which is right for a note
   /// that already exists. [CreateNoteView] overrides it: a blank new note must
@@ -19,6 +23,10 @@ class NoteEditorTopBar extends StatelessWidget {
     super.key,
     required this.controller,
     this.onBack,
+    this.title,
+    this.showShare = true,
+    this.showMore = true,
+    this.alwaysShowSave = false,
   });
 
   // A sliver (not a fixed-position overlay) so it scrolls with the note
@@ -39,6 +47,17 @@ class NoteEditorTopBar extends StatelessWidget {
       toolbarHeight: 52,
       expandedHeight: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
+      title: title == null
+          ? null
+          : Text(
+              title!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
       leading: _GlassIconButton(
         icon: CupertinoIcons.chevron_left,
         // The note list only re-fetches after returning here when the popped
@@ -63,20 +82,22 @@ class NoteEditorTopBar extends StatelessWidget {
           onTap: controller.undo,
           color: color,
         ),
-        _GlassIconButton(
-          icon: CupertinoIcons.share,
-          onTap: controller.shareNote,
-          color: color,
-        ),
+        if (showShare)
+          _GlassIconButton(
+            icon: CupertinoIcons.share,
+            onTap: controller.shareNote,
+            color: color,
+          ),
         // The button is the menu's trigger now — it morphs into the pull-down
         // rather than calling out to a screen-level popup, so the screens no
         // longer route a callback down here just to open it.
-        NoteDetailMorePopup(
-          controller: controller,
-          triggerBuilder: (context, toggleMenu) =>
-              MoreButton(onPressed: toggleMenu, iconColor: color),
-        ),
-        if (isKeyboardVisible)
+        if (showMore)
+          NoteDetailMorePopup(
+            controller: controller,
+            triggerBuilder: (context, toggleMenu) =>
+                MoreButton(onPressed: toggleMenu, iconColor: color),
+          ),
+        if (isKeyboardVisible || alwaysShowSave)
           Obx(
             () => controller.isReadOnly.value
                 ? const SizedBox.shrink()

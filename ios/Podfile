@@ -41,7 +41,12 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
+      # Google ML Kit's binary pods (MLImage/MLKitVision/etc.) don't ship an
+      # arm64 simulator slice, only arm64-device — on Apple Silicon that
+      # arm64-device slice gets linked into the arm64 simulator build and
+      # fails at link time, so simulator builds run under Rosetta (x86_64)
+      # instead, where those pods do have a slice.
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 arm64'
       config.build_settings['FLUTTER_XCODE_PLUGIN_SPM'] = 'NO'
 
       # Handle Google ML Kit binary pod issues for simulators

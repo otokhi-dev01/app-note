@@ -16,6 +16,7 @@ class RecentlyDeletedController extends GetxController {
   final DeleteRestoreNote _deleteRestoreNote;
   final DeleteRestoreFolder _deleteRestoreFolder;
   final DeleteNotePermanently _deleteNotePermanently;
+  final DeleteFolderPermanently _deleteFolderPermanently;
   final EmptyTrash _emptyTrash;
 
   RecentlyDeletedController({
@@ -24,12 +25,14 @@ class RecentlyDeletedController extends GetxController {
     required DeleteRestoreNote deleteRestoreNote,
     required DeleteRestoreFolder deleteRestoreFolder,
     required DeleteNotePermanently deleteNotePermanently,
+    required DeleteFolderPermanently deleteFolderPermanently,
     required EmptyTrash emptyTrash,
   }) : _getTrashNotes = getTrashNotes,
        _getFolders = getFolders,
        _deleteRestoreNote = deleteRestoreNote,
        _deleteRestoreFolder = deleteRestoreFolder,
        _deleteNotePermanently = deleteNotePermanently,
+       _deleteFolderPermanently = deleteFolderPermanently,
        _emptyTrash = emptyTrash;
 
   /// The backend has no permanent-delete or empty-trash routes, so the views
@@ -207,6 +210,13 @@ class RecentlyDeletedController extends GetxController {
           return;
         }
         deletedNotes.removeWhere((n) => n.id == noteId);
+      } else if (folderId != null) {
+        final result = await _deleteFolderPermanently(folderId);
+        if (result case Err(:final failure)) {
+          AppSnackbar.failure('Could not delete item', failure);
+          return;
+        }
+        deletedFolders.removeWhere((f) => f.id == folderId);
       }
       await fetchDeletedItems();
       AppSnackbar.success('Deleted', 'Item permanently deleted');
@@ -240,6 +250,13 @@ class RecentlyDeletedController extends GetxController {
           return;
         }
       }
+      for (final id in selectedFolderIds.toList()) {
+        final result = await _deleteFolderPermanently(id);
+        if (result case Err(:final failure)) {
+          AppSnackbar.failure('Could not delete items', failure);
+          return;
+        }
+      }
       selectedNoteIds.clear();
       selectedFolderIds.clear();
       isEditing.value = false;
@@ -266,6 +283,16 @@ class RecentlyDeletedController extends GetxController {
       if (result case Err(:final failure)) {
         AppSnackbar.failure('Failed to empty trash', failure);
         return;
+      }
+      // `emptyTrash` only covers notes server-side — trashed folders need
+      // their own permanent-delete call each, same as the per-item flows
+      // above, or they'd survive "Empty Trash" indefinitely.
+      for (final folder in deletedFolders.toList()) {
+        final folderResult = await _deleteFolderPermanently(folder.id);
+        if (folderResult case Err(:final failure)) {
+          AppSnackbar.failure('Failed to empty trash', failure);
+          return;
+        }
       }
       isEditing.value = false;
       await fetchDeletedItems();

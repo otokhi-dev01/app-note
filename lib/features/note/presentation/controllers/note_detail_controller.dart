@@ -34,6 +34,7 @@ import 'package:Note/features/note/presentation/controllers/note_controller.dart
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Placeholder text kept in a checklist item's [TextEditingController] while
 /// the item is otherwise empty. iOS never delivers a key event for the
@@ -950,7 +951,8 @@ class NoteDetailController extends GetxController {
       await attachmentsDir.create(recursive: true);
     }
 
-    final name = 'restored_${DateTime.now().millisecondsSinceEpoch}${_extensionOf(file.path)}';
+    final name =
+        'restored_${DateTime.now().millisecondsSinceEpoch}${_extensionOf(file.path)}';
     final dest = await file.copy('${attachmentsDir.path}/$name');
     return dest.path;
   }
@@ -1188,6 +1190,139 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Adds a web link to the current selection, or inserts linked text at the
+  /// cursor when nothing is selected.
+  Future<void> addLink() async {
+    if (isReadOnly.value || activeBlockIndex.value < 0) {
+      AppSnackbar.info(
+        'note_editor_link_title'.tr,
+        'note_editor_link_focus_message'.tr,
+      );
+      return;
+    }
+
+    final block = blocks[activeBlockIndex.value];
+    if (block is! TextBlock) return;
+    final quillController = quillControllers[block.id];
+    final context = Get.context;
+    if (quillController == null || context == null) return;
+
+    final selection = quillController.selection;
+    final selectionStart = selection.start.clamp(
+      0,
+      quillController.document.length - 1,
+    );
+    final selectionLength = selection.isCollapsed
+        ? 0
+        : selection.end - selection.start;
+    final selectedText = selectionLength > 0
+        ? quillController.document.getPlainText(selectionStart, selectionLength)
+        : '';
+    final textController = TextEditingController(text: selectedText);
+    final urlController = TextEditingController();
+
+    void insertLink() {
+      final url = _normalizedWebLink(urlController.text);
+      if (url == null) {
+        AppSnackbar.warning(
+          'note_editor_invalid_link_title'.tr,
+          'note_editor_invalid_link_message'.tr,
+        );
+        return;
+      }
+
+      final label = textController.text.trim().isEmpty
+          ? url
+          : textController.text.trim();
+      quillController.replaceText(
+        selectionStart,
+        selectionLength,
+        label,
+        TextSelection.collapsed(offset: selectionStart + label.length),
+      );
+      quillController.formatText(
+        selectionStart,
+        label.length,
+        quill.LinkAttribute(url),
+      );
+      Get.back();
+    }
+
+    try {
+      await CustomGlassSheet.show<void>(
+        context: context,
+        isScrollable: false,
+        builder: (sheetContext) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'note_editor_link_title'.tr,
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 18),
+              CustomGlassTextField(
+                controller: textController,
+                placeholder: 'note_editor_link_text_hint'.tr,
+                textInputAction: TextInputAction.next,
+                autofocus: selectedText.isEmpty,
+                useOwnLayer: false,
+              ),
+              const SizedBox(height: 12),
+              CustomGlassTextField(
+                controller: urlController,
+                placeholder: 'note_editor_link_url_hint'.tr,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.done,
+                autofocus: selectedText.isNotEmpty,
+                useOwnLayer: false,
+                onSubmitted: (_) => insertLink(),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: CustomGlassButton(
+                  onPressed: insertLink,
+                  semanticLabel: 'note_editor_link_add'.tr,
+                  borderRadius: 24,
+                  glassColor: Theme.of(sheetContext).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    'note_editor_link_add'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      textController.dispose();
+      urlController.dispose();
+    }
+  }
+
+  String? _normalizedWebLink(String rawValue) {
+    final raw = rawValue.trim();
+    if (raw.isEmpty) return null;
+    final candidate = raw.contains('://') ? raw : 'https://$raw';
+    final uri = Uri.tryParse(candidate);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return null;
+    return uri.toString();
+  }
+
   /// `Attribute.indent` carries no level, so running it through
   /// [applyInlineFormat] clears indentation instead of increasing it —
   /// indentation is stepped via [quill.QuillController.indentSelection].
@@ -1387,6 +1522,14 @@ class NoteDetailController extends GetxController {
       } else if (!silent) {
         AppSnackbar.success('Saved', 'Note saved');
       }
+    } catch (e) {
+      // Every other async flow in this file reports failures via
+      // AppSnackbar; this one only had a `finally`, so an unexpected error
+      // (e.g. a RangeError from a stale block index) used to propagate
+      // unhandled — isSaving still got reset, so the UI looked idle/
+      // successful while the note silently failed to save.
+      debugPrint('[SAVE ERROR] $e');
+      AppSnackbar.error('Error', 'Could not save note');
     } finally {
       isSaving.value = false;
     }
@@ -1406,10 +1549,8 @@ class NoteDetailController extends GetxController {
     if (titleController.text.trim().isNotEmpty) return true;
     for (final block in blocks) {
       if (block is TextBlock) {
-        final plainText = quillControllers[block.id]
-                ?.document
-                .toPlainText() ??
-            block.text;
+        final plainText =
+            quillControllers[block.id]?.document.toPlainText() ?? block.text;
         if (plainText.trim().isNotEmpty) return true;
       } else {
         // Any non-text block (checklist, attachment, drawing, table) is
@@ -1481,47 +1622,61 @@ class NoteDetailController extends GetxController {
   Future<List<AttachmentBlock>> _handleAttachmentUploads(int noteId) async {
     bool stateChanged = false;
     final failed = <AttachmentBlock>[];
-    for (int i = 0; i < blocks.length; i++) {
-      final block = blocks[i];
-      if (block is AttachmentBlock &&
-          block.attachmentId == 0 &&
-          block.localPath != null) {
-        final result = await _uploadAttachment(
-          UploadAttachmentParams(
-            noteId: noteId,
-            filePath: block.localPath!,
-            blockId: block.id,
-            displayOrder: i,
-          ),
-        );
+    // Snapshot which blocks need uploading before the loop starts: `blocks`
+    // is live and user-editable (e.g. deleting a block) while an earlier
+    // upload's `await` is in flight, so writing back through a captured
+    // index afterward can land on the wrong block — or throw — once
+    // positions have shifted underneath it. Re-resolving each block's
+    // current index by id right before writing back keeps this safe.
+    final pending = blocks
+        .whereType<AttachmentBlock>()
+        .where((b) => b.attachmentId == 0 && b.localPath != null)
+        .toList();
 
-        switch (result) {
-          case Ok(:final value):
-            // Guest-mode "uploads" have nowhere to go but this device, so the
-            // repository hands back a real file it just copied into permanent
-            // storage rather than a server URL. Treating that path as a URL
-            // would send Image.network to a host that was never asked for it.
-            final isLocalFile = File(value.filePath).existsSync();
-            blocks[i] = AttachmentBlock(
-              id: block.id,
-              attachmentId: value.attachmentId,
-              displayName: block.displayName,
-              // Resolve immediately rather than waiting for the next fetch —
-              // otherwise the block briefly (or, if the raw path is
-              // malformed, permanently) carries an unresolved server path
-              // and the image renders as unavailable right after saving.
-              url: isLocalFile
-                  ? null
-                  : (normalizeAttachmentUrl(value.filePath) ?? value.filePath),
-              localPath: isLocalFile ? value.filePath : null,
-            );
+    for (final block in pending) {
+      final displayOrder = blocks.indexWhere((b) => b.id == block.id);
+      final result = await _uploadAttachment(
+        UploadAttachmentParams(
+          noteId: noteId,
+          filePath: block.localPath!,
+          blockId: block.id,
+          displayOrder: displayOrder < 0 ? 0 : displayOrder,
+        ),
+      );
+
+      switch (result) {
+        case Ok(:final value):
+          // Guest-mode "uploads" have nowhere to go but this device, so the
+          // repository hands back a real file it just copied into permanent
+          // storage rather than a server URL. Treating that path as a URL
+          // would send Image.network to a host that was never asked for it.
+          final isLocalFile = File(value.filePath).existsSync();
+          final uploaded = AttachmentBlock(
+            id: block.id,
+            attachmentId: value.attachmentId,
+            displayName: block.displayName,
+            // Resolve immediately rather than waiting for the next fetch —
+            // otherwise the block briefly (or, if the raw path is
+            // malformed, permanently) carries an unresolved server path
+            // and the image renders as unavailable right after saving.
+            url: isLocalFile
+                ? null
+                : (normalizeAttachmentUrl(value.filePath) ?? value.filePath),
+            localPath: isLocalFile ? value.filePath : null,
+          );
+          final currentIndex = blocks.indexWhere((b) => b.id == block.id);
+          if (currentIndex != -1) {
+            blocks[currentIndex] = uploaded;
             stateChanged = true;
-          case Err(:final failure):
-            // Keep the local path so the block survives and can retry on the
-            // next save rather than silently vanishing.
-            failed.add(block);
-            debugPrint('[UPLOAD] BlockId=${block.id}: ${failure.message}');
-        }
+          }
+        // Else: the block was deleted while its upload was in flight. The
+        // upload still succeeded server-side, but there's nothing local
+        // left to attach it to, so it's dropped rather than resurrected.
+        case Err(:final failure):
+          // Keep the local path so the block survives and can retry on the
+          // next save rather than silently vanishing.
+          failed.add(block);
+          debugPrint('[UPLOAD] BlockId=${block.id}: ${failure.message}');
       }
     }
     if (stateChanged) blocks.refresh();

@@ -68,7 +68,8 @@ const Map<String, String> kmKH = {
   // Settings
   'settings_title': 'ការកំណត់',
   'section_preferences': 'ចំណូលចិត្ត',
-  'section_preferences_footer': 'ជ្រើសរើសរបៀបដែលកម្មវិធីបង្ហាញ និងរបៀបដែលកំណត់ត្រាដំណើរការ។',
+  'section_preferences_footer':
+      'ជ្រើសរើសរបៀបដែលកម្មវិធីបង្ហាញ និងរបៀបដែលកំណត់ត្រាដំណើរការ។',
   'section_support': 'ជំនួយ',
   'section_support_footer': 'ស្វែងរកជំនួយ ឬទាក់ទងមកកាន់យើងប្រសិនបើមានបញ្ហា។',
   'dark_mode': 'របៀបងងឹត',
@@ -95,15 +96,38 @@ const Map<String, String> kmKH = {
   'not_signed_in': 'មិនទាន់ចូលគណនី',
 
   // Profile View
-  'profile_title': 'ប្រវត្តិរូប',
-  'full_name_label': 'ឈ្មោះពេញ',
-  'phone_label': 'លេខទូរស័ព្ទ',
-  'account_status_label': 'ស្ថានភាពគណនី',
+  'profile_title': 'ព័ត៌មានប្រវត្តិរូប',
+  'full_name_label': 'ឈ្មោះ',
+  'phone_label': 'ទូរស័ព្ទ',
   'guest_status': 'របៀបភ្ញៀវ',
-  'verified_status': 'គណនីបានផ្ទៀងផ្ទាត់',
+  'verified_status_line': 'គណនីបានផ្ទៀងផ្ទាត់',
   'joined_label': 'បានចូលរួម',
   'tier_label': 'កម្រិតគណនី',
   'not_available': 'មិនមាន',
+  'save_action': 'រក្សាទុក',
+  'profile_updated_message': 'ព័ត៌មានប្រវត្តិរូបត្រូវបានធ្វើបច្ចុប្បន្នភាព',
+
+  // Profile — local-only fields (no backend support yet, see
+  // ProfileExtrasStorage)
+  'username_label': 'អ្នកប្រើ',
+  'account_label': 'គណនី',
+  'email_label': 'អ៊ីមែល',
+  'job_bio_label': 'មុខរបរ និងជីវប្រវត្តិសង្ខេប',
+  'color_label': 'ពណ៌',
+  'edit_username_title': 'កែអ្នកប្រើ',
+  'edit_username_hint': 'បញ្ចូលឈ្មោះអ្នកប្រើ',
+  'edit_account_title': 'កែគណនី',
+  'edit_account_hint': 'បញ្ចូលឈ្មោះគណនី',
+  'edit_email_title': 'កែអ៊ីមែល',
+  'edit_email_hint': 'បញ្ចូលអ៊ីមែលរបស់អ្នក',
+  'edit_job_bio_title': 'កែមុខរបរ និងជីវប្រវត្តិសង្ខេប',
+  'edit_job_hint': 'តួនាទីការងារ',
+  'edit_bio_hint': 'ជីវប្រវត្តិសង្ខេប',
+  'edit_color_title': 'ជ្រើសរើសពណ៌',
+  'not_set': 'មិនទាន់កំណត់',
+
+  // Settings drawer
+  'settings_drawer_view_profile': 'ព័ត៌មានប្រវត្តិរូប',
 
   // Account (delete-account flow)
   'account_title': 'គណនី',
@@ -116,7 +140,8 @@ const Map<String, String> kmKH = {
   'account_confirm_password_subtitle':
       'បញ្ចូលពាក្យសម្ងាត់របស់អ្នក ដើម្បីលុបគណនីជាអចិន្ត្រៃយ៍។',
   'account_deleted_title': 'គណនីត្រូវបានលុប',
-  'account_deleted_message': 'គណនី និងទិន្នន័យរបស់អ្នកត្រូវបានលុបជាអចិន្ត្រៃយ៍។',
+  'account_deleted_message':
+      'គណនី និងទិន្នន័យរបស់អ្នកត្រូវបានលុបជាអចិន្ត្រៃយ៍។',
   'account_delete_failed_title': 'មិនអាចលុបគណនីបានទេ',
 
   // Appearance
@@ -150,6 +175,7 @@ const Map<String, String> kmKH = {
 
   // Profile
   'profile_tier_free': 'ឥតគិតថ្លៃ',
+  'profile_basic_info': 'ព័ត៌មានមូលដ្ឋាន',
   'profile_change_photo': 'ប្តូររូបភាព',
   'profile_account_settings': 'ការកំណត់គណនី',
   'profile_log_in': 'ចូល',
@@ -279,7 +305,8 @@ const Map<String, String> kmKH = {
   'note_editor_readonly_banner_message':
       'កំណត់ត្រានេះស្ថិតនៅក្នុង "បានលុបថ្មីៗ"។ សូមយកមកវិញដើម្បីធ្វើការផ្លាស់ប្តូរ។',
   'note_editor_readonly_tip_title': 'គន្លឹះ',
-  'note_editor_readonly_tip_message': 'ប្រើ "បានលុបថ្មីៗ" ដើម្បីយកកំណត់ត្រានេះមកវិញ។',
+  'note_editor_readonly_tip_message':
+      'ប្រើ "បានលុបថ្មីៗ" ដើម្បីយកកំណត់ត្រានេះមកវិញ។',
   'note_editor_ok': 'យល់ព្រម',
   'note_editor_search_hint': 'ស្វែងរកក្នុងកំណត់ត្រា...',
   'note_editor_drawing_options_title': 'ជម្រើសគំនូរ',
@@ -289,7 +316,8 @@ const Map<String, String> kmKH = {
   'note_editor_image_tap_hint': '។ ចុចដើម្បីកែសម្រួល ចុចឱ្យយូរសម្រាប់ជម្រើស។',
   'note_editor_error_title': 'កំហុស',
   'note_editor_image_source_unavailable': 'មិនមានប្រភពរូបភាព',
-  'note_editor_could_not_open_image_editor': 'មិនអាចបើកកម្មវិធីកែសម្រួលរូបភាពបានទេ',
+  'note_editor_could_not_open_image_editor':
+      'មិនអាចបើកកម្មវិធីកែសម្រួលរូបភាពបានទេ',
   'note_editor_not_available_title': 'មិនអាចប្រើបាន',
   'note_editor_image_not_on_device': 'រូបភាពនេះមិននៅលើឧបករណ៍នេះទេ។',
   'note_editor_could_not_share_image': 'មិនអាចចែករំលែករូបភាពនោះបានទេ',
@@ -326,6 +354,23 @@ const Map<String, String> kmKH = {
   'note_editor_create_note_label': 'បង្កើតកំណត់ត្រា',
   'note_editor_drawing_label': 'គំនូរ',
   'note_editor_table_label': 'តារាង',
+  'note_editor_bold_label': 'អក្សរដិត',
+  'note_editor_italic_label': 'អក្សរទ្រេត',
+  'note_editor_underline_label': 'គូសបន្ទាត់ក្រោម',
+  'note_editor_bullet_list_label': 'បញ្ជីចំណុច',
+  'note_editor_numbered_list_label': 'បញ្ជីលេខ',
+  'note_editor_link_label': 'តំណ',
+  'note_editor_strikethrough_label': 'គូសកាត់អត្ថបទ',
+  'note_editor_highlight_label': 'រំលេច',
+  'note_editor_align_left_label': 'តម្រឹមឆ្វេង',
+  'note_editor_indent_label': 'បង្កើនការចូលបន្ទាត់',
+  'note_editor_link_title': 'បន្ថែមតំណ',
+  'note_editor_link_text_hint': 'អត្ថបទបង្ហាញ',
+  'note_editor_link_url_hint': 'https://example.com',
+  'note_editor_link_add': 'បន្ថែមតំណ',
+  'note_editor_link_focus_message': 'ដាក់ទ្រនិចនៅក្នុងកំណត់ត្រាសិន។',
+  'note_editor_invalid_link_title': 'តំណមិនត្រឹមត្រូវ',
+  'note_editor_invalid_link_message': 'បញ្ចូលអាសយដ្ឋានគេហទំព័រដែលត្រឹមត្រូវ។',
   'note_editor_format_title': 'ទម្រង់',
   'note_editor_style_title': 'ចំណងជើង',
   'note_editor_style_heading': 'ក្បាលអត្ថបទ',

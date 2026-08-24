@@ -91,6 +91,7 @@ class CreateNoteView extends GetView<NoteDetailController> {
                       : NoteEditorToolbar(
                           key: const ValueKey('bottom-toolbar'),
                           controller: controller,
+                          isCreating: true,
                           onAttachmentAction: (type) =>
                               _handleAttachmentAction(type),
                         ),
@@ -186,6 +187,10 @@ class _CreateNoteBody extends StatelessWidget {
             // screen's, checkmark and all, instead of a lookalike.
             NoteEditorTopBar(
               controller: controller,
+              title: 'note_list_new_note'.tr,
+              showShare: false,
+              showMore: false,
+              alwaysShowSave: true,
               onBack: () => _handleBack(controller),
             ),
             SliverPadding(
