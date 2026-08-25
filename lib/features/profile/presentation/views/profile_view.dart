@@ -142,23 +142,13 @@ class ProfileView extends GetView<ProfileController> {
           ? 'guest_status'.tr
           : (account.isEmpty ? 'account_label'.tr : account);
 
-      return Container(
+      return CustomGlassContainer(
         width: double.infinity,
+        borderRadius: 24,
+        blur: 24,
+        opacity: 0.12,
+        thickness: 10,
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          color: scheme.surface,
-          border: Border.all(color: accent.withValues(alpha: 0.18)),
-          boxShadow: theme.brightness == Brightness.light
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.045),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ]
-              : null,
-        ),
         child: Stack(
           children: [
             Positioned.fill(
@@ -169,7 +159,7 @@ class ProfileView extends GetView<ProfileController> {
                     end: Alignment.bottomRight,
                     colors: [
                       accent.withValues(alpha: 0.14),
-                      scheme.surface.withValues(alpha: 0.92),
+                      scheme.surface.withValues(alpha: 0.62),
                     ],
                   ),
                 ),
@@ -188,131 +178,131 @@ class ProfileView extends GetView<ProfileController> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: scheme.surface,
-                          border: Border.all(
-                            color: accent.withValues(alpha: 0.45),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: scheme.surface,
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 39,
+                            backgroundColor: scheme.surfaceContainerHighest,
+                            backgroundImage: hasImage
+                                ? FileImage(File(imagePath))
+                                : null,
+                            child: hasImage
+                                ? null
+                                : Icon(
+                                    CupertinoIcons.person_fill,
+                                    color: accentText,
+                                    size: 37,
+                                  ),
                           ),
                         ),
-                        child: CircleAvatar(
-                          radius: 39,
-                          backgroundColor: scheme.surfaceContainerHighest,
-                          backgroundImage: hasImage
-                              ? FileImage(File(imagePath))
-                              : null,
-                          child: hasImage
-                              ? null
-                              : Icon(
-                                  CupertinoIcons.person_fill,
-                                  color: accentText,
-                                  size: 37,
-                                ),
-                        ),
-                      ),
-                      if (!isGuest)
-                        Positioned(
-                          right: -2,
-                          bottom: -2,
-                          child: Material(
-                            color: accent,
-                            elevation: 2,
-                            shape: const CircleBorder(),
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
+                        if (!isGuest)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: CustomGlassButton(
+                              onPressed: () {
                                 HapticFeedback.selectionClick();
                                 controller.updateProfileImage();
                               },
-                              child: SizedBox.square(
-                                dimension: 30,
-                                child: Icon(
-                                  CupertinoIcons.camera_fill,
-                                  size: 14,
-                                  color: AppColors.onAccent(accent),
-                                ),
+                              semanticLabel: 'profile_image_updated_message'.tr,
+                              width: 30,
+                              height: 30,
+                              shape: GlassShape.circle,
+                              blur: 8,
+                              opacity: 0.2,
+                              thickness: 5,
+                              glassColor: accent,
+                              foregroundColor: AppColors.onAccent(accent),
+                              padding: EdgeInsets.zero,
+                              child: const Icon(
+                                CupertinoIcons.camera_fill,
+                                size: 14,
                               ),
                             ),
                           ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      controller.userName.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (!isGuest && username.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        '@$username',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
                         ),
+                      ),
                     ],
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          controller.userName.value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontSize: 21,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.3,
+                    const SizedBox(height: 10),
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 230),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: accentText,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                        if (!isGuest && username.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '@$username',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              status,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: accentText,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: 10),
-                        Container(
-                          constraints: const BoxConstraints(maxWidth: 230),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: accentText,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 7),
-                              Flexible(
-                                child: Text(
-                                  status,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: accentText,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -424,24 +414,12 @@ class ProfileView extends GetView<ProfileController> {
       groupedChildren.add(children[index]);
     }
 
-    return Container(
+    return CustomGlassContainer(
+      borderRadius: 20,
+      blur: 20,
+      opacity: 0.12,
+      thickness: 8,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
-        ),
-        boxShadow: theme.brightness == Brightness.light
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.035),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
       child: Column(children: groupedChildren),
     );
   }
@@ -594,14 +572,16 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _fieldBadge(ThemeData theme, IconData icon) {
     final scheme = theme.colorScheme;
-    return Container(
+    return CustomGlassContainer(
       width: 36,
       height: 36,
+      borderRadius: 10,
+      blur: 12,
+      opacity: 0.12,
+      thickness: 6,
+      refractiveIndex: 1.1,
+      glassColor: scheme.primary.withValues(alpha: 0.1),
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
       child: Icon(icon, size: 18, color: scheme.primary),
     );
   }
@@ -671,14 +651,16 @@ class ProfileView extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              Container(
+              CustomGlassContainer(
                 width: 36,
                 height: 36,
+                borderRadius: 10,
+                blur: 12,
+                opacity: 0.12,
+                thickness: 6,
+                refractiveIndex: 1.1,
+                glassColor: color.withValues(alpha: 0.1),
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
                 child: Icon(icon, size: 18, color: color),
               ),
               const SizedBox(width: 12),

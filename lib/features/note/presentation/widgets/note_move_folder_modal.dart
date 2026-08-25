@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 
@@ -94,13 +95,18 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                     if (currentFolder != null) ...[
                       Row(
                         children: [
-                          FolderGlyph(folder: currentFolder, size: 56),
+                          FolderGlassIcon(
+                            color: currentFolder.color,
+                            size: 72,
+                            borderRadius: 22,
+                            child: FolderGlyph(folder: currentFolder, size: 40),
+                          ),
                           const SizedBox(width: 14),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                currentFolder.displayName,
+                                _folderDisplayName(currentFolder),
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -219,7 +225,10 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
     return CustomGlassListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      leading: Icon(icon, color: AppTheme.folderPink, size: 28),
+      leading: FolderGlassIcon(
+        color: AppTheme.folderPink,
+        child: Icon(icon, color: AppTheme.folderPink, size: 21),
+      ),
       title: Text(
         label,
         style: const TextStyle(
@@ -267,12 +276,17 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
-                  Icon(
-                    isExpanded
-                        ? Icons.keyboard_arrow_down
-                        : Icons.keyboard_arrow_right,
+                  FolderGlassIcon(
                     color: AppTheme.folderPink,
-                    size: 24,
+                    size: 32,
+                    borderRadius: 9,
+                    child: Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_right,
+                      color: AppTheme.folderPink,
+                      size: 21,
+                    ),
                   ),
                 ],
               ),
@@ -305,16 +319,26 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
     Folder folder,
   ) {
     final isCurrent = folder.id == currentFolderId;
-    final isSystem = ["Notes", "All on My iPhone"].contains(folder.name);
+    final normalizedName = folder.name.trim().toLowerCase();
+    final isSystem = const {
+      'notes',
+      'on my iphone',
+      'on my phone',
+      'all on my iphone',
+      'all on my phone',
+    }.contains(normalizedName);
 
     return Opacity(
       opacity: isCurrent ? 0.35 : 1.0,
       child: CustomGlassListTile(
         onTap: isCurrent ? null : () => onFolderSelected(folder),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-        leading: FolderGlyph(folder: folder, size: 26),
+        leading: FolderGlassIcon(
+          color: folder.color,
+          child: FolderGlyph(folder: folder, size: 22),
+        ),
         title: Text(
-          folder.displayName,
+          _folderDisplayName(folder),
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w400,
@@ -322,14 +346,29 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
             color: isSystem ? colors.mutedIcon : colors.primaryText,
           ),
         ),
-        trailing: isCurrent
-            ? Icon(CupertinoIcons.checkmark, color: folder.color, size: 18)
-            : Icon(
-                CupertinoIcons.chevron_forward,
-                color: colors.mutedIcon.withValues(alpha: 0.3),
-                size: 16,
-              ),
+        trailing: FolderGlassIcon(
+          color: isCurrent ? folder.color : colors.mutedIcon,
+          size: 30,
+          borderRadius: 9,
+          child: Icon(
+            isCurrent
+                ? CupertinoIcons.checkmark
+                : CupertinoIcons.chevron_forward,
+            color: isCurrent
+                ? folder.color
+                : colors.mutedIcon.withValues(alpha: 0.55),
+            size: isCurrent ? 17 : 14,
+          ),
+        ),
       ),
     );
+  }
+
+  String _folderDisplayName(Folder folder) {
+    return switch (folder.name.trim().toLowerCase()) {
+      'on my iphone' || 'on my phone' => 'folder_on_my_iphone'.tr,
+      'all on my iphone' || 'all on my phone' => 'folder_all_notes'.tr,
+      _ => folder.displayName,
+    };
   }
 }

@@ -8,6 +8,7 @@ import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_location_picker_modal.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -458,42 +459,40 @@ class _FolderCreateModalState extends State<FolderCreateModal>
           AnimatedContainer(
             duration: const Duration(milliseconds: 340),
             curve: Curves.easeOutCubic,
-            width: 96,
-            height: 96,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color.lerp(color, Colors.white, 0.3)!, color],
-              ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: isDark ? 0.45 : 0.34),
-                  blurRadius: 30,
-                  spreadRadius: -4,
-                  offset: const Offset(0, 14),
+                  color: color.withValues(alpha: isDark ? 0.32 : 0.2),
+                  blurRadius: 26,
+                  spreadRadius: -6,
+                  offset: const Offset(0, 12),
                 ),
               ],
             ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 280),
-              transitionBuilder: (child, anim) => ScaleTransition(
-                scale: anim.drive(CurveTween(curve: Curves.easeOutBack)),
-                child: FadeTransition(opacity: anim, child: child),
+            child: FolderGlassIcon(
+              color: color,
+              size: 96,
+              borderRadius: 28,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 280),
+                transitionBuilder: (child, anim) => ScaleTransition(
+                  scale: anim.drive(CurveTween(curve: Curves.easeOutBack)),
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+                child: isEmoji
+                    ? Text(
+                        c.iconName.value,
+                        key: ValueKey(c.iconName.value),
+                        style: const TextStyle(fontSize: 42, height: 1),
+                      )
+                    : Icon(
+                        c.icon,
+                        key: ValueKey(c.iconName.value),
+                        color: color,
+                        size: 42,
+                      ),
               ),
-              child: isEmoji
-                  ? Text(
-                      c.iconName.value,
-                      key: ValueKey(c.iconName.value),
-                      style: const TextStyle(fontSize: 42, height: 1),
-                    )
-                  : Icon(
-                      c.icon,
-                      key: ValueKey(c.iconName.value),
-                      color: AppColors.onAccent(color),
-                      size: 42,
-                    ),
             ),
           ),
           const SizedBox(height: 18),
@@ -614,13 +613,16 @@ class _FolderCreateModalState extends State<FolderCreateModal>
             final parent = c.parentFolder;
             return Row(
               children: [
-                parent != null
-                    ? FolderGlyph(folder: parent, size: 22)
-                    : Icon(
-                        CupertinoIcons.device_phone_portrait,
-                        color: colors.mutedIcon,
-                        size: 22,
-                      ),
+                FolderGlassIcon(
+                  color: parent?.color ?? colors.mutedIcon,
+                  child: parent != null
+                      ? FolderGlyph(folder: parent, size: 22)
+                      : Icon(
+                          CupertinoIcons.device_phone_portrait,
+                          color: colors.mutedIcon,
+                          size: 22,
+                        ),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -633,10 +635,15 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                     ),
                   ),
                 ),
-                Icon(
-                  CupertinoIcons.chevron_forward,
+                FolderGlassIcon(
                   color: colors.mutedIcon,
-                  size: 15,
+                  size: 30,
+                  borderRadius: 9,
+                  child: Icon(
+                    CupertinoIcons.chevron_forward,
+                    color: colors.mutedIcon,
+                    size: 14,
+                  ),
                 ),
               ],
             );
@@ -793,19 +800,11 @@ class _FolderCreateModalState extends State<FolderCreateModal>
           child: Row(
             children: [
               Obx(
-                () => AnimatedContainer(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  width: 34,
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: c.color,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+                () => FolderGlassIcon(
+                  color: c.color,
                   child: Icon(
                     CupertinoIcons.gear_alt_fill,
-                    color: AppColors.onAccent(c.color),
+                    color: c.color,
                     size: 20,
                   ),
                 ),
@@ -835,10 +834,15 @@ class _FolderCreateModalState extends State<FolderCreateModal>
                   ],
                 ),
               ),
-              Icon(
-                CupertinoIcons.chevron_forward,
+              FolderGlassIcon(
                 color: colors.mutedIcon,
-                size: 15,
+                size: 30,
+                borderRadius: 9,
+                child: Icon(
+                  CupertinoIcons.chevron_forward,
+                  color: colors.mutedIcon,
+                  size: 14,
+                ),
               ),
             ],
           ),
@@ -963,8 +967,13 @@ class _IconCell extends StatelessWidget {
             curve: Curves.easeOut,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? accent : colors.cellFill,
+              color: selected
+                  ? accent.withValues(alpha: 0.1)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
+              border: selected
+                  ? Border.all(color: accent.withValues(alpha: 0.5))
+                  : null,
               boxShadow: selected
                   ? [
                       BoxShadow(
@@ -975,10 +984,15 @@ class _IconCell extends StatelessWidget {
                     ]
                   : null,
             ),
-            child: Icon(
-              option.icon,
-              size: 22,
-              color: selected ? AppColors.onAccent(accent) : colors.cellIcon,
+            child: FolderGlassIcon(
+              color: selected ? accent : colors.cellIcon,
+              size: 44,
+              borderRadius: 14,
+              child: Icon(
+                option.icon,
+                size: 22,
+                color: selected ? accent : colors.cellIcon,
+              ),
             ),
           ),
         ),
@@ -1020,13 +1034,20 @@ class _EmojiCell extends StatelessWidget {
             curve: Curves.easeOut,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: colors.cellFill,
+              color: selected
+                  ? colors.mutedIcon.withValues(alpha: 0.08)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: selected
                   ? Border.all(color: colors.mutedIcon, width: 1.5)
                   : null,
             ),
-            child: Text(emoji, style: const TextStyle(fontSize: 20)),
+            child: FolderGlassIcon(
+              color: colors.mutedIcon,
+              size: 44,
+              borderRadius: 14,
+              child: Text(emoji, style: const TextStyle(fontSize: 20)),
+            ),
           ),
         ),
       ),

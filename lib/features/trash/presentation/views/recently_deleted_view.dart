@@ -151,9 +151,11 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'trash_item_count_one'.trPluralParams('trash_item_count_other', totalItems, {
-                  'count': '$totalItems',
-                }),
+                'trash_item_count_one'.trPluralParams(
+                  'trash_item_count_other',
+                  totalItems,
+                  {'count': '$totalItems'},
+                ),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.6,
@@ -199,10 +201,23 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    CupertinoIcons.trash,
-                    size: 60,
-                    color: Colors.grey.withValues(alpha: 0.3),
+                  CustomGlassContainer(
+                    width: 72,
+                    height: 72,
+                    borderRadius: 20,
+                    blur: 16,
+                    opacity: 0.12,
+                    thickness: 7,
+                    refractiveIndex: 1.1,
+                    glassColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      CupertinoIcons.trash,
+                      size: 30,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -343,7 +358,10 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             onLongPress: isEditing ? null : openMenu,
             leading: isEditing
                 ? _buildSelectionIndicator(context, isSelected)
-                : FolderGlyph(folder: folder, size: 28),
+                : _buildGlassItemIcon(
+                    context,
+                    child: FolderGlyph(folder: folder, size: 24),
+                  ),
             title: Text(
               folder.displayName,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -401,7 +419,14 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             onLongPress: isEditing ? null : openMenu,
             leading: isEditing
                 ? _buildSelectionIndicator(context, isSelected)
-                : null,
+                : _buildGlassItemIcon(
+                    context,
+                    child: Icon(
+                      CupertinoIcons.doc_text_fill,
+                      size: 19,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
             title: Text(
               note.displayTitle,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -472,6 +497,23 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: isSelected
           ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
           : null,
+    );
+  }
+
+  Widget _buildGlassItemIcon(BuildContext context, {required Widget child}) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return CustomGlassContainer(
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      blur: 12,
+      opacity: 0.12,
+      thickness: 6,
+      refractiveIndex: 1.1,
+      glassColor: scheme.primary.withValues(alpha: 0.1),
+      alignment: Alignment.center,
+      child: child,
     );
   }
 

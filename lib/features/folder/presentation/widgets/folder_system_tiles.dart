@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 
 class FolderSystemTiles extends StatelessWidget {
   final FolderController controller;
@@ -32,10 +33,12 @@ class FolderSystemTiles extends StatelessWidget {
         child: CustomGlassListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.RECENTLY_DELETED),
-          leading: Icon(
-            CupertinoIcons.trash, // Updated to use CupertinoIcons.folder
-            color: theme.primaryColor,
-            size: 25,
+          leading: FolderGlassIcon(
+            child: Icon(
+              CupertinoIcons.trash,
+              color: theme.primaryColor,
+              size: 21,
+            ),
           ),
           title: Text(
             "folder_recently_deleted".tr,
@@ -51,12 +54,15 @@ class FolderSystemTiles extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.3,
+              FolderGlassIcon(
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 30,
+                borderRadius: 9,
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 13,
                 ),
-                size: 16,
               ),
             ],
           ),
@@ -74,10 +80,12 @@ class FolderSystemTiles extends StatelessWidget {
         child: CustomGlassListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onTap: isEditing ? null : () => Get.toNamed(Routes.ARCHIVE),
-          leading: Icon(
-            CupertinoIcons.folder,
-            color: theme.primaryColor,
-            size: 25,
+          leading: FolderGlassIcon(
+            child: Icon(
+              CupertinoIcons.archivebox_fill,
+              color: theme.primaryColor,
+              size: 21,
+            ),
           ),
           title: Text("folder_archive".tr, style: theme.textTheme.bodyLarge),
           trailing: Row(
@@ -90,12 +98,15 @@ class FolderSystemTiles extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.3,
+              FolderGlassIcon(
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 30,
+                borderRadius: 9,
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 13,
                 ),
-                size: 16,
               ),
             ],
           ),

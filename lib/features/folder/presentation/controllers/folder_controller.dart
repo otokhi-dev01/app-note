@@ -288,7 +288,7 @@ class FolderController extends GetxController {
           onTap: () => _updateFolderSection(folder, 'iCloud'),
         ),
         IOSMenuAction(
-          label: 'On My iPhone',
+          label: 'On My Phone',
           icon: CupertinoIcons.device_phone_portrait,
           onTap: () => _updateFolderSection(folder, ''),
         ),

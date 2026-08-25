@@ -213,7 +213,7 @@ const Map<String, String> kmKH = {
   'folder_color_label': 'ពណ៌',
   'folder_icon_label': 'រូបតំណាង',
   'folder_emoji_label': 'សញ្ញាអារម្មណ៍',
-  'folder_on_my_iphone': 'នៅលើ iPhone ខ្ញុំ',
+  'folder_on_my_iphone': 'នៅលើទូរស័ព្ទខ្ញុំ',
   'folder_save_first_title': 'រក្សាទុកមុនសិន',
   'folder_save_first_message':
       'រក្សាទុកថតនេះជាមុនសិន រួចធ្វើវាទៅជាថតឆ្លាតវៃពី កែសម្រួលថត។',
@@ -285,7 +285,7 @@ const Map<String, String> kmKH = {
   'note_list_folder_note_count': '@count កំណត់ត្រា',
   'note_list_new_folder': 'ថតថ្មី',
   'note_list_pii_cloud': 'Pii Cloud',
-  'note_list_on_my_iphone': 'នៅលើ iPhone ខ្ញុំ',
+  'note_list_on_my_iphone': 'នៅលើទូរស័ព្ទខ្ញុំ',
   'note_list_select_a_folder': 'ជ្រើសរើសថត',
   'note_list_back': 'ត្រឡប់ក្រោយ',
   'note_list_suggested': 'ណែនាំ',

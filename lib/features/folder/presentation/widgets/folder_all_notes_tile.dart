@@ -5,6 +5,7 @@ import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 
 class FolderAllNotesTile extends StatelessWidget {
   final FolderController controller;
@@ -33,10 +34,12 @@ class FolderAllNotesTile extends StatelessWidget {
                     sortOrder: 0,
                   ),
                 ),
-          leading: Icon(
-            CupertinoIcons.folder,
-            color: theme.primaryColor,
-            size: 25,
+          leading: FolderGlassIcon(
+            child: Icon(
+              CupertinoIcons.folder,
+              color: theme.primaryColor,
+              size: 21,
+            ),
           ),
           title: Text(
             "folder_all_notes".tr,
@@ -52,12 +55,15 @@ class FolderAllNotesTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.3,
+              FolderGlassIcon(
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 30,
+                borderRadius: 9,
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 13,
                 ),
-                size: 16,
               ),
             ],
           ),

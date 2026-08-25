@@ -14,7 +14,9 @@ import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_picker_sheet.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 /// The settings panel opened from the Folders screen.
 ///
@@ -120,10 +122,12 @@ class SettingsDrawer extends GetView<ProfileController> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  _buildBrandFooter(context),
                 ],
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
+              child: _buildBrandFooter(context),
             ),
           ],
         ),
@@ -138,8 +142,6 @@ class SettingsDrawer extends GetView<ProfileController> {
       padding: const EdgeInsets.fromLTRB(20, 12, 12, 10),
       child: Row(
         children: [
-          const AppLogo(height: 28),
-          const SizedBox(width: 10),
           Expanded(
             child: Text(
               'settings_title'.tr,
@@ -150,17 +152,7 @@ class SettingsDrawer extends GetView<ProfileController> {
               ),
             ),
           ),
-          IconButton(
-            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(CupertinoIcons.xmark, size: 17),
-            color: theme.colorScheme.onSurfaceVariant,
-            style: IconButton.styleFrom(
-              minimumSize: const Size.square(40),
-              backgroundColor: theme.colorScheme.surfaceContainerHighest,
-              shape: const CircleBorder(),
-            ),
-          ),
+          const LanguageToggleButton(),
         ],
       ),
     );
@@ -177,142 +169,149 @@ class SettingsDrawer extends GetView<ProfileController> {
       final username = controller.userUsername.value;
       final account = controller.userAccount.value;
 
-      return Material(
-        color: Colors.transparent,
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                scheme.primary.withValues(alpha: 0.14),
-                scheme.surface.withValues(alpha: 0.88),
-              ],
+      return CustomGlassContainer(
+        borderRadius: 20,
+        blur: 24,
+        opacity: 0.12,
+        thickness: 10,
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  scheme.primary.withValues(alpha: 0.14),
+                  scheme.surface.withValues(alpha: 0.62),
+                ],
+              ),
+              border: Border.all(color: scheme.primary.withValues(alpha: 0.16)),
             ),
-            border: Border.all(color: scheme.primary.withValues(alpha: 0.16)),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () => _closeThenGo(context, Routes.PROFILE),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: scheme.primary.withValues(alpha: 0.35),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _closeThenGo(context, Routes.PROFILE),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: scheme.primary.withValues(alpha: 0.35),
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 29,
+                            backgroundColor: scheme.surfaceContainerHighest,
+                            backgroundImage: hasImage
+                                ? FileImage(File(imagePath))
+                                : null,
+                            child: hasImage
+                                ? null
+                                : Icon(
+                                    CupertinoIcons.person_fill,
+                                    color: scheme.onSurfaceVariant,
+                                    size: 29,
+                                  ),
                           ),
                         ),
-                        child: CircleAvatar(
-                          radius: 29,
-                          backgroundColor: scheme.surfaceContainerHighest,
-                          backgroundImage: hasImage
-                              ? FileImage(File(imagePath))
-                              : null,
-                          child: hasImage
-                              ? null
-                              : Icon(
-                                  CupertinoIcons.person_fill,
-                                  color: scheme.onSurfaceVariant,
-                                  size: 29,
-                                ),
-                        ),
-                      ),
-                      if (!isGuest)
-                        Positioned(
-                          right: -3,
-                          bottom: -2,
-                          child: Material(
-                            color: scheme.primary,
-                            shape: const CircleBorder(),
-                            elevation: 2,
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: controller.updateProfileImage,
-                              child: const SizedBox.square(
-                                dimension: 24,
-                                child: Icon(
-                                  CupertinoIcons.camera_fill,
-                                  size: 12,
-                                  color: Colors.white,
-                                ),
+                        if (!isGuest)
+                          Positioned(
+                            right: -3,
+                            bottom: -2,
+                            child: CustomGlassButton(
+                              onPressed: controller.updateProfileImage,
+                              semanticLabel: 'profile_image_updated_message'.tr,
+                              width: 24,
+                              height: 24,
+                              shape: GlassShape.circle,
+                              blur: 8,
+                              opacity: 0.2,
+                              thickness: 5,
+                              glassColor: scheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.zero,
+                              child: const Icon(
+                                CupertinoIcons.camera_fill,
+                                size: 12,
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          controller.userName.value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (!isGuest && username.isNotEmpty) ...[
-                          const SizedBox(height: 2),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            '@$username',
+                            controller.userName.value,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ],
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: scheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                isGuest
-                                    ? 'guest_status'.tr
-                                    : (account.isEmpty
-                                          ? 'account_label'.tr
-                                          : account),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: scheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          if (!isGuest && username.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              '@$username',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
                               ),
                             ),
                           ],
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: scheme.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  isGuest
+                                      ? 'guest_status'.tr
+                                      : (account.isEmpty
+                                            ? 'account_label'.tr
+                                            : account),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: scheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    CupertinoIcons.chevron_forward,
-                    size: 14,
-                    color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Icon(
+                      CupertinoIcons.chevron_forward,
+                      size: 14,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -353,24 +352,12 @@ class SettingsDrawer extends GetView<ProfileController> {
       groupedChildren.add(children[index]);
     }
 
-    return Container(
+    return CustomGlassContainer(
+      borderRadius: 18,
+      blur: 20,
+      opacity: 0.12,
+      thickness: 8,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
-        ),
-        boxShadow: theme.brightness == Brightness.light
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.035),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : null,
-      ),
       child: Column(children: groupedChildren),
     );
   }
@@ -398,16 +385,7 @@ class SettingsDrawer extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 18, color: scheme.primary),
-              ),
+              _buildGlassIconBadge(icon, scheme.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -453,19 +431,9 @@ class SettingsDrawer extends GetView<ProfileController> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isDark ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
-              size: 18,
-              color: scheme.primary,
-            ),
+          _buildGlassIconBadge(
+            isDark ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
+            scheme.primary,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -557,16 +525,7 @@ class SettingsDrawer extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 18, color: color),
-              ),
+              _buildGlassIconBadge(icon, color),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -609,6 +568,21 @@ class SettingsDrawer extends GetView<ProfileController> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildGlassIconBadge(IconData icon, Color color) {
+    return CustomGlassContainer(
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      blur: 12,
+      opacity: 0.12,
+      thickness: 6,
+      refractiveIndex: 1.1,
+      glassColor: color.withValues(alpha: 0.1),
+      alignment: Alignment.center,
+      child: Icon(icon, size: 18, color: color),
     );
   }
 

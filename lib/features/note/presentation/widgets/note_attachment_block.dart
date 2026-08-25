@@ -290,8 +290,7 @@ class _ImageTileState extends State<_ImageTile> {
     return Semantics(
       button: true,
       image: true,
-      label:
-          '${widget.semanticsLabel}${'note_editor_image_tap_hint'.tr}',
+      label: '${widget.semanticsLabel}${'note_editor_image_tap_hint'.tr}',
       child: Stack(
         children: [
           lg.GlassMenu(
@@ -317,35 +316,6 @@ class _ImageTileState extends State<_ImageTile> {
             ),
             items: _menuItems(),
           ),
-          // A direct delete button, matching the one every other attachment
-          // type in this file already gets (drawing, file, audio) — an
-          // image was the one kind where removing it meant discovering that
-          // a long press (not the tap that opens the editor) is what raises
-          // the menu Delete lives in.
-          if (!widget.isReadOnly)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onDelete,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.trash,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -391,7 +361,7 @@ class _ImageTileState extends State<_ImageTile> {
       constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
       width: widget.width,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: widget.isDark
               ? Colors.white.withValues(alpha: 0.12)
@@ -407,7 +377,7 @@ class _ImageTileState extends State<_ImageTile> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.zero,
         child: Stack(
           fit: StackFit.passthrough,
           children: [
