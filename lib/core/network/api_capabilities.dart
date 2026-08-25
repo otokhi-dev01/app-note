@@ -9,7 +9,4 @@ class ApiCapabilities {
   /// No /api/note/permanent-delete, /api/note/empty-trash, or
   /// /api/folder/permanent-delete route exists. Trash is soft-delete only.
   static const bool permanentDelete = false;
-
-  /// No /api/auth/forgot-password route exists.
-  static const bool forgotPassword = false;
 }

@@ -8,10 +8,12 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/language_preferences.dart';
-import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
+import 'package:Note/features/settings/presentation/widgets/account_delete_menu.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_picker_menus.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -61,20 +63,33 @@ class SettingsDrawer extends GetView<ProfileController> {
                   _buildGroup(
                     context,
                     children: [
-                      _buildRow(
-                        context,
-                        icon: CupertinoIcons.paintbrush_fill,
-                        title: 'appearance_title'.tr,
-                        onTap: () => _closeThenGo(context, Routes.APPEARANCE),
+                      DevicePickerMenu(
+                        morphFromZero: true,
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.device_phone_portrait,
+                          title: 'device_title'.tr,
+                          onTap: toggleMenu,
+                        ),
                       ),
-                      _buildRow(
-                        context,
-                        icon: CupertinoIcons.textformat_alt,
-                        title: 'note_preferences_title'.tr,
-                        onTap: () =>
-                            _closeThenGo(context, Routes.NOTE_PREFERENCES),
+                      NotificationPickerMenu(
+                        morphFromZero: true,
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.bell_fill,
+                          title: 'notifications_title'.tr,
+                          onTap: toggleMenu,
+                        ),
                       ),
-                      _buildDarkModeRow(context),
+                      PrivacySecurityPickerMenu(
+                        morphFromZero: true,
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.lock_shield_fill,
+                          title: 'privacy_security_title'.tr,
+                          onTap: toggleMenu,
+                        ),
+                      ),
                       LanguagePickerMenu(
                         morphFromZero: true,
                         triggerBuilder: (context, toggleMenu) => _buildRow(
@@ -97,15 +112,17 @@ class SettingsDrawer extends GetView<ProfileController> {
                           _buildRow(
                             context,
                             icon: CupertinoIcons.lock_rotation,
-                            title: 'reset_password_title'.tr,
-                            onTap: controller.requestPasswordReset,
+                            title: 'forgot_password_title'.tr,
+                            onTap: controller.requestForgotPassword,
                           ),
-                        _buildRow(
-                          context,
-                          icon: CupertinoIcons.question_circle_fill,
-                          title: 'help_center_title'.tr,
-                          onTap: () =>
-                              _closeThenGo(context, Routes.HELP_CENTER),
+                        HelpCenterPickerMenu(
+                          morphFromZero: true,
+                          triggerBuilder: (context, toggleMenu) => _buildRow(
+                            context,
+                            icon: CupertinoIcons.question_circle_fill,
+                            title: 'help_center_title'.tr,
+                            onTap: toggleMenu,
+                          ),
                         ),
                       ],
                     ),
@@ -422,44 +439,6 @@ class SettingsDrawer extends GetView<ProfileController> {
     );
   }
 
-  Widget _buildDarkModeRow(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
-        children: [
-          _buildGlassIconBadge(
-            isDark ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
-            scheme.primary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'dark_mode'.tr,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Switch.adaptive(
-            value: isDark,
-            activeThumbColor: scheme.primary,
-            onChanged: (value) {
-              HapticFeedback.lightImpact();
-              ThemeStorage().switchTheme(
-                value ? ThemeMode.dark : ThemeMode.light,
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAccountAction(BuildContext context) {
     final guestMode = Get.find<GuestModeService>();
 
@@ -494,13 +473,23 @@ class SettingsDrawer extends GetView<ProfileController> {
     return Obx(() {
       if (guestMode.isGuestMode.value) return const SizedBox.shrink();
 
-      return _buildActionRow(
-        context,
-        icon: CupertinoIcons.trash_fill,
-        title: 'delete_account_title'.tr,
-        isDestructive: true,
-        showChevron: true,
-        onTap: () => _closeThenGo(context, Routes.ACCOUNT),
+      final accountController = AccountController(
+        logout: Get.find<Logout>(),
+        deleteAccount: Get.find<DeleteAccount>(),
+        guestMode: guestMode,
+      );
+
+      return AccountDeleteMenu(
+        controller: accountController,
+        morphFromZero: true,
+        triggerBuilder: (context, openMenu) => _buildActionRow(
+          context,
+          icon: CupertinoIcons.trash_fill,
+          title: 'delete_account_title'.tr,
+          isDestructive: true,
+          showChevron: true,
+          onTap: openMenu,
+        ),
       );
     });
   }

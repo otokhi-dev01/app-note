@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
 
 /// Two-field profile editor using the same dialog language as Edit Name.
 class EditJobBioSheet extends StatefulWidget {
@@ -24,31 +24,14 @@ class EditJobBioSheet extends StatefulWidget {
     required String initialBio,
     required Future<bool> Function(String job, String bio) onSave,
   }) {
-    return showGeneralDialog<void>(
+    return ProfileGlassPopup.show<void>(
       context: context,
-      useRootNavigator: true,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.46),
-      transitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (context, _, _) => EditJobBioSheet(
+      maxWidth: 400,
+      builder: (context) => EditJobBioSheet(
         initialJob: initialJob,
         initialBio: initialBio,
         onSave: onSave,
       ),
-      transitionBuilder: (context, animation, _, child) {
-        final entrance = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        return FadeTransition(
-          opacity: entrance,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.98, end: 1).animate(entrance),
-            child: child,
-          ),
-        );
-      },
     );
   }
 
@@ -124,114 +107,73 @@ class _EditJobBioSheetState extends State<EditJobBioSheet> {
 
     return PopScope(
       canPop: !_isSaving,
-      child: Dialog(
-        elevation: 18,
-        shadowColor: Colors.black.withValues(alpha: 0.24),
-        backgroundColor: scheme.surface,
-        surfaceTintColor: Colors.transparent,
-        clipBehavior: Clip.antiAlias,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.45),
-          ),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          MediaQuery.viewInsetsOf(context).bottom + 20,
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              24,
-              22,
-              24,
-              MediaQuery.viewInsetsOf(context).bottom + 24,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(theme, scheme),
+            const SizedBox(height: 20),
+            _buildLabel(theme, scheme, 'job_label'.tr),
+            const SizedBox(height: 8),
+            _buildField(
+              theme,
+              scheme,
+              controller: _jobController,
+              hint: 'edit_job_hint'.tr,
+              maxLength: _maxJobLength,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              onSubmitted: (_) => _bioFocusNode.requestFocus(),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context, theme, scheme),
-                const SizedBox(height: 24),
-                _buildLabel(theme, scheme, 'job_label'.tr),
-                const SizedBox(height: 8),
-                _buildField(
-                  theme,
-                  scheme,
-                  controller: _jobController,
-                  hint: 'edit_job_hint'.tr,
-                  maxLength: _maxJobLength,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  onSubmitted: (_) => _bioFocusNode.requestFocus(),
-                ),
-                const SizedBox(height: 14),
-                _buildLabel(theme, scheme, 'bio_label'.tr),
-                const SizedBox(height: 8),
-                _buildField(
-                  theme,
-                  scheme,
-                  controller: _bioController,
-                  focusNode: _bioFocusNode,
-                  hint: 'edit_bio_hint'.tr,
-                  maxLength: _maxBioLength,
-                  minLines: 3,
-                  maxLines: 5,
-                  textCapitalization: TextCapitalization.sentences,
-                  textInputAction: TextInputAction.newline,
-                ),
-                const SizedBox(height: 22),
-                _buildActions(context, scheme),
-              ],
+            const SizedBox(height: 14),
+            _buildLabel(theme, scheme, 'bio_label'.tr),
+            const SizedBox(height: 8),
+            _buildField(
+              theme,
+              scheme,
+              controller: _bioController,
+              focusNode: _bioFocusNode,
+              hint: 'edit_bio_hint'.tr,
+              maxLength: _maxBioLength,
+              minLines: 3,
+              maxLines: 5,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.newline,
             ),
-          ),
+            const SizedBox(height: 20),
+            _buildActions(context, scheme),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme scheme,
-  ) {
-    return Row(
+  Widget _buildHeader(ThemeData theme, ColorScheme scheme) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'edit_job_bio_title'.tr,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.25,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'edit_job_bio_subtitle'.tr,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  height: 1.45,
-                ),
-              ),
-            ],
+        Text(
+          'edit_job_bio_title'.tr,
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.25,
           ),
         ),
-        const SizedBox(width: 12),
-        IconButton(
-          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
-          icon: const Icon(CupertinoIcons.xmark, size: 17),
-          color: scheme.onSurfaceVariant,
-          style: IconButton.styleFrom(
-            minimumSize: const Size.square(36),
-            maximumSize: const Size.square(36),
-            backgroundColor: scheme.surfaceContainerHighest,
-            shape: const CircleBorder(),
+        const SizedBox(height: 6),
+        Text(
+          'edit_job_bio_subtitle'.tr,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: scheme.onSurfaceVariant,
+            height: 1.45,
           ),
         ),
       ],

@@ -5,10 +5,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
+import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/features/profile/presentation/widgets/profile_more_popup.dart';
+import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
+import 'package:Note/features/settings/presentation/widgets/account_delete_menu.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -621,13 +625,23 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Widget _buildDeleteAccountRow(BuildContext context) {
-    return _buildActionRow(
-      context,
-      icon: CupertinoIcons.trash_fill,
-      title: 'delete_account_title'.tr,
-      isDestructive: true,
-      showChevron: true,
-      onTap: () => Get.toNamed(Routes.ACCOUNT),
+    final accountController = AccountController(
+      logout: Get.find<Logout>(),
+      deleteAccount: Get.find<DeleteAccount>(),
+      guestMode: Get.find<GuestModeService>(),
+    );
+
+    return AccountDeleteMenu(
+      controller: accountController,
+      morphFromZero: true,
+      triggerBuilder: (context, openMenu) => _buildActionRow(
+        context,
+        icon: CupertinoIcons.trash_fill,
+        title: 'delete_account_title'.tr,
+        isDestructive: true,
+        showChevron: true,
+        onTap: openMenu,
+      ),
     );
   }
 

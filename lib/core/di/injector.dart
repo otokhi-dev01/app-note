@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
@@ -35,6 +36,7 @@ class InitialBinding extends Bindings {
     // ── Infrastructure ──────────────────────────────────────────────
     Get.put(SessionStorage(), permanent: true);
     Get.put(GuestModeService(), permanent: true);
+    Get.put(SettingsPreferences(), permanent: true);
     Get.put(ApiClient(), permanent: true);
 
     // ── Datasources ─────────────────────────────────────────────────
@@ -97,7 +99,7 @@ class InitialBinding extends Bindings {
       ProfileController(
         updateUserName: Get.find<UpdateUserName>(),
         updateProfileImage: Get.find<UpdateProfileImage>(),
-        profile: Get.find<ProfileRepository>(),
+        session: Get.find<SessionStorage>(),
         forgotPassword: Get.find<ForgotPassword>(),
       ),
       permanent: true,

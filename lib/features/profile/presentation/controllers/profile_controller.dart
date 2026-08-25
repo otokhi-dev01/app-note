@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
+import 'package:Note/features/auth/presentation/widgets/forgot_password_popup.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -12,27 +13,31 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/profile_extras_storage.dart';
+import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
-import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
+import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
+import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class ProfileController extends GetxController {
   final UpdateUserName _updateUserName;
   final UpdateProfileImage _updateProfileImage;
-  final ProfileRepository _profile;
+  final SessionStorage _session;
   final ForgotPassword _forgotPassword;
+  Worker? _sessionWorker;
+  Worker? _guestModeWorker;
 
   ProfileController({
     required UpdateUserName updateUserName,
     required UpdateProfileImage updateProfileImage,
-    required ProfileRepository profile,
+    required SessionStorage session,
     required ForgotPassword forgotPassword,
   }) : _updateUserName = updateUserName,
        _updateProfileImage = updateProfileImage,
-       _profile = profile,
+       _session = session,
        _forgotPassword = forgotPassword;
 
   final _picker = ImagePicker();
@@ -61,17 +66,23 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadUserData();
+    _loadProfileExtras();
+    _syncApiUser();
+    _sessionWorker = ever(_session.user, (_) => _syncApiUser());
+    _guestModeWorker = ever(_guestMode.isGuestMode, (_) => _syncApiUser());
   }
 
-  void _loadUserData() {
-    final user = _profile.currentUser;
-    userName.value =
-        user?.fullName ??
-        (isGuestMode.value ? 'guest_label'.tr : 'default_user_name'.tr);
-    userPhone.value = isGuestMode.value
+  void _syncApiUser() {
+    final user = _session.user.value;
+    final isGuest = isGuestMode.value && user == null;
+    final apiName = user?.fullName?.trim() ?? '';
+
+    userName.value = isGuest
+        ? 'guest_label'.tr
+        : (apiName.isNotEmpty ? apiName : 'default_user_name'.tr);
+    userPhone.value = isGuest
         ? 'not_signed_in'.tr
-        : (user?.phone ?? '');
+        : (user?.phone?.trim() ?? '');
 
     // The avatar is a local file path; drop it if the file is gone (app
     // reinstall, cache clear) so the UI falls back to the placeholder.
@@ -79,13 +90,22 @@ class ProfileController extends GetxController {
     userImagePath.value = savedPath.isNotEmpty && File(savedPath).existsSync()
         ? savedPath
         : '';
+  }
 
+  void _loadProfileExtras() {
     userUsername.value = _extras.username;
     userAccount.value = _extras.account;
     userEmail.value = _extras.email;
     userJob.value = _extras.job;
     userBio.value = _extras.bio;
     userColorHex.value = _extras.colorHex;
+  }
+
+  @override
+  void onClose() {
+    _sessionWorker?.dispose();
+    _guestModeWorker?.dispose();
+    super.onClose();
   }
 
   Future<void> updateUserName() async {
@@ -167,82 +187,19 @@ class ProfileController extends GetxController {
     final context = Get.context;
     if (context == null) return;
 
-    final jobController = TextEditingController(text: userJob.value);
-    final bioController = TextEditingController(text: userBio.value);
-    try {
-      await CustomGlassSheet.show<void>(
-        context: context,
-        isScrollable: true,
-        builder: (sheetContext) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            8,
-            24,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'edit_job_bio_title'.tr,
-                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              CustomGlassTextField(
-                controller: jobController,
-                autofocus: true,
-                placeholder: 'edit_job_hint'.tr,
-                textInputAction: TextInputAction.next,
-                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
-                useOwnLayer: false,
-              ),
-              const SizedBox(height: 12),
-              CustomGlassTextField(
-                controller: bioController,
-                placeholder: 'edit_bio_hint'.tr,
-                maxLines: 4,
-                minLines: 3,
-                textInputAction: TextInputAction.newline,
-                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
-                useOwnLayer: false,
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: CustomGlassButton(
-                  onPressed: () {
-                    _extras.job = jobController.text.trim();
-                    _extras.bio = bioController.text.trim();
-                    userJob.value = _extras.job;
-                    userBio.value = _extras.bio;
-                    Get.back();
-                    AppSnackbar.success(
-                      'saved_title'.tr,
-                      'profile_updated_message'.tr,
-                    );
-                  },
-                  semanticLabel: 'save_action'.tr,
-                  borderRadius: 30,
-                  foregroundColor: Colors.white,
-                  glassColor: AppTheme.folderPink,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Text(
-                    'save_action'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    } finally {
-      jobController.dispose();
-      bioController.dispose();
-    }
+    await EditJobBioSheet.show(
+      context: context,
+      initialJob: userJob.value,
+      initialBio: userBio.value,
+      onSave: (job, bio) async {
+        _extras.job = job;
+        _extras.bio = bio;
+        userJob.value = job;
+        userBio.value = bio;
+        AppSnackbar.success('saved_title'.tr, 'profile_updated_message'.tr);
+        return true;
+      },
+    );
   }
 
   /// A swatch picker sheet reusing [FolderAppearance.colors] — the same
@@ -251,11 +208,10 @@ class ProfileController extends GetxController {
     final context = Get.context;
     if (context == null) return;
 
-    await CustomGlassSheet.show<void>(
+    await ProfileGlassPopup.show<void>(
       context: context,
-      isScrollable: false,
       builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,65 +253,30 @@ class ProfileController extends GetxController {
     AppSnackbar.success('saved_title'.tr, 'profile_updated_message'.tr);
   }
 
-  /// Reuses the same [ForgotPassword] use case the login screen's "Forgot
-  /// password" link does — the backend has no reset route yet
-  /// (`ApiCapabilities.forgotPassword`), so this surfaces that reason rather
-  /// than pretending a link was sent.
-  Future<void> requestPasswordReset() async {
+  /// Opens the same validated forgot-password flow used by the Login screen.
+  Future<void> requestForgotPassword() async {
     final context = Get.context;
     if (context == null || isGuestMode.value) return;
 
-    final phone = userPhone.value;
-    final confirmed = await CustomGlassSheet.show<bool>(
+    await ForgotPasswordPopup.show(
       context: context,
-      isScrollable: false,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'reset_password_title'.tr,
-              style: Theme.of(
-                sheetContext,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'reset_password_desc'.tr,
-              style: Theme.of(sheetContext).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: CustomGlassButton(
-                onPressed: () => Navigator.of(sheetContext).pop(true),
-                semanticLabel: 'reset_password_title'.tr,
-                borderRadius: 30,
-                foregroundColor: Colors.white,
-                glassColor: AppTheme.folderPink,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Text(
-                  'reset_password_title'.tr,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      initialPhone: userPhone.value,
+      onSubmit: _submitForgotPassword,
     );
-    if (confirmed != true || phone.isEmpty) return;
+  }
 
+  Future<bool> _submitForgotPassword(String phone) async {
     final result = await _forgotPassword(phone);
-    if (result case Err(:final failure)) {
-      AppSnackbar.failure('reset_password_title'.tr, failure);
-    } else {
-      AppSnackbar.success(
-        'reset_request_sent_title'.tr,
-        'reset_request_sent_message'.trParams({'phone': phone}),
-      );
+    switch (result) {
+      case Ok():
+        AppSnackbar.success(
+          'reset_request_sent_title'.tr,
+          'reset_request_sent_message'.trParams({'phone': phone}),
+        );
+        return true;
+      case Err(:final failure):
+        AppSnackbar.failure('forgot_password_title'.tr, failure);
+        return false;
     }
   }
 
@@ -373,16 +294,10 @@ class ProfileController extends GetxController {
 
     final fieldController = TextEditingController(text: initialValue);
     try {
-      await CustomGlassSheet.show<void>(
+      await ProfileGlassPopup.show<void>(
         context: context,
-        isScrollable: false,
         builder: (sheetContext) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            8,
-            24,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
-          ),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

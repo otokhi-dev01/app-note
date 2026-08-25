@@ -21,11 +21,13 @@ class AccountDeleteMenu extends StatelessWidget {
   /// Builds the row the menu grows out of, given the callback that opens it.
   final Widget Function(BuildContext context, VoidCallback openMenu)
   triggerBuilder;
+  final bool morphFromZero;
 
   const AccountDeleteMenu({
     super.key,
     required this.controller,
     required this.triggerBuilder,
+    this.morphFromZero = false,
   });
 
   @override
@@ -35,6 +37,7 @@ class AccountDeleteMenu extends StatelessWidget {
       menuWidth: 250,
       autoAdjustToScreen: true,
       menuPadding: const EdgeInsets.all(12),
+      morphFromZero: morphFromZero,
       items: [
         lg.GlassMenuItem(
           title: 'delete_account_title'.tr,

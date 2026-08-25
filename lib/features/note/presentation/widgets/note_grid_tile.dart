@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/date_formatter.dart';
 import 'package:Note/routes/note_navigation.dart';
@@ -37,6 +38,9 @@ class NoteGridTile extends StatelessWidget {
     return Obx(() {
       final isEditing = controller.isEditing.value;
       final isSelected = controller.isSelected(note.id);
+      final hidePreview =
+          Get.isRegistered<SettingsPreferences>() &&
+          Get.find<SettingsPreferences>().hideNotePreviews.value;
 
       return NoteItemContextMenu(
         note: note,
@@ -69,7 +73,11 @@ class NoteGridTile extends StatelessWidget {
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(20),
                         ),
-                        child: _buildTopPreview(context, visualBlock),
+                        child: _buildTopPreview(
+                          context,
+                          visualBlock,
+                          hidePreview: hidePreview,
+                        ),
                       ),
                     ),
 
@@ -169,7 +177,18 @@ class NoteGridTile extends StatelessWidget {
 
   // DELETED: _showContextMenu as it's now handled by NoteItemContextMenu
 
-  Widget _buildTopPreview(BuildContext context, NoteBlock? visualBlock) {
+  Widget _buildTopPreview(
+    BuildContext context,
+    NoteBlock? visualBlock, {
+    required bool hidePreview,
+  }) {
+    if (hidePreview) {
+      return _GridPlaceholder(
+        icon: CupertinoIcons.lock_shield,
+        label: 'privacy_preview_hidden'.tr,
+      );
+    }
+
     if (visualBlock != null) {
       return _GridVisualPreview(block: visualBlock);
     }

@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/utils/attachment_url.dart';
@@ -59,10 +61,22 @@ class AppNoteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<SettingsPreferences>()) {
+      return _buildTile(context, hidePreview: false);
+    }
+
+    final preferences = Get.find<SettingsPreferences>();
+    return Obx(
+      () =>
+          _buildTile(context, hidePreview: preferences.hideNotePreviews.value),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, {required bool hidePreview}) {
     final theme = Theme.of(context);
     final colors = AppColors.of(context);
 
-    final attachment = showAttachmentThumbnail
+    final attachment = showAttachmentThumbnail && !hidePreview
         ? note.content.whereType<AttachmentBlock>().firstOrNull
         : null;
 
@@ -84,7 +98,7 @@ class AppNoteTile extends StatelessWidget {
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 2),
         child: Text(
-          _subtitle(),
+          _subtitle(hidePreview: hidePreview),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colors.secondaryText,
             fontSize: 13,
@@ -115,9 +129,10 @@ class AppNoteTile extends StatelessWidget {
     return Icon(Icons.chevron_right, color: colors.mutedIcon, size: 20);
   }
 
-  String _subtitle() {
+  String _subtitle({required bool hidePreview}) {
     if (subtitleOverride != null) return subtitleOverride!;
     final when = DateFormatter.relative(timestamp ?? note.updatedAt);
+    if (hidePreview) return when;
     final snippet = NoteSnippet.of(note);
     return when.isEmpty ? snippet : '$when  $snippet';
   }

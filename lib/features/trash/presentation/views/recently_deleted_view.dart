@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/date_formatter.dart';
@@ -403,6 +404,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: Obx(() {
         final isSelected = controller.selectedNoteIds.contains(note.id);
         final isEditing = controller.isEditing.value;
+        final hidePreview =
+            Get.isRegistered<SettingsPreferences>() &&
+            Get.find<SettingsPreferences>().hideNotePreviews.value;
 
         return TrashItemContextMenu(
           note: note,
@@ -438,7 +442,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                "${DateFormatter.relative(note.updatedAt)}  ${NoteSnippet.of(note)}",
+                hidePreview
+                    ? DateFormatter.relative(note.updatedAt)
+                    : "${DateFormatter.relative(note.updatedAt)}  ${NoteSnippet.of(note)}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(

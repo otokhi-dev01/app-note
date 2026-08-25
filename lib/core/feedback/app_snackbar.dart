@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/error/failures.dart';
+import 'package:Note/core/storage/settings_preferences.dart';
 
 /// Every toast the app shows.
 ///
@@ -14,13 +15,16 @@ class AppSnackbar {
   static const Duration _short = Duration(milliseconds: 1600);
   static const Duration _long = Duration(seconds: 3);
 
-  static void success(String title, [String message = '']) => _show(
-    title: title,
-    message: message,
-    accent: const Color(0xFF34C759),
-    icon: Icons.check_circle_outline,
-    duration: _short,
-  );
+  static void success(String title, [String message = '']) {
+    if (!_actionConfirmationsEnabled) return;
+    _show(
+      title: title,
+      message: message,
+      accent: const Color(0xFF34C759),
+      icon: Icons.check_circle_outline,
+      duration: _short,
+    );
+  }
 
   static void info(String title, [String message = '']) => _show(
     title: title,
@@ -54,6 +58,11 @@ class AppSnackbar {
     ValidationFailure() => warning(title, failure.message),
     _ => error(title, failure.message),
   };
+
+  static bool get _actionConfirmationsEnabled {
+    if (!Get.isRegistered<SettingsPreferences>()) return true;
+    return Get.find<SettingsPreferences>().actionConfirmations.value;
+  }
 
   static void _show({
     required String title,
