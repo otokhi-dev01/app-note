@@ -84,6 +84,10 @@ const Map<String, String> kmKH = {
   // Profile rename
   'edit_name_title': 'កែឈ្មោះ',
   'edit_name_hint': 'បញ្ចូលឈ្មោះរបស់អ្នក',
+  'edit_name_subtitle': 'ឈ្មោះនេះនឹងបង្ហាញនៅលើប្រវត្តិរូប និងក្នុងកម្មវិធី។',
+  'name_required_message': 'សូមបញ្ចូលឈ្មោះរបស់អ្នក។',
+  'cancel_action': 'បោះបង់',
+  'clear_action': 'សម្អាត',
   'saved_title': 'បានរក្សាទុក',
   'name_updated_message': 'ឈ្មោះត្រូវបានធ្វើបច្ចុប្បន្នភាព',
   'name_update_failed_title': 'មិនអាចធ្វើបច្ចុប្បន្នភាពឈ្មោះបានទេ',
@@ -105,6 +109,7 @@ const Map<String, String> kmKH = {
   'tier_label': 'កម្រិតគណនី',
   'not_available': 'មិនមាន',
   'save_action': 'រក្សាទុក',
+  'done_action': 'រួចរាល់',
   'profile_updated_message': 'ព័ត៌មានប្រវត្តិរូបត្រូវបានធ្វើបច្ចុប្បន្នភាព',
 
   // Profile — local-only fields (no backend support yet, see
@@ -347,7 +352,18 @@ const Map<String, String> kmKH = {
   'note_editor_mark_item_incomplete': 'សម្គាល់ធាតុថាមិនទាន់ធ្វើ',
   'note_editor_mark_item_complete': 'សម្គាល់ធាតុថាបានធ្វើរួច',
   'note_editor_default_folder_name': 'កំណត់ត្រា',
+  'note_editor_change_folder_label': 'ប្តូរថត',
+  'note_editor_folder_updated_title': 'បានធ្វើបច្ចុប្បន្នភាពថត',
+  'note_editor_folder_updated_message':
+      'កំណត់ត្រានេះនឹងត្រូវរក្សាទុកក្នុង @folder។',
+  'note_editor_move_success_title': 'បានផ្លាស់ទីកំណត់ត្រា',
+  'note_editor_move_success_message': 'បានផ្លាស់ទីទៅ @folder។',
+  'note_editor_move_failed_title': 'មិនអាចផ្លាស់ទីកំណត់ត្រាបានទេ',
+  'note_editor_load_folders_failed_title': 'មិនអាចផ្ទុកថតបានទេ',
+  'note_editor_no_destination_title': 'មិនមានថតគោលដៅ',
+  'note_editor_no_destination_message': 'សូមបង្កើតថតផ្សេងមួយជាមុនសិន។',
   'note_editor_saving_indicator': '  ·  កំពុងរក្សាទុក…',
+  'note_editor_undo_label': 'មិនធ្វើវិញ',
   'note_editor_checklist_label': 'បញ្ជីត្រូវធ្វើ',
   'note_editor_attachment_label': 'ឯកសារភ្ជាប់',
   'note_editor_format_label': 'ទម្រង់',

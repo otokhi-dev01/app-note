@@ -2016,48 +2016,96 @@ class NoteDetailController extends GetxController {
     // calling this (see toggleSearch()'s note above), and this is also
     // called directly by tapping the folder label in the editor, which
     // never had a menu to close in the first place.
-    if (isLoading.value || currentNote.value == null) return;
+    if (isLoading.value ||
+        isSaving.value ||
+        isReadOnly.value ||
+        currentNote.value == null) {
+      return;
+    }
     await _openFolderPicker();
   }
 
   Future<void> _openFolderPicker() async {
+    final sourceNote = currentNote.value;
+    if (sourceNote == null) return;
+
     final foldersResult = await _getFolders(const NoParams());
     if (foldersResult case Err(:final failure)) {
-      AppSnackbar.failure('Could not load folders', failure);
+      AppSnackbar.failure('note_editor_load_folders_failed_title'.tr, failure);
       return;
     }
 
     final folders = foldersResult.valueOrNull!.folders;
     if (folders.isEmpty) {
-      AppSnackbar.info('No destination', 'Create another folder first.');
+      AppSnackbar.info(
+        'note_editor_no_destination_title'.tr,
+        'note_editor_no_destination_message'.tr,
+      );
       return;
     }
 
     await Get.to(
       () => NoteMoveFolderModal(
         folders: folders,
-        currentFolderId: currentNote.value!.folderId,
+        currentFolderId: sourceNote.folderId,
         onFolderSelected: (targetFolder) async {
-          Get.back(); // Pop modal
+          Get.back();
+          final note = currentNote.value;
+          if (note == null || note.folderId == targetFolder.id) return;
+
+          // A new note does not have a server id yet. Changing its folder is
+          // therefore a local draft update; the regular first-save flow will
+          // persist the selected folder together with the note. Sending id 0
+          // through the move endpoint would create metadata prematurely and
+          // then try to fetch a note that still has id 0.
+          if (note.id == 0) {
+            currentNote.value = Note(
+              id: note.id,
+              folderId: targetFolder.id,
+              folderName: targetFolder.displayName,
+              title: note.title,
+              content: note.content,
+              isPinned: note.isPinned,
+              isArchived: note.isArchived,
+              isLocked: note.isLocked,
+              updatedAt: note.updatedAt,
+              deletedAt: note.deletedAt,
+              attachmentCount: note.attachmentCount,
+              isDeleteFlag: note.isDeleteFlag,
+            );
+            AppSnackbar.success(
+              'note_editor_folder_updated_title'.tr,
+              'note_editor_folder_updated_message'.trParams({
+                'folder': targetFolder.displayName,
+              }),
+            );
+            return;
+          }
+
           isLoading.value = true;
           try {
             final result = await _saveNoteMetadata(
               SaveNoteParams(
                 folderId: targetFolder.id,
                 title: titleController.text,
-                noteId: currentNote.value!.id,
+                noteId: note.id,
               ),
             );
             switch (result) {
               case Ok():
-                await fetchNoteDetail(currentNote.value!.id);
+                await fetchNoteDetail(note.id);
                 _refreshNoteList();
                 AppSnackbar.success(
-                  'Moved',
-                  'Moved to ${targetFolder.displayName}',
+                  'note_editor_move_success_title'.tr,
+                  'note_editor_move_success_message'.trParams({
+                    'folder': targetFolder.displayName,
+                  }),
                 );
               case Err(:final failure):
-                AppSnackbar.failure('Could not move note', failure);
+                AppSnackbar.failure(
+                  'note_editor_move_failed_title'.tr,
+                  failure,
+                );
             }
           } finally {
             isLoading.value = false;

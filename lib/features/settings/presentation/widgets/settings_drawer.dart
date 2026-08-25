@@ -1,103 +1,127 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/shared/widgets/language_picker_sheet.dart';
-import 'package:Note/core/storage/language_preferences.dart';
 
-/// The Folders screen's slide-out settings panel, opened from the gear icon.
+/// The settings panel opened from the Folders screen.
 ///
-/// A flat, plain-list layout (light square icon badges, no card grouping) —
-/// every row here is real, working navigation: Profile Details, Appearance,
-/// Note Preferences, Dark Mode, Language, Change Password, and Help Center.
-/// Actual field editing lives on [Routes.PROFILE] now, reached via the first
-/// row, rather than duplicated here.
+/// The drawer uses a restrained, grouped layout: identity first, everyday
+/// preferences next, then support and account actions. All editing remains on
+/// the dedicated settings screens.
 class SettingsDrawer extends GetView<ProfileController> {
   const SettingsDrawer({super.key});
+
+  static const _drawerRadius = 28.0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final drawerWidth = math.min(
+      MediaQuery.sizeOf(context).width * 0.88,
+      400.0,
+    );
 
     return Drawer(
+      width: drawerWidth,
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
       backgroundColor: theme.scaffoldBackgroundColor,
-      width: MediaQuery.sizeOf(context).width * 0.84,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(
+          right: Radius.circular(_drawerRadius),
+        ),
+      ),
       child: SafeArea(
         child: Column(
           children: [
             _buildHeader(context),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
-                  _buildAvatarBlock(context),
+                  _buildProfileCard(context),
                   const SizedBox(height: 24),
-                  _buildRow(
+                  _buildSectionLabel(context, 'section_preferences'.tr),
+                  _buildGroup(
                     context,
-                    icon: CupertinoIcons.person_crop_circle_fill,
-                    title: "profile_title".tr,
-                    highlighted: true,
-                    onTap: () => _closeThenGo(context, Routes.PROFILE),
+                    children: [
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.paintbrush_fill,
+                        title: 'appearance_title'.tr,
+                        onTap: () => _closeThenGo(context, Routes.APPEARANCE),
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.textformat_alt,
+                        title: 'note_preferences_title'.tr,
+                        onTap: () =>
+                            _closeThenGo(context, Routes.NOTE_PREFERENCES),
+                      ),
+                      _buildDarkModeRow(context),
+                      LanguagePickerMenu(
+                        morphFromZero: true,
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.globe,
+                          title: 'language_title'.tr,
+                          trailingText: LanguagePreferences().language.label,
+                          onTap: toggleMenu,
+                        ),
+                      ),
+                    ],
                   ),
-                  _buildRow(
-                    context,
-                    icon: CupertinoIcons.paintbrush_fill,
-                    title: "appearance_title".tr,
-                    onTap: () => _closeThenGo(context, Routes.APPEARANCE),
-                  ),
-                  _buildRow(
-                    context,
-                    icon: CupertinoIcons.list_bullet,
-                    title: "note_preferences_title".tr,
-                    onTap: () => _closeThenGo(context, Routes.NOTE_PREFERENCES),
-                  ),
-                  _buildDarkModeRow(context),
-                  LanguagePickerMenu(
-                    morphFromZero: true,
-                    triggerBuilder: (context, toggleMenu) => _buildRow(
-                      context,
-                      icon: CupertinoIcons.globe,
-                      title: "language_title".tr,
-                      trailingText: LanguagePreferences().language.label,
-                      onTap: toggleMenu,
-                    ),
-                  ),
+                  const SizedBox(height: 22),
+                  _buildSectionLabel(context, 'section_support'.tr),
                   Obx(
-                    () => controller.isGuestMode.value
-                        ? const SizedBox.shrink()
-                        : _buildRow(
+                    () => _buildGroup(
+                      context,
+                      children: [
+                        if (!controller.isGuestMode.value)
+                          _buildRow(
                             context,
                             icon: CupertinoIcons.lock_rotation,
-                            title: "reset_password_title".tr,
+                            title: 'reset_password_title'.tr,
                             onTap: controller.requestPasswordReset,
                           ),
-                  ),
-                  _buildRow(
-                    context,
-                    icon: CupertinoIcons.question_circle_fill,
-                    title: "help_center_title".tr,
-                    onTap: () => _closeThenGo(context, Routes.HELP_CENTER),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(
-                      height: 1,
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.4,
-                      ),
+                        _buildRow(
+                          context,
+                          icon: CupertinoIcons.question_circle_fill,
+                          title: 'help_center_title'.tr,
+                          onTap: () =>
+                              _closeThenGo(context, Routes.HELP_CENTER),
+                        ),
+                      ],
                     ),
                   ),
-                  _buildAccountAction(context),
-                  _buildDeleteAccountAction(context),
+                  const SizedBox(height: 22),
+                  _buildSectionLabel(context, 'account_label'.tr),
+                  Obx(
+                    () => _buildGroup(
+                      context,
+                      children: [
+                        _buildAccountAction(context),
+                        if (!controller.isGuestMode.value)
+                          _buildDeleteAccountAction(context),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _buildBrandFooter(context),
                 ],
               ),
             ),
@@ -109,25 +133,30 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+      padding: const EdgeInsets.fromLTRB(20, 12, 12, 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            "settings_title".tr,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
+          const AppLogo(height: 28),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'settings_title'.tr,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
             ),
           ),
           IconButton(
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
             onPressed: () => Navigator.of(context).pop(),
-            icon: Icon(
-              CupertinoIcons.xmark,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            icon: const Icon(CupertinoIcons.xmark, size: 17),
+            color: theme.colorScheme.onSurfaceVariant,
             style: IconButton.styleFrom(
+              minimumSize: const Size.square(40),
               backgroundColor: theme.colorScheme.surfaceContainerHighest,
               shape: const CircleBorder(),
             ),
@@ -137,138 +166,213 @@ class SettingsDrawer extends GetView<ProfileController> {
     );
   }
 
-  /// Identity block above the list. Tapping it opens the profile details
-  /// screen; the camera button keeps its own image-picker action.
-  Widget _buildAvatarBlock(BuildContext context) {
+  Widget _buildProfileCard(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Obx(() {
       final isGuest = controller.isGuestMode.value;
       final imagePath = controller.userImagePath.value;
       final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
-      // Default app accent — not the user's own picked [ProfileController.
-      // userColor], which is scoped to the Color field itself rather than
-      // recoloring the rest of the screen.
-      final accent = theme.colorScheme.primary;
+      final username = controller.userUsername.value;
+      final account = controller.userAccount.value;
 
       return Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: () => _closeThenGo(context, Routes.PROFILE),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor:
-                          theme.colorScheme.surfaceContainerHighest,
-                      backgroundImage: hasImage
-                          ? FileImage(File(imagePath))
-                          : null,
-                      child: hasImage
-                          ? null
-                          : Icon(
-                              CupertinoIcons.person_fill,
-                              color: theme.colorScheme.onSurfaceVariant,
-                              size: 40,
-                            ),
-                    ),
-                    if (!isGuest)
-                      Positioned(
-                        bottom: -2,
-                        right: -2,
-                        child: CustomGlassButton(
-                          onPressed: controller.updateProfileImage,
-                          width: 24,
-                          height: 24,
-                          shape: GlassShape.circle,
-                          blur: 10,
-                          opacity: 0.9,
-                          thickness: 2,
-                          glassColor: theme.scaffoldBackgroundColor,
-                          padding: EdgeInsets.zero,
-                          child: Icon(
-                            CupertinoIcons.camera_fill,
-                            size: 12,
-                            color: accent,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                scheme.primary.withValues(alpha: 0.14),
+                scheme.surface.withValues(alpha: 0.88),
+              ],
+            ),
+            border: Border.all(color: scheme.primary.withValues(alpha: 0.16)),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _closeThenGo(context, Routes.PROFILE),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      Text(
-                        controller.userName.value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                      if (!isGuest &&
-                          controller.userUsername.value.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '@${controller.userUsername.value}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: accent,
-                            fontWeight: FontWeight.w600,
+                      Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: scheme.primary.withValues(alpha: 0.35),
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 8),
-                      CustomGlassContainer(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
+                        child: CircleAvatar(
+                          radius: 29,
+                          backgroundColor: scheme.surfaceContainerHighest,
+                          backgroundImage: hasImage
+                              ? FileImage(File(imagePath))
+                              : null,
+                          child: hasImage
+                              ? null
+                              : Icon(
+                                  CupertinoIcons.person_fill,
+                                  color: scheme.onSurfaceVariant,
+                                  size: 29,
+                                ),
                         ),
-                        borderRadius: 20,
-                        glassColor: theme.colorScheme.surfaceContainerHighest,
-                        opacity: 0.12,
-                        blur: 8,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              CupertinoIcons.person_crop_circle_fill,
-                              size: 11,
-                              color: accent,
+                      ),
+                      if (!isGuest)
+                        Positioned(
+                          right: -3,
+                          bottom: -2,
+                          child: Material(
+                            color: scheme.primary,
+                            shape: const CircleBorder(),
+                            elevation: 2,
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: controller.updateProfileImage,
+                              child: const SizedBox.square(
+                                dimension: 24,
+                                child: Icon(
+                                  CupertinoIcons.camera_fill,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              isGuest
-                                  ? "guest_status".tr
-                                  : (controller.userAccount.value.isEmpty
-                                        ? "account_label".tr
-                                        : controller.userAccount.value),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: accent,
-                                fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          controller.userName.value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (!isGuest && username.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '@$username',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: scheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                isGuest
+                                    ? 'guest_status'.tr
+                                    : (account.isEmpty
+                                          ? 'account_label'.tr
+                                          : account),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Icon(
+                    CupertinoIcons.chevron_forward,
+                    size: 14,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       );
     });
+  }
+
+  Widget _buildSectionLabel(BuildContext context, String title) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Text(
+        title.toUpperCase(),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroup(BuildContext context, {required List<Widget> children}) {
+    final theme = Theme.of(context);
+    final groupedChildren = <Widget>[];
+
+    for (var index = 0; index < children.length; index++) {
+      if (index > 0) {
+        groupedChildren.add(
+          Divider(
+            height: 1,
+            indent: 58,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+          ),
+        );
+      }
+      groupedChildren.add(children[index]);
+    }
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.38),
+        ),
+        boxShadow: theme.brightness == Brightness.light
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.035),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(children: groupedChildren),
+    );
   }
 
   Widget _buildRow(
@@ -277,65 +381,61 @@ class SettingsDrawer extends GetView<ProfileController> {
     required String title,
     String? trailingText,
     VoidCallback? onTap,
-    bool highlighted = false,
   }) {
     final theme = Theme.of(context);
-    final badgeColor = highlighted
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurfaceVariant;
-    // Solid base color — CustomGlassContainer's own `opacity` below applies
-    // the translucency, so this isn't pre-faded and double-stacked with it.
-    final badgeBg = highlighted
-        ? theme.colorScheme.primary
-        : theme.colorScheme.surfaceContainerHighest;
+    final scheme = theme.colorScheme;
 
     return Material(
-      color: highlighted
-          ? theme.colorScheme.primary.withValues(alpha: 0.06)
-          : Colors.transparent,
-      borderRadius: BorderRadius.circular(14),
+      color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
+        onTap: onTap == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onTap();
+              },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              CustomGlassContainer(
+              Container(
                 width: 36,
                 height: 36,
                 alignment: Alignment.center,
-                borderRadius: 10,
-                glassColor: badgeBg,
-                opacity: highlighted ? 0.12 : 0.5,
-                blur: 8,
-                child: Icon(icon, size: 18, color: badgeColor),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: scheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
-                    color: highlighted ? theme.colorScheme.primary : null,
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               if (trailingText != null) ...[
-                Text(
-                  trailingText,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    trailingText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
               ],
+              const SizedBox(width: 8),
               Icon(
                 CupertinoIcons.chevron_forward,
                 size: 14,
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.5,
-                ),
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.48),
               ),
             ],
           ),
@@ -346,40 +446,40 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Widget _buildDarkModeRow(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
-          CustomGlassContainer(
+          Container(
             width: 36,
             height: 36,
             alignment: Alignment.center,
-            borderRadius: 10,
-            glassColor: theme.colorScheme.surfaceContainerHighest,
-            opacity: 0.5,
-            blur: 8,
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Icon(
-              CupertinoIcons.moon_fill,
+              isDark ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
               size: 18,
-              color: isDark
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.onSurfaceVariant,
+              color: scheme.primary,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              "dark_mode".tr,
+              'dark_mode'.tr,
               style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Switch.adaptive(
             value: isDark,
-            activeThumbColor: theme.colorScheme.primary,
+            activeThumbColor: scheme.primary,
             onChanged: (value) {
               HapticFeedback.lightImpact();
               ThemeStorage().switchTheme(
@@ -394,107 +494,122 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Widget _buildAccountAction(BuildContext context) {
     final guestMode = Get.find<GuestModeService>();
-    final theme = Theme.of(context);
 
     return Obx(() {
       final isGuest = guestMode.isGuestMode.value;
-      return Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            HapticFeedback.mediumImpact();
-            Navigator.of(context).pop();
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (isGuest) {
-                Get.offAllNamed(Routes.LOGIN);
-              } else {
-                unawaited(_logout());
-              }
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(
-              children: [
-                CustomGlassContainer(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  borderRadius: 10,
-                  glassColor: Colors.red,
-                  opacity: 0.12,
-                  blur: 8,
-                  child: Icon(
-                    isGuest
-                        ? CupertinoIcons.arrow_right_circle
-                        : CupertinoIcons.square_arrow_right,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  isGuest ? "log_in_create_account".tr : "log_out".tr,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      return _buildActionRow(
+        context,
+        icon: isGuest
+            ? CupertinoIcons.person_badge_plus
+            : CupertinoIcons.square_arrow_right,
+        title: isGuest ? 'log_in_create_account'.tr : 'log_out'.tr,
+        isDestructive: !isGuest,
+        showChevron: isGuest,
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          Navigator.of(context).pop();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (isGuest) {
+              Get.offAllNamed(Routes.LOGIN);
+            } else {
+              unawaited(_logout());
+            }
+          });
+        },
       );
     });
   }
 
   Widget _buildDeleteAccountAction(BuildContext context) {
     final guestMode = Get.find<GuestModeService>();
-    final theme = Theme.of(context);
 
     return Obx(() {
       if (guestMode.isGuestMode.value) return const SizedBox.shrink();
 
-      return Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => _closeThenGo(context, Routes.ACCOUNT),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(
-              children: [
-                CustomGlassContainer(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  borderRadius: 10,
-                  glassColor: theme.colorScheme.surfaceContainerHighest,
-                  opacity: 0.12,
-                  blur: 8,
-                  child: const Icon(
-                    CupertinoIcons.trash_fill,
-                    size: 18,
-                    color: Colors.red,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  "delete_account_title".tr,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+      return _buildActionRow(
+        context,
+        icon: CupertinoIcons.trash_fill,
+        title: 'delete_account_title'.tr,
+        isDestructive: true,
+        showChevron: true,
+        onTap: () => _closeThenGo(context, Routes.ACCOUNT),
       );
     });
+  }
+
+  Widget _buildActionRow(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+    bool showChevron = false,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final color = isDestructive ? scheme.error : scheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (showChevron)
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 14,
+                  color: color.withValues(alpha: 0.5),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBrandFooter(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        AppLogo(
+          height: 17,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+        ),
+        const SizedBox(width: 7),
+        Text(
+          'Piisiit Note',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
   }
 
   Future<void> _logout() async {
@@ -502,16 +617,6 @@ class SettingsDrawer extends GetView<ProfileController> {
     unawaited(Get.offAllNamed(Routes.ONBOARDING));
   }
 
-  /// Closes the drawer, then pushes [route] on the next frame instead of in
-  /// the same tap callback.
-  ///
-  /// Uses `Navigator.of(context).pop()` — tied to this exact row's own
-  /// `context`, which sits below the Scaffold that owns this Drawer — rather
-  /// than `Get.back()`, which resolves against GetX's own root navigator key
-  /// and isn't guaranteed to be the same Navigator instance the Drawer's
-  /// local-history entry (its actual close mechanism) was registered on.
-  /// Pushing the new route is also deferred a frame so it lands after the
-  /// drawer's close animation actually finishes, instead of racing it.
   void _closeThenGo(BuildContext context, String route) {
     Navigator.of(context).pop();
     WidgetsBinding.instance.addPostFrameCallback((_) => Get.toNamed(route));

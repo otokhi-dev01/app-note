@@ -87,6 +87,11 @@ const Map<String, String> enUS = {
   // Profile rename
   'edit_name_title': 'Edit Name',
   'edit_name_hint': 'Enter your name',
+  'edit_name_subtitle':
+      'This is how your name will appear on your profile and across the app.',
+  'name_required_message': 'Please enter your name.',
+  'cancel_action': 'Cancel',
+  'clear_action': 'Clear',
   'saved_title': 'Saved',
   'name_updated_message': 'Name updated',
   'name_update_failed_title': 'Could not update name',
@@ -106,6 +111,7 @@ const Map<String, String> enUS = {
   'tier_label': 'Account Tier',
   'not_available': 'Not available',
   'save_action': 'Save',
+  'done_action': 'Done',
   'profile_updated_message': 'Profile updated',
 
   // Profile — local-only fields (no backend support yet, see
@@ -347,7 +353,17 @@ const Map<String, String> enUS = {
   'note_editor_mark_item_incomplete': 'Mark checklist item incomplete',
   'note_editor_mark_item_complete': 'Mark checklist item complete',
   'note_editor_default_folder_name': 'Notes',
+  'note_editor_change_folder_label': 'Change folder',
+  'note_editor_folder_updated_title': 'Folder Updated',
+  'note_editor_folder_updated_message': 'This note will be saved in @folder.',
+  'note_editor_move_success_title': 'Note Moved',
+  'note_editor_move_success_message': 'Moved to @folder.',
+  'note_editor_move_failed_title': 'Could not move note',
+  'note_editor_load_folders_failed_title': 'Could not load folders',
+  'note_editor_no_destination_title': 'No Destination',
+  'note_editor_no_destination_message': 'Create another folder first.',
   'note_editor_saving_indicator': '  ·  Saving…',
+  'note_editor_undo_label': 'Undo',
   'note_editor_checklist_label': 'Checklist',
   'note_editor_attachment_label': 'Attachment',
   'note_editor_format_label': 'Format',

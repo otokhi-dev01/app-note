@@ -16,6 +16,7 @@ import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
+import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class ProfileController extends GetxController {
@@ -87,67 +88,26 @@ class ProfileController extends GetxController {
     userColorHex.value = _extras.colorHex;
   }
 
-  /// Glass bottom-sheet popup (matching the language picker / forgot-password
-  /// flows) rather than a center dialog, for a look consistent with the rest
-  /// of the app's newer glass surfaces.
   Future<void> updateUserName() async {
     final context = Get.context;
     if (context == null) return;
 
-    final nameController = TextEditingController(text: userName.value);
-    try {
-      await CustomGlassSheet.show<void>(
-        context: context,
-        isScrollable: false,
-        builder: (sheetContext) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            8,
-            24,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'edit_name_title'.tr,
-                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              CustomGlassTextField(
-                controller: nameController,
-                autofocus: true,
-                placeholder: 'edit_name_hint'.tr,
-                textInputAction: TextInputAction.done,
-                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
-                useOwnLayer: false,
-                onSubmitted: (_) => _saveUserName(nameController),
-                suffixIcon: const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppTheme.folderPink,
-                ),
-                onSuffixTap: () => _saveUserName(nameController),
-              ),
-            ],
-          ),
-        ),
-      );
-    } finally {
-      nameController.dispose();
-    }
+    await EditNameSheet.show(
+      context: context,
+      initialName: userName.value,
+      onSave: _saveUserName,
+    );
   }
 
-  Future<void> _saveUserName(TextEditingController controller) async {
-    switch (await _updateUserName(controller.text)) {
+  Future<bool> _saveUserName(String name) async {
+    switch (await _updateUserName(name)) {
       case Ok(:final value):
         userName.value = value.fullName ?? userName.value;
-        Get.back();
         AppSnackbar.success('saved_title'.tr, 'name_updated_message'.tr);
+        return true;
       case Err(:final failure):
         AppSnackbar.failure('name_update_failed_title'.tr, failure);
+        return false;
     }
   }
 
