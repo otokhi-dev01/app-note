@@ -2,11 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
-/// App-wide text field backed by liquid_glass_widgets 0.29.5.
-///
-/// It creates its own layer by default so the field is safe to reuse in
-/// dialogs, sheets, and regular Material screens. Set [useOwnLayer] to false
-/// when it is already inside a package glass layer.
 class CustomGlassTextField extends StatelessWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
@@ -114,7 +109,6 @@ class CustomGlassTextField extends StatelessWidget {
   }
 }
 
-/// App-wide search field backed by [lg.GlassSearchBar].
 class CustomGlassSearchBar extends StatelessWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
@@ -185,11 +179,6 @@ class CustomGlassSearchBar extends StatelessWidget {
   }
 }
 
-/// Reusable list row backed by [lg.GlassListTile].
-///
-/// liquid_glass_widgets 0.29.5 marks `GlassListTile.standalone` as isolated,
-/// but its internal [lg.GlassContainer] omits `useOwnLayer: true`. This wrapper
-/// explicitly creates that missing layer when [standalone] is true.
 class CustomGlassListTile extends StatelessWidget {
   final Widget? leading;
   final Widget title;

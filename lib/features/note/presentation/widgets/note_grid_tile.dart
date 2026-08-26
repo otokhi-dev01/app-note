@@ -29,8 +29,6 @@ class NoteGridTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Find the first visual attachment (Image or Drawing)
-    // Note.fromJson now ensures these exist even if blockId was missing
     final visualBlock = note.content.firstWhereOrNull(
       (b) => b is AttachmentBlock || b is DrawingBlock,
     );
@@ -66,7 +64,6 @@ class NoteGridTile extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Section: Image or Text Preview
                     Expanded(
                       flex: 3,
                       child: ClipRRect(
@@ -81,7 +78,6 @@ class NoteGridTile extends StatelessWidget {
                       ),
                     ),
 
-                    // Bottom Section: Title and Metadata
                     Expanded(
                       flex: 2,
                       child: Container(
@@ -133,7 +129,6 @@ class NoteGridTile extends StatelessWidget {
                   ],
                 ),
 
-                // Selection Overlay
                 if (isEditing)
                   Positioned(
                     top: 8,
@@ -175,8 +170,6 @@ class NoteGridTile extends StatelessWidget {
     });
   }
 
-  // DELETED: _showContextMenu as it's now handled by NoteItemContextMenu
-
   Widget _buildTopPreview(
     BuildContext context,
     NoteBlock? visualBlock, {
@@ -193,8 +186,6 @@ class NoteGridTile extends StatelessWidget {
       return _GridVisualPreview(block: visualBlock);
     }
 
-    // Even if visualBlock is null, if the count > 0, we might have an image not yet parsed
-    // (though Note fix should have caught it)
     if (note.attachmentCount > 0) {
       return _GridPlaceholder(
         icon: CupertinoIcons.photo,
@@ -202,7 +193,6 @@ class NoteGridTile extends StatelessWidget {
       );
     }
 
-    // Default to text preview
     return _GridTextPreview(note: note);
   }
 }
@@ -233,7 +223,7 @@ class _GridVisualPreview extends StatelessWidget {
         File(normalizedLocalPath),
         width: double.infinity,
         height: double.infinity,
-        fit: BoxFit.cover, // Ensures the picture fills the top area fully
+        fit: BoxFit.cover,
         errorBuilder: (_, _, _) => const _GridPlaceholder(),
       );
     }
@@ -245,7 +235,7 @@ class _GridVisualPreview extends StatelessWidget {
         headers: attachmentAuthHeaders(),
         width: double.infinity,
         height: double.infinity,
-        fit: BoxFit.cover, // Show the picture as the primary visual
+        fit: BoxFit.cover,
         loadingBuilder: (_, child, progress) {
           if (progress == null) return child;
           return Center(

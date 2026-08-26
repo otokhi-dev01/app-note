@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/app_theme.dart';
@@ -14,28 +13,18 @@ import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/selection_indicator.dart';
 
-/// The row a note is shown as in the notes list, archive, and trash.
-///
-/// Previously three widgets that were ~85% identical and had drifted apart in
-/// their date format and empty-state wording. The differences that actually
-/// matter are now parameters.
 class AppNoteTile extends StatelessWidget {
   final Note note;
 
-  /// Edit mode: swaps the leading slot for a selection circle.
   final bool isEditing;
   final bool isSelected;
 
-  /// Shows the note's image attachment at the trailing edge when it has one.
   final bool showAttachmentThumbnail;
 
-  /// Trailing chevron, hidden while selecting.
   final bool showChevron;
 
-  /// Overrides the subtitle's leading timestamp (trash shows deletion date).
   final DateTime? timestamp;
 
-  /// Replaces the computed subtitle entirely.
   final String? subtitleOverride;
 
   final EdgeInsetsGeometry contentPadding;

@@ -25,26 +25,18 @@ import 'package:Note/features/profile/domain/repositories/profile_repository.dar
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 
-/// Wires the object graph bottom-up: storage → client → datasources →
-/// repositories → use cases.
-///
-/// Controllers only ever resolve use cases, so a controller can be built in a
-/// test against fakes with no HTTP anywhere in sight.
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
-    // ── Infrastructure ──────────────────────────────────────────────
     Get.put(SessionStorage(), permanent: true);
     Get.put(GuestModeService(), permanent: true);
     Get.put(SettingsPreferences(), permanent: true);
     Get.put(ApiClient(), permanent: true);
 
-    // ── Datasources ─────────────────────────────────────────────────
     Get.lazyPut(() => AuthRemoteDataSource(), fenix: true);
     Get.lazyPut(() => FolderRemoteDataSource(), fenix: true);
     Get.lazyPut(() => NoteRemoteDataSource(), fenix: true);
 
-    // ── Repositories ────────────────────────────────────────────────
     Get.lazyPut<AuthRepository>(
       () => AuthRepositoryImpl(
         Get.find<AuthRemoteDataSource>(),
@@ -80,8 +72,6 @@ class InitialBinding extends Bindings {
     _profile();
   }
 
-  /// Permanent (not per-route) so the Settings drawer on the Folders screen
-  /// can read it without pushing through Profile/Settings first.
   void _profile() {
     Get.lazyPut<ProfileRepository>(
       () => ProfileRepositoryImpl(Get.find<SessionStorage>()),

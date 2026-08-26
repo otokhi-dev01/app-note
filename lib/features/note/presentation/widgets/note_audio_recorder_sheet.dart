@@ -12,15 +12,6 @@ import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
-/// Full-screen "Record Audio" flow.
-///
-/// Starts recording the instant it opens (there's nothing to configure
-/// first — Voice Memos-style) and shows elapsed time plus a live level
-/// meter driven by the recorder's own amplitude stream. The sheet owns the
-/// entire record/stop/cancel lifecycle itself; [onRecorded] only fires once
-/// with a finished file, so the caller never has to think about recorder
-/// state — cancelling always discards whatever was captured, nothing is
-/// ever handed back half-done.
 class NoteAudioRecorderSheet extends StatefulWidget {
   final Future<void> Function(String path, String displayName) onRecorded;
 
@@ -56,9 +47,7 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
   bool _isReviewing = false;
   bool _isPlaying = false;
   bool _playbackReady = false;
-  // Guards against running the stop/cancel/dispose sequence twice — once
-  // from a button tap and again from dispose() if the route is popped some
-  // other way (e.g. a back gesture).
+
   bool _finished = false;
 
   @override
@@ -141,8 +130,6 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
     _ampSub = _recorder
         .onAmplitudeChanged(const Duration(milliseconds: 200))
         .listen((amp) {
-          // dBFS: silence sits around -45 and below, 0 is the loudest the
-          // hardware reports — normalize that range to a 0..1 meter.
           final normalized = ((amp.current + 45) / 45).clamp(0.0, 1.0);
           if (mounted && !_paused) {
             setState(() {
@@ -239,9 +226,6 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
       return;
     }
 
-    // From this point the recorder session is stopped and [path] is the only
-    // copy. Publish that lifecycle state before preparing playback so a back
-    // gesture during player setup still deletes the correct temporary file.
     _recordedPath = path;
     _isReviewing = true;
 
@@ -388,8 +372,6 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
       if (_elapsed >= _minKeepable) {
         await widget.onRecorded(path, _recordingName());
       } else {
-        // Too short to be a real recording (e.g. an accidental tap) — don't
-        // leave a near-silent file behind.
         _deleteFileBestEffort(path);
         AppSnackbar.info(
           'note_editor_recording_too_short_title'.tr,
@@ -414,8 +396,7 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
     _player.dispose();
     if (!_finished) {
       _finished = true;
-      // Torn down some other way (e.g. a back gesture bypassing the Cancel
-      // button) — best-effort cleanup so the recorder doesn't leak.
+
       unawaited(
         _recorder.cancel().catchError((_) {}).whenComplete(_recorder.dispose),
       );
@@ -462,9 +443,6 @@ class _NoteAudioRecorderSheetState extends State<NoteAudioRecorderSheet> {
     final systemRed = CupertinoColors.systemRed.resolveFrom(context);
 
     return PopScope(
-      // Every exit — Cancel, Done, or a back gesture — goes through
-      // _finish so the recorder is always stopped/disposed cleanly instead
-      // of racing the route's own pop animation.
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _finish(save: false);

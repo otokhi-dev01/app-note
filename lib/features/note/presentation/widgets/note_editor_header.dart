@@ -1,20 +1,13 @@
 import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 
-/// Note metadata shown above the editable title.
-///
-/// The folder is an explicit action: editable notes can open the folder
-/// picker, while read-only, loading, and saving states render it safely as
-/// non-interactive metadata.
 class NoteEditorHeader extends StatelessWidget {
   final NoteDetailController controller;
 

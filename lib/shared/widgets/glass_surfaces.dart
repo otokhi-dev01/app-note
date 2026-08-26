@@ -4,7 +4,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
-/// Reusable app bar backed directly by [lg.GlassAppBar].
 class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
   final Widget? leading;
@@ -49,9 +48,6 @@ class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// A pinned sliver navigation bar whose controls are rendered by
-/// [CustomGlassAppBar]. It preserves the app's existing expanded-title layout
-/// while removing feature-level `SliverAppBar` implementations.
 class CustomGlassSliverAppBar extends StatelessWidget {
   final Widget? title;
   final Widget? largeTitle;
@@ -197,7 +193,6 @@ class _CustomGlassSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-/// Package-independent tab description used by [CustomGlassTabBar].
 class CustomGlassTab {
   final Widget? icon;
   final Widget? activeIcon;
@@ -297,7 +292,6 @@ class CustomGlassSearchConfig {
   );
 }
 
-/// Reusable facade for all three package GlassTabBar constructors.
 class CustomGlassTabBar extends StatelessWidget implements PreferredSizeWidget {
   final lg.GlassTabBar _tabBar;
 
@@ -397,8 +391,6 @@ class CustomGlassDialogAction {
   });
 }
 
-/// Dialog facade that fixes the package's 0.29.5 barrier-color forwarding bug
-/// and gives every action one explicit owner for route dismissal.
 class CustomGlassDialog extends StatelessWidget {
   final String? title;
   final String? message;
@@ -471,8 +463,6 @@ class CustomGlassDialog extends StatelessWidget {
   }
 }
 
-/// Reusable sheet backed by [lg.GlassSheet]. Quality is explicitly standard
-/// because 0.29.5 resolves a null quality to premium during sheet animation.
 class CustomGlassSheet extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;

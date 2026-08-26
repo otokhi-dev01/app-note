@@ -102,14 +102,14 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _buildActionButton(
-                    "trash_move".tr,
+                    "trash move".tr,
                     CupertinoIcons.folder_fill,
                     const Color(0xFF5856D6),
                     widget.onMove,
                   ),
                   if (widget.onDelete != null)
                     _buildActionButton(
-                      "trash_delete".tr,
+                      "trash delete".tr,
                       CupertinoIcons.trash_fill,
                       const Color(0xFFFF3B30),
                       widget.onDelete!,

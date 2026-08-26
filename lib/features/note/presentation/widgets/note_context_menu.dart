@@ -5,21 +5,9 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 
-/// The note list's "more" menu, iOS-26 style: tapping the button morphs it
-/// into a glass pull-down anchored where it was, the same way
-/// [NoteAttachmentPopup] does for the editor's attachment button — rather
-/// than raising a separate popup over the screen.
 class NoteContextMenu extends StatelessWidget {
   final NoteController controller;
 
-  /// Builds the button the menu grows out of, given the callback that opens
-  /// it.
-  ///
-  /// A builder rather than the plain widget [NoteAttachmentPopup] takes: that
-  /// trigger is a bare icon sitting inside the toolbar's own glass pill, while
-  /// this one is a [CustomGlassButton] that brings its own glass and its own
-  /// tap handling — and `GlassMenu.trigger` wraps whatever it's given in a
-  /// second [GestureDetector], which would fight the button for the tap.
   final Widget Function(BuildContext context, VoidCallback toggleMenu)
   triggerBuilder;
 
@@ -31,17 +19,11 @@ class NoteContextMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Every label here reads a controller flag, and several of them flip as a
-    // direct result of using this menu — without Obx the next open would show
-    // the state from before the last one.
     return Obx(
       () => lg.GlassMenu(
         triggerBuilder: triggerBuilder,
         menuWidth: 250,
-        // This trigger lives in the top-right of the app bar, so the menu's
-        // top edge anchors to it and the body expands downward — the mirror
-        // of NoteAttachmentPopup's `bottomCenter`, which has to grow upward to
-        // stay clear of the keyboard.
+
         menuAlignment: lg.GlassMenuAlignment.topRight,
         autoAdjustToScreen: true,
         menuPadding: const EdgeInsets.all(12),
@@ -78,9 +60,7 @@ class NoteContextMenu extends StatelessWidget {
             color: controller.isGroupedByDate.value
                 ? IosSemanticColors.green
                 : IosSemanticColors.gray,
-            // Reads the flag the toggle actually writes. The old menu had
-            // "Default (On)" hardcoded here, so it kept claiming grouping was
-            // on after it had been switched off.
+
             subtitle: controller.isGroupedByDate.value
                 ? 'note_list_on'.tr
                 : 'note_list_off'.tr,

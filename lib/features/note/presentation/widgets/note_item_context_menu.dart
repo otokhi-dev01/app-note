@@ -6,9 +6,6 @@ import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 
-/// A context menu for an individual note item (in grid or list), iOS-26 style:
-/// long-pressing the note morphs it into a glass pull-down anchored at the
-/// touch point, matching [NoteContextMenu].
 class NoteItemContextMenu extends StatelessWidget {
   final Note note;
   final int folderId;
@@ -33,8 +30,7 @@ class NoteItemContextMenu extends StatelessWidget {
       menuWidth: 250,
       autoAdjustToScreen: true,
       menuPadding: const EdgeInsets.all(12),
-      // Morphing from zero makes the menu "bloom" from the touch point rather
-      // than appearing as a large pre-formed glass slab.
+
       morphFromZero: true,
       triggerBuilder: (context, _) =>
           triggerBuilder(context, menuController.open),

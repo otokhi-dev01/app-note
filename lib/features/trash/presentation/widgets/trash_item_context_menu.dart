@@ -39,7 +39,7 @@ class TrashItemContextMenu extends StatelessWidget {
           triggerBuilder(context, menuController.open),
       items: [
         _item(
-          title: 'trash_restore'.tr,
+          title: 'trash restore'.tr,
           icon: CupertinoIcons.arrow_counterclockwise,
           color: IosSemanticColors.green,
           onTap: () {
@@ -53,7 +53,7 @@ class TrashItemContextMenu extends StatelessWidget {
         if (controller.canDeletePermanently) ...[
           const lg.GlassMenuDivider(),
           _item(
-            title: 'trash_delete_permanently'.tr,
+            title: 'trash delete permanently'.tr,
             icon: CupertinoIcons.trash,
             color: IosSemanticColors.red,
             onTap: () {

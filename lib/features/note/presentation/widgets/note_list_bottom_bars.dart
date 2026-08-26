@@ -22,10 +22,6 @@ class NoteListBottomBar extends StatelessWidget {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    // Same floating-pill footprint as the Folder screen's bottom bar: a
-    // wide "Search" pill plus a circular accent button. "Folders" is dropped
-    // since the app bar already has a back button, and "Profile" now lives
-    // under Settings rather than a bottom-bar tab.
     return SafeArea(
       top: false,
       child: Padding(

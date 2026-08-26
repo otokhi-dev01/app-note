@@ -4,11 +4,6 @@ import 'package:get/get.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 
-/// Every toast the app shows.
-///
-/// Replaces 67 hand-rolled `Get.snackbar` calls that each picked their own
-/// position, duration and colors — and several of which fired from inside
-/// widgets. Raise these from controllers so the UI layer stays declarative.
 class AppSnackbar {
   AppSnackbar._();
 
@@ -50,8 +45,6 @@ class AppSnackbar {
     duration: _long,
   );
 
-  /// Shows a domain failure with wording matched to its kind, so an offline
-  /// blip does not look like a server crash.
   static void failure(String title, AppFailure failure) => switch (failure) {
     NetworkFailure() => warning(title, failure.message),
     UnsupportedFeatureFailure() => info(title, failure.message),
@@ -71,8 +64,6 @@ class AppSnackbar {
     required IconData icon,
     required Duration duration,
   }) {
-    // Replace rather than stack: rapid actions (multi-select delete) would
-    // otherwise queue a column of near-identical toasts.
     if (Get.isSnackbarOpen) Get.closeCurrentSnackbar();
 
     Get.snackbar(

@@ -8,14 +8,9 @@ import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart
 import 'package:Note/features/note/presentation/widgets/note_format_panel.dart';
 
 class NoteDetailView extends GetView<NoteDetailController> {
-  // Must match the tag NoteBinding registered the controller under for this
-  // push (see NoteNavigation._newInstanceTag and app_pages.dart) so this page
-  // finds the instance built for it specifically, not whichever NOTE_DETAIL
-  // page opened first.
   const NoteDetailView({super.key, this.tag});
 
   @override
-  // ignore: overridden_fields
   final String? tag;
 
   @override
@@ -32,7 +27,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
         body: Stack(
           children: [
             NoteContentEditor(controller: controller),
-            // Floating Toolbar that follows keyboard
+
             Obx(() {
               if (controller.isLoading.value || controller.isReadOnly.value) {
                 return const SizedBox.shrink();
@@ -45,7 +40,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 ),
               );
             }),
-            // Format Panel
+
             Obx(() {
               if (controller.isFormatPanelVisible.value) {
                 return Align(

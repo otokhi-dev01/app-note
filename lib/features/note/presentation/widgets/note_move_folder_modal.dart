@@ -183,7 +183,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       centerTitle: true,
       title: Text(
-        "note_list_select_a_folder".tr,
+        "note list select a folder".tr,
         style: theme.textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w600,
           fontSize: 17,
@@ -208,7 +208,7 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
       largeTitleAlignment: Alignment.bottomCenter,
       largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
       largeTitle: Text(
-        "note_list_select_a_folder".tr,
+        "note_list_select a folder".tr,
         style: theme.textTheme.headlineLarge?.copyWith(
           fontWeight: FontWeight.bold,
           fontSize: 34,
@@ -241,9 +241,6 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
     );
   }
 
-  /// A collapsible "Pii Cloud" / "On My iPhone" group — mirrors the section
-  /// headers on the main Folders screen. Hidden entirely when empty so an
-  /// unused convention doesn't clutter the move sheet.
   Widget _buildFolderSection(
     BuildContext context,
     AppColors colors, {
@@ -322,9 +319,9 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
     final normalizedName = folder.name.trim().toLowerCase();
     final isSystem = const {
       'notes',
-      'on my iphone',
+      // 'on my iphone',
       'on my phone',
-      'all on my iphone',
+      // 'all on my iphone',
       'all on my phone',
     }.contains(normalizedName);
 
@@ -366,8 +363,8 @@ class _NoteMoveFolderModalState extends State<NoteMoveFolderModal> {
 
   String _folderDisplayName(Folder folder) {
     return switch (folder.name.trim().toLowerCase()) {
-      'on my iphone' || 'on my phone' => 'folder_on_my_iphone'.tr,
-      'all on my iphone' || 'all on my phone' => 'folder_all_notes'.tr,
+      'on my iphone' || 'on my phone' => 'folder on my phone'.tr,
+      'all on my iphone' || 'all on my phone' => 'folder all notes'.tr,
       _ => folder.displayName,
     };
   }
