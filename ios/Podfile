@@ -49,6 +49,15 @@ post_install do |installer|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 arm64'
       config.build_settings['FLUTTER_XCODE_PLUGIN_SPM'] = 'NO'
 
+      # permission_handler compiles every iOS permission out by default.
+      # Keep only the three capabilities exposed in the in-app manager.
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] += [
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_MICROPHONE=1',
+        'PERMISSION_PHOTOS=1',
+      ]
+
       # Handle Google ML Kit binary pod issues for simulators
       if ['GoogleMLKit', 'MLImage', 'MLKitCommon', 'MLKitVision'].include?(target.name)
         config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
