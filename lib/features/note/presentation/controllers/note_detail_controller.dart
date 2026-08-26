@@ -113,6 +113,8 @@ class NoteDetailController extends GetxController {
   final searchQuery = "".obs;
   final searchFocusNode = FocusNode();
   final isFormatPanelVisible = false.obs;
+  bool _autoRecordRequested = false;
+  bool _isAudioRecorderOpen = false;
 
   // --- Global Drawing Mode (iOS 18 Style) ---
   final isDrawingMode = false.obs;
@@ -139,11 +141,20 @@ class NoteDetailController extends GetxController {
     _handleArguments(Get.arguments);
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+    if (!_autoRecordRequested) return;
+    _autoRecordRequested = false;
+    unawaited(recordAudio());
+  }
+
   void _handleArguments(dynamic args) {
     if (args is Map) {
       final noteId = args['noteId'];
       final folderId = args['folderId'];
       isReadOnly.value = args['isDeleted'] == true;
+      _autoRecordRequested = noteId == 0 && args['autoRecord'] == true;
 
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
@@ -681,17 +692,18 @@ class NoteDetailController extends GetxController {
   /// only calls back once, with a finished file. This just attaches it the
   /// same way every other pick does.
   Future<void> recordAudio() async {
-    if (isReadOnly.value) return;
+    if (isReadOnly.value || _isAudioRecorderOpen) return;
 
-    await Get.to(
-      () => NoteAudioRecorderSheet(
-        onRecorded: (path, displayName) {
-          unawaited(_addRecordedAttachment(path, displayName));
-        },
-      ),
-      fullscreenDialog: true,
-      transition: Transition.cupertino,
-    );
+    _isAudioRecorderOpen = true;
+    try {
+      await Get.to(
+        () => NoteAudioRecorderSheet(onRecorded: _addRecordedAttachment),
+        fullscreenDialog: true,
+        transition: Transition.cupertino,
+      );
+    } finally {
+      _isAudioRecorderOpen = false;
+    }
   }
 
   Future<void> _addRecordedAttachment(String path, String displayName) async {

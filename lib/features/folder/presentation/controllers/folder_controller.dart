@@ -257,7 +257,11 @@ class FolderController extends GetxController {
     }
   }
 
-  void createNewNote() {
+  void createNewNote() => _openNewNote();
+
+  void createAudioNote() => _openNewNote(autoRecord: true);
+
+  void _openNewNote({bool autoRecord = false}) {
     if (folders.isEmpty) {
       AppSnackbar.info(
         'No folders yet',
@@ -271,7 +275,9 @@ class FolderController extends GetxController {
       orElse: () => folders.first,
     );
 
-    NoteNavigation.toNewNote(defaultFolder.id)?.then((value) {
+    NoteNavigation.toNewNote(defaultFolder.id, autoRecord: autoRecord)?.then((
+      value,
+    ) {
       if (value == true) fetchFolders(refresh: true);
     });
   }

@@ -36,17 +36,25 @@ class NoteNavigation {
     );
   }
 
-  static Future<T?>? toNewNote<T>(int folderId) => Get.toNamed(
-    Routes.NOTE_DETAIL,
-    arguments: {
-      'noteId': 0,
-      'folderId': folderId,
-      'isArchived': false,
-      'isDeleted': false,
-      'instanceTag': _newInstanceTag(),
-    },
-    preventDuplicates: false,
-  );
+  static Future<T?>? toNewNote<T>(int folderId, {bool autoRecord = false}) =>
+      Get.toNamed(
+        Routes.NOTE_DETAIL,
+        arguments: {
+          'noteId': 0,
+          'folderId': folderId,
+          'isArchived': false,
+          'isDeleted': false,
+          'autoRecord': autoRecord,
+          'instanceTag': _newInstanceTag(),
+        },
+        preventDuplicates: false,
+      );
+
+  /// Opens a fresh note and presents the recorder as soon as the editor is
+  /// ready. All microphone shortcuts use this entry point so they behave the
+  /// same regardless of which screen launched them.
+  static Future<T?>? toNewAudioNote<T>(int folderId) =>
+      toNewNote<T>(folderId, autoRecord: true);
 
   // NoteBinding registers NoteDetailController under this tag (see
   // note_binding.dart) so every push gets its own instance. Without it, opening

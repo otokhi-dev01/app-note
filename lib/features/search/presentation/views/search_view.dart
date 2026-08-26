@@ -13,10 +13,18 @@ import 'package:Note/features/search/presentation/controllers/search_controller.
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 
 class SearchView extends GetView<sc.SearchController> {
   const SearchView({super.key});
+
+  void _recordAudio() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (Get.isRegistered<FolderController>()) {
+      Get.find<FolderController>().createAudioNote();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -491,13 +499,20 @@ class SearchView extends GetView<sc.SearchController> {
 
                     const SizedBox(width: 8),
 
-                    /// Microphone
-                    Icon(
-                      CupertinoIcons.mic_fill,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
+                    /// Creates a new note and starts recording immediately.
+                    Semantics(
+                      button: true,
+                      label: 'note_editor_record_audio'.tr,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(38, 50),
+                        onPressed: _recordAudio,
+                        child: Icon(
+                          CupertinoIcons.mic_fill,
+                          color: CupertinoColors.systemRed.resolveFrom(context),
+                          size: 20,
+                        ),
                       ),
-                      size: 20,
                     ),
                   ],
                 ),

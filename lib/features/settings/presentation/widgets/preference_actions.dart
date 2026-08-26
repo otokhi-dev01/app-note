@@ -715,9 +715,8 @@ class _InfoTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.onTap,
-    this.trailing,
     this.compact = false,
-  });
+  }) : trailing = null;
 
   @override
   Widget build(BuildContext context) {

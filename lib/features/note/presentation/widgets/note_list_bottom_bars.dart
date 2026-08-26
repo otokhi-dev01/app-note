@@ -34,35 +34,62 @@ class NoteListBottomBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: CustomGlassButton(
-                onPressed: () => Get.toNamed(Routes.SEARCH),
-                semanticLabel: 'note_list_search_semantic'.tr,
+              child: CustomGlassContainer(
                 height: 50,
                 borderRadius: 30,
                 blur: 10,
                 opacity: 0.15,
                 thickness: 8,
+                padding: EdgeInsets.zero,
+                clipBehavior: Clip.antiAlias,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      CupertinoIcons.search,
-                      color: theme.colorScheme.onSurfaceVariant,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'note_list_search'.tr,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: 17,
-                        color: theme.colorScheme.onSurfaceVariant,
+                    Expanded(
+                      child: Semantics(
+                        button: true,
+                        label: 'note_list_search_semantic'.tr,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => Get.toNamed(Routes.SEARCH),
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 18),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  CupertinoIcons.search,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'note_list_search'.tr,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontSize: 17,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const Spacer(),
-                    Icon(
-                      CupertinoIcons.mic_fill,
-                      color: theme.colorScheme.onSurfaceVariant,
-                      size: 20,
+                    Semantics(
+                      button: true,
+                      label: 'note_editor_record_audio'.tr,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(50, 50),
+                        onPressed: () =>
+                            NoteNavigation.toNewAudioNote(folderId)?.then(
+                              (_) => controller.fetchNotes(folderId: folderId),
+                            ),
+                        child: Icon(
+                          CupertinoIcons.mic_fill,
+                          color: CupertinoColors.systemRed.resolveFrom(context),
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -121,9 +148,7 @@ class NoteListEditBar extends StatelessWidget {
               ? "note_list_delete_all".tr
               : selectedCount == 1
               ? "note_list_delete".tr
-              : "note_list_delete_count".trParams({
-                  'count': '$selectedCount',
-                });
+              : "note_list_delete_count".trParams({'count': '$selectedCount'});
 
           return Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
