@@ -105,6 +105,45 @@ const Map<String, String> enUS = {
   'privacy_preview_hidden': 'Preview hidden',
   'settings_status_on': 'ON',
   'settings_status_off': 'OFF',
+  'share_title': 'Share',
+  'share_message':
+      'Organize your ideas and notes with Pii Note.\nhttps://piisiit.com',
+  'permissions_title': 'Permissions',
+  'permissions_subtitle':
+      'Manage the device access used by Pii Note in your system settings.',
+  'permissions_camera': 'Camera',
+  'permissions_camera_desc': 'Scan documents and capture images for notes.',
+  'permissions_photos': 'Photos',
+  'permissions_photos_desc': 'Attach images and save note media.',
+  'permissions_microphone': 'Microphone',
+  'permissions_microphone_desc': 'Record audio directly inside a note.',
+  'open_app_settings': 'Open App Settings',
+  'pii_business_title': 'Pii Business',
+  'privacy_policy_title': 'Privacy Policy',
+  'privacy_policy_updated': 'Last updated: August 26, 2026',
+  'privacy_policy_intro':
+      'Your privacy matters. This summary explains how Pii Note handles information when you use the app.',
+  'privacy_policy_data_title': 'Information we use',
+  'privacy_policy_data_body':
+      'Pii Note uses account details, profile information, notes, folders, and attachments needed to provide the features you choose. Guest notes remain on this device.',
+  'privacy_policy_use_title': 'How information is used',
+  'privacy_policy_use_body':
+      'Information is used to operate your account, save and organize notes, sync signed-in content, and improve reliability. We do not access device features unless you start an action that needs them.',
+  'privacy_policy_permissions_title': 'Device permissions',
+  'privacy_policy_permissions_body':
+      'Camera, photo, and microphone access support scanning, attachments, and audio recording. You can review or revoke access at any time in system settings.',
+  'privacy_policy_choices_title': 'Your choices',
+  'privacy_policy_choices_body':
+      'You can edit profile information, manage permissions, use guest mode, sign out, or request account deletion from Settings.',
+  'contact_us_title': 'Contact Us',
+  'contact_us_subtitle': 'Choose how you would like to reach the Pii team.',
+  'contact_phone': 'Phone',
+  'contact_email': 'Gmail',
+  'tap_to_call': 'Tap to call',
+  'tap_to_email': 'Tap to email',
+  'action_unavailable_title': 'Action Unavailable',
+  'action_unavailable_message':
+      'This action is not available on your current device.',
   'help_center_title': 'Help Center',
   'log_out': 'Log Out',
   'log_in_create_account': 'Log In or Create Account',
@@ -124,6 +163,7 @@ const Map<String, String> enUS = {
   'name_update_failed_title': 'Could not update name',
   'profile_image_updated_message': 'Profile image updated',
   'profile_image_update_failed_title': 'Could not update profile image',
+  'profile_image_save_failed_message': 'The selected image could not be saved.',
   'guest_label': 'Guest',
   'default_user_name': 'User Name',
   'not_signed_in': 'Not signed in',
@@ -162,6 +202,24 @@ const Map<String, String> enUS = {
   'edit_bio_hint': 'A short career summary',
   'edit_color_title': 'Choose a Color',
   'not_set': 'Not set',
+
+  // Profile — encrypted ID information
+  'id_information_title': 'ID Information',
+  'id_number_label': 'ID Number',
+  'id_name_label': 'Name',
+  'date_of_birth_label': 'Date of Birth',
+  'edit_id_information_title': 'Edit ID Information',
+  'edit_id_information_subtitle':
+      'Your identity details are encrypted and stored only for this account on this device.',
+  'id_number_hint': 'Enter your ID number',
+  'id_name_hint': 'Enter the name shown on your ID',
+  'date_of_birth_hint': 'Select your date of birth',
+  'id_number_required': 'Please enter your ID number.',
+  'id_name_required': 'Please enter the name shown on your ID.',
+  'date_of_birth_required': 'Please select your date of birth.',
+  'id_information_saved': 'ID information updated',
+  'id_information_save_failed_title': 'Could not save ID information',
+  'id_information_save_failed_message': 'Please try again.',
 
   // Settings drawer
   'settings_drawer_view_profile': 'Profile Details',

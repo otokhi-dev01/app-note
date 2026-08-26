@@ -8,6 +8,7 @@ import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:share_plus/share_plus.dart';
 import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
@@ -325,25 +326,28 @@ class _ImageTileState extends State<_ImageTile> {
     return [
       lg.GlassMenuItem(
         title: 'note_editor_edit_image'.tr,
-        icon: const Icon(CupertinoIcons.pencil),
+        icon: const Icon(CupertinoIcons.pencil, color: IosSemanticColors.blue),
         onTap: widget.onEdit,
       ),
       if (!widget.isReadOnly)
         lg.GlassMenuItem(
           title: 'note_editor_convert_to_pdf'.tr,
-          icon: const Icon(CupertinoIcons.doc_richtext),
+          icon: const Icon(
+            CupertinoIcons.doc_richtext,
+            color: IosSemanticColors.red,
+          ),
           onTap: widget.onConvertToPdf,
         ),
       lg.GlassMenuItem(
         title: 'note_editor_share'.tr,
-        icon: const Icon(CupertinoIcons.share),
+        icon: const Icon(CupertinoIcons.share, color: IosSemanticColors.blue),
         onTap: widget.onShare,
       ),
       if (!widget.isReadOnly) ...[
         const lg.GlassMenuDivider(),
         lg.GlassMenuItem(
           title: 'note_editor_delete'.tr,
-          icon: const Icon(CupertinoIcons.trash),
+          icon: const Icon(CupertinoIcons.trash, color: IosSemanticColors.red),
           isDestructive: true,
           onTap: widget.onDelete,
         ),
@@ -683,27 +687,39 @@ class _FileTileState extends State<_FileTile> {
             if (widget.onConvertToImage != null)
               lg.GlassMenuItem(
                 title: 'note_editor_convert_to_image'.tr,
-                icon: const Icon(CupertinoIcons.photo),
+                icon: const Icon(
+                  CupertinoIcons.photo,
+                  color: IosSemanticColors.pink,
+                ),
                 onTap: widget.onConvertToImage!,
               ),
             if (widget.onEdit != null)
               lg.GlassMenuItem(
                 title: 'note_editor_edit_original_image'.tr,
-                icon: const Icon(CupertinoIcons.pencil),
+                icon: const Icon(
+                  CupertinoIcons.pencil,
+                  color: IosSemanticColors.blue,
+                ),
                 onTap: widget.onEdit!,
               ),
             const lg.GlassMenuDivider(),
           ],
           lg.GlassMenuItem(
             title: 'note_editor_open_share'.tr,
-            icon: const Icon(CupertinoIcons.share),
+            icon: const Icon(
+              CupertinoIcons.share,
+              color: IosSemanticColors.blue,
+            ),
             onTap: widget.onShare,
           ),
           if (!widget.isReadOnly) ...[
             const lg.GlassMenuDivider(),
             lg.GlassMenuItem(
               title: 'note_editor_delete'.tr,
-              icon: const Icon(CupertinoIcons.trash),
+              icon: const Icon(
+                CupertinoIcons.trash,
+                color: IosSemanticColors.red,
+              ),
               isDestructive: true,
               onTap: widget.onDelete,
             ),

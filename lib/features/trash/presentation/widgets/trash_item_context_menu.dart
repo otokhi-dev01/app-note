@@ -5,6 +5,7 @@ import 'package:Note/features/trash/presentation/controllers/recently_deleted_co
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 
 /// A context menu for items in the Recently Deleted view, iOS-26 style:
 /// long-pressing an item morphs it into a glass pull-down anchored at the
@@ -40,6 +41,7 @@ class TrashItemContextMenu extends StatelessWidget {
         _item(
           title: 'trash_restore'.tr,
           icon: CupertinoIcons.arrow_counterclockwise,
+          color: IosSemanticColors.green,
           onTap: () {
             if (note != null) {
               controller.recoverItem(noteId: note!.id);
@@ -53,6 +55,7 @@ class TrashItemContextMenu extends StatelessWidget {
           _item(
             title: 'trash_delete_permanently'.tr,
             icon: CupertinoIcons.trash,
+            color: IosSemanticColors.red,
             onTap: () {
               if (note != null) {
                 controller.deleteItemPermanently(
@@ -76,12 +79,13 @@ class TrashItemContextMenu extends StatelessWidget {
   lg.GlassMenuItem _item({
     required String title,
     required IconData icon,
+    required Color color,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
     return lg.GlassMenuItem(
       title: title,
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       isDestructive: isDestructive,
       onTap: onTap,
     );

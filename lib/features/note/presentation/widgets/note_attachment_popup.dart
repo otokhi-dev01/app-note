@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
+import 'package:Note/core/theme/ios_semantic_colors.dart';
+
 /// The toolbar's attachment button, iOS-26 style: tapping it morphs the
 /// button itself into a glass pull-down menu anchored right where it was
 /// (matching the system's own "+" menu in Notes), instead of raising a
@@ -58,7 +60,12 @@ class NoteAttachmentPopup extends StatelessWidget {
 
         // _item(context, 'Drawing', CupertinoIcons.pencil_outline, 'drawing'),
         const lg.GlassMenuDivider(),
-        _item(context, 'note_editor_record_audio'.tr, CupertinoIcons.mic, 'audio'),
+        _item(
+          context,
+          'note_editor_record_audio'.tr,
+          CupertinoIcons.mic,
+          'audio',
+        ),
         _item(
           context,
           'note_editor_attach_file'.tr,
@@ -75,9 +82,17 @@ class NoteAttachmentPopup extends StatelessWidget {
     IconData icon,
     String type,
   ) {
+    final color = switch (type) {
+      'scan_text' => IosSemanticColors.indigo,
+      'scan_docs' => IosSemanticColors.purple,
+      'camera' => IosSemanticColors.blue,
+      'gallery' => IosSemanticColors.pink,
+      'audio' => IosSemanticColors.red,
+      _ => IosSemanticColors.orange,
+    };
     return lg.GlassMenuItem(
       title: title,
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       onTap: () => onAction(type),
     );
   }

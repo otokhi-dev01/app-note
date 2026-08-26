@@ -13,6 +13,7 @@ import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
 import 'package:Note/features/settings/presentation/widgets/account_delete_menu.dart';
+import 'package:Note/features/settings/presentation/widgets/preference_actions.dart';
 import 'package:Note/features/settings/presentation/widgets/settings_picker_menus.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
@@ -29,6 +30,13 @@ class SettingsDrawer extends GetView<ProfileController> {
   const SettingsDrawer({super.key});
 
   static const _drawerRadius = 28.0;
+  static const _iosBlue = Color(0xFF007AFF);
+  static const _iosGreen = Color(0xFF34C759);
+  static const _iosIndigo = Color(0xFF5856D6);
+  static const _iosOrange = Color(0xFFFF9500);
+  static const _iosPurple = Color(0xFFAF52DE);
+  static const _iosRed = Color(0xFFFF3B30);
+  static const _iosGray = Color(0xFF8E8E93);
 
   @override
   Widget build(BuildContext context) {
@@ -63,42 +71,79 @@ class SettingsDrawer extends GetView<ProfileController> {
                   _buildGroup(
                     context,
                     children: [
-                      DevicePickerMenu(
-                        morphFromZero: true,
-                        triggerBuilder: (context, toggleMenu) => _buildRow(
-                          context,
-                          icon: CupertinoIcons.device_phone_portrait,
-                          title: 'device_title'.tr,
-                          onTap: toggleMenu,
-                        ),
-                      ),
                       NotificationPickerMenu(
                         morphFromZero: true,
                         triggerBuilder: (context, toggleMenu) => _buildRow(
                           context,
                           icon: CupertinoIcons.bell_fill,
+                          iconColor: _iosRed,
                           title: 'notifications_title'.tr,
                           onTap: toggleMenu,
                         ),
                       ),
-                      PrivacySecurityPickerMenu(
+                      DevicePickerMenu(
                         morphFromZero: true,
                         triggerBuilder: (context, toggleMenu) => _buildRow(
                           context,
-                          icon: CupertinoIcons.lock_shield_fill,
-                          title: 'privacy_security_title'.tr,
+                          icon: CupertinoIcons.device_phone_portrait,
+                          iconColor: _iosGray,
+                          title: 'device_title'.tr,
                           onTap: toggleMenu,
                         ),
                       ),
+
                       LanguagePickerMenu(
                         morphFromZero: true,
                         triggerBuilder: (context, toggleMenu) => _buildRow(
                           context,
                           icon: CupertinoIcons.globe,
+                          iconColor: _iosBlue,
                           title: 'language_title'.tr,
                           trailingText: LanguagePreferences().language.label,
                           onTap: toggleMenu,
                         ),
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.share,
+                        iconColor: _iosBlue,
+                        title: 'share_title'.tr,
+                        onTap: () =>
+                            unawaited(PreferenceActions.shareApp(context)),
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.checkmark_shield_fill,
+                        iconColor: _iosIndigo,
+                        title: 'permissions_title'.tr,
+                        onTap: () => unawaited(
+                          PreferenceActions.showPermissions(context),
+                        ),
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.briefcase_fill,
+                        iconColor: _iosOrange,
+                        title: 'pii_business_title'.tr,
+                        onTap: () =>
+                            unawaited(PreferenceActions.openBusiness()),
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.doc_text_fill,
+                        iconColor: _iosPurple,
+                        title: 'privacy_policy_title'.tr,
+                        onTap: () => unawaited(
+                          PreferenceActions.showPrivacyPolicy(context),
+                        ),
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.chat_bubble_2_fill,
+                        iconColor: _iosGreen,
+                        title: 'contact_us_title'.tr,
+                        onTap: () =>
+                            unawaited(PreferenceActions.showContact(context)),
                       ),
                     ],
                   ),
@@ -112,6 +157,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                           _buildRow(
                             context,
                             icon: CupertinoIcons.lock_rotation,
+                            iconColor: _iosOrange,
                             title: 'forgot_password_title'.tr,
                             onTap: controller.requestForgotPassword,
                           ),
@@ -120,7 +166,18 @@ class SettingsDrawer extends GetView<ProfileController> {
                           triggerBuilder: (context, toggleMenu) => _buildRow(
                             context,
                             icon: CupertinoIcons.question_circle_fill,
+                            iconColor: _iosBlue,
                             title: 'help_center_title'.tr,
+                            onTap: toggleMenu,
+                          ),
+                        ),
+                        PrivacySecurityPickerMenu(
+                          morphFromZero: true,
+                          triggerBuilder: (context, toggleMenu) => _buildRow(
+                            context,
+                            icon: CupertinoIcons.lock_shield_fill,
+                            iconColor: _iosGreen,
+                            title: 'privacy_security_title'.tr,
                             onTap: toggleMenu,
                           ),
                         ),
@@ -353,29 +410,13 @@ class SettingsDrawer extends GetView<ProfileController> {
   }
 
   Widget _buildGroup(BuildContext context, {required List<Widget> children}) {
-    final theme = Theme.of(context);
-    final groupedChildren = <Widget>[];
-
-    for (var index = 0; index < children.length; index++) {
-      if (index > 0) {
-        groupedChildren.add(
-          Divider(
-            height: 1,
-            indent: 58,
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
-          ),
-        );
-      }
-      groupedChildren.add(children[index]);
-    }
-
     return CustomGlassContainer(
       borderRadius: 18,
       blur: 20,
       opacity: 0.12,
       thickness: 8,
       clipBehavior: Clip.antiAlias,
-      child: Column(children: groupedChildren),
+      child: Column(children: children),
     );
   }
 
@@ -383,11 +424,13 @@ class SettingsDrawer extends GetView<ProfileController> {
     BuildContext context, {
     required IconData icon,
     required String title,
+    Color? iconColor,
     String? trailingText,
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final resolvedIconColor = iconColor ?? _iosBlue;
 
     return Material(
       color: Colors.transparent,
@@ -402,7 +445,7 @@ class SettingsDrawer extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              _buildGlassIconBadge(icon, scheme.primary),
+              _buildGlassIconBadge(icon, resolvedIconColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -503,8 +546,7 @@ class SettingsDrawer extends GetView<ProfileController> {
     bool showChevron = false,
   }) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final color = isDestructive ? scheme.error : scheme.primary;
+    final color = isDestructive ? _iosRed : _iosBlue;
 
     return Material(
       color: Colors.transparent,
@@ -566,12 +608,13 @@ class SettingsDrawer extends GetView<ProfileController> {
       height: 36,
       borderRadius: 10,
       blur: 12,
-      opacity: 0.12,
-      thickness: 6,
+      opacity: 0.3,
+      thickness: 8,
       refractiveIndex: 1.1,
-      glassColor: color.withValues(alpha: 0.1),
+      glassColor: color.withValues(alpha: 0.82),
+      glowIntensity: 0.18,
       alignment: Alignment.center,
-      child: Icon(icon, size: 18, color: color),
+      child: Icon(icon, size: 18, color: Colors.white),
     );
   }
 

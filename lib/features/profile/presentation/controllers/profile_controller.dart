@@ -12,12 +12,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/storage/app_media_storage.dart';
+import 'package:Note/core/storage/id_information_storage.dart';
 import 'package:Note/core/storage/profile_extras_storage.dart';
 import 'package:Note/core/storage/session_storage.dart';
-import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
+import 'package:Note/features/profile/presentation/widgets/edit_id_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -43,6 +46,7 @@ class ProfileController extends GetxController {
   final _picker = ImagePicker();
   final _guestMode = Get.find<GuestModeService>();
   final _extras = ProfileExtrasStorage();
+  final _idStorage = const IdInformationStorage();
 
   RxBool get isGuestMode => _guestMode.isGuestMode;
 
@@ -58,6 +62,9 @@ class ProfileController extends GetxController {
   final userJob = ''.obs;
   final userBio = ''.obs;
   final userColorHex = Rx<String?>(null);
+  final userIdNumber = ''.obs;
+  final userIdName = ''.obs;
+  final userDateOfBirth = Rxn<DateTime>();
 
   Color get userColor => FolderAppearance.parseHex(
     userColorHex.value ?? FolderAppearance.defaultColorValue,
@@ -90,6 +97,45 @@ class ProfileController extends GetxController {
     userImagePath.value = savedPath.isNotEmpty && File(savedPath).existsSync()
         ? savedPath
         : '';
+
+    unawaited(_loadIdInformation());
+  }
+
+  String get formattedDateOfBirth {
+    final date = userDateOfBirth.value;
+    if (date == null) return '';
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  String get _idOwnerKey {
+    if (isGuestMode.value) return '';
+    final user = _session.user.value;
+    final id = user?.id?.trim() ?? '';
+    if (id.isNotEmpty) return 'id:$id';
+    final phone = user?.phone?.trim() ?? '';
+    return phone.isEmpty ? '' : 'phone:$phone';
+  }
+
+  Future<void> _loadIdInformation() async {
+    final ownerKey = _idOwnerKey;
+    if (ownerKey.isEmpty) {
+      userIdNumber.value = '';
+      userIdName.value = '';
+      userDateOfBirth.value = null;
+      return;
+    }
+
+    try {
+      final stored = await _idStorage.read(ownerKey);
+      if (ownerKey != _idOwnerKey) return;
+      userIdNumber.value = stored.idNumber;
+      userIdName.value = stored.name;
+      userDateOfBirth.value = stored.dateOfBirth;
+    } catch (error) {
+      debugPrint('[ID INFORMATION LOAD ERROR] $error');
+    }
   }
 
   void _loadProfileExtras() {
@@ -132,21 +178,46 @@ class ProfileController extends GetxController {
   }
 
   Future<void> updateProfileImage() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 50,
-    );
-    if (image == null) return;
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 50,
+      );
+      if (image == null) return;
 
-    switch (await _updateProfileImage(image.path)) {
-      case Ok():
-        userImagePath.value = image.path;
-        AppSnackbar.success(
-          'saved_title'.tr,
-          'profile_image_updated_message'.tr,
-        );
-      case Err(:final failure):
-        AppSnackbar.failure('profile_image_update_failed_title'.tr, failure);
+      final previousPath = userImagePath.value;
+      final persistedPath = await AppMediaStorage.persist(
+        sourcePath: image.path,
+        folder: 'profile_images',
+        fileName: 'profile_${DateTime.now().microsecondsSinceEpoch}',
+      );
+
+      switch (await _updateProfileImage(persistedPath)) {
+        case Ok():
+          userImagePath.value = persistedPath;
+          if (previousPath != persistedPath) {
+            await AppMediaStorage.deleteIfManaged(
+              path: previousPath,
+              folder: 'profile_images',
+            );
+          }
+          AppSnackbar.success(
+            'saved_title'.tr,
+            'profile_image_updated_message'.tr,
+          );
+        case Err(:final failure):
+          await AppMediaStorage.deleteIfManaged(
+            path: persistedPath,
+            folder: 'profile_images',
+          );
+          AppSnackbar.failure('profile_image_update_failed_title'.tr, failure);
+      }
+    } catch (error) {
+      debugPrint('[PROFILE IMAGE SAVE ERROR] $error');
+      AppSnackbar.error(
+        'profile_image_update_failed_title'.tr,
+        'profile_image_save_failed_message'.tr,
+      );
     }
   }
 
@@ -200,6 +271,50 @@ class ProfileController extends GetxController {
         return true;
       },
     );
+  }
+
+  Future<void> updateIdInformation() async {
+    final context = Get.context;
+    if (context == null || _idOwnerKey.isEmpty) return;
+
+    await EditIdInformationSheet.show(
+      context: context,
+      initialIdNumber: userIdNumber.value,
+      initialName: userIdName.value,
+      initialDateOfBirth: userDateOfBirth.value,
+      onSave: _saveIdInformation,
+    );
+  }
+
+  Future<bool> _saveIdInformation(
+    String idNumber,
+    String name,
+    DateTime dateOfBirth,
+  ) async {
+    final ownerKey = _idOwnerKey;
+    if (ownerKey.isEmpty) return false;
+
+    try {
+      await _idStorage.save(
+        ownerKey: ownerKey,
+        idNumber: idNumber,
+        name: name,
+        dateOfBirth: dateOfBirth,
+      );
+      if (ownerKey != _idOwnerKey) return false;
+      userIdNumber.value = idNumber;
+      userIdName.value = name;
+      userDateOfBirth.value = dateOfBirth;
+      AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
+      return true;
+    } catch (error) {
+      debugPrint('[ID INFORMATION SAVE ERROR] $error');
+      AppSnackbar.error(
+        'id_information_save_failed_title'.tr,
+        'id_information_save_failed_message'.tr,
+      );
+      return false;
+    }
   }
 
   /// A swatch picker sheet reusing [FolderAppearance.colors] — the same
@@ -323,7 +438,7 @@ class ProfileController extends GetxController {
                 },
                 suffixIcon: const Icon(
                   Icons.check_circle_rounded,
-                  color: AppTheme.folderPink,
+                  color: IosSemanticColors.blue,
                 ),
                 onSuffixTap: () {
                   onSave(fieldController.text.trim());

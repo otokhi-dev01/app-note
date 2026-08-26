@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
 import 'package:Note/core/storage/language_preferences.dart';
-import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 
 /// Language picker, iOS-26 style: the control that opens it morphs into a
 /// glass pull-down anchored where it was, matching [NoteAttachmentPopup] and
@@ -59,7 +59,7 @@ class LanguagePickerMenu extends StatelessWidget {
             trailing: language == current
                 ? const Icon(
                     Icons.check_circle_rounded,
-                    color: AppTheme.folderPink,
+                    color: IosSemanticColors.blue,
                     size: 20,
                   )
                 : null,

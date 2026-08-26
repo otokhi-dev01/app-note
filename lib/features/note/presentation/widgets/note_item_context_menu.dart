@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:Note/core/feedback/app_dialogs.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 
@@ -41,6 +42,7 @@ class NoteItemContextMenu extends StatelessWidget {
         _item(
           title: note.isPinned ? 'note_list_unpin'.tr : 'note_list_pin'.tr,
           icon: note.isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
+          color: IosSemanticColors.orange,
           onTap: () async {
             await controller.updateNoteState(note.id, isPinned: !note.isPinned);
             await controller.fetchNotes(folderId: folderId, refresh: true);
@@ -49,6 +51,7 @@ class NoteItemContextMenu extends StatelessWidget {
         _item(
           title: 'note_list_move'.tr,
           icon: CupertinoIcons.folder_badge_plus,
+          color: IosSemanticColors.blue,
           onTap: () {
             controller.selectOnly(note.id);
             controller.moveSelectedNotes(context, folderId);
@@ -58,6 +61,7 @@ class NoteItemContextMenu extends StatelessWidget {
         _item(
           title: 'note_list_delete'.tr,
           icon: CupertinoIcons.trash,
+          color: IosSemanticColors.red,
           onTap: () async {
             if (await AppDialogs.confirmDeleteNotes(1)) {
               controller.selectOnly(note.id);
@@ -73,12 +77,13 @@ class NoteItemContextMenu extends StatelessWidget {
   lg.GlassMenuItem _item({
     required String title,
     required IconData icon,
+    required Color color,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
     return lg.GlassMenuItem(
       title: title,
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       isDestructive: isDestructive,
       onTap: onTap,
     );

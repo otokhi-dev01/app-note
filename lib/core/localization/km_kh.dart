@@ -103,6 +103,45 @@ const Map<String, String> kmKH = {
   'privacy_preview_hidden': 'បានលាក់ការមើលជាមុន',
   'settings_status_on': 'បើក',
   'settings_status_off': 'បិទ',
+  'share_title': 'ចែករំលែក',
+  'share_message':
+      'រៀបចំគំនិត និងកំណត់ត្រារបស់អ្នកជាមួយ Pii Note។\nhttps://piisiit.com',
+  'permissions_title': 'សិទ្ធិចូលប្រើ',
+  'permissions_subtitle':
+      'គ្រប់គ្រងសិទ្ធិចូលប្រើឧបករណ៍របស់ Pii Note ក្នុងការកំណត់ប្រព័ន្ធ។',
+  'permissions_camera': 'កាមេរ៉ា',
+  'permissions_camera_desc': 'ស្កេនឯកសារ និងថតរូបសម្រាប់កំណត់ត្រា។',
+  'permissions_photos': 'រូបថត',
+  'permissions_photos_desc': 'ភ្ជាប់រូបភាព និងរក្សាទុកមេឌៀកំណត់ត្រា។',
+  'permissions_microphone': 'មីក្រូហ្វូន',
+  'permissions_microphone_desc': 'ថតសំឡេងដោយផ្ទាល់ក្នុងកំណត់ត្រា។',
+  'open_app_settings': 'បើកការកំណត់កម្មវិធី',
+  'pii_business_title': 'អាជីវកម្ម Pii',
+  'privacy_policy_title': 'គោលការណ៍ឯកជនភាព',
+  'privacy_policy_updated': 'ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ៖ 26 សីហា 2026',
+  'privacy_policy_intro':
+      'ឯកជនភាពរបស់អ្នកសំខាន់។ សេចក្តីសង្ខេបនេះពន្យល់ពីរបៀបដែល Pii Note គ្រប់គ្រងព័ត៌មាននៅពេលអ្នកប្រើកម្មវិធី។',
+  'privacy_policy_data_title': 'ព័ត៌មានដែលយើងប្រើ',
+  'privacy_policy_data_body':
+      'Pii Note ប្រើព័ត៌មានគណនី ប្រវត្តិរូប កំណត់ត្រា ថតឯកសារ និងឯកសារភ្ជាប់ដែលត្រូវការដើម្បីផ្តល់មុខងារដែលអ្នកជ្រើសរើស។ កំណត់ត្រាភ្ញៀវស្ថិតនៅលើឧបករណ៍នេះ។',
+  'privacy_policy_use_title': 'របៀបប្រើព័ត៌មាន',
+  'privacy_policy_use_body':
+      'ព័ត៌មានត្រូវបានប្រើដើម្បីដំណើរការគណនី រក្សាទុក និងរៀបចំកំណត់ត្រា ធ្វើសមកាលកម្មមាតិកា និងធ្វើឱ្យកម្មវិធីមានស្ថិរភាព។ យើងមិនចូលប្រើមុខងារឧបករណ៍ទេ លុះត្រាតែអ្នកចាប់ផ្តើមសកម្មភាពដែលត្រូវការវា។',
+  'privacy_policy_permissions_title': 'សិទ្ធិចូលប្រើឧបករណ៍',
+  'privacy_policy_permissions_body':
+      'សិទ្ធិកាមេរ៉ា រូបថត និងមីក្រូហ្វូនគាំទ្រការស្កេន ឯកសារភ្ជាប់ និងការថតសំឡេង។ អ្នកអាចពិនិត្យ ឬដកសិទ្ធិបានគ្រប់ពេលក្នុងការកំណត់ប្រព័ន្ធ។',
+  'privacy_policy_choices_title': 'ជម្រើសរបស់អ្នក',
+  'privacy_policy_choices_body':
+      'អ្នកអាចកែព័ត៌មានប្រវត្តិរូប គ្រប់គ្រងសិទ្ធិ ប្រើរបៀបភ្ញៀវ ចាកចេញ ឬស្នើលុបគណនីពីការកំណត់។',
+  'contact_us_title': 'ទាក់ទងមកយើង',
+  'contact_us_subtitle': 'ជ្រើសរើសរបៀបទាក់ទងក្រុមការងារ Pii។',
+  'contact_phone': 'ទូរស័ព្ទ',
+  'contact_email': 'Gmail',
+  'tap_to_call': 'ចុចដើម្បីហៅ',
+  'tap_to_email': 'ចុចដើម្បីផ្ញើអ៊ីមែល',
+  'action_unavailable_title': 'មិនអាចប្រើសកម្មភាពនេះបាន',
+  'action_unavailable_message':
+      'សកម្មភាពនេះមិនអាចប្រើបានលើឧបករណ៍បច្ចុប្បន្នរបស់អ្នកទេ។',
   'help_center_title': 'មជ្ឈមណ្ឌលជំនួយ',
   'log_out': 'ចាកចេញ',
   'log_in_create_account': 'ចូល ឬបង្កើតគណនី',
@@ -123,6 +162,8 @@ const Map<String, String> kmKH = {
       'រូបភាពប្រវត្តិរូបត្រូវបានធ្វើបច្ចុប្បន្នភាព',
   'profile_image_update_failed_title':
       'មិនអាចធ្វើបច្ចុប្បន្នភាពរូបភាពប្រវត្តិរូបបានទេ',
+  'profile_image_save_failed_message':
+      'មិនអាចរក្សាទុករូបភាពដែលបានជ្រើសរើសបានទេ។',
   'guest_label': 'ភ្ញៀវ',
   'default_user_name': 'ឈ្មោះអ្នកប្រើប្រាស់',
   'not_signed_in': 'មិនទាន់ចូលគណនី',
@@ -161,6 +202,25 @@ const Map<String, String> kmKH = {
   'edit_bio_hint': 'សេចក្តីសង្ខេបអំពីអាជីព',
   'edit_color_title': 'ជ្រើសរើសពណ៌',
   'not_set': 'មិនទាន់កំណត់',
+
+  // Profile — encrypted ID information
+  'id_information_title': 'ព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
+  'id_number_label': 'លេខអត្តសញ្ញាណប័ណ្ណ',
+  'id_name_label': 'ឈ្មោះ',
+  'date_of_birth_label': 'ថ្ងៃខែឆ្នាំកំណើត',
+  'edit_id_information_title': 'កែព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
+  'edit_id_information_subtitle':
+      'ព័ត៌មានអត្តសញ្ញាណរបស់អ្នកត្រូវបានអ៊ិនគ្រីប និងរក្សាទុកសម្រាប់តែគណនីនេះនៅលើឧបករណ៍នេះ។',
+  'id_number_hint': 'បញ្ចូលលេខអត្តសញ្ញាណប័ណ្ណរបស់អ្នក',
+  'id_name_hint': 'បញ្ចូលឈ្មោះដែលបង្ហាញលើអត្តសញ្ញាណប័ណ្ណ',
+  'date_of_birth_hint': 'ជ្រើសរើសថ្ងៃខែឆ្នាំកំណើត',
+  'id_number_required': 'សូមបញ្ចូលលេខអត្តសញ្ញាណប័ណ្ណរបស់អ្នក។',
+  'id_name_required': 'សូមបញ្ចូលឈ្មោះដែលបង្ហាញលើអត្តសញ្ញាណប័ណ្ណ។',
+  'date_of_birth_required': 'សូមជ្រើសរើសថ្ងៃខែឆ្នាំកំណើត។',
+  'id_information_saved': 'ព័ត៌មានអត្តសញ្ញាណប័ណ្ណត្រូវបានធ្វើបច្ចុប្បន្នភាព',
+  'id_information_save_failed_title':
+      'មិនអាចរក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណបានទេ',
+  'id_information_save_failed_message': 'សូមព្យាយាមម្តងទៀត។',
 
   // Settings drawer
   'settings_drawer_view_profile': 'ព័ត៌មានប្រវត្តិរូប',

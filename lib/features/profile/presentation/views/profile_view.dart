@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
@@ -24,6 +23,14 @@ class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
 
   static const _contentMaxWidth = 680.0;
+  static const _iosBlue = Color(0xFF007AFF);
+  static const _iosGreen = Color(0xFF34C759);
+  static const _iosIndigo = Color(0xFF5856D6);
+  static const _iosOrange = Color(0xFFFF9500);
+  static const _iosPink = Color(0xFFFF2D55);
+  static const _iosPurple = Color(0xFFAF52DE);
+  static const _iosRed = Color(0xFFFF3B30);
+  static const _iosGray = Color(0xFF8E8E93);
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +61,10 @@ class ProfileView extends GetView<ProfileController> {
                         _buildSectionLabel(context, 'profile_basic_info'.tr),
                         const SizedBox(height: 8),
                         _buildDetailsCard(context),
+                        const SizedBox(height: 22),
+                        _buildSectionLabel(context, 'id_information_title'.tr),
+                        const SizedBox(height: 8),
+                        _buildIdInformationCard(context),
                         const SizedBox(height: 28),
                         _buildSectionLabel(context, 'account_label'.tr),
                         const SizedBox(height: 8),
@@ -88,7 +99,8 @@ class ProfileView extends GetView<ProfileController> {
         opacity: 0.15,
         thickness: 8,
         padding: EdgeInsets.zero,
-        foregroundColor: theme.colorScheme.primary,
+        glassColor: _iosBlue.withValues(alpha: 0.82),
+        foregroundColor: Colors.white,
         child: const Icon(CupertinoIcons.chevron_left, size: 23),
       ),
       actions: [
@@ -108,8 +120,8 @@ class ProfileView extends GetView<ProfileController> {
               blur: 10,
               opacity: 0.15,
               thickness: 8,
-              glassColor: theme.colorScheme.surfaceContainerHighest,
-              foregroundColor: theme.colorScheme.primary,
+              glassColor: _iosBlue.withValues(alpha: 0.82),
+              foregroundColor: Colors.white,
               padding: EdgeInsets.zero,
               child: const Icon(CupertinoIcons.pencil, size: 19),
             ),
@@ -231,8 +243,8 @@ class ProfileView extends GetView<ProfileController> {
                               blur: 8,
                               opacity: 0.2,
                               thickness: 5,
-                              glassColor: accent,
-                              foregroundColor: AppColors.onAccent(accent),
+                              glassColor: _iosBlue.withValues(alpha: 0.88),
+                              foregroundColor: Colors.white,
                               padding: EdgeInsets.zero,
                               child: const Icon(
                                 CupertinoIcons.camera_fill,
@@ -343,6 +355,7 @@ class ProfileView extends GetView<ProfileController> {
           _buildDetailRow(
             context,
             icon: CupertinoIcons.person_fill,
+            iconColor: _iosBlue,
             label: 'full_name_label'.tr,
             value: controller.userName.value,
             onTap: isGuest ? null : controller.updateUserName,
@@ -350,6 +363,7 @@ class ProfileView extends GetView<ProfileController> {
           _buildDetailRow(
             context,
             icon: CupertinoIcons.at,
+            iconColor: _iosIndigo,
             label: 'username_label'.tr,
             value: controller.userUsername.value.isEmpty
                 ? 'not_set'.tr
@@ -359,6 +373,7 @@ class ProfileView extends GetView<ProfileController> {
           _buildDetailRow(
             context,
             icon: CupertinoIcons.person_crop_circle_fill,
+            iconColor: _iosPurple,
             label: 'account_label'.tr,
             value: controller.userAccount.value.isEmpty
                 ? 'not_set'.tr
@@ -368,6 +383,7 @@ class ProfileView extends GetView<ProfileController> {
           _buildDetailRow(
             context,
             icon: CupertinoIcons.mail_solid,
+            iconColor: _iosOrange,
             label: 'email_label'.tr,
             value: controller.userEmail.value.isEmpty
                 ? 'not_set'.tr
@@ -377,6 +393,7 @@ class ProfileView extends GetView<ProfileController> {
           _buildDetailRow(
             context,
             icon: CupertinoIcons.phone_fill,
+            iconColor: _iosGreen,
             label: 'phone_label'.tr,
             value: controller.userPhone.value.isEmpty
                 ? 'not_available'.tr
@@ -386,12 +403,56 @@ class ProfileView extends GetView<ProfileController> {
           _buildDetailRow(
             context,
             icon: CupertinoIcons.paintbrush_fill,
+            iconColor: _iosPink,
             label: 'color_label'.tr,
             trailing: _ProfileColorValue(
               color: controller.userColor,
               label: colorHex,
             ),
             onTap: isGuest ? null : controller.updateColor,
+          ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildIdInformationCard(BuildContext context) {
+    return Obx(() {
+      final isGuest = controller.isGuestMode.value;
+      final edit = isGuest ? null : controller.updateIdInformation;
+
+      return _buildSurfaceCard(
+        context,
+        children: [
+          _buildDetailRow(
+            context,
+            icon: Icons.badge_outlined,
+            iconColor: _iosGray,
+            label: 'id_number_label'.tr,
+            value: controller.userIdNumber.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userIdNumber.value,
+            onTap: edit,
+          ),
+          _buildDetailRow(
+            context,
+            icon: Icons.person_outline_rounded,
+            iconColor: _iosIndigo,
+            label: 'id_name_label'.tr,
+            value: controller.userIdName.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userIdName.value,
+            onTap: edit,
+          ),
+          _buildDetailRow(
+            context,
+            icon: Icons.cake_outlined,
+            iconColor: _iosPink,
+            label: 'date_of_birth_label'.tr,
+            value: controller.formattedDateOfBirth.isEmpty
+                ? 'not_set'.tr
+                : controller.formattedDateOfBirth,
+            onTap: edit,
           ),
         ],
       );
@@ -431,6 +492,7 @@ class ProfileView extends GetView<ProfileController> {
   Widget _buildDetailRow(
     BuildContext context, {
     required IconData icon,
+    required Color iconColor,
     required String label,
     String? value,
     Widget? trailing,
@@ -451,7 +513,7 @@ class ProfileView extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              _fieldBadge(theme, icon),
+              _fieldBadge(icon, iconColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -517,7 +579,7 @@ class ProfileView extends GetView<ProfileController> {
             children: [
               Row(
                 children: [
-                  _fieldBadge(theme, CupertinoIcons.briefcase_fill),
+                  _fieldBadge(CupertinoIcons.briefcase_fill, _iosOrange),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -574,19 +636,19 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  Widget _fieldBadge(ThemeData theme, IconData icon) {
-    final scheme = theme.colorScheme;
+  Widget _fieldBadge(IconData icon, Color color) {
     return CustomGlassContainer(
       width: 36,
       height: 36,
       borderRadius: 10,
       blur: 12,
-      opacity: 0.12,
-      thickness: 6,
+      opacity: 0.3,
+      thickness: 8,
       refractiveIndex: 1.1,
-      glassColor: scheme.primary.withValues(alpha: 0.1),
+      glassColor: color.withValues(alpha: 0.82),
+      glowIntensity: 0.18,
       alignment: Alignment.center,
-      child: Icon(icon, size: 18, color: scheme.primary),
+      child: Icon(icon, size: 18, color: Colors.white),
     );
   }
 
@@ -654,8 +716,7 @@ class ProfileView extends GetView<ProfileController> {
     bool showChevron = false,
   }) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final color = isDestructive ? scheme.error : scheme.primary;
+    final color = isDestructive ? _iosRed : _iosBlue;
 
     return Material(
       color: Colors.transparent,
@@ -670,12 +731,13 @@ class ProfileView extends GetView<ProfileController> {
                 height: 36,
                 borderRadius: 10,
                 blur: 12,
-                opacity: 0.12,
-                thickness: 6,
+                opacity: 0.3,
+                thickness: 8,
                 refractiveIndex: 1.1,
-                glassColor: color.withValues(alpha: 0.1),
+                glassColor: color.withValues(alpha: 0.82),
+                glowIntensity: 0.18,
                 alignment: Alignment.center,
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: 18, color: Colors.white),
               ),
               const SizedBox(width: 12),
               Expanded(

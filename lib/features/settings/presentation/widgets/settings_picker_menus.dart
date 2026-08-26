@@ -7,7 +7,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/storage/session_storage.dart';
-import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 
 typedef SettingsMenuTriggerBuilder =
     Widget Function(BuildContext context, VoidCallback toggleMenu);
@@ -47,12 +47,15 @@ class DevicePickerMenu extends StatelessWidget {
         lg.GlassMenuItem(
           title: 'device_current'.tr,
           subtitle: '$deviceName • $deviceType',
-          icon: const Icon(Icons.phone_iphone_rounded),
+          icon: const Icon(
+            Icons.phone_iphone_rounded,
+            color: IosSemanticColors.gray,
+          ),
           onTap: () {},
           trailing: Text(
             'device_this_device'.tr,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppTheme.folderPink,
+              color: IosSemanticColors.blue,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -67,11 +70,14 @@ class DevicePickerMenu extends StatelessWidget {
             isCloudAccount
                 ? Icons.cloud_done_rounded
                 : Icons.phone_android_rounded,
+            color: isCloudAccount
+                ? IosSemanticColors.blue
+                : IosSemanticColors.gray,
           ),
           onTap: () {},
           trailing: Icon(
             isCloudAccount ? Icons.cloud_done_rounded : Icons.check_circle,
-            color: AppTheme.folderPink,
+            color: IosSemanticColors.green,
             size: 20,
           ),
         ),
@@ -82,6 +88,9 @@ class DevicePickerMenu extends StatelessWidget {
               : 'device_account_local'.tr,
           icon: Icon(
             isCloudAccount ? Icons.sync_rounded : Icons.cloud_off_outlined,
+            color: isCloudAccount
+                ? IosSemanticColors.green
+                : IosSemanticColors.gray,
           ),
           onTap: () {},
         ),
@@ -130,7 +139,10 @@ class _NotificationPickerMenuState extends State<NotificationPickerMenu> {
         lg.GlassMenuItem(
           title: 'notifications_confirmations'.tr,
           subtitle: 'notifications_confirmations_desc'.tr,
-          icon: const Icon(Icons.notifications_active_outlined),
+          icon: const Icon(
+            Icons.notifications_active_outlined,
+            color: IosSemanticColors.red,
+          ),
           height: 62,
           isSelected: confirmations,
           trailing: _statusText(context, confirmations),
@@ -144,7 +156,10 @@ class _NotificationPickerMenuState extends State<NotificationPickerMenu> {
         lg.GlassMenuItem(
           title: 'notifications_important'.tr,
           subtitle: 'notifications_important_desc'.tr,
-          icon: const Icon(Icons.security_rounded),
+          icon: const Icon(
+            Icons.security_rounded,
+            color: IosSemanticColors.orange,
+          ),
           height: 62,
           isSelected: true,
           trailing: _statusText(context, true),
@@ -192,6 +207,9 @@ class _PrivacySecurityPickerMenuState extends State<PrivacySecurityPickerMenu> {
             hidePreviews
                 ? Icons.visibility_off_rounded
                 : Icons.visibility_outlined,
+            color: hidePreviews
+                ? IosSemanticColors.orange
+                : IosSemanticColors.blue,
           ),
           height: 62,
           isSelected: hidePreviews,
@@ -206,13 +224,16 @@ class _PrivacySecurityPickerMenuState extends State<PrivacySecurityPickerMenu> {
         lg.GlassMenuItem(
           title: 'privacy_secure_session'.tr,
           subtitle: 'privacy_secure_session_desc'.tr,
-          icon: const Icon(Icons.enhanced_encryption_rounded),
+          icon: const Icon(
+            Icons.enhanced_encryption_rounded,
+            color: IosSemanticColors.green,
+          ),
           height: 62,
           isSelected: true,
           onTap: () {},
           trailing: const Icon(
             Icons.verified_user_rounded,
-            color: AppTheme.folderPink,
+            color: IosSemanticColors.green,
             size: 20,
           ),
         ),
@@ -226,7 +247,7 @@ Widget _statusText(BuildContext context, bool enabled) {
     enabled ? 'settings_status_on'.tr : 'settings_status_off'.tr,
     style: Theme.of(context).textTheme.labelSmall?.copyWith(
       color: enabled
-          ? AppTheme.folderPink
+          ? IosSemanticColors.green
           : Theme.of(context).colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w700,
     ),

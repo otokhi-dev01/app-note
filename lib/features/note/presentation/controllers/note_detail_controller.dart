@@ -16,6 +16,7 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/storage/app_media_storage.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
@@ -461,12 +462,14 @@ class NoteDetailController extends GetxController {
       final String? editedPath = await IOSImageEditor.editImage(path);
 
       if (editedPath != null && editedPath.isNotEmpty) {
+        final id = _generateId();
+        final persistedPath = await _persistAttachment(editedPath, id);
         // 4. Add as a new attachment block and refresh
         _insertBlock(
           AttachmentBlock(
-            id: _generateId(),
+            id: id,
             displayName: 'Sketch',
-            localPath: editedPath,
+            localPath: persistedPath,
             attachmentId: 0,
           ),
         );
@@ -490,16 +493,19 @@ class NoteDetailController extends GetxController {
 
       if (file == null) return;
 
+      final id = _generateId();
+      final persistedPath = await _persistAttachment(file.path, id);
       _insertBlock(
         AttachmentBlock(
-          id: _generateId(),
+          id: id,
           displayName: file.name,
-          localPath: file.path,
+          localPath: persistedPath,
           attachmentId: 0,
         ),
       );
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[CAMERA ERROR] $e');
       AppSnackbar.error(
@@ -521,17 +527,20 @@ class NoteDetailController extends GetxController {
       if (files.isEmpty) return;
 
       for (final file in files) {
+        final id = _generateId();
+        final persistedPath = await _persistAttachment(file.path, id);
         _insertBlock(
           AttachmentBlock(
-            id: _generateId(),
+            id: id,
             displayName: file.name,
-            localPath: file.path,
+            localPath: persistedPath,
             attachmentId: 0,
           ),
         );
       }
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not access gallery');
@@ -549,16 +558,19 @@ class NoteDetailController extends GetxController {
       final picked = result?.files.single;
       if (picked?.path == null) return;
 
+      final id = _generateId();
+      final persistedPath = await _persistAttachment(picked!.path!, id);
       _insertBlock(
         AttachmentBlock(
-          id: _generateId(),
-          displayName: picked!.name,
-          localPath: picked.path,
+          id: id,
+          displayName: picked.name,
+          localPath: persistedPath,
           attachmentId: 0,
         ),
       );
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[FILE PICKER ERROR] $e');
       AppSnackbar.error('Error', 'Could not attach that file');
@@ -589,11 +601,13 @@ class NoteDetailController extends GetxController {
       if (pages == null || pages.isEmpty) return;
 
       if (pages.length == 1) {
+        final id = _generateId();
+        final persistedPath = await _persistAttachment(pages.first, id);
         _insertBlock(
           AttachmentBlock(
-            id: _generateId(),
+            id: id,
             displayName: 'Scan.jpg',
-            localPath: pages.first,
+            localPath: persistedPath,
             attachmentId: 0,
           ),
         );
@@ -615,6 +629,7 @@ class NoteDetailController extends GetxController {
       }
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[SCAN DOCS ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan document');
@@ -671,21 +686,33 @@ class NoteDetailController extends GetxController {
     await Get.to(
       () => NoteAudioRecorderSheet(
         onRecorded: (path, displayName) {
-          _insertBlock(
-            AttachmentBlock(
-              id: _generateId(),
-              displayName: displayName,
-              localPath: path,
-              attachmentId: 0,
-            ),
-          );
-          blocks.refresh();
-          addTextBlock();
+          unawaited(_addRecordedAttachment(path, displayName));
         },
       ),
       fullscreenDialog: true,
       transition: Transition.cupertino,
     );
+  }
+
+  Future<void> _addRecordedAttachment(String path, String displayName) async {
+    try {
+      final id = _generateId();
+      final persistedPath = await _persistAttachment(path, id);
+      _insertBlock(
+        AttachmentBlock(
+          id: id,
+          displayName: displayName,
+          localPath: persistedPath,
+          attachmentId: 0,
+        ),
+      );
+      blocks.refresh();
+      addTextBlock();
+      unawaited(saveNote(silent: true));
+    } catch (error) {
+      debugPrint('[AUDIO SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that recording');
+    }
   }
 
   /// Resolves a local file for [remoteUrl] so the image editor has something to
@@ -735,32 +762,53 @@ class NoteDetailController extends GetxController {
   }
 
   void updateAttachmentImage(int blockIndex, String editedPath) {
+    unawaited(_persistEditedAttachment(blockIndex, editedPath));
+  }
+
+  Future<void> _persistEditedAttachment(
+    int blockIndex,
+    String editedPath,
+  ) async {
     if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
     }
     final block = blocks[blockIndex];
     if (block is! AttachmentBlock) return;
 
-    // ios_image_editor saves the markup in place and hands back the same
-    // path it was given, so Flutter's image cache — keyed by FileImage(path),
-    // not file contents — would otherwise keep painting the pre-edit bytes
-    // forever. Evict it so the edit is actually visible.
-    PaintingBinding.instance.imageCache.evict(FileImage(File(editedPath)));
+    try {
+      // ios_image_editor may return a temporary path or overwrite the input
+      // in place. Copying first gives the edit a stable, uniquely keyed file.
+      final persistedPath = await _persistAttachment(
+        editedPath,
+        block.id,
+        forceCopy: true,
+      );
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != block.id) {
+        return;
+      }
 
-    blocks[blockIndex] = AttachmentBlock(
-      id: block.id,
-      attachmentId: 0,
-      // Keep a real extension on the name — it's the most reliable of the
-      // three signals note_attachment_block.dart uses to tell an image
-      // attachment from a generic file, since a re-upload can come back
-      // from the server as an extensionless URL.
-      displayName: 'Edited Image${_extensionOf(editedPath)}',
-      localPath: editedPath,
-      url: block.url,
-    );
-    // Leave persisting to the checkmark button, same as any other edit to
-    // the note — editing an image shouldn't trigger its own separate save.
-    blocks.refresh();
+      PaintingBinding.instance.imageCache.evict(FileImage(File(persistedPath)));
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        // Keep a real extension on the name — it's the most reliable of the
+        // three signals note_attachment_block.dart uses to identify images.
+        displayName: 'Edited Image${_extensionOf(persistedPath)}',
+        localPath: persistedPath,
+        url: block.url,
+      );
+      blocks.refresh();
+      if (block.localPath != persistedPath) {
+        await AppMediaStorage.deleteIfManaged(
+          path: block.localPath,
+          folder: 'note_attachments',
+        );
+      }
+      unawaited(saveNote(silent: true));
+    } catch (error) {
+      debugPrint('[EDITED IMAGE SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that edited image');
+    }
   }
 
   /// `.jpg` from `/tmp/.../photo.jpg`, or `''` if [path] has no extension.
@@ -968,14 +1016,24 @@ class NoteDetailController extends GetxController {
   }
 
   void updateDrawing(int blockIndex, String path) {
+    unawaited(_persistDrawing(blockIndex, path));
+  }
+
+  Future<void> _persistDrawing(int blockIndex, String path) async {
     if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
     }
-    blocks[blockIndex] = DrawingBlock(
-      id: blocks[blockIndex].id,
-      localPath: path,
-    );
-    blocks.refresh();
+    try {
+      final id = blocks[blockIndex].id;
+      final persistedPath = await _persistAttachment(path, id);
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != id) return;
+      blocks[blockIndex] = DrawingBlock(id: id, localPath: persistedPath);
+      blocks.refresh();
+      unawaited(saveNote(silent: true));
+    } catch (error) {
+      debugPrint('[DRAWING SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that drawing');
+    }
   }
 
   // --- Checklist Actions ---
@@ -1419,6 +1477,19 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  Future<String> _persistAttachment(
+    String sourcePath,
+    String blockId, {
+    bool forceCopy = false,
+  }) {
+    return AppMediaStorage.persist(
+      sourcePath: sourcePath,
+      folder: 'note_attachments',
+      fileName: '${blockId}_${DateTime.now().microsecondsSinceEpoch}',
+      forceCopy: forceCopy,
+    );
+  }
+
   void _syncBlocks() {
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
@@ -1508,10 +1579,8 @@ class NoteDetailController extends GetxController {
       );
 
       if (failedUploads.isNotEmpty) {
-        // These never reached the server, so re-attach them locally too —
-        // otherwise the picture is silently lost even though everything
-        // else just saved successfully.
-        blocks.addAll(failedUploads);
+        // Failed blocks remain in the live list with their durable local path
+        // and will retry on the next save.
         blocks.refresh();
         AppSnackbar.warning(
           'Saved with an issue',
@@ -1651,6 +1720,10 @@ class NoteDetailController extends GetxController {
           // storage rather than a server URL. Treating that path as a URL
           // would send Image.network to a host that was never asked for it.
           final isLocalFile = File(value.filePath).existsSync();
+          final originalPath = normalizeLocalPath(block.localPath);
+          final uploadedLocalPath = isLocalFile
+              ? normalizeLocalPath(value.filePath)
+              : null;
           final uploaded = AttachmentBlock(
             id: block.id,
             attachmentId: value.attachmentId,
@@ -1668,6 +1741,9 @@ class NoteDetailController extends GetxController {
           if (currentIndex != -1) {
             blocks[currentIndex] = uploaded;
             stateChanged = true;
+          }
+          if (originalPath != null && originalPath != uploadedLocalPath) {
+            _deleteFileAt(originalPath);
           }
         // Else: the block was deleted while its upload was in flight. The
         // upload still succeeded server-side, but there's nothing local

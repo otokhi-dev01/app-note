@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
 
@@ -140,14 +141,14 @@ class _ForgotPasswordPopupState extends State<ForgotPasswordPopup> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.12),
+                color: IosSemanticColors.orange,
                 borderRadius: BorderRadius.circular(13),
               ),
               alignment: Alignment.center,
               child: Icon(
                 CupertinoIcons.lock_rotation,
                 size: 21,
-                color: scheme.primary,
+                color: Colors.white,
               ),
             ),
             const SizedBox(width: 12),
@@ -199,7 +200,7 @@ class _ForgotPasswordPopupState extends State<ForgotPasswordPopup> {
         color: scheme.onSurface,
         fontWeight: FontWeight.w500,
       ),
-      cursorColor: scheme.primary,
+      cursorColor: IosSemanticColors.blue,
       decoration: InputDecoration(
         hintText: 'phone_number_hint'.tr,
         errorText: _errorText,
@@ -209,27 +210,33 @@ class _ForgotPasswordPopupState extends State<ForgotPasswordPopup> {
         prefixIcon: Icon(
           CupertinoIcons.phone,
           size: 20,
-          color: scheme.onSurfaceVariant,
+          color: IosSemanticColors.green,
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 15,
         ),
         errorStyle: theme.textTheme.labelSmall?.copyWith(
-          color: scheme.error,
+          color: IosSemanticColors.red,
           fontWeight: FontWeight.w500,
         ),
         border: border,
         enabledBorder: border,
         disabledBorder: border,
         focusedBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.primary, width: 1.5),
+          borderSide: const BorderSide(
+            color: IosSemanticColors.blue,
+            width: 1.5,
+          ),
         ),
         errorBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.error),
+          borderSide: const BorderSide(color: IosSemanticColors.red),
         ),
         focusedErrorBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.error, width: 1.5),
+          borderSide: const BorderSide(
+            color: IosSemanticColors.red,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -258,9 +265,11 @@ class _ForgotPasswordPopupState extends State<ForgotPasswordPopup> {
           onPressed: _canSubmit ? _submit : null,
           style: FilledButton.styleFrom(
             minimumSize: const Size(132, 48),
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            disabledBackgroundColor: scheme.primary.withValues(alpha: 0.18),
+            backgroundColor: IosSemanticColors.blue,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: IosSemanticColors.blue.withValues(
+              alpha: 0.18,
+            ),
             disabledForegroundColor: scheme.onSurfaceVariant.withValues(
               alpha: 0.55,
             ),
@@ -274,7 +283,7 @@ class _ForgotPasswordPopupState extends State<ForgotPasswordPopup> {
                   dimension: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: scheme.onPrimary,
+                    color: Colors.white,
                   ),
                 )
               : Text(

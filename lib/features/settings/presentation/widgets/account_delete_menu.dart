@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
 
 /// The Account screen's "Delete Account" row, iOS-26 style: tapping it morphs
@@ -41,7 +42,10 @@ class AccountDeleteMenu extends StatelessWidget {
       items: [
         lg.GlassMenuItem(
           title: 'delete_account_title'.tr,
-          icon: const Icon(CupertinoIcons.delete_solid),
+          icon: const Icon(
+            CupertinoIcons.delete_solid,
+            color: IosSemanticColors.red,
+          ),
           isDestructive: true,
           onTap: controller.startDeleteAccount,
         ),

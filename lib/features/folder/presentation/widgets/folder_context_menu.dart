@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -45,16 +46,19 @@ class FolderContextMenu extends StatelessWidget {
           _item(
             title: 'folder_move'.tr,
             icon: CupertinoIcons.folder,
+            color: IosSemanticColors.blue,
             onTap: () => controller.onMoveFolder(folder),
           ),
           _item(
             title: 'folder_rename'.tr,
             icon: Icons.edit_note_rounded,
+            color: IosSemanticColors.orange,
             onTap: () => controller.onRenameFolder(folder),
           ),
           _item(
             title: 'folder_add'.tr,
             icon: CupertinoIcons.folder_badge_plus,
+            color: IosSemanticColors.green,
             onTap: () {
               Get.to(
                 () => FolderCreateModal(
@@ -71,6 +75,9 @@ class FolderContextMenu extends StatelessWidget {
             icon: controller.isGroupedByDate.value
                 ? Icons.calendar_view_day_rounded
                 : Icons.calendar_view_day_outlined,
+            color: controller.isGroupedByDate.value
+                ? IosSemanticColors.green
+                : IosSemanticColors.gray,
             subtitle: controller.isGroupedByDate.value
                 ? 'folder_status_on'.tr
                 : 'folder_status_off'.tr,
@@ -79,12 +86,14 @@ class FolderContextMenu extends StatelessWidget {
           _item(
             title: 'folder_delete'.tr,
             icon: CupertinoIcons.delete,
+            color: IosSemanticColors.red,
             isDestructive: true,
             onTap: () => controller.onDeleteFolder(folder),
           ),
           _item(
             title: 'folder_convert_smart'.tr,
             icon: Icons.auto_fix_high_rounded,
+            color: IosSemanticColors.purple,
             onTap: () => controller.onConvertToSmartFolder(folder),
           ),
         ],
@@ -95,6 +104,7 @@ class FolderContextMenu extends StatelessWidget {
   lg.GlassMenuItem _item({
     required String title,
     required IconData icon,
+    required Color color,
     required VoidCallback onTap,
     String? subtitle,
     bool isDestructive = false,
@@ -102,7 +112,7 @@ class FolderContextMenu extends StatelessWidget {
     return lg.GlassMenuItem(
       title: title,
       subtitle: subtitle,
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       isDestructive: isDestructive,
       onTap: onTap,
     );

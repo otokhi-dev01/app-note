@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
 
@@ -35,11 +38,13 @@ class ProfileMorePopup extends StatelessWidget {
             _item(
               title: 'edit_name_title'.tr,
               icon: CupertinoIcons.pencil,
+              color: IosSemanticColors.blue,
               onTap: controller.updateUserName,
             ),
             _item(
               title: 'profile_change_photo'.tr,
               icon: CupertinoIcons.camera,
+              color: IosSemanticColors.pink,
               onTap: controller.updateProfileImage,
             ),
             const lg.GlassMenuDivider(),
@@ -47,6 +52,7 @@ class ProfileMorePopup extends StatelessWidget {
           _item(
             title: 'profile_account_settings'.tr,
             icon: CupertinoIcons.person_crop_circle_fill,
+            color: IosSemanticColors.indigo,
             onTap: () => Get.toNamed(Routes.ACCOUNT),
           ),
           const lg.GlassMenuDivider(),
@@ -57,11 +63,14 @@ class ProfileMorePopup extends StatelessWidget {
             icon: controller.isGuestMode.value
                 ? CupertinoIcons.arrow_right_circle
                 : CupertinoIcons.square_arrow_right,
+            color: controller.isGuestMode.value
+                ? IosSemanticColors.green
+                : IosSemanticColors.red,
             onTap: () {
               if (controller.isGuestMode.value) {
                 Get.offAllNamed(Routes.LOGIN);
               } else {
-                controller.logout();
+                unawaited(controller.logout());
               }
             },
             isDestructive: !controller.isGuestMode.value,
@@ -74,12 +83,13 @@ class ProfileMorePopup extends StatelessWidget {
   lg.GlassMenuItem _item({
     required String title,
     required IconData icon,
+    required Color color,
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
     return lg.GlassMenuItem(
       title: title,
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       isDestructive: isDestructive,
       onTap: onTap,
     );

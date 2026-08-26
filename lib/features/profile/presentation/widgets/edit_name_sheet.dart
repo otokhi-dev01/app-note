@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
 
 /// A focused, compact profile-name editor.
@@ -169,7 +170,7 @@ class _EditNameSheetState extends State<EditNameSheet> {
         color: scheme.onSurface,
         fontWeight: FontWeight.w500,
       ),
-      cursorColor: scheme.primary,
+      cursorColor: IosSemanticColors.blue,
       onSubmitted: (_) => _submit(),
       decoration: InputDecoration(
         hintText: 'edit_name_hint'.tr,
@@ -188,27 +189,33 @@ class _EditNameSheetState extends State<EditNameSheet> {
                 icon: Icon(
                   CupertinoIcons.xmark_circle_fill,
                   size: 19,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  color: IosSemanticColors.gray,
                 ),
               ),
         counterStyle: theme.textTheme.labelSmall?.copyWith(
           color: scheme.onSurfaceVariant,
         ),
         errorStyle: theme.textTheme.labelSmall?.copyWith(
-          color: scheme.error,
+          color: IosSemanticColors.red,
           fontWeight: FontWeight.w500,
         ),
         border: border,
         enabledBorder: border,
         disabledBorder: border,
         focusedBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.primary, width: 1.5),
+          borderSide: const BorderSide(
+            color: IosSemanticColors.blue,
+            width: 1.5,
+          ),
         ),
         errorBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.error),
+          borderSide: const BorderSide(color: IosSemanticColors.red),
         ),
         focusedErrorBorder: border.copyWith(
-          borderSide: BorderSide(color: scheme.error, width: 1.5),
+          borderSide: const BorderSide(
+            color: IosSemanticColors.red,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -237,9 +244,11 @@ class _EditNameSheetState extends State<EditNameSheet> {
           onPressed: _canSave ? _submit : null,
           style: FilledButton.styleFrom(
             minimumSize: const Size(116, 48),
-            backgroundColor: scheme.primary,
-            foregroundColor: scheme.onPrimary,
-            disabledBackgroundColor: scheme.primary.withValues(alpha: 0.18),
+            backgroundColor: IosSemanticColors.blue,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: IosSemanticColors.blue.withValues(
+              alpha: 0.18,
+            ),
             disabledForegroundColor: scheme.onSurfaceVariant.withValues(
               alpha: 0.55,
             ),
@@ -253,7 +262,7 @@ class _EditNameSheetState extends State<EditNameSheet> {
                   dimension: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: scheme.onPrimary,
+                    color: Colors.white,
                   ),
                 )
               : Text(
