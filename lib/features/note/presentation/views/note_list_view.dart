@@ -49,7 +49,7 @@ class NoteListView extends GetView<NoteController> {
               controller.fetchNotes(folderId: folder?.id, refresh: true),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
-          edgeOffset: 140,
+          edgeOffset: MediaQuery.paddingOf(context).top + 52,
           child: Obx(
             () => CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -76,18 +76,9 @@ class NoteListView extends GetView<NoteController> {
 
   Widget _buildAppBar(BuildContext context, String title, int folderId) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        title,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: title,
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
         width: 44,
@@ -123,14 +114,6 @@ class NoteListView extends GetView<NoteController> {
         ),
         Obx(() => _buildActionIcon(context)),
       ],
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
-      largeTitle: Text(
-        title,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 34,
-        ),
-      ),
     );
   }
 

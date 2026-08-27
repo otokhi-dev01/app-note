@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:cunning_document_scanner/cunning_document_scanner.dart';
+import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'
     as mlkit;
 import 'package:flutter_quill/flutter_quill.dart' as quill;
@@ -46,6 +47,10 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 /// as "Backspace at the start of an empty item" and strips before the text
 /// ever reaches [NoteDetailController.onUpdateChecklistItem].
 final String kChecklistItemPlaceholder = String.fromCharCode(0x200B);
+
+const _contentUriChannel = MethodChannel(
+  'com.kimchheang.otokhi-note/content_uri',
+);
 
 /// Drives the note editor.
 ///
@@ -588,104 +593,190 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Scan Documents" — the native document camera (perspective-corrected,
-  /// cropped pages, same as Notes.app). A single page attaches as an image,
-  /// same as any other photo; multiple pages are bound into one PDF so the
-  /// scan attaches as the single document it represents rather than a run of
-  /// loose images.
+  /// "Scan Documents" — jumps straight into the native document camera with
+  /// no prompts first. Every completed scan is printed into one A4 PDF under
+  /// a default title, including a scan containing only one page.
   Future<void> scanDocuments() async {
     if (isReadOnly.value) return;
 
     try {
-      // Without this, the scanner writes PNGs (its default) while the block
-      // below names the file "Scan.jpg" — display doesn't care (image
-      // decoding goes by content, not extension) but it's a real mismatch
-      // for anything downstream that trusts the name, and PNG is needlessly
-      // large for a scanned page. JPEG matches every other photo attachment
-      // in this file, which all go through image_picker's own compression.
-      final pages = await CunningDocumentScanner.getPictures(
-        iosScannerOptions: IosScannerOptions(
-          imageFormat: IosImageFormat.jpg,
-          jpgCompressionQuality: 0.8,
-        ),
+      final result = await FlutterDocScanner().getScannedDocumentAsImages(
+        page: 20,
+        imageFormat: ImageFormat.jpeg,
+        quality: 0.8,
       );
-      if (pages == null || pages.isEmpty) return;
-
-      if (pages.length == 1) {
-        final id = _generateId();
-        final persistedPath = await _persistAttachment(pages.first, id);
-        _insertBlock(
-          AttachmentBlock(
-            id: id,
-            displayName: 'Scan.jpg',
-            localPath: persistedPath,
-            attachmentId: 0,
-          ),
-        );
-      } else {
-        final id = _generateId();
-        final pdfPath = await buildMultiPageImagePdf(
-          imagePaths: pages,
-          blockId: id,
-          title: 'Scanned Document',
-        );
-        _insertBlock(
-          AttachmentBlock(
-            id: id,
-            displayName: 'Scanned Document.pdf',
-            localPath: pdfPath,
-            attachmentId: 0,
-          ),
-        );
-      }
-      blocks.refresh();
-      addTextBlock();
-      unawaited(saveNote(silent: true));
+      final pages = await _materializeScanPages(result?.images ?? const []);
+      if (pages.isEmpty) return;
+      await _insertScannedDocumentPdf(pages);
     } catch (e) {
       debugPrint('[SCAN DOCS ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan document');
     }
   }
 
+  /// "Document from Photo" — same output as [scanDocuments], but the pages
+  /// come from the photo gallery instead of the live document camera.
+  Future<void> scanDocumentsFromGallery() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final files = await _picker.pickMultiImage(imageQuality: 80);
+      if (files.isEmpty) return;
+      final pages = files.map((file) => file.path).toList(growable: false);
+      await _insertScannedDocumentPdf(pages);
+    } catch (e) {
+      debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
+      AppSnackbar.error('Error', 'Could not add those photos');
+    }
+  }
+
+  Future<void> _insertScannedDocumentPdf(List<String> pages) async {
+    final title = 'note_editor_scanned_document_default_title'.tr;
+    final id = 'scan_${_generateId()}';
+    final pdfPath = await buildMultiPageImagePdf(
+      imagePaths: pages,
+      blockId: id,
+      title: title,
+      showTitle: true,
+      createdAt: DateTime.now(),
+      showPageNumbers: true,
+      pageLabel: 'note_editor_pdf_page'.tr,
+      ofLabel: 'note_editor_pdf_of'.tr,
+    );
+    _insertBlock(
+      AttachmentBlock(
+        id: id,
+        displayName: _scannedDocumentFileName(title),
+        localPath: pdfPath,
+        attachmentId: 0,
+      ),
+    );
+    blocks.refresh();
+    addTextBlock();
+    unawaited(saveNote(silent: true));
+  }
+
+  Future<List<String>> _materializeScanPages(List<String> rawPaths) async {
+    final pages = <String>[];
+    for (final rawPath in rawPaths) {
+      final uri = Uri.tryParse(rawPath);
+      if (uri?.scheme == 'content') {
+        final copiedPath = await _contentUriChannel.invokeMethod<String>(
+          'copyContentUriToCache',
+          {'uri': rawPath, 'extension': '.jpg'},
+        );
+        if (copiedPath != null && copiedPath.isNotEmpty) pages.add(copiedPath);
+      } else if (uri?.scheme == 'file') {
+        pages.add(uri!.toFilePath());
+      } else {
+        pages.add(rawPath);
+      }
+    }
+    return pages;
+  }
+
+  String _scannedDocumentFileName(String title) {
+    var name = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '-');
+    if (name.toLowerCase().endsWith('.pdf')) {
+      name = name.substring(0, name.length - 4).trim();
+    }
+    if (name.isEmpty) name = 'note_editor_scanned_document_default_title'.tr;
+    return '$name.pdf';
+  }
+
   /// "Scan Text" — captures one page with the same document camera as
-  /// [scanDocuments], runs on-device text recognition over it, and drops the
-  /// result in as a new text block rather than attaching the photo itself.
+  /// [scanDocuments], runs on-device text recognition over it, then throws
+  /// the photo away and attaches the recognized *text* itself as a clean,
+  /// typeset PDF — unlike [scanDocuments], which keeps the photographed page.
   Future<void> scanText() async {
     if (isReadOnly.value) return;
 
     try {
-      final pages = await CunningDocumentScanner.getPictures(noOfPages: 1);
-      final path = pages?.firstOrNull;
-      if (path == null) return;
-
-      final recognizer = mlkit.TextRecognizer(
-        script: mlkit.TextRecognitionScript.latin,
+      final result = await FlutterDocScanner().getScannedDocumentAsImages(
+        page: 1,
+        imageFormat: ImageFormat.jpeg,
+        quality: 0.9,
       );
-      final mlkit.RecognizedText result;
-      try {
-        result = await recognizer.processImage(
-          mlkit.InputImage.fromFilePath(path),
-        );
-      } finally {
-        unawaited(recognizer.close());
-      }
-
-      final text = result.text.trim();
-      if (text.isEmpty) {
-        AppSnackbar.info(
-          'No text found',
-          "Couldn't find any text in that scan.",
-        );
-        return;
-      }
-
-      _insertBlock(TextBlock(id: _generateId(), text: text, style: 'body'));
-      blocks.refresh();
-      addTextBlock();
+      final pages = await _materializeScanPages(result?.images ?? const []);
+      final path = pages.firstOrNull;
+      if (path == null) return;
+      await _insertScannedTextPdf(path);
     } catch (e) {
       debugPrint('[SCAN TEXT ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan text');
     }
+  }
+
+  /// "Text from Photo" — same output as [scanText], but the source page
+  /// comes from the photo gallery instead of the live document camera.
+  Future<void> scanTextFromGallery() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+      );
+      if (file == null) return;
+      await _insertScannedTextPdf(file.path);
+    } catch (e) {
+      debugPrint('[SCAN TEXT FROM GALLERY ERROR] $e');
+      AppSnackbar.error('Error', 'Could not scan text from that photo');
+    }
+  }
+
+  Future<void> _insertScannedTextPdf(String imagePath) async {
+    final recognizer = mlkit.TextRecognizer(
+      script: mlkit.TextRecognitionScript.latin,
+    );
+    final mlkit.RecognizedText recognizedText;
+    try {
+      recognizedText = await recognizer.processImage(
+        mlkit.InputImage.fromFilePath(imagePath),
+      );
+    } finally {
+      await recognizer.close();
+    }
+
+    final text = recognizedText.text.trim();
+    if (text.isEmpty) {
+      AppSnackbar.info('No text found', "Couldn't find any text in that scan.");
+      return;
+    }
+
+    final title = _titleFromRecognizedText(text);
+    final id = 'scan_${_generateId()}';
+    final pdfPath = await buildTextPdf(
+      title: title,
+      text: text,
+      date: DateTime.now(),
+    );
+    _insertBlock(
+      AttachmentBlock(
+        id: id,
+        displayName: _scannedDocumentFileName(title),
+        localPath: pdfPath,
+        attachmentId: 0,
+      ),
+    );
+    blocks.refresh();
+    addTextBlock();
+    unawaited(saveNote(silent: true));
+  }
+
+  /// The first non-empty line of the OCR result, capped to a sane file-name
+  /// length — falls back to the generic default when nothing usable is left.
+  String _titleFromRecognizedText(String text) {
+    final firstLine = text
+        .split('\n')
+        .map((line) => line.trim())
+        .firstWhere((line) => line.isNotEmpty, orElse: () => '');
+    if (firstLine.isEmpty) {
+      return 'note_editor_scanned_text_default_title'.tr;
+    }
+    return firstLine.length > 60
+        ? '${firstLine.substring(0, 60).trim()}…'
+        : firstLine;
   }
 
   /// "Record Audio" — the sheet owns the entire record/stop/cancel flow and
@@ -769,6 +860,29 @@ class NoteDetailController extends GetxController {
         return value;
       case Err(:final failure):
         AppSnackbar.failure('Could not load audio', failure);
+        return null;
+    }
+  }
+
+  /// Downloads a remote PDF into temporary storage so it can be rendered by
+  /// the inline paper preview and full-screen viewer.
+  Future<String?> cacheAttachmentForPreview(
+    String remoteUrl, {
+    required String extension,
+  }) async {
+    final directory = await getTemporaryDirectory();
+    final savePath =
+        '${directory.path}/preview_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+    final result = await _downloadAttachment(
+      DownloadAttachmentParams(url: remoteUrl, savePath: savePath),
+    );
+
+    switch (result) {
+      case Ok(:final value):
+        return value;
+      case Err(:final failure):
+        AppSnackbar.failure('note_editor_pdf_preview_failed'.tr, failure);
         return null;
     }
   }

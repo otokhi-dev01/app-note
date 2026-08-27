@@ -83,45 +83,51 @@ class SearchView extends GetView<sc.SearchController> {
   Widget _buildTopBar(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: Row(
-        children: [
-          /// Back glass button
-          CustomGlassButton(
-            onPressed: () => Get.back(),
-            width: 44,
-            height: 44,
-            shape: GlassShape.circle,
-            blur: 10,
-            opacity: 0.15,
-            thickness: 8,
-            padding: EdgeInsets.zero,
-            child: Icon(
-              CupertinoIcons.chevron_left,
-              color: theme.colorScheme.onSurface,
-              size: 24,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        boxShadow: kCreateNoteAppBarShadow,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            /// Back glass button
+            CustomGlassButton(
+              onPressed: () => Get.back(),
+              width: 44,
+              height: 44,
+              shape: GlassShape.circle,
+              blur: 10,
+              opacity: 0.15,
+              thickness: 8,
+              padding: EdgeInsets.zero,
+              child: Icon(
+                CupertinoIcons.chevron_left,
+                color: theme.colorScheme.onSurface,
+                size: 28,
+              ),
             ),
-          ),
 
-          Expanded(
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'note_list_search'.tr,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'note_list_search'.tr,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          /// Used to balance the back button
-          const SizedBox(width: 48, height: 48),
-        ],
+            /// Used to balance the back button
+            const SizedBox(width: 44, height: 44),
+          ],
+        ),
       ),
     );
   }

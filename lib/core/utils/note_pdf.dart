@@ -103,6 +103,50 @@ Future<String> buildNotePdf({
   return path;
 }
 
+/// Turns OCR'd text into a real, selectable text PDF — distinct from
+/// [image_pdf.dart]'s `buildMultiPageImagePdf`, which embeds the photographed
+/// page itself. This one throws the photo away and typesets just the words.
+Future<String> buildTextPdf({
+  required String title,
+  required String text,
+  required DateTime date,
+}) async {
+  final document = pw.Document(title: title, theme: await _loadPdfTheme());
+
+  document.addPage(
+    pw.MultiPage(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+      build: (context) => [
+        pw.Text(
+          title,
+          style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          DateFormat("MMMM d, yyyy 'at' h:mm a").format(date),
+          style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600),
+        ),
+        pw.SizedBox(height: 16),
+        pw.Text(text, style: const pw.TextStyle(fontSize: 11)),
+      ],
+    ),
+  );
+
+  final dir = await getTemporaryDirectory();
+  var safeName = title
+      .trim()
+      .replaceAll(RegExp(r'[^\w\s-]'), '')
+      .replaceAll(RegExp(r'\s+'), '_');
+  if (safeName.length > 60) safeName = safeName.substring(0, 60);
+  final fileName = safeName.isEmpty ? 'Scanned_Text' : safeName;
+  final path =
+      '${dir.path}/${fileName}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+  final file = File(path);
+  await file.writeAsBytes(await document.save(), flush: true);
+  return path;
+}
+
 pw.Widget? _buildBlockWidget(NoteBlock block, Map<String, String> images) {
   switch (block) {
     case TextBlock(:final text, :final style):
@@ -179,7 +223,10 @@ pw.Widget? _buildBlockWidget(NoteBlock block, Map<String, String> images) {
                   for (final cell in row)
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text(cell, style: const pw.TextStyle(fontSize: 10)),
+                      child: pw.Text(
+                        cell,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
                     ),
                 ],
               ),

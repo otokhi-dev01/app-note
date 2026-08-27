@@ -2,10 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:Note/core/storage/language_preferences.dart';
+import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/language_picker_sheet.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_section_header.dart';
@@ -44,7 +43,7 @@ class FolderView extends GetView<FolderController> {
               onRefresh: () => controller.fetchFolders(refresh: true),
               color: theme.primaryColor,
               backgroundColor: theme.scaffoldBackgroundColor,
-              edgeOffset: 140,
+              edgeOffset: MediaQuery.paddingOf(context).top + 52,
               child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [_buildAppBar(context), _buildFolderList(context)],
@@ -64,10 +63,7 @@ class FolderView extends GetView<FolderController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
       leading: Builder(
         builder: (drawerContext) => CustomGlassButton(
@@ -86,21 +82,7 @@ class FolderView extends GetView<FolderController> {
           ),
         ),
       ),
-      title: Text(
-        "folder_title".tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
-      largeTitle: Text(
-        "folder_title".tr,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 34,
-        ),
-      ),
+      title: "folder_title".tr,
       actions: [
         // CustomGlassButton(
         //   onPressed: () => Get.to(
@@ -150,21 +132,19 @@ class FolderView extends GetView<FolderController> {
   }
 
   Widget _buildLanguageButton(BuildContext context) {
-    return LanguagePickerMenu(
-      menuAlignment: lg.GlassMenuAlignment.topRight,
-      triggerBuilder: (context, toggleMenu) => CustomGlassButton(
-        onPressed: toggleMenu,
-        width: 44,
-        height: 44,
-        shape: GlassShape.circle,
-        blur: 10,
-        opacity: 0.15,
-        thickness: 8,
-        padding: EdgeInsets.zero,
-        child: Text(
-          LanguagePreferences().language.flag,
-          style: const TextStyle(fontSize: 20),
-        ),
+    return CustomGlassButton(
+      onPressed: () => Get.toNamed(Routes.LANGUAGE),
+      semanticLabel: 'language_title'.tr,
+      width: 44,
+      height: 44,
+      shape: GlassShape.circle,
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      padding: EdgeInsets.zero,
+      child: Text(
+        LanguagePreferences().language.flag,
+        style: const TextStyle(fontSize: 20),
       ),
     );
   }

@@ -18,15 +18,10 @@ class AppNoteTile extends StatelessWidget {
 
   final bool isEditing;
   final bool isSelected;
-
   final bool showAttachmentThumbnail;
-
   final bool showChevron;
-
   final DateTime? timestamp;
-
   final String? subtitleOverride;
-
   final EdgeInsetsGeometry contentPadding;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;

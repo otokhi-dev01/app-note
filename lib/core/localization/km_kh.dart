@@ -239,6 +239,8 @@ const Map<String, String> kmKH = {
 
   // Settings drawer
   'settings_drawer_view_profile': 'ព័ត៌មានប្រវត្តិរូប',
+  'profile_phone_read_only':
+      'លេខទូរស័ព្ទនេះជារបស់គណនីដែលបានចូល ហើយមិនទាន់អាចផ្លាស់ប្តូរក្នុងកម្មវិធីបានទេ។',
 
   // Account (delete-account flow)
   'account_title': 'គណនី',
@@ -448,8 +450,24 @@ const Map<String, String> kmKH = {
   'note_editor_recording_fallback_name': 'ការថតសំឡេង',
   'note_editor_audio_recording_semantic_label': 'ការថតសំឡេង៖ @name',
   'note_editor_tap_to_play': 'ចុចដើម្បីចាក់',
+  'note_editor_video_fallback_name': 'វីដេអូ',
+  'note_editor_video_semantic_label': 'វីដេអូភ្ជាប់៖ @name',
+  'note_editor_play_video': 'ចាក់វីដេអូ',
+  'note_editor_video_not_available': 'មិនមានវីដេអូនេះទេ។',
+  'note_editor_video_not_on_device': 'វីដេអូនេះមិននៅលើឧបករណ៍នេះទេ។',
+  'note_editor_could_not_share_video': 'មិនអាចចែករំលែកវីដេអូនោះបានទេ',
   'note_editor_scan_text': 'ស្កេនអត្ថបទ',
   'note_editor_scan_docs': 'ស្កេនឯកសារ',
+  'note_editor_scanned_document_default_title': 'ឯកសារស្កេន',
+  'note_editor_scanned_text_default_title': 'អត្ថបទស្កេន',
+  'note_editor_scan_text_photo': 'អត្ថបទពីរូបថត',
+  'note_editor_scan_docs_photo': 'ឯកសារពីរូបថត',
+  'note_editor_pdf_page': 'ទំព័រ',
+  'note_editor_pdf_of': 'នៃ',
+  'note_editor_open_pdf': 'បើក PDF',
+  'note_editor_share_print_pdf': 'ចែករំលែក / បោះពុម្ព',
+  'note_editor_pdf_preview_failed': 'មិនអាចផ្ទុកការមើល PDF បានទេ',
+  'note_editor_pdf_not_available': 'មិនមាន PDF នេះទេ។',
   'note_editor_take_photo_video': 'ថតរូបភាព ឬវីដេអូ',
   'note_editor_choose_photo_video': 'ជ្រើសរើសរូបភាព ឬវីដេអូ',
   'note_editor_record_audio': 'ថតសំឡេង',

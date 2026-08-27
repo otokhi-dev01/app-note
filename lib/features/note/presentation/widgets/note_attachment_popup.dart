@@ -32,9 +32,21 @@ class NoteAttachmentPopup extends StatelessWidget {
         ),
         _item(
           context,
+          'note_editor_scan_text_photo'.tr,
+          CupertinoIcons.doc_text_viewfinder,
+          'scan_text_photo',
+        ),
+        _item(
+          context,
           'note_editor_scan_docs'.tr,
           CupertinoIcons.viewfinder_circle,
           'scan_docs',
+        ),
+        _item(
+          context,
+          'note_editor_scan_docs_photo'.tr,
+          CupertinoIcons.doc_on_doc,
+          'scan_docs_photo',
         ),
         _item(
           context,
@@ -73,8 +85,8 @@ class NoteAttachmentPopup extends StatelessWidget {
     String type,
   ) {
     final color = switch (type) {
-      'scan_text' => IosSemanticColors.indigo,
-      'scan_docs' => IosSemanticColors.purple,
+      'scan_text' || 'scan_text_photo' => IosSemanticColors.indigo,
+      'scan_docs' || 'scan_docs_photo' => IosSemanticColors.purple,
       'camera' => IosSemanticColors.blue,
       'gallery' => IosSemanticColors.pink,
       'audio' => IosSemanticColors.red,

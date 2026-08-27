@@ -10,7 +10,6 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
-import 'package:Note/features/auth/presentation/widgets/forgot_password_popup.dart';
 import 'package:Note/routes/app_pages.dart';
 
 /// Backs both the login and register screens.
@@ -131,13 +130,12 @@ class AuthController extends GetxController {
   }
 
   Future<void> forgotPassword() async {
-    final context = Get.context;
-    if (context == null) return;
-
-    await ForgotPasswordPopup.show(
-      context: context,
-      initialPhone: phoneController.text.trim(),
-      onSubmit: _submitForgotPassword,
+    await Get.toNamed(
+      Routes.FORGOT_PASSWORD,
+      arguments: {
+        'initialPhone': phoneController.text.trim(),
+        'onSubmit': _submitForgotPassword,
+      },
     );
   }
 

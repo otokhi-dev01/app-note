@@ -39,7 +39,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           onRefresh: () => controller.fetchDeletedItems(),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
-          edgeOffset: 140,
+          edgeOffset: MediaQuery.paddingOf(context).top + 52,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -62,18 +62,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        "trash_title".tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: "trash_title".tr,
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
         width: 44,
@@ -128,15 +119,6 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           ),
         ),
       ],
-      largeTitleAlignment: Alignment.bottomCenter,
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-      largeTitle: Text(
-        "trash_title".tr,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 27,
-        ),
-      ),
     );
   }
 

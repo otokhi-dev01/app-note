@@ -122,9 +122,7 @@ class _FolderButton extends StatelessWidget {
         ],
       ),
     );
-
     if (!enabled) return content;
-
     return Semantics(
       button: true,
       label: '${'note_editor_change_folder_label'.tr}: $label',
@@ -147,7 +145,6 @@ class _FolderButton extends StatelessWidget {
 class _DateStatus extends StatelessWidget {
   final DateTime date;
   final Color color;
-
   const _DateStatus({super.key, required this.date, required this.color});
 
   @override
@@ -172,7 +169,6 @@ class _DateStatus extends StatelessWidget {
 
 class _SavingStatus extends StatelessWidget {
   final Color color;
-
   const _SavingStatus({super.key, required this.color});
 
   @override

@@ -12,6 +12,8 @@ class NoteEditorTopBar extends StatelessWidget {
   final bool showShare;
   final bool showMore;
   final bool alwaysShowSave;
+  final Color? backgroundColor;
+  final List<BoxShadow>? shadow;
 
   final VoidCallback? onBack;
 
@@ -23,6 +25,8 @@ class NoteEditorTopBar extends StatelessWidget {
     this.showShare = true,
     this.showMore = true,
     this.alwaysShowSave = false,
+    this.backgroundColor,
+    this.shadow,
   });
 
   @override
@@ -31,21 +35,10 @@ class NoteEditorTopBar extends StatelessWidget {
 
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return CustomGlassSliverAppBar(
-      toolbarHeight: 52,
-      expandedHeight: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      title: title == null
-          ? null
-          : Text(
-              title!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
-              ),
-            ),
+    return AppScreenSliverAppBar(
+      backgroundColor: backgroundColor,
+      shadow: shadow,
+      title: title,
       leading: _GlassIconButton(
         icon: CupertinoIcons.chevron_left,
 

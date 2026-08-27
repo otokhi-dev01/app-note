@@ -47,10 +47,8 @@ class HelpCenterView extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            CustomGlassSliverAppBar(
-              expandedHeight: 120,
-              toolbarHeight: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
+            AppScreenSliverAppBar(
+              title: "help_center_title".tr,
               centerTitle: true,
               leading: CustomGlassButton(
                 onPressed: () => Get.back(),
@@ -65,21 +63,6 @@ class HelpCenterView extends StatelessWidget {
                   CupertinoIcons.chevron_left,
                   color: theme.colorScheme.onSurface,
                   size: 24,
-                ),
-              ),
-              title: Text(
-                "help_center_title".tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
-                ),
-              ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-              largeTitle: Text(
-                "help_center_title".tr,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 34,
                 ),
               ),
             ),

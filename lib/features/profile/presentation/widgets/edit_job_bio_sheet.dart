@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
-import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
+import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 
 /// Two-field profile editor using the same dialog language as Edit Name.
 class EditJobBioSheet extends StatefulWidget {
@@ -25,13 +25,16 @@ class EditJobBioSheet extends StatefulWidget {
     required String initialBio,
     required Future<bool> Function(String job, String bio) onSave,
   }) {
-    return ProfileGlassPopup.show<void>(
-      context: context,
-      maxWidth: 400,
-      builder: (context) => EditJobBioSheet(
-        initialJob: initialJob,
-        initialBio: initialBio,
-        onSave: onSave,
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ProfileEditScreen(
+          title: 'edit_job_bio_title'.tr,
+          child: EditJobBioSheet(
+            initialJob: initialJob,
+            initialBio: initialBio,
+            onSave: onSave,
+          ),
+        ),
       ),
     );
   }

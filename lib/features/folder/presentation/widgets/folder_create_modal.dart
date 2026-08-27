@@ -379,21 +379,11 @@ class _FolderCreateModalState extends State<FolderCreateModal>
     FolderCreateLogic c,
     AppColors colors,
   ) {
-    final theme = Theme.of(context);
     final label = c.isRenaming ? 'folder_edit_title'.tr : 'folder_new_title'.tr;
 
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        label,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: label,
       leading: CustomGlassButton(
         onPressed: c.cancel,
         semanticLabel: 'folder_cancel'.tr,
@@ -429,15 +419,6 @@ class _FolderCreateModalState extends State<FolderCreateModal>
           );
         }),
       ],
-      largeTitleAlignment: Alignment.bottomLeft,
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-      largeTitle: Text(
-        label,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 34,
-        ),
-      ),
     );
   }
 

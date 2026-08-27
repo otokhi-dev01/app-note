@@ -1,16 +1,12 @@
 import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 
 const String kAppLogoAsset = 'assets/icons/piisiit_logo_mark.png';
 
 class AppLogo extends StatelessWidget {
   final double height;
-
   final Color? color;
-
   final bool showGlow;
-
   const AppLogo({
     super.key,
     required this.height,

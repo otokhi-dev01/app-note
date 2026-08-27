@@ -5,13 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
-import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:Note/features/profile/presentation/widgets/profile_more_popup.dart';
-import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
-import 'package:Note/features/settings/presentation/widgets/account_delete_menu.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -82,12 +77,7 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return CustomGlassSliverAppBar(
-      expandedHeight: 0,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
       leading: CustomGlassButton(
         semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
@@ -109,32 +99,23 @@ class ProfileView extends GetView<ProfileController> {
 
           if (isGuest) return const SizedBox.square(dimension: 44);
 
-          return ProfileMorePopup(
-            controller: controller,
-            triggerBuilder: (context, toggleMenu) => CustomGlassButton(
-              semanticLabel: 'note_list_more_options'.tr,
-              onPressed: toggleMenu,
-              width: 44,
-              height: 44,
-              shape: GlassShape.circle,
-              blur: 10,
-              opacity: 0.15,
-              thickness: 8,
-              glassColor: _iosBlue.withValues(alpha: 0.82),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.zero,
-              child: const Icon(CupertinoIcons.pencil, size: 19),
-            ),
+          return CustomGlassButton(
+            semanticLabel: 'edit_name_title'.tr,
+            onPressed: controller.updateUserName,
+            width: 44,
+            height: 44,
+            shape: GlassShape.circle,
+            blur: 10,
+            opacity: 0.15,
+            thickness: 8,
+            glassColor: _iosBlue.withValues(alpha: 0.82),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.zero,
+            child: const Icon(CupertinoIcons.pencil, size: 19),
           );
         }),
       ],
-      title: Text(
-        'profile_title'.tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
+      title: 'profile_title'.tr,
     );
   }
 
@@ -398,6 +379,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userPhone.value.isEmpty
                 ? 'not_available'.tr
                 : controller.userPhone.value,
+            onTap: isGuest ? null : controller.viewPhone,
           ),
           _buildJobBioRow(context, isGuest: isGuest),
           _buildDetailRow(
@@ -687,23 +669,13 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Widget _buildDeleteAccountRow(BuildContext context) {
-    final accountController = AccountController(
-      logout: Get.find<Logout>(),
-      deleteAccount: Get.find<DeleteAccount>(),
-      guestMode: Get.find<GuestModeService>(),
-    );
-
-    return AccountDeleteMenu(
-      controller: accountController,
-      morphFromZero: true,
-      triggerBuilder: (context, openMenu) => _buildActionRow(
-        context,
-        icon: CupertinoIcons.trash_fill,
-        title: 'delete_account_title'.tr,
-        isDestructive: true,
-        showChevron: true,
-        onTap: openMenu,
-      ),
+    return _buildActionRow(
+      context,
+      icon: CupertinoIcons.trash_fill,
+      title: 'delete_account_title'.tr,
+      isDestructive: true,
+      showChevron: true,
+      onTap: () => Get.toNamed(Routes.DELETE_ACCOUNT),
     );
   }
 

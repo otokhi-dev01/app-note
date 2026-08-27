@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -28,88 +27,20 @@ class RegisterView extends GetView<AuthController> {
             ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        extendBodyBehindAppBar: true,
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverAppBar(
-              backgroundColor: Colors.transparent,
-              surfaceTintColor: Colors.transparent,
-              pinned: true,
-              expandedHeight: 140.0,
-              elevation: 0,
-              automaticallyImplyLeading: false,
-              centerTitle: true,
-              systemOverlayStyle: theme.brightness == Brightness.dark
-                  ? SystemUiOverlayStyle.light
-                  : SystemUiOverlayStyle.dark,
-              leadingWidth: 70,
-              leading: Center(
-                child: CustomGlassContainer(
-                  width: 44,
-                  height: 44,
-                  shape: GlassShape.circle,
-                  showGlow: true,
-                  thickness: 8,
-                  opacity: 0.15,
-                  blur: 10,
-                  child: IconButton(
-                    onPressed: () => Get.back(),
-                    icon: Icon(
-                      CupertinoIcons.chevron_left,
-                      color: theme.colorScheme.onSurface,
-                      size: 24,
-                    ),
-                    padding: EdgeInsets.zero,
+            const SliverToBoxAdapter(
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: LanguageToggleButton(),
                   ),
                 ),
               ),
-              title: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double percentage =
-                      (constraints.maxHeight - kToolbarHeight) /
-                      (140.0 - kToolbarHeight);
-                  final opacity = (1.0 - percentage).clamp(0.0, 1.0);
-
-                  return Opacity(
-                    opacity: opacity > 0.8 ? 1.0 : 0.0,
-                    child: Text(
-                      "register_title".tr,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 17,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: false,
-                titlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
-                title: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final double percentage =
-                        (constraints.maxHeight - kToolbarHeight) /
-                        (140.0 - kToolbarHeight);
-                    return Opacity(
-                      opacity: percentage.clamp(0.0, 1.0),
-                      child: Text(
-                        "register_title".tr,
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 30,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              actions: const [
-                Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: LanguageToggleButton(),
-                ),
-              ],
             ),
             SliverFillRemaining(
               hasScrollBody: false,

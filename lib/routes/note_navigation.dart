@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/routes/app_pages.dart';

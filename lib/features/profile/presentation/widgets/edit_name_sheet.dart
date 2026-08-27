@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
-import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
+import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 
 /// A focused, compact profile-name editor.
 class EditNameSheet extends StatefulWidget {
@@ -23,10 +23,13 @@ class EditNameSheet extends StatefulWidget {
     required String initialName,
     required Future<bool> Function(String name) onSave,
   }) {
-    return ProfileGlassPopup.show<void>(
-      context: context,
-      builder: (context) =>
-          EditNameSheet(initialName: initialName, onSave: onSave),
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ProfileEditScreen(
+          title: 'edit_name_title'.tr,
+          child: EditNameSheet(initialName: initialName, onSave: onSave),
+        ),
+      ),
     );
   }
 

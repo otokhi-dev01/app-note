@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/theme/ios_semantic_colors.dart';
-import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
+import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 
 class EditIdInformationSheet extends StatefulWidget {
   final String initialIdNumber;
@@ -39,15 +39,17 @@ class EditIdInformationSheet extends StatefulWidget {
     )
     onSave,
   }) {
-    return ProfileGlassPopup.show<void>(
-      context: context,
-      maxWidth: 420,
-      barrierDismissible: false,
-      builder: (context) => EditIdInformationSheet(
-        initialIdNumber: initialIdNumber,
-        initialName: initialName,
-        initialDateOfBirth: initialDateOfBirth,
-        onSave: onSave,
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ProfileEditScreen(
+          title: 'edit_id_information_title'.tr,
+          child: EditIdInformationSheet(
+            initialIdNumber: initialIdNumber,
+            initialName: initialName,
+            initialDateOfBirth: initialDateOfBirth,
+            onSave: onSave,
+          ),
+        ),
       ),
     );
   }
@@ -109,12 +111,14 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
     FocusScope.of(context).unfocus();
     final now = DateTime.now();
     final initial = _dateOfBirth ?? DateTime(now.year - 18, now.month, now.day);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(now.year, now.month, now.day),
-      helpText: 'date_of_birth_label'.tr,
+    final picked = await Navigator.of(context).push<DateTime>(
+      MaterialPageRoute(
+        builder: (_) => ProfileDatePickerScreen(
+          initialDate: initial,
+          firstDate: DateTime(1900),
+          lastDate: DateTime(now.year, now.month, now.day),
+        ),
+      ),
     );
     if (picked != null && mounted) {
       setState(() => _dateOfBirth = picked);
@@ -134,7 +138,9 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
     FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
 
-    final saved = await widget.onSave(_idNumber, _name, _dateOfBirth!);
+    final dateOfBirth = _dateOfBirth;
+    if (dateOfBirth == null) return;
+    final saved = await widget.onSave(_idNumber, _name, dateOfBirth);
     if (!mounted) return;
     if (saved) {
       Navigator.of(context).pop();
@@ -291,7 +297,8 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
   }
 
   Widget _dateField(ThemeData theme, ColorScheme scheme) {
-    final missing = _showErrors && _dateOfBirth == null;
+    final dateOfBirth = _dateOfBirth;
+    final missing = _showErrors && dateOfBirth == null;
     final border = _border(scheme).copyWith(
       borderSide: missing
           ? const BorderSide(color: IosSemanticColors.red)
@@ -318,11 +325,11 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
           ),
         ),
         child: Text(
-          _dateOfBirth == null
+          dateOfBirth == null
               ? 'date_of_birth_hint'.tr
-              : _formatDate(_dateOfBirth!),
+              : _formatDate(dateOfBirth),
           style: theme.textTheme.bodyLarge?.copyWith(
-            color: _dateOfBirth == null
+            color: dateOfBirth == null
                 ? scheme.onSurfaceVariant
                 : scheme.onSurface,
             fontWeight: FontWeight.w500,

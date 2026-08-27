@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_block_list.dart';
@@ -75,8 +74,12 @@ class CreateNoteView extends GetView<NoteDetailController> {
         controller.startDrawing();
       case 'scan_text':
         controller.scanText();
+      case 'scan_text_photo':
+        controller.scanTextFromGallery();
       case 'scan_docs':
         controller.scanDocuments();
+      case 'scan_docs_photo':
+        controller.scanDocumentsFromGallery();
       case 'audio':
         controller.recordAudio();
       case 'file':
@@ -138,6 +141,14 @@ class _CreateNoteBody extends StatelessWidget {
               showShare: false,
               showMore: false,
               alwaysShowSave: true,
+              backgroundColor: theme.scaffoldBackgroundColor,
+              shadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
               onBack: () => _handleBack(controller),
             ),
             SliverPadding(

@@ -238,6 +238,8 @@ const Map<String, String> enUS = {
 
   // Settings drawer
   'settings_drawer_view_profile': 'Profile Details',
+  'profile_phone_read_only':
+      'This phone number belongs to your signed-in account and cannot be changed in the app yet.',
 
   // Account (delete-account flow)
   'account_title': 'Account',
@@ -446,8 +448,24 @@ const Map<String, String> enUS = {
   'note_editor_recording_fallback_name': 'Recording',
   'note_editor_audio_recording_semantic_label': 'Audio recording: @name',
   'note_editor_tap_to_play': 'Tap to play',
+  'note_editor_video_fallback_name': 'Video',
+  'note_editor_video_semantic_label': 'Video attachment: @name',
+  'note_editor_play_video': 'Play Video',
+  'note_editor_video_not_available': 'This video is not available.',
+  'note_editor_video_not_on_device': "This video isn't on the device.",
+  'note_editor_could_not_share_video': 'Could not share that video',
   'note_editor_scan_text': 'Scan Text',
   'note_editor_scan_docs': 'Scan Documents',
+  'note_editor_scanned_document_default_title': 'Scanned Document',
+  'note_editor_scanned_text_default_title': 'Scanned Text',
+  'note_editor_scan_text_photo': 'Text from Photo',
+  'note_editor_scan_docs_photo': 'Document from Photo',
+  'note_editor_pdf_page': 'Page',
+  'note_editor_pdf_of': 'of',
+  'note_editor_open_pdf': 'Open PDF',
+  'note_editor_share_print_pdf': 'Share / Print',
+  'note_editor_pdf_preview_failed': 'Could not load PDF preview',
+  'note_editor_pdf_not_available': 'This PDF is not available.',
   'note_editor_take_photo_video': 'Take Photo or Video',
   'note_editor_choose_photo_video': 'Choose Photo or Video',
   'note_editor_record_audio': 'Record Audio',

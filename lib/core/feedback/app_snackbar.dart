@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 

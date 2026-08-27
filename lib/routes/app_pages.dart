@@ -18,9 +18,12 @@ import 'package:Note/features/profile/presentation/views/profile_view.dart';
 import 'package:Note/features/settings/presentation/views/appearance_view.dart';
 import 'package:Note/features/settings/presentation/bindings/appearance_binding.dart';
 import 'package:Note/features/settings/presentation/views/help_center_view.dart';
+import 'package:Note/features/settings/presentation/views/settings_feature_views.dart';
+import 'package:Note/features/auth/presentation/views/forgot_password_view.dart';
 import 'package:Note/features/settings/presentation/views/note_preferences_view.dart';
 import 'package:Note/features/settings/presentation/bindings/note_preferences_binding.dart';
 import 'package:Note/features/settings/presentation/views/account_view.dart';
+import 'package:Note/features/settings/presentation/views/delete_account_view.dart';
 import 'package:Note/features/settings/presentation/bindings/account_binding.dart';
 import 'package:Note/features/trash/presentation/views/recently_deleted_view.dart';
 import 'package:Note/features/trash/presentation/bindings/recently_deleted_binding.dart';
@@ -91,6 +94,23 @@ class AppPages {
     ),
     GetPage(name: Routes.HELP_CENTER, page: () => const HelpCenterView()),
     GetPage(
+      name: Routes.NOTIFICATIONS,
+      page: () => const NotificationSettingsView(),
+    ),
+    GetPage(name: Routes.DEVICE, page: () => const DeviceSettingsView()),
+    GetPage(name: Routes.LANGUAGE, page: () => const LanguageSettingsView()),
+    GetPage(name: Routes.PERMISSIONS, page: () => const PermissionsView()),
+    GetPage(name: Routes.PRIVACY_POLICY, page: () => const PrivacyPolicyView()),
+    GetPage(name: Routes.CONTACT_US, page: () => const ContactUsView()),
+    GetPage(
+      name: Routes.PRIVACY_SECURITY,
+      page: () => const PrivacySecurityView(),
+    ),
+    GetPage(
+      name: Routes.FORGOT_PASSWORD,
+      page: () => const ForgotPasswordView(),
+    ),
+    GetPage(
       name: Routes.NOTE_PREFERENCES,
       page: () => const NotePreferencesView(),
       binding: NotePreferencesBinding(),
@@ -98,6 +118,11 @@ class AppPages {
     GetPage(
       name: Routes.ACCOUNT,
       page: () => const AccountView(),
+      binding: AccountBinding(),
+    ),
+    GetPage(
+      name: Routes.DELETE_ACCOUNT,
+      page: () => const DeleteAccountView(),
       binding: AccountBinding(),
     ),
     GetPage(

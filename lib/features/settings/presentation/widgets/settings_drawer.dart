@@ -11,14 +11,10 @@ import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
-import 'package:Note/features/settings/presentation/widgets/account_delete_menu.dart';
 import 'package:Note/features/settings/presentation/widgets/preference_actions.dart';
-import 'package:Note/features/settings/presentation/widgets/settings_picker_menus.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/language_picker_sheet.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 /// The settings panel opened from the Folders screen.
@@ -71,37 +67,28 @@ class SettingsDrawer extends GetView<ProfileController> {
                   _buildGroup(
                     context,
                     children: [
-                      NotificationPickerMenu(
-                        morphFromZero: true,
-                        triggerBuilder: (context, toggleMenu) => _buildRow(
-                          context,
-                          icon: CupertinoIcons.bell_fill,
-                          iconColor: _iosRed,
-                          title: 'notifications_title'.tr,
-                          onTap: toggleMenu,
-                        ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.bell_fill,
+                        iconColor: _iosRed,
+                        title: 'notifications_title'.tr,
+                        onTap: () =>
+                            _closeThenGo(context, Routes.NOTIFICATIONS),
                       ),
-                      DevicePickerMenu(
-                        morphFromZero: true,
-                        triggerBuilder: (context, toggleMenu) => _buildRow(
-                          context,
-                          icon: CupertinoIcons.device_phone_portrait,
-                          iconColor: _iosGray,
-                          title: 'device_title'.tr,
-                          onTap: toggleMenu,
-                        ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.device_phone_portrait,
+                        iconColor: _iosGray,
+                        title: 'device_title'.tr,
+                        onTap: () => _closeThenGo(context, Routes.DEVICE),
                       ),
-
-                      LanguagePickerMenu(
-                        morphFromZero: true,
-                        triggerBuilder: (context, toggleMenu) => _buildRow(
-                          context,
-                          icon: CupertinoIcons.globe,
-                          iconColor: _iosBlue,
-                          title: 'language_title'.tr,
-                          trailingText: LanguagePreferences().language.label,
-                          onTap: toggleMenu,
-                        ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.globe,
+                        iconColor: _iosBlue,
+                        title: 'language_title'.tr,
+                        trailingText: LanguagePreferences().language.label,
+                        onTap: () => _closeThenGo(context, Routes.LANGUAGE),
                       ),
                       _buildRow(
                         context,
@@ -116,9 +103,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.checkmark_shield_fill,
                         iconColor: _iosIndigo,
                         title: 'permissions_title'.tr,
-                        onTap: () => unawaited(
-                          PreferenceActions.showPermissions(context),
-                        ),
+                        onTap: () => _closeThenGo(context, Routes.PERMISSIONS),
                       ),
                       _buildRow(
                         context,
@@ -133,17 +118,15 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.doc_text_fill,
                         iconColor: _iosPurple,
                         title: 'privacy_policy_title'.tr,
-                        onTap: () => unawaited(
-                          PreferenceActions.showPrivacyPolicy(context),
-                        ),
+                        onTap: () =>
+                            _closeThenGo(context, Routes.PRIVACY_POLICY),
                       ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.chat_bubble_2_fill,
                         iconColor: _iosGreen,
                         title: 'contact_us_title'.tr,
-                        onTap: () =>
-                            unawaited(PreferenceActions.showContact(context)),
+                        onTap: () => _closeThenGo(context, Routes.CONTACT_US),
                       ),
                     ],
                   ),
@@ -159,27 +142,30 @@ class SettingsDrawer extends GetView<ProfileController> {
                             icon: CupertinoIcons.lock_rotation,
                             iconColor: _iosOrange,
                             title: 'forgot_password_title'.tr,
-                            onTap: controller.requestForgotPassword,
+                            onTap: () => _closeThenGo(
+                              context,
+                              Routes.FORGOT_PASSWORD,
+                              arguments: {
+                                'initialPhone': controller.userPhone.value,
+                                'onSubmit': controller.submitForgotPassword,
+                              },
+                            ),
                           ),
-                        HelpCenterPickerMenu(
-                          morphFromZero: true,
-                          triggerBuilder: (context, toggleMenu) => _buildRow(
-                            context,
-                            icon: CupertinoIcons.question_circle_fill,
-                            iconColor: _iosBlue,
-                            title: 'help_center_title'.tr,
-                            onTap: toggleMenu,
-                          ),
+                        _buildRow(
+                          context,
+                          icon: CupertinoIcons.question_circle_fill,
+                          iconColor: _iosBlue,
+                          title: 'help_center_title'.tr,
+                          onTap: () =>
+                              _closeThenGo(context, Routes.HELP_CENTER),
                         ),
-                        PrivacySecurityPickerMenu(
-                          morphFromZero: true,
-                          triggerBuilder: (context, toggleMenu) => _buildRow(
-                            context,
-                            icon: CupertinoIcons.lock_shield_fill,
-                            iconColor: _iosGreen,
-                            title: 'privacy_security_title'.tr,
-                            onTap: toggleMenu,
-                          ),
+                        _buildRow(
+                          context,
+                          icon: CupertinoIcons.lock_shield_fill,
+                          iconColor: _iosGreen,
+                          title: 'privacy_security_title'.tr,
+                          onTap: () =>
+                              _closeThenGo(context, Routes.PRIVACY_SECURITY),
                         ),
                       ],
                     ),
@@ -516,23 +502,13 @@ class SettingsDrawer extends GetView<ProfileController> {
     return Obx(() {
       if (guestMode.isGuestMode.value) return const SizedBox.shrink();
 
-      final accountController = AccountController(
-        logout: Get.find<Logout>(),
-        deleteAccount: Get.find<DeleteAccount>(),
-        guestMode: guestMode,
-      );
-
-      return AccountDeleteMenu(
-        controller: accountController,
-        morphFromZero: true,
-        triggerBuilder: (context, openMenu) => _buildActionRow(
-          context,
-          icon: CupertinoIcons.trash_fill,
-          title: 'delete_account_title'.tr,
-          isDestructive: true,
-          showChevron: true,
-          onTap: openMenu,
-        ),
+      return _buildActionRow(
+        context,
+        icon: CupertinoIcons.trash_fill,
+        title: 'delete_account_title'.tr,
+        isDestructive: true,
+        showChevron: true,
+        onTap: () => _closeThenGo(context, Routes.DELETE_ACCOUNT),
       );
     });
   }
@@ -623,8 +599,16 @@ class SettingsDrawer extends GetView<ProfileController> {
     unawaited(Get.offAllNamed(Routes.ONBOARDING));
   }
 
-  void _closeThenGo(BuildContext context, String route) {
+  Future<void> _closeThenGo(
+    BuildContext context,
+    String route, {
+    Object? arguments,
+  }) async {
     Navigator.of(context).pop();
-    WidgetsBinding.instance.addPostFrameCallback((_) => Get.toNamed(route));
+    // Avoid overlapping disposal of the drawer's glass render layers with
+    // creation of the next screen's layers on physical devices.
+    await Future<void>.delayed(kThemeAnimationDuration);
+    if (Get.key.currentState == null) return;
+    await Get.toNamed(route, arguments: arguments);
   }
 }

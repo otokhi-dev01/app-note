@@ -33,10 +33,8 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            CustomGlassSliverAppBar(
-              expandedHeight: 120,
-              toolbarHeight: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
+            AppScreenSliverAppBar(
+              title: "note_preferences_title".tr,
               centerTitle: true,
               leading: CustomGlassButton(
                 onPressed: () => Get.back(),
@@ -51,21 +49,6 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                   CupertinoIcons.chevron_left,
                   color: theme.colorScheme.onSurface,
                   size: 24,
-                ),
-              ),
-              title: Text(
-                "note_preferences_title".tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
-                ),
-              ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-              largeTitle: Text(
-                "note_preferences_title".tr,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30,
                 ),
               ),
             ),

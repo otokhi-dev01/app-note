@@ -88,8 +88,12 @@ class NoteDetailView extends GetView<NoteDetailController> {
         controller.startDrawing();
       case 'scan_text':
         controller.scanText();
+      case 'scan_text_photo':
+        controller.scanTextFromGallery();
       case 'scan_docs':
         controller.scanDocuments();
+      case 'scan_docs_photo':
+        controller.scanDocumentsFromGallery();
       case 'audio':
         controller.recordAudio();
       case 'file':

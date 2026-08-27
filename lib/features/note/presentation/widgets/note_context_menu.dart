@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 
@@ -23,7 +22,6 @@ class NoteContextMenu extends StatelessWidget {
       () => lg.GlassMenu(
         triggerBuilder: triggerBuilder,
         menuWidth: 250,
-
         menuAlignment: lg.GlassMenuAlignment.topRight,
         autoAdjustToScreen: true,
         menuPadding: const EdgeInsets.all(12),

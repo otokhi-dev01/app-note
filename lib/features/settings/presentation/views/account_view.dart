@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
-import 'package:Note/features/settings/presentation/widgets/account_delete_menu.dart';
+import 'package:Note/routes/app_pages.dart';
 
 class AccountView extends GetView<AccountController> {
   const AccountView({super.key});
@@ -34,10 +34,8 @@ class AccountView extends GetView<AccountController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            CustomGlassSliverAppBar(
-              expandedHeight: 120,
-              toolbarHeight: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
+            AppScreenSliverAppBar(
+              title: "account_title".tr,
               centerTitle: true,
               leading: CustomGlassButton(
                 onPressed: () => Get.back(),
@@ -52,21 +50,6 @@ class AccountView extends GetView<AccountController> {
                   CupertinoIcons.chevron_left,
                   color: theme.colorScheme.onSurface,
                   size: 24,
-                ),
-              ),
-              title: Text(
-                "account_title".tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
-                ),
-              ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-              largeTitle: Text(
-                "account_title".tr,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 34,
                 ),
               ),
             ),
@@ -174,34 +157,31 @@ class AccountView extends GetView<AccountController> {
         GlassCard(
           borderRadius: 28,
           children: [
-            AccountDeleteMenu(
-              controller: controller,
-              triggerBuilder: (context, openMenu) => CustomGlassListTile(
-                onTap: openMenu,
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.delete_solid,
-                    color: Colors.red,
-                    size: 20,
-                  ),
+            CustomGlassListTile(
+              onTap: () => Get.toNamed(Routes.DELETE_ACCOUNT),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                title: Text(
-                  "delete_account_title".tr,
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                trailing: const Icon(
-                  CupertinoIcons.chevron_forward,
+                child: const Icon(
+                  CupertinoIcons.delete_solid,
                   color: Colors.red,
-                  size: 18,
+                  size: 20,
                 ),
+              ),
+              title: Text(
+                "delete_account_title".tr,
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              trailing: const Icon(
+                CupertinoIcons.chevron_forward,
+                color: Colors.red,
+                size: 18,
               ),
             ),
           ],

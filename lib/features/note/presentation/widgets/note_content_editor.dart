@@ -40,7 +40,20 @@ class NoteContentEditor extends StatelessWidget {
 
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
               slivers: [
-                NoteEditorTopBar(controller: controller),
+                NoteEditorTopBar(
+                  controller: controller,
+                  title: note?.title.trim().isNotEmpty == true
+                      ? note!.title
+                      : 'note_list_new_note'.tr,
+                  backgroundColor: theme.scaffoldBackgroundColor,
+                  shadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
                 if (isReadOnly)
                   SliverToBoxAdapter(child: _buildReadOnlyBanner(context)),
                 if (isLoading)

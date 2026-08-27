@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
-import 'package:Note/features/auth/presentation/widgets/forgot_password_popup.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -19,10 +18,10 @@ import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
+import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_id_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
-import 'package:Note/features/profile/presentation/widgets/profile_glass_popup.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class ProfileController extends GetxController {
@@ -252,6 +251,46 @@ class ProfileController extends GetxController {
     },
   );
 
+  /// The account phone is owned by authentication and cannot currently be
+  /// changed by the profile API. It still gets a dedicated detail screen so
+  /// the Profile row follows the same navigation model as every other field.
+  Future<void> viewPhone() async {
+    await Get.to<void>(
+      () => ProfileEditScreen(
+        title: 'phone_label'.tr,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'phone_number_label'.tr,
+                style: Get.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                userPhone.value.isEmpty ? 'not_available'.tr : userPhone.value,
+                style: Get.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'profile_phone_read_only'.tr,
+                style: Get.textTheme.bodySmall?.copyWith(
+                  color: Get.theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// One sheet for both fields since "job" and "bio" are always described
   /// together in a single profile blurb rather than as separate settings.
   Future<void> updateJobAndBio() async {
@@ -323,36 +362,38 @@ class ProfileController extends GetxController {
     final context = Get.context;
     if (context == null) return;
 
-    await ProfileGlassPopup.show<void>(
-      context: context,
-      builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'edit_color_title'.tr,
-              style: Theme.of(
-                sheetContext,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Obx(
-              () => Wrap(
-                spacing: 14,
-                runSpacing: 14,
-                children: [
-                  for (final hex in FolderAppearance.colors)
-                    _ProfileColorSwatch(
-                      hex: hex,
-                      selected: userColorHex.value == hex,
-                      onTap: () => selectColor(hex, closePicker: true),
-                    ),
-                ],
+    await Get.to<void>(
+      () => ProfileEditScreen(
+        title: 'edit_color_title'.tr,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'edit_color_title'.tr,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              Obx(
+                () => Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: [
+                    for (final hex in FolderAppearance.colors)
+                      _ProfileColorSwatch(
+                        hex: hex,
+                        selected: userColorHex.value == hex,
+                        onTap: () => selectColor(hex, closePicker: true),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -370,17 +411,18 @@ class ProfileController extends GetxController {
 
   /// Opens the same validated forgot-password flow used by the Login screen.
   Future<void> requestForgotPassword() async {
-    final context = Get.context;
-    if (context == null || isGuestMode.value) return;
+    if (isGuestMode.value) return;
 
-    await ForgotPasswordPopup.show(
-      context: context,
-      initialPhone: userPhone.value,
-      onSubmit: _submitForgotPassword,
+    await Get.toNamed(
+      Routes.FORGOT_PASSWORD,
+      arguments: {
+        'initialPhone': userPhone.value,
+        'onSubmit': submitForgotPassword,
+      },
     );
   }
 
-  Future<bool> _submitForgotPassword(String phone) async {
+  Future<bool> submitForgotPassword(String phone) async {
     final result = await _forgotPassword(phone);
     switch (result) {
       case Ok():
@@ -409,43 +451,45 @@ class ProfileController extends GetxController {
 
     final fieldController = TextEditingController(text: initialValue);
     try {
-      await ProfileGlassPopup.show<void>(
-        context: context,
-        builder: (sheetContext) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+      await Get.to<void>(
+        () => ProfileEditScreen(
+          title: title,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              CustomGlassTextField(
-                controller: fieldController,
-                autofocus: true,
-                placeholder: hint,
-                keyboardType: keyboardType,
-                textInputAction: TextInputAction.done,
-                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
-                useOwnLayer: false,
-                onSubmitted: (_) {
-                  onSave(fieldController.text.trim());
-                  Get.back();
-                },
-                suffixIcon: const Icon(
-                  Icons.check_circle_rounded,
-                  color: IosSemanticColors.blue,
+                const SizedBox(height: 20),
+                CustomGlassTextField(
+                  controller: fieldController,
+                  autofocus: true,
+                  placeholder: hint,
+                  keyboardType: keyboardType,
+                  textInputAction: TextInputAction.done,
+                  textStyle: Theme.of(context).textTheme.bodyLarge,
+                  useOwnLayer: false,
+                  onSubmitted: (_) {
+                    onSave(fieldController.text.trim());
+                    Get.back();
+                  },
+                  suffixIcon: const Icon(
+                    Icons.check_circle_rounded,
+                    color: IosSemanticColors.blue,
+                  ),
+                  onSuffixTap: () {
+                    onSave(fieldController.text.trim());
+                    Get.back();
+                  },
                 ),
-                onSuffixTap: () {
-                  onSave(fieldController.text.trim());
-                  Get.back();
-                },
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );
