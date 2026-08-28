@@ -259,6 +259,7 @@ class LocalNoteRepository implements NoteRepository {
           attachmentId: id,
           filePath: copied.path,
           blockId: blockId,
+          isLocal: true,
         ),
       );
     } catch (_) {

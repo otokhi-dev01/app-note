@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -89,8 +90,6 @@ class ProfileView extends GetView<ProfileController> {
         opacity: 0.15,
         thickness: 8,
         padding: EdgeInsets.zero,
-        glassColor: _iosBlue.withValues(alpha: 0.82),
-        foregroundColor: Colors.white,
         child: const Icon(CupertinoIcons.chevron_left, size: 23),
       ),
       actions: [
@@ -108,8 +107,6 @@ class ProfileView extends GetView<ProfileController> {
             blur: 10,
             opacity: 0.15,
             thickness: 8,
-            glassColor: _iosBlue.withValues(alpha: 0.82),
-            foregroundColor: Colors.white,
             padding: EdgeInsets.zero,
             child: const Icon(CupertinoIcons.pencil, size: 19),
           );
@@ -393,9 +390,59 @@ class ProfileView extends GetView<ProfileController> {
             ),
             onTap: isGuest ? null : controller.updateColor,
           ),
+          _buildThemeModeRow(
+            context,
+            icon: CupertinoIcons.sun_max_fill,
+            iconColor: _iosOrange,
+            label: 'appearance_light_mode'.tr,
+            mode: ThemeMode.light,
+          ),
+          _buildThemeModeRow(
+            context,
+            icon: CupertinoIcons.moon_fill,
+            iconColor: _iosIndigo,
+            label: 'dark_mode'.tr,
+            mode: ThemeMode.dark,
+          ),
         ],
       );
     });
+  }
+
+  Widget _buildThemeModeRow(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required ThemeMode mode,
+  }) {
+    final storedMode = ThemeStorage().theme;
+    final resolvedMode = Theme.of(context).brightness == Brightness.dark
+        ? ThemeMode.dark
+        : ThemeMode.light;
+    final isSelected =
+        storedMode == mode ||
+        (storedMode == ThemeMode.system && resolvedMode == mode);
+
+    return _buildDetailRow(
+      context,
+      icon: icon,
+      iconColor: iconColor,
+      label: label,
+      trailing: Icon(
+        isSelected
+            ? Icons.radio_button_checked_rounded
+            : Icons.radio_button_off_rounded,
+        size: 21,
+        color: isSelected
+            ? _iosBlue
+            : Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.48),
+      ),
+      showChevron: false,
+      onTap: () => ThemeStorage().switchTheme(mode),
+    );
   }
 
   Widget _buildIdInformationCard(BuildContext context) {
@@ -479,6 +526,7 @@ class ProfileView extends GetView<ProfileController> {
     String? value,
     Widget? trailing,
     VoidCallback? onTap,
+    bool showChevron = true,
   }) {
     final theme = Theme.of(context);
 
@@ -523,7 +571,7 @@ class ProfileView extends GetView<ProfileController> {
                       ),
                 ),
               ),
-              if (onTap != null) ...[
+              if (onTap != null && showChevron) ...[
                 const SizedBox(width: 7),
                 Icon(
                   CupertinoIcons.chevron_forward,

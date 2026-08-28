@@ -13,8 +13,10 @@ import 'package:Note/features/profile/presentation/views/profile_edit_screen.dar
 import 'package:Note/features/profile/presentation/widgets/edit_id_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/routes/app_pages.dart';
-import 'package:Note/shared/widgets/glass_surfaces.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_popup.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 void expectCreateNoteAppBar(WidgetTester tester) {
@@ -50,6 +52,7 @@ void main() {
   tearDown(() => Get.reset());
 
   for (final route in [
+    Routes.PROFILE,
     Routes.NOTIFICATIONS,
     Routes.DEVICE,
     Routes.LANGUAGE,
@@ -81,6 +84,27 @@ void main() {
       await tester.pump();
       expect(tester.takeException(), isNull);
       expectCreateNoteAppBar(tester);
+      if (route == Routes.PROFILE) {
+        final profileAppBar = tester.widget<AppScreenSliverAppBar>(
+          find.byType(AppScreenSliverAppBar),
+        );
+        final backButton = profileAppBar.leading! as CustomGlassButton;
+        expect(backButton.width, 44);
+        expect(backButton.height, 44);
+        expect(backButton.shape, GlassShape.circle);
+        expect(backButton.blur, 10);
+        expect(backButton.opacity, 0.15);
+        expect(backButton.thickness, 8);
+        expect(backButton.foregroundColor, isNull);
+        expect(backButton.glassColor, isNull);
+      }
+      if (route != Routes.PROFILE && route != Routes.FORGOT_PASSWORD) {
+        expect(find.byType(SettingsSliverAppBar), findsOneWidget);
+      }
+      if (route == Routes.PROFILE) {
+        expect(find.text('Light Mode'), findsOneWidget);
+        expect(find.text('Dark Mode'), findsOneWidget);
+      }
       await tester.pump(const Duration(milliseconds: 1));
     });
   }
@@ -108,6 +132,18 @@ void main() {
       expect(find.byType(AppScreenSliverAppBar), findsNothing);
       expect(find.byType(CustomGlassSliverAppBar), findsNothing);
       expect(find.byType(LanguageToggleButton), findsOneWidget);
+      expect(find.byType(LanguagePopup), findsOneWidget);
+      final languageMenu = tester.widget<GlassMenu>(
+        find.descendant(
+          of: find.byType(LanguagePopup),
+          matching: find.byType(GlassMenu),
+        ),
+      );
+      expect(languageMenu.menuWidth, 250);
+      expect(
+        languageMenu.items.whereType<GlassMenuItem>().map((item) => item.title),
+        ['English', 'ខ្មែរ'],
+      );
       await tester.pump(const Duration(seconds: 2));
     });
   }

@@ -14,6 +14,7 @@ class FolderBinding extends Bindings {
         deleteRestoreFolder: Get.find<DeleteRestoreFolder>(),
         buildHierarchy: Get.find<BuildFolderHierarchy>(),
         getNotes: Get.find<GetNotes>(),
+        createAudioNote: Get.find<CreateAudioNote>(),
       ),
     );
   }

@@ -21,6 +21,7 @@ class NoteController extends GetxController {
   final DeleteRestoreNote _deleteRestoreNote;
   final MoveNotesToFolder _moveNotes;
   final GetFolders _getFolders;
+  final CreateAudioNote _createAudioNote;
 
   NoteController({
     required GetNotes getNotes,
@@ -28,11 +29,13 @@ class NoteController extends GetxController {
     required DeleteRestoreNote deleteRestoreNote,
     required MoveNotesToFolder moveNotes,
     required GetFolders getFolders,
+    required CreateAudioNote createAudioNote,
   }) : _getNotes = getNotes,
        _updateNoteState = updateNoteState,
        _deleteRestoreNote = deleteRestoreNote,
        _moveNotes = moveNotes,
-       _getFolders = getFolders;
+       _getFolders = getFolders,
+       _createAudioNote = createAudioNote;
 
   final _prefs = DisplayPreferences();
 
@@ -111,6 +114,63 @@ class NoteController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<void> saveRecordedAudio({
+    required int folderId,
+    required String filePath,
+    required String displayName,
+  }) async {
+    final targetFolderId = await _resolveRecordingFolderId(folderId);
+    if (targetFolderId == null) return;
+
+    final result = await _createAudioNote(
+      CreateAudioNoteParams(
+        folderId: targetFolderId,
+        title: 'note_editor_recording_fallback_name'.tr,
+        filePath: filePath,
+        displayName: displayName,
+        blockId: 'audio_${DateTime.now().microsecondsSinceEpoch}',
+      ),
+    );
+    switch (result) {
+      case Ok():
+        await fetchNotes(
+          folderId: folderId <= 0 ? null : folderId,
+          refresh: true,
+        );
+        _refreshFolderCounts();
+        AppSnackbar.success(
+          'note_editor_recording_fallback_name'.tr,
+          'note_editor_voice_note_saved'.tr,
+        );
+      case Err(:final failure):
+        AppSnackbar.failure('note_editor_could_not_save_recording'.tr, failure);
+    }
+  }
+
+  Future<int?> _resolveRecordingFolderId(int folderId) async {
+    if (folderId > 0) return folderId;
+
+    final result = await _getFolders(const NoParams());
+    if (result case Err(:final failure)) {
+      AppSnackbar.failure('Could not load folders', failure);
+      return null;
+    }
+    final folders = result.valueOrNull!.folders;
+    if (folders.isEmpty) {
+      AppSnackbar.info(
+        'No folders yet',
+        'Please create a folder before recording a voice note.',
+      );
+      return null;
+    }
+    return folders
+        .firstWhere(
+          (folder) => folder.name.toLowerCase().contains('notes'),
+          orElse: () => folders.first,
+        )
+        .id;
   }
 
   Future<void> updateNoteState(

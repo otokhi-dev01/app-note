@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Note/features/note/presentation/widgets/telegram_audio_record_button.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -70,21 +71,12 @@ class NoteListBottomBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Semantics(
-                      button: true,
-                      label: 'note_editor_record_audio'.tr,
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(50, 50),
-                        onPressed: () =>
-                            NoteNavigation.toNewAudioNote(folderId)?.then(
-                              (_) => controller.fetchNotes(folderId: folderId),
-                            ),
-                        child: Icon(
-                          CupertinoIcons.mic_fill,
-                          color: CupertinoColors.systemRed.resolveFrom(context),
-                          size: 20,
-                        ),
+                    TelegramAudioRecordButton(
+                      semanticLabel: 'note_editor_record_audio'.tr,
+                      onRecorded: (recording) => controller.saveRecordedAudio(
+                        folderId: folderId,
+                        filePath: recording.path,
+                        displayName: recording.displayName,
                       ),
                     ),
                   ],

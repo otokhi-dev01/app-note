@@ -20,6 +20,7 @@ class FolderController extends GetxController {
   final DeleteRestoreFolder _deleteRestoreFolder;
   final BuildFolderHierarchy _buildHierarchy;
   final GetNotes _getNotes;
+  final CreateAudioNote _createAudioNote;
 
   FolderController({
     required GetFolders getFolders,
@@ -27,11 +28,13 @@ class FolderController extends GetxController {
     required DeleteRestoreFolder deleteRestoreFolder,
     required BuildFolderHierarchy buildHierarchy,
     required GetNotes getNotes,
+    required CreateAudioNote createAudioNote,
   }) : _getFolders = getFolders,
        _saveFolder = saveFolder,
        _deleteRestoreFolder = deleteRestoreFolder,
        _buildHierarchy = buildHierarchy,
-       _getNotes = getNotes;
+       _getNotes = getNotes,
+       _createAudioNote = createAudioNote;
 
   final _prefs = DisplayPreferences();
 
@@ -259,7 +262,47 @@ class FolderController extends GetxController {
 
   void createNewNote() => _openNewNote();
 
-  void createAudioNote() => _openNewNote(autoRecord: true);
+  Future<void> saveRecordedAudio({
+    required String filePath,
+    required String displayName,
+  }) async {
+    final folder = _defaultNoteFolder;
+    if (folder == null) {
+      AppSnackbar.info(
+        'No folders yet',
+        'Please create a folder before recording a voice note.',
+      );
+      return;
+    }
+
+    final result = await _createAudioNote(
+      CreateAudioNoteParams(
+        folderId: folder.id,
+        title: 'note_editor_recording_fallback_name'.tr,
+        filePath: filePath,
+        displayName: displayName,
+        blockId: 'audio_${DateTime.now().microsecondsSinceEpoch}',
+      ),
+    );
+    switch (result) {
+      case Ok():
+        await fetchFolders(refresh: true);
+        AppSnackbar.success(
+          'note_editor_recording_fallback_name'.tr,
+          'note_editor_voice_note_saved'.tr,
+        );
+      case Err(:final failure):
+        AppSnackbar.failure('note_editor_could_not_save_recording'.tr, failure);
+    }
+  }
+
+  Folder? get _defaultNoteFolder {
+    if (folders.isEmpty) return null;
+    return folders.firstWhere(
+      (f) => f.name.toLowerCase().contains('notes'),
+      orElse: () => folders.first,
+    );
+  }
 
   void _openNewNote({bool autoRecord = false}) {
     if (folders.isEmpty) {
@@ -270,10 +313,7 @@ class FolderController extends GetxController {
       return;
     }
 
-    final defaultFolder = folders.firstWhere(
-      (f) => f.name.toLowerCase().contains('notes'),
-      orElse: () => folders.first,
-    );
+    final defaultFolder = _defaultNoteFolder!;
 
     NoteNavigation.toNewNote(defaultFolder.id, autoRecord: autoRecord)?.then((
       value,

@@ -123,6 +123,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => SaveNote(repo()), fenix: true);
     Get.lazyPut(() => SaveNoteMetadata(repo()), fenix: true);
     Get.lazyPut(() => SaveNoteContent(repo()), fenix: true);
+    Get.lazyPut(() => CreateAudioNote(repo()), fenix: true);
     Get.lazyPut(() => UpdateNoteState(repo()), fenix: true);
     Get.lazyPut(() => DeleteRestoreNote(repo()), fenix: true);
     Get.lazyPut(() => MoveNotesToFolder(repo()), fenix: true);

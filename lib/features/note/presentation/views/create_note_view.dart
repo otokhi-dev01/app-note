@@ -142,13 +142,6 @@ class _CreateNoteBody extends StatelessWidget {
               showMore: false,
               alwaysShowSave: true,
               backgroundColor: theme.scaffoldBackgroundColor,
-              shadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
               onBack: () => _handleBack(controller),
             ),
             SliverPadding(

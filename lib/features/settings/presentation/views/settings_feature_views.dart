@@ -14,6 +14,7 @@ import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/settings/presentation/widgets/preference_actions.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class NotificationSettingsView extends StatelessWidget {
@@ -557,24 +558,7 @@ class _SettingsFeatureScaffold extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            AppScreenSliverAppBar(
-              title: title,
-              centerTitle: true,
-              leading: CustomGlassButton(
-                semanticLabel: MaterialLocalizations.of(
-                  context,
-                ).backButtonTooltip,
-                onPressed: () => Get.back(),
-                width: 44,
-                height: 44,
-                shape: GlassShape.circle,
-                blur: 10,
-                opacity: 0.15,
-                thickness: 8,
-                padding: EdgeInsets.zero,
-                child: const Icon(CupertinoIcons.chevron_left, size: 23),
-              ),
-            ),
+            SettingsSliverAppBar(title: title),
             SliverToBoxAdapter(
               child: Align(
                 alignment: Alignment.topCenter,

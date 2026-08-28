@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/note_preferences_controller.dart';
 
@@ -33,25 +33,7 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            AppScreenSliverAppBar(
-              title: "note_preferences_title".tr,
-              centerTitle: true,
-              leading: CustomGlassButton(
-                onPressed: () => Get.back(),
-                width: 44,
-                height: 44,
-                shape: GlassShape.circle,
-                blur: 10,
-                opacity: 0.15,
-                thickness: 8,
-                padding: EdgeInsets.zero,
-                child: Icon(
-                  CupertinoIcons.chevron_left,
-                  color: theme.colorScheme.onSurface,
-                  size: 24,
-                ),
-              ),
-            ),
+            SettingsSliverAppBar(title: "note_preferences_title".tr),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/account_controller.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -34,25 +35,7 @@ class AccountView extends GetView<AccountController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            AppScreenSliverAppBar(
-              title: "account_title".tr,
-              centerTitle: true,
-              leading: CustomGlassButton(
-                onPressed: () => Get.back(),
-                width: 44,
-                height: 44,
-                shape: GlassShape.circle,
-                blur: 10,
-                opacity: 0.15,
-                thickness: 8,
-                padding: EdgeInsets.zero,
-                child: Icon(
-                  CupertinoIcons.chevron_left,
-                  color: theme.colorScheme.onSurface,
-                  size: 24,
-                ),
-              ),
-            ),
+            SettingsSliverAppBar(title: "account_title".tr),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),

@@ -15,6 +15,7 @@ import 'package:Note/features/settings/presentation/widgets/preference_actions.d
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_popup.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 /// The settings panel opened from the Folders screen.
@@ -82,13 +83,15 @@ class SettingsDrawer extends GetView<ProfileController> {
                         title: 'device_title'.tr,
                         onTap: () => _closeThenGo(context, Routes.DEVICE),
                       ),
-                      _buildRow(
-                        context,
-                        icon: CupertinoIcons.globe,
-                        iconColor: _iosBlue,
-                        title: 'language_title'.tr,
-                        trailingText: LanguagePreferences().language.label,
-                        onTap: () => _closeThenGo(context, Routes.LANGUAGE),
+                      LanguagePopup(
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.globe,
+                          iconColor: _iosBlue,
+                          title: 'language_title'.tr,
+                          trailingText: LanguagePreferences().language.label,
+                          onTap: toggleMenu,
+                        ),
                       ),
                       _buildRow(
                         context,
