@@ -103,9 +103,7 @@ class NoteChecklistBlock extends StatelessWidget {
                 fieldKey,
                 item.text,
               );
-              // Prime a truly-empty item with the invisible placeholder so a
-              // later Backspace-at-start has something to delete — see
-              // kChecklistItemPlaceholder for why this is necessary.
+
               if (textController.text.isEmpty) {
                 textController.value = TextEditingValue(
                   text: kChecklistItemPlaceholder,
@@ -131,11 +129,7 @@ class NoteChecklistBlock extends StatelessWidget {
                         ? value.substring(kChecklistItemPlaceholder.length)
                         : value,
                   ),
-                  // iOS Notes never inserts a literal newline into a
-                  // checklist item — Return always starts a new item (or
-                  // exits the list on an empty one) instead. Backspace at
-                  // the start of an empty item deletes it and merges into
-                  // the item above, same as iOS Notes.
+
                   inputFormatters: [
                     _ChecklistTextFormatter(
                       onEnter: () => controller.onChecklistItemEnter(
@@ -185,12 +179,6 @@ class NoteChecklistBlock extends StatelessWidget {
   }
 }
 
-/// Intercepts a Return keypress on a multiline [TextField] before the
-/// newline is ever inserted, calling [onEnter] and keeping the field's text
-/// unchanged instead. Also watches for the item's placeholder character
-/// (see [kChecklistItemPlaceholder]) being deleted, which is what an
-/// otherwise-invisible Backspace-on-empty-item press looks like once it
-/// reaches a formatter, and reports that as [onBackspaceAtStart].
 class _ChecklistTextFormatter extends TextInputFormatter {
   final VoidCallback onEnter;
   final VoidCallback onBackspaceAtStart;

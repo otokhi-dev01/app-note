@@ -4,16 +4,6 @@ import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 
-/// Runs a datasource call and converts anything it throws into a [Result].
-///
-/// This is the single place where data-layer exceptions become domain
-/// failures, so repository implementations read as one line per operation:
-///
-/// ```dart
-/// @override
-/// Future<Result<Note>> getNoteDetail(int id) =>
-///     guard(() => _remote.getNoteDetail(id));
-/// ```
 Future<Result<T>> guard<T>(Future<T> Function() body) async {
   try {
     return Ok(await body());

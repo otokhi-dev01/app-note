@@ -1,20 +1,31 @@
+import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:Note/features/profile/presentation/widgets/profile_more_popup.dart';
+import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
-/// A modern, standalone user profile screen.
+/// The user's profile and account details.
 ///
-/// Replaces the simple identity row in Settings with a dedicated destination
-/// that treats the user's identity as a first-class feature. Designed with
-/// "Liquid Glass" aesthetics: a large hero avatar with a matching soft halo,
-/// grouped glass cards for details, and a clear, focused layout.
+/// Identity, editable information, and account actions have distinct visual
+/// hierarchy while keeping all existing profile editing flows intact.
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
+
+  static const _contentMaxWidth = 680.0;
+  static const _iosBlue = Color(0xFF007AFF);
+  static const _iosGreen = Color(0xFF34C759);
+  static const _iosIndigo = Color(0xFF5856D6);
+  static const _iosOrange = Color(0xFFFF9500);
+  static const _iosPink = Color(0xFFFF2D55);
+  static const _iosPurple = Color(0xFFAF52DE);
+  static const _iosRed = Color(0xFFFF3B30);
+  static const _iosGray = Color(0xFF8E8E93);
 
   @override
   Widget build(BuildContext context) {
@@ -31,16 +42,31 @@ class ProfileView extends GetView<ProfileController> {
           slivers: [
             _buildAppBar(context),
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-                child: Column(
-                  children: [
-                    _buildHero(context),
-                    const SizedBox(height: 32),
-                    _buildDetailsCard(context),
-                    const SizedBox(height: 24),
-                    _buildStatsGrid(context),
-                  ],
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildIdentityCard(context),
+                        const SizedBox(height: 28),
+                        _buildSectionLabel(context, 'profile_basic_info'.tr),
+                        const SizedBox(height: 8),
+                        _buildDetailsCard(context),
+                        const SizedBox(height: 22),
+                        _buildSectionLabel(context, 'id_information_title'.tr),
+                        const SizedBox(height: 8),
+                        _buildIdInformationCard(context),
+                        const SizedBox(height: 28),
+                        _buildSectionLabel(context, 'account_label'.tr),
+                        const SizedBox(height: 8),
+                        _buildActionsCard(context),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -51,13 +77,10 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 0, // Compact bar for this view
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
       leading: CustomGlassButton(
+        semanticLabel: MaterialLocalizations.of(context).backButtonTooltip,
         onPressed: () => Get.back(),
         width: 44,
         height: 44,
@@ -66,268 +89,450 @@ class ProfileView extends GetView<ProfileController> {
         opacity: 0.15,
         thickness: 8,
         padding: EdgeInsets.zero,
-        child: Icon(
-          CupertinoIcons.chevron_left,
-          color: theme.colorScheme.onSurface,
-          size: 24,
-        ),
+        glassColor: _iosBlue.withValues(alpha: 0.82),
+        foregroundColor: Colors.white,
+        child: const Icon(CupertinoIcons.chevron_left, size: 23),
       ),
       actions: [
-        ProfileMorePopup(
-          controller: controller,
-          triggerBuilder: (context, toggleMenu) => CustomGlassButton(
-            onPressed: toggleMenu,
+        Obx(() {
+          final isGuest = controller.isGuestMode.value;
+
+          if (isGuest) return const SizedBox.square(dimension: 44);
+
+          return CustomGlassButton(
+            semanticLabel: 'edit_name_title'.tr,
+            onPressed: controller.updateUserName,
             width: 44,
             height: 44,
             shape: GlassShape.circle,
             blur: 10,
             opacity: 0.15,
             thickness: 8,
+            glassColor: _iosBlue.withValues(alpha: 0.82),
+            foregroundColor: Colors.white,
             padding: EdgeInsets.zero,
-            child: Icon(
-              Icons.more_horiz,
-              color: theme.colorScheme.onSurface,
-              size: 24,
-            ),
-          ),
-        ),
+            child: const Icon(CupertinoIcons.pencil, size: 19),
+          );
+        }),
       ],
-      title: Text(
-        "profile_title".tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: 'profile_title'.tr,
     );
   }
 
-  /// The large avatar and name block at the top.
-  Widget _buildHero(BuildContext context) {
+  Widget _buildIdentityCard(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Obx(() {
       final isGuest = controller.isGuestMode.value;
       final imagePath = controller.userImagePath.value;
       final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
+      final accent = controller.userColor;
+      final accentText =
+          theme.brightness == Brightness.light &&
+              accent.computeLuminance() > 0.45
+          ? Color.lerp(accent, Colors.black, 0.42)!
+          : accent;
+      final username = controller.userUsername.value;
+      final account = controller.userAccount.value;
+      final status = isGuest
+          ? 'guest_status'.tr
+          : (account.isEmpty ? 'account_label'.tr : account);
 
-      return Column(
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Soft halo glow behind avatar
-              Container(
-                width: 140,
-                height: 140,
+      return CustomGlassContainer(
+        width: double.infinity,
+        borderRadius: 24,
+        blur: 24,
+        opacity: 0.12,
+        thickness: 10,
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                      blurRadius: 40,
-                      spreadRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-              // Main Avatar
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      theme.colorScheme.primary.withValues(alpha: 0.8),
-                      theme.colorScheme.primary.withValues(alpha: 0.2),
+                      accent.withValues(alpha: 0.14),
+                      scheme.surface.withValues(alpha: 0.62),
                     ],
                   ),
                 ),
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  backgroundImage: hasImage ? FileImage(File(imagePath)) : null,
-                  child: hasImage
-                      ? null
-                      : Icon(
-                          CupertinoIcons.person_fill,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          size: 60,
-                        ),
-                ),
-              ),
-              // Edit button badge
-              if (!isGuest)
-                Positioned(
-                  bottom: 4,
-                  right: 4,
-                  child: CustomGlassButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact();
-                      controller.updateProfileImage();
-                    },
-                    width: 38,
-                    height: 38,
-                    shape: GlassShape.circle,
-                    blur: 15,
-                    opacity: 0.9,
-                    thickness: 2,
-                    glassColor: theme.colorScheme.primary,
-                    padding: EdgeInsets.zero,
-                    child: const Icon(
-                      CupertinoIcons.camera_fill,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ProfileMorePopup(
-            controller: controller,
-            triggerBuilder: (context, toggleMenu) => GestureDetector(
-              onTap: isGuest ? null : toggleMenu,
-              behavior: HitTestBehavior.opaque,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    controller.userName.value,
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (!isGuest) ...[
-                    const SizedBox(width: 8),
-                    Icon(
-                      CupertinoIcons.chevron_down_circle_fill,
-                      size: 22,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                  ],
-                ],
               ),
             ),
-          ),
-          if (controller.userPhone.value.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              controller.userPhone.value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
+            Positioned(
+              right: -38,
+              top: -48,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accent.withValues(alpha: 0.07),
                 ),
-                fontSize: 16,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: scheme.surface,
+                            border: Border.all(
+                              color: accent.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 39,
+                            backgroundColor: scheme.surfaceContainerHighest,
+                            backgroundImage: hasImage
+                                ? FileImage(File(imagePath))
+                                : null,
+                            child: hasImage
+                                ? null
+                                : Icon(
+                                    CupertinoIcons.person_fill,
+                                    color: accentText,
+                                    size: 37,
+                                  ),
+                          ),
+                        ),
+                        if (!isGuest)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: CustomGlassButton(
+                              onPressed: () {
+                                HapticFeedback.selectionClick();
+                                controller.updateProfileImage();
+                              },
+                              semanticLabel: 'profile_image_updated_message'.tr,
+                              width: 30,
+                              height: 30,
+                              shape: GlassShape.circle,
+                              blur: 8,
+                              opacity: 0.2,
+                              thickness: 5,
+                              glassColor: _iosBlue.withValues(alpha: 0.88),
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.zero,
+                              child: const Icon(
+                                CupertinoIcons.camera_fill,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      controller.userName.value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (!isGuest && username.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        '@$username',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 230),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: accentText,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              status,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: accentText,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildSectionLabel(BuildContext context, String text) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        text.toUpperCase(),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailsCard(BuildContext context) {
+    return Obx(() {
+      final isGuest = controller.isGuestMode.value;
+      final colorHex =
+          controller.userColorHex.value ?? FolderAppearance.defaultColorValue;
+
+      return _buildSurfaceCard(
+        context,
+        children: [
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_fill,
+            iconColor: _iosBlue,
+            label: 'full_name_label'.tr,
+            value: controller.userName.value,
+            onTap: isGuest ? null : controller.updateUserName,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.at,
+            iconColor: _iosIndigo,
+            label: 'username_label'.tr,
+            value: controller.userUsername.value.isEmpty
+                ? 'not_set'.tr
+                : '@${controller.userUsername.value}',
+            onTap: isGuest ? null : controller.updateUsername,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_crop_circle_fill,
+            iconColor: _iosPurple,
+            label: 'account_label'.tr,
+            value: controller.userAccount.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userAccount.value,
+            onTap: isGuest ? null : controller.updateAccount,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.mail_solid,
+            iconColor: _iosOrange,
+            label: 'email_label'.tr,
+            value: controller.userEmail.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userEmail.value,
+            onTap: isGuest ? null : controller.updateEmail,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.phone_fill,
+            iconColor: _iosGreen,
+            label: 'phone_label'.tr,
+            value: controller.userPhone.value.isEmpty
+                ? 'not_available'.tr
+                : controller.userPhone.value,
+            onTap: isGuest ? null : controller.viewPhone,
+          ),
+          _buildJobBioRow(context, isGuest: isGuest),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.paintbrush_fill,
+            iconColor: _iosPink,
+            label: 'color_label'.tr,
+            trailing: _ProfileColorValue(
+              color: controller.userColor,
+              label: colorHex,
+            ),
+            onTap: isGuest ? null : controller.updateColor,
+          ),
         ],
       );
     });
   }
 
-  /// A grouped card for personal details.
-  Widget _buildDetailsCard(BuildContext context) {
-    final theme = Theme.of(context);
-    return CustomGlassContainer(
-      borderRadius: 24,
-      clipBehavior: Clip.antiAlias,
-      padding: EdgeInsets.zero,
-      showGlow: true,
-      child: Column(
+  Widget _buildIdInformationCard(BuildContext context) {
+    return Obx(() {
+      final isGuest = controller.isGuestMode.value;
+      final edit = isGuest ? null : controller.updateIdInformation;
+
+      return _buildSurfaceCard(
+        context,
         children: [
-          ProfileMorePopup(
-            controller: controller,
-            triggerBuilder: (context, toggleMenu) => _buildDetailRow(
-              context,
-              icon: CupertinoIcons.person_circle,
-              label: "full_name_label".tr,
-              value: controller.userName.value,
-              onTap: controller.isGuestMode.value ? null : toggleMenu,
-            ),
-          ),
-          Divider(
-            height: 1,
-            indent: 52,
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          _buildDetailRow(
+            context,
+            icon: Icons.badge_outlined,
+            iconColor: _iosGray,
+            label: 'id_number_label'.tr,
+            value: controller.userIdNumber.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userIdNumber.value,
+            onTap: edit,
           ),
           _buildDetailRow(
             context,
-            icon: CupertinoIcons.phone_fill,
-            label: "phone_label".tr,
-            value: controller.userPhone.value.isEmpty
-                ? "not_available".tr
-                : controller.userPhone.value,
-          ),
-          Divider(
-            height: 1,
-            indent: 52,
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+            icon: Icons.person_outline_rounded,
+            iconColor: _iosIndigo,
+            label: 'id_name_label'.tr,
+            value: controller.userIdName.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userIdName.value,
+            onTap: edit,
           ),
           _buildDetailRow(
             context,
-            icon: CupertinoIcons.shield_fill,
-            label: "account_status_label".tr,
-            value: controller.isGuestMode.value
-                ? "guest_status".tr
-                : "verified_status".tr,
+            icon: Icons.cake_outlined,
+            iconColor: _iosPink,
+            label: 'date_of_birth_label'.tr,
+            value: controller.formattedDateOfBirth.isEmpty
+                ? 'not_set'.tr
+                : controller.formattedDateOfBirth,
+            onTap: edit,
           ),
         ],
-      ),
+      );
+    });
+  }
+
+  Widget _buildSurfaceCard(
+    BuildContext context, {
+    required List<Widget> children,
+  }) {
+    final theme = Theme.of(context);
+    final groupedChildren = <Widget>[];
+
+    for (var index = 0; index < children.length; index++) {
+      if (index > 0) {
+        groupedChildren.add(
+          Divider(
+            height: 1,
+            indent: 60,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        );
+      }
+      groupedChildren.add(children[index]);
+    }
+
+    return CustomGlassContainer(
+      borderRadius: 20,
+      blur: 20,
+      opacity: 0.12,
+      thickness: 8,
+      clipBehavior: Clip.antiAlias,
+      child: Column(children: groupedChildren),
     );
   }
 
   Widget _buildDetailRow(
     BuildContext context, {
     required IconData icon,
+    required Color iconColor,
     required String label,
-    required String value,
+    String? value,
+    Widget? trailing,
     VoidCallback? onTap,
   }) {
     final theme = Theme.of(context);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: onTap == null
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                onTap();
+              },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: theme.colorScheme.primary),
-              const SizedBox(width: 14),
+              _fieldBadge(icon, iconColor),
+              const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.6,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      value,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              if (onTap != null)
+              const SizedBox(width: 10),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child:
+                      trailing ??
+                      Text(
+                        value ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 7),
                 Icon(
                   CupertinoIcons.chevron_forward,
                   size: 14,
                   color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.4,
+                    alpha: 0.48,
                   ),
                 ),
+              ],
             ],
           ),
         ),
@@ -335,66 +540,237 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  /// Modern grid showing some account "stats" or activity highlights.
-  Widget _buildStatsGrid(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatItem(
-            context,
-            title: "joined_label".tr,
-            value: "Aug 2026",
-            icon: CupertinoIcons.calendar,
+  Widget _buildJobBioRow(BuildContext context, {required bool isGuest}) {
+    final theme = Theme.of(context);
+    final hasJob = controller.userJob.value.isNotEmpty;
+    final hasBio = controller.userBio.value.isNotEmpty;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isGuest
+            ? null
+            : () {
+                HapticFeedback.selectionClick();
+                controller.updateJobAndBio();
+              },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _fieldBadge(CupertinoIcons.briefcase_fill, _iosOrange),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'job_bio_label'.tr,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      hasJob ? controller.userJob.value : 'not_set'.tr,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (!isGuest) ...[
+                    const SizedBox(width: 7),
+                    Icon(
+                      CupertinoIcons.chevron_forward,
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.48,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (hasBio) ...[
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 48, right: 20),
+                  child: Text(
+                    controller.userBio.value,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatItem(
-            context,
-            title: "tier_label".tr,
-            value: "profile_tier_free".tr,
-            icon: CupertinoIcons.star_fill,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStatItem(
+  Widget _fieldBadge(IconData icon, Color color) {
+    return CustomGlassContainer(
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      blur: 12,
+      opacity: 0.3,
+      thickness: 8,
+      refractiveIndex: 1.1,
+      glassColor: color.withValues(alpha: 0.82),
+      glowIntensity: 0.18,
+      alignment: Alignment.center,
+      child: Icon(icon, size: 18, color: Colors.white),
+    );
+  }
+
+  Widget _buildActionsCard(BuildContext context) {
+    return Obx(() {
+      final isGuest = controller.isGuestMode.value;
+
+      return _buildSurfaceCard(
+        context,
+        children: [
+          _buildAccountActionRow(context, isGuest: isGuest),
+          if (!isGuest) _buildDeleteAccountRow(context),
+        ],
+      );
+    });
+  }
+
+  Widget _buildAccountActionRow(BuildContext context, {required bool isGuest}) {
+    return _buildActionRow(
+      context,
+      icon: isGuest
+          ? CupertinoIcons.person_badge_plus
+          : CupertinoIcons.square_arrow_right,
+      title: isGuest ? 'log_in_create_account'.tr : 'log_out'.tr,
+      isDestructive: !isGuest,
+      showChevron: isGuest,
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        if (isGuest) {
+          Get.offAllNamed(Routes.LOGIN);
+        } else {
+          unawaited(controller.logout());
+        }
+      },
+    );
+  }
+
+  Widget _buildDeleteAccountRow(BuildContext context) {
+    return _buildActionRow(
+      context,
+      icon: CupertinoIcons.trash_fill,
+      title: 'delete_account_title'.tr,
+      isDestructive: true,
+      showChevron: true,
+      onTap: () => Get.toNamed(Routes.DELETE_ACCOUNT),
+    );
+  }
+
+  Widget _buildActionRow(
     BuildContext context, {
-    required String title,
-    required String value,
     required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+    bool showChevron = false,
   }) {
     final theme = Theme.of(context);
-    return CustomGlassContainer(
-      borderRadius: 20,
-      padding: const EdgeInsets.all(16),
-      opacity: 0.08,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: theme.colorScheme.primary.withValues(alpha: 0.7),
+    final color = isDestructive ? _iosRed : _iosBlue;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              CustomGlassContainer(
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                blur: 12,
+                opacity: 0.3,
+                thickness: 8,
+                refractiveIndex: 1.1,
+                glassColor: color.withValues(alpha: 0.82),
+                glowIntensity: 0.18,
+                alignment: Alignment.center,
+                child: Icon(icon, size: 18, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (showChevron)
+                Icon(
+                  CupertinoIcons.chevron_forward,
+                  size: 14,
+                  color: color.withValues(alpha: 0.5),
+                ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _ProfileColorValue extends StatelessWidget {
+  final Color color;
+  final String label;
+
+  const _ProfileColorValue({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: color,
+            border: Border.all(color: theme.colorScheme.surface, width: 2),
+            boxShadow: [
+              BoxShadow(color: color.withValues(alpha: 0.25), blurRadius: 6),
+            ],
+          ),
+        ),
+        const SizedBox(width: 7),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -33,7 +33,7 @@ class ArchiveView extends GetView<NoteController> {
           onRefresh: () => controller.fetchNotes(refresh: true),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
-          edgeOffset: 140,
+          edgeOffset: MediaQuery.paddingOf(context).top + 52,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -56,18 +56,9 @@ class ArchiveView extends GetView<NoteController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        "note_list_archive_title".tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: "note_list_archive_title".tr,
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
         width: 44,
@@ -120,15 +111,6 @@ class ArchiveView extends GetView<NoteController> {
                 ),
         ),
       ],
-      largeTitleAlignment: Alignment.bottomCenter,
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-      largeTitle: Text(
-        "note_list_archive_title".tr,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 34,
-        ),
-      ),
     );
   }
 

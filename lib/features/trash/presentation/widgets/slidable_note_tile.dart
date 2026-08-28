@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class SlidableNoteTile extends StatefulWidget {
   final Widget child;
@@ -101,14 +102,14 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   _buildActionButton(
-                    "trash_move".tr,
+                    "trash move".tr,
                     CupertinoIcons.folder_fill,
                     const Color(0xFF5856D6),
                     widget.onMove,
                   ),
                   if (widget.onDelete != null)
                     _buildActionButton(
-                      "trash_delete".tr,
+                      "trash delete".tr,
                       CupertinoIcons.trash_fill,
                       const Color(0xFFFF3B30),
                       widget.onDelete!,
@@ -169,18 +170,17 @@ class _SlidableNoteTileState extends State<SlidableNoteTile>
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
+                      CustomGlassContainer(
                         width: iconSize,
                         height: iconSize,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          icon,
-                          color: Colors.white,
-                          size: iconSize * 0.6,
-                        ),
+                        shape: GlassShape.circle,
+                        blur: 10,
+                        opacity: 0.16,
+                        thickness: 5,
+                        refractiveIndex: 1.1,
+                        glassColor: color.withValues(alpha: 0.22),
+                        alignment: Alignment.center,
+                        child: Icon(icon, color: color, size: iconSize * 0.6),
                       ),
                       if (showLabel) ...[
                         const SizedBox(height: 4),

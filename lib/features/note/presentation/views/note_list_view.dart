@@ -49,7 +49,7 @@ class NoteListView extends GetView<NoteController> {
               controller.fetchNotes(folderId: folder?.id, refresh: true),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
-          edgeOffset: 140,
+          edgeOffset: MediaQuery.paddingOf(context).top + 52,
           child: Obx(
             () => CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -76,18 +76,9 @@ class NoteListView extends GetView<NoteController> {
 
   Widget _buildAppBar(BuildContext context, String title, int folderId) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        title,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: title,
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
         width: 44,
@@ -123,19 +114,9 @@ class NoteListView extends GetView<NoteController> {
         ),
         Obx(() => _buildActionIcon(context)),
       ],
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 5),
-      largeTitle: Text(
-        title,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 34,
-        ),
-      ),
     );
   }
 
-  /// Creates a subfolder of the folder currently being viewed ("All Notes"
-  /// creates at the top level instead, since it has no real folder id).
   void _createFolder(int folderId) {
     Get.to(
       () => FolderCreateModal(
@@ -168,8 +149,6 @@ class NoteListView extends GetView<NoteController> {
       );
     }
 
-    // The button itself morphs into the menu, so it hands its tap to
-    // NoteContextMenu rather than opening anything of its own.
     return NoteContextMenu(
       controller: controller,
       triggerBuilder: (context, toggleMenu) => CustomGlassButton(
@@ -240,7 +219,10 @@ class NoteListView extends GetView<NoteController> {
             if (pinnedNotes.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
-                child: Text("note_list_pinned".tr, style: theme.textTheme.titleLarge),
+                child: Text(
+                  "note_list_pinned".tr,
+                  style: theme.textTheme.titleLarge,
+                ),
               ),
               GridView.builder(
                 shrinkWrap: true,
@@ -267,7 +249,10 @@ class NoteListView extends GetView<NoteController> {
               if (otherNotes.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
-                  child: Text("note_list_notes".tr, style: theme.textTheme.titleLarge),
+                  child: Text(
+                    "note_list_notes".tr,
+                    style: theme.textTheme.titleLarge,
+                  ),
                 ),
             ],
             if (otherNotes.isNotEmpty)
@@ -375,7 +360,6 @@ class NoteListView extends GetView<NoteController> {
 
       return SliverList(
         delegate: SliverChildBuilderDelegate((context, index) {
-          // If there are pinned notes, the first item is the Pinned section
           if (pinnedNotes.isNotEmpty) {
             if (index == 0) {
               return Padding(
@@ -388,7 +372,10 @@ class NoteListView extends GetView<NoteController> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("note_list_pinned".tr, style: theme.textTheme.titleLarge),
+                      child: Text(
+                        "note_list_pinned".tr,
+                        style: theme.textTheme.titleLarge,
+                      ),
                     ),
                     GlassCard(
                       borderRadius: 30,
@@ -409,7 +396,6 @@ class NoteListView extends GetView<NoteController> {
               );
             }
 
-            // Adjust index for groups
             final groupIndex = index - 1;
             if (groupIndex < groupedNotes.length) {
               return _buildDateGroup(
@@ -420,7 +406,6 @@ class NoteListView extends GetView<NoteController> {
               );
             }
           } else {
-            // No pinned notes, just groups
             if (index < groupedNotes.length) {
               return _buildDateGroup(context, groupedNotes, index, folderId);
             }

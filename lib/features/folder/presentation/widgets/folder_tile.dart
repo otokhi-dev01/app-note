@@ -8,6 +8,7 @@ import 'package:Note/features/folder/presentation/controllers/folder_controller.
 import 'package:Note/features/folder/presentation/widgets/folder_context_menu.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 
 class FolderTile extends StatefulWidget {
   final Folder folder;
@@ -67,7 +68,10 @@ class _FolderTileState extends State<FolderTile> {
                     },
               onLongPress: isSystem ? null : () => _menuController.open(),
               // Renders the icon + color chosen in the folder editor
-              leading: FolderGlyph(folder: folder, size: 25),
+              leading: FolderGlassIcon(
+                color: folder.color,
+                child: FolderGlyph(folder: folder, size: 22),
+              ),
               title: Text(
                 folder.displayName,
                 style: theme.textTheme.bodyLarge?.copyWith(
@@ -96,40 +100,41 @@ class _FolderTileState extends State<FolderTile> {
                       children: [
                         IconButton(
                           onPressed: () => _menuController.open(),
-                          icon: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppTheme.folderPink,
-                                width: 1.2,
-                              ),
-                            ),
+                          icon: FolderGlassIcon(
+                            color: AppTheme.folderPink,
+                            size: 28,
+                            borderRadius: 14,
                             child: const Icon(
                               Icons.more_horiz,
                               color: AppTheme.folderPink,
-                              size: 16,
+                              size: 15,
                             ),
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(
-                          Icons.reorder,
-                          color: theme.colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.4,
+                        FolderGlassIcon(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          size: 32,
+                          borderRadius: 9,
+                          child: Icon(
+                            Icons.reorder,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            size: 18,
                           ),
-                          size: 22,
                         ),
                       ],
                     )
                   : folder.subFolders.isNotEmpty
                   ? _ExpandToggle(controller: controller, folder: folder)
-                  : Icon(
-                      Icons.arrow_forward_ios,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.2,
+                  : FolderGlassIcon(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      size: 32,
+                      borderRadius: 9,
+                      child: Icon(
+                        Icons.arrow_forward_ios,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        size: 14,
                       ),
-                      size: 16,
                     ),
             ),
           ),
@@ -175,10 +180,15 @@ class _ExpandToggle extends StatelessWidget {
             turns: expanded ? 0.25 : 0,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            child: Icon(
-              Icons.arrow_forward_ios,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
-              size: 16,
+            child: FolderGlassIcon(
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 32,
+              borderRadius: 9,
+              child: Icon(
+                Icons.arrow_forward_ios,
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 14,
+              ),
             ),
           ),
         ),

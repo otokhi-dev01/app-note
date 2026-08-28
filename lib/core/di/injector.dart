@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
@@ -19,26 +20,23 @@ import 'package:Note/features/note/data/repositories/note_repository_impl.dart';
 import 'package:Note/features/note/data/repositories/note_repository_router.dart';
 import 'package:Note/features/note/domain/repositories/note_repository.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
+import 'package:Note/features/profile/data/repositories/profile_repository_impl.dart';
+import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
+import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
+import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 
-/// Wires the object graph bottom-up: storage → client → datasources →
-/// repositories → use cases.
-///
-/// Controllers only ever resolve use cases, so a controller can be built in a
-/// test against fakes with no HTTP anywhere in sight.
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
-    // ── Infrastructure ──────────────────────────────────────────────
     Get.put(SessionStorage(), permanent: true);
     Get.put(GuestModeService(), permanent: true);
+    Get.put(SettingsPreferences(), permanent: true);
     Get.put(ApiClient(), permanent: true);
 
-    // ── Datasources ─────────────────────────────────────────────────
     Get.lazyPut(() => AuthRemoteDataSource(), fenix: true);
     Get.lazyPut(() => FolderRemoteDataSource(), fenix: true);
     Get.lazyPut(() => NoteRemoteDataSource(), fenix: true);
 
-    // ── Repositories ────────────────────────────────────────────────
     Get.lazyPut<AuthRepository>(
       () => AuthRepositoryImpl(
         Get.find<AuthRemoteDataSource>(),
@@ -71,6 +69,31 @@ class InitialBinding extends Bindings {
     _authUseCases();
     _folderUseCases();
     _noteUseCases();
+    _profile();
+  }
+
+  void _profile() {
+    Get.lazyPut<ProfileRepository>(
+      () => ProfileRepositoryImpl(Get.find<SessionStorage>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => UpdateUserName(Get.find<ProfileRepository>()),
+      fenix: true,
+    );
+    Get.lazyPut(
+      () => UpdateProfileImage(Get.find<ProfileRepository>()),
+      fenix: true,
+    );
+    Get.put(
+      ProfileController(
+        updateUserName: Get.find<UpdateUserName>(),
+        updateProfileImage: Get.find<UpdateProfileImage>(),
+        session: Get.find<SessionStorage>(),
+        forgotPassword: Get.find<ForgotPassword>(),
+      ),
+      permanent: true,
+    );
   }
 
   void _authUseCases() {
@@ -88,6 +111,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => GetFolders(repo()), fenix: true);
     Get.lazyPut(() => SaveFolder(repo()), fenix: true);
     Get.lazyPut(() => DeleteRestoreFolder(repo()), fenix: true);
+    Get.lazyPut(() => DeleteFolderPermanently(repo()), fenix: true);
     Get.lazyPut(() => const BuildFolderHierarchy(), fenix: true);
   }
 

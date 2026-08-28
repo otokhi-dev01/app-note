@@ -2,7 +2,7 @@ name: Note
 description: "A new Flutter project."
 
 publish_to: 'none'
-version: 1.0.1+8 
+version: 1.0.1+14
 
 environment:
   sdk: ^3.11.5
@@ -24,14 +24,18 @@ dependencies:
   ios_image_editor: ^1.0.0
   flutter_quill: ^11.0.0
   share_plus: ^10.1.4
+  url_launcher: ^6.3.2
+  permission_handler: ^13.0.1
   liquid_glass_widgets: ^0.29.5
   file_picker: ^8.1.2
   flutter_emoji: ^2.5.1
   pdf: ^3.13.0
-  cunning_document_scanner: ^3.0.1
+  flutter_doc_scanner: ^0.0.21
   google_mlkit_text_recognition: ^0.17.1
   record: ^7.1.1
   audioplayers: ^6.8.1
+  video_player: ^2.11.1
+  pdfx: ^2.11.0
 
 dev_dependencies:
   flutter_launcher_icons: "^0.14.4"

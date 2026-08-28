@@ -1,6 +1,6 @@
-<?xml version="1.0.1+8" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0.1+8//EN" "http://www.apple.com/DTDs/PropertyList-1.0.1+8.dtd">
-<plist version="1.0.1+8">
+<?xml version="1.0.1+14 " encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0.1+14 //EN" "http://www.apple.com/DTDs/PropertyList-1.0.1+14 .dtd">
+<plist version="1.0.1+14 ">
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
@@ -13,7 +13,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>1.0.1+8</string>
+	<string>1.0.1+14 </string>
 	<key>CFBundleName</key>
 	<string>Pii Note</string>
 	<key>CFBundlePackageType</key>

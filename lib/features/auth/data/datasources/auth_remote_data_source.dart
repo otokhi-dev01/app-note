@@ -2,7 +2,6 @@ import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart' hide Response;
 
 import 'package:Note/core/error/exceptions.dart';
-import 'package:Note/core/network/api_capabilities.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
@@ -51,15 +50,17 @@ class AuthRemoteDataSource extends GetxService {
     }
   }
 
-  /// Not supported: no `/api/auth/forgot-password` route exists.
-  /// See [ApiCapabilities.forgotPassword].
-  ///
-  /// This previously faked a successful send, which told users a reset link
-  /// was on its way when nothing was ever dispatched.
   Future<void> forgotPassword(String phone) async {
-    throw const UnsupportedFeatureException(
-      'Password reset is not available on the server yet. '
-      'Please contact support to reset your password.',
-    );
+    try {
+      await _api.dio.post('/api/auth/forgot-password', data: {'phone': phone});
+    } on dio.DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw const UnsupportedFeatureException(
+          'Password recovery is not available on the server yet. '
+          'Please contact support for help accessing your account.',
+        );
+      }
+      throw ApiErrorParser.toException(e);
+    }
   }
 }

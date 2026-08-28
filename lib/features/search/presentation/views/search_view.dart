@@ -12,10 +12,19 @@ import 'package:Note/features/search/presentation/controllers/search_controller.
     as sc;
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
+import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 
 class SearchView extends GetView<sc.SearchController> {
   const SearchView({super.key});
+
+  void _recordAudio() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (Get.isRegistered<FolderController>()) {
+      Get.find<FolderController>().createAudioNote();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,45 +83,51 @@ class SearchView extends GetView<sc.SearchController> {
   Widget _buildTopBar(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      child: Row(
-        children: [
-          /// Back glass button
-          CustomGlassButton(
-            onPressed: () => Get.back(),
-            width: 44,
-            height: 44,
-            shape: GlassShape.circle,
-            blur: 10,
-            opacity: 0.15,
-            thickness: 8,
-            padding: EdgeInsets.zero,
-            child: Icon(
-              CupertinoIcons.chevron_left,
-              color: theme.colorScheme.onSurface,
-              size: 24,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        boxShadow: kCreateNoteAppBarShadow,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            /// Back glass button
+            CustomGlassButton(
+              onPressed: () => Get.back(),
+              width: 44,
+              height: 44,
+              shape: GlassShape.circle,
+              blur: 10,
+              opacity: 0.15,
+              thickness: 8,
+              padding: EdgeInsets.zero,
+              child: Icon(
+                CupertinoIcons.chevron_left,
+                color: theme.colorScheme.onSurface,
+                size: 28,
+              ),
             ),
-          ),
 
-          Expanded(
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'note_list_search'.tr,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'note_list_search'.tr,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          /// Used to balance the back button
-          const SizedBox(width: 48, height: 48),
-        ],
+            /// Used to balance the back button
+            const SizedBox(width: 44, height: 44),
+          ],
+        ),
       ),
     );
   }
@@ -200,13 +215,8 @@ class SearchView extends GetView<sc.SearchController> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
 
       /// Icon container
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: AppTheme.folderYellow.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
+      leading: _SearchGlassIcon(
+        color: AppTheme.folderYellow,
         child: Icon(icon, color: AppTheme.folderYellow, size: 20),
       ),
 
@@ -233,11 +243,27 @@ class SearchView extends GetView<sc.SearchController> {
       /// No search result
       if (controller.noteResults.isEmpty && controller.folderResults.isEmpty) {
         return Center(
-          child: Text(
-            'note_list_no_results'.tr,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SearchGlassIcon(
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 58,
+                borderRadius: 18,
+                child: Icon(
+                  CupertinoIcons.search,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  size: 27,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'note_list_no_results'.tr,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
         );
       }
@@ -251,32 +277,17 @@ class SearchView extends GetView<sc.SearchController> {
           if (controller.folderResults.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.only(left: 8, bottom: 12),
-              child: Text('note_list_folders'.tr, style: theme.textTheme.titleLarge),
+              child: Text(
+                'note_list_folders'.tr,
+                style: theme.textTheme.titleLarge,
+              ),
             ),
 
             GlassCard(
               borderRadius: 30,
               children: [
                 for (int i = 0; i < controller.folderResults.length; i++) ...[
-                  GlassListTile(
-                    onTap: () {
-                      Get.toNamed(
-                        Routes.NOTE_LIST,
-                        arguments: controller.folderResults[i],
-                      );
-                    },
-                    leading: Icon(
-                      controller.folderResults[i].icon,
-                      color: theme.primaryColor,
-                    ),
-                    title: Text(
-                      controller.folderResults[i].name,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    trailing: GlassListTile.chevron,
-                  ),
+                  _buildFolderResultTile(context, controller.folderResults[i]),
 
                   if (i < controller.folderResults.length - 1)
                     Divider(
@@ -301,7 +312,10 @@ class SearchView extends GetView<sc.SearchController> {
             if (controller.pinnedNoteResults.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(left: 8, bottom: 12),
-                child: Text('note_list_pinned_notes'.tr, style: theme.textTheme.titleLarge),
+                child: Text(
+                  'note_list_pinned_notes'.tr,
+                  style: theme.textTheme.titleLarge,
+                ),
               ),
 
               GlassCard(
@@ -329,7 +343,10 @@ class SearchView extends GetView<sc.SearchController> {
             if (controller.otherNoteResults.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.only(left: 8, bottom: 12),
-                child: Text('note_list_notes'.tr, style: theme.textTheme.titleLarge),
+                child: Text(
+                  'note_list_notes'.tr,
+                  style: theme.textTheme.titleLarge,
+                ),
               ),
 
               GlassCard(
@@ -358,6 +375,36 @@ class SearchView extends GetView<sc.SearchController> {
   }
 
   // ============================================================
+  // FOLDER RESULT TILE
+  // ============================================================
+
+  Widget _buildFolderResultTile(BuildContext context, Folder folder) {
+    final theme = Theme.of(context);
+
+    return GlassListTile(
+      onTap: () => Get.toNamed(Routes.NOTE_LIST, arguments: folder),
+      leading: _SearchGlassIcon(
+        color: folder.color,
+        child: FolderGlyph(folder: folder, size: 22),
+      ),
+      title: Text(
+        folder.displayName,
+        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+      ),
+      trailing: _SearchGlassIcon(
+        color: theme.colorScheme.onSurfaceVariant,
+        size: 30,
+        borderRadius: 9,
+        child: Icon(
+          CupertinoIcons.chevron_forward,
+          color: theme.colorScheme.onSurfaceVariant,
+          size: 14,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // NOTE TILE
   // ============================================================
 
@@ -372,7 +419,16 @@ class SearchView extends GetView<sc.SearchController> {
         note.title.isEmpty ? 'note_list_new_note'.tr : note.title,
         style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
       ),
-      trailing: GlassListTile.chevron,
+      trailing: _SearchGlassIcon(
+        color: theme.colorScheme.onSurfaceVariant,
+        size: 30,
+        borderRadius: 9,
+        child: Icon(
+          CupertinoIcons.chevron_forward,
+          color: theme.colorScheme.onSurfaceVariant,
+          size: 14,
+        ),
+      ),
     );
   }
 
@@ -449,13 +505,20 @@ class SearchView extends GetView<sc.SearchController> {
 
                     const SizedBox(width: 8),
 
-                    /// Microphone
-                    Icon(
-                      CupertinoIcons.mic_fill,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
+                    /// Creates a new note and starts recording immediately.
+                    Semantics(
+                      button: true,
+                      label: 'note_editor_record_audio'.tr,
+                      child: CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(38, 50),
+                        onPressed: _recordAudio,
+                        child: Icon(
+                          CupertinoIcons.mic_fill,
+                          color: CupertinoColors.systemRed.resolveFrom(context),
+                          size: 20,
+                        ),
                       ),
-                      size: 20,
                     ),
                   ],
                 ),
@@ -500,5 +563,35 @@ class SearchView extends GetView<sc.SearchController> {
 
   Widget _buildBottomSearchBar(BuildContext context) {
     return _buildBottomBar(context);
+  }
+}
+
+class _SearchGlassIcon extends StatelessWidget {
+  final Widget child;
+  final Color color;
+  final double size;
+  final double borderRadius;
+
+  const _SearchGlassIcon({
+    required this.child,
+    required this.color,
+    this.size = 40,
+    this.borderRadius = 11,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomGlassContainer(
+      width: size,
+      height: size,
+      borderRadius: borderRadius,
+      blur: 12,
+      opacity: 0.12,
+      thickness: 6,
+      refractiveIndex: 1.1,
+      glassColor: color.withValues(alpha: 0.1),
+      alignment: Alignment.center,
+      child: child,
+    );
   }
 }

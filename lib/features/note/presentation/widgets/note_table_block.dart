@@ -60,8 +60,7 @@ class NoteTableBlock extends StatelessWidget {
                               isCollapsed: true,
                               contentPadding: EdgeInsets.all(8),
                               filled: false,
-                              fillColor:
-                                  Colors.transparent, // Explicitly transparent
+                              fillColor: Colors.transparent,
                             ),
                           ),
                         ),

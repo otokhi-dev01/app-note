@@ -69,6 +69,16 @@ class DeleteRestoreFolderParams {
   });
 }
 
+class DeleteFolderPermanently extends UseCase<void, int> {
+  final FolderRepository _repository;
+
+  const DeleteFolderPermanently(this._repository);
+
+  @override
+  Future<Result<void>> call(int folderId) =>
+      _repository.deleteFolderPermanently(folderId);
+}
+
 /// Turns the flat list the API returns into a parent/child tree.
 ///
 /// Pure and synchronous — extracted from `FolderController._buildHierarchy`,

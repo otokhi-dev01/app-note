@@ -120,18 +120,9 @@ class FolderLocationPickerModal extends StatelessWidget {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        "folder_location_label".tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: "folder_location_label".tr,
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
         semanticLabel: 'folder_cancel'.tr,
@@ -146,15 +137,6 @@ class FolderLocationPickerModal extends StatelessWidget {
           CupertinoIcons.chevron_left,
           color: theme.colorScheme.onSurface,
           size: 24,
-        ),
-      ),
-      largeTitleAlignment: Alignment.bottomLeft,
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-      largeTitle: Text(
-        "folder_location_label".tr,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 34,
         ),
       ),
     );

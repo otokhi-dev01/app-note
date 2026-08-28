@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:cunning_document_scanner/cunning_document_scanner.dart';
+import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'
     as mlkit;
 import 'package:flutter_quill/flutter_quill.dart' as quill;
@@ -16,6 +17,7 @@ import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/storage/app_media_storage.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
@@ -34,6 +36,7 @@ import 'package:Note/features/note/presentation/controllers/note_controller.dart
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Placeholder text kept in a checklist item's [TextEditingController] while
 /// the item is otherwise empty. iOS never delivers a key event for the
@@ -44,6 +47,10 @@ import 'package:Note/features/note/domain/entities/note.dart';
 /// as "Backspace at the start of an empty item" and strips before the text
 /// ever reaches [NoteDetailController.onUpdateChecklistItem].
 final String kChecklistItemPlaceholder = String.fromCharCode(0x200B);
+
+const _contentUriChannel = MethodChannel(
+  'com.kimchheang.otokhi-note/content_uri',
+);
 
 /// Drives the note editor.
 ///
@@ -111,6 +118,8 @@ class NoteDetailController extends GetxController {
   final searchQuery = "".obs;
   final searchFocusNode = FocusNode();
   final isFormatPanelVisible = false.obs;
+  bool _autoRecordRequested = false;
+  bool _isAudioRecorderOpen = false;
 
   // --- Global Drawing Mode (iOS 18 Style) ---
   final isDrawingMode = false.obs;
@@ -137,11 +146,20 @@ class NoteDetailController extends GetxController {
     _handleArguments(Get.arguments);
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+    if (!_autoRecordRequested) return;
+    _autoRecordRequested = false;
+    unawaited(recordAudio());
+  }
+
   void _handleArguments(dynamic args) {
     if (args is Map) {
       final noteId = args['noteId'];
       final folderId = args['folderId'];
       isReadOnly.value = args['isDeleted'] == true;
+      _autoRecordRequested = noteId == 0 && args['autoRecord'] == true;
 
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
@@ -460,12 +478,14 @@ class NoteDetailController extends GetxController {
       final String? editedPath = await IOSImageEditor.editImage(path);
 
       if (editedPath != null && editedPath.isNotEmpty) {
+        final id = _generateId();
+        final persistedPath = await _persistAttachment(editedPath, id);
         // 4. Add as a new attachment block and refresh
         _insertBlock(
           AttachmentBlock(
-            id: _generateId(),
+            id: id,
             displayName: 'Sketch',
-            localPath: editedPath,
+            localPath: persistedPath,
             attachmentId: 0,
           ),
         );
@@ -489,16 +509,19 @@ class NoteDetailController extends GetxController {
 
       if (file == null) return;
 
+      final id = _generateId();
+      final persistedPath = await _persistAttachment(file.path, id);
       _insertBlock(
         AttachmentBlock(
-          id: _generateId(),
+          id: id,
           displayName: file.name,
-          localPath: file.path,
+          localPath: persistedPath,
           attachmentId: 0,
         ),
       );
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[CAMERA ERROR] $e');
       AppSnackbar.error(
@@ -520,17 +543,20 @@ class NoteDetailController extends GetxController {
       if (files.isEmpty) return;
 
       for (final file in files) {
+        final id = _generateId();
+        final persistedPath = await _persistAttachment(file.path, id);
         _insertBlock(
           AttachmentBlock(
-            id: _generateId(),
+            id: id,
             displayName: file.name,
-            localPath: file.path,
+            localPath: persistedPath,
             attachmentId: 0,
           ),
         );
       }
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not access gallery');
@@ -548,143 +574,248 @@ class NoteDetailController extends GetxController {
       final picked = result?.files.single;
       if (picked?.path == null) return;
 
+      final id = _generateId();
+      final persistedPath = await _persistAttachment(picked!.path!, id);
       _insertBlock(
         AttachmentBlock(
-          id: _generateId(),
-          displayName: picked!.name,
-          localPath: picked.path,
+          id: id,
+          displayName: picked.name,
+          localPath: persistedPath,
           attachmentId: 0,
         ),
       );
       blocks.refresh();
       addTextBlock();
+      unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[FILE PICKER ERROR] $e');
       AppSnackbar.error('Error', 'Could not attach that file');
     }
   }
 
-  /// "Scan Documents" — the native document camera (perspective-corrected,
-  /// cropped pages, same as Notes.app). A single page attaches as an image,
-  /// same as any other photo; multiple pages are bound into one PDF so the
-  /// scan attaches as the single document it represents rather than a run of
-  /// loose images.
+  /// "Scan Documents" — jumps straight into the native document camera with
+  /// no prompts first. Every completed scan is printed into one A4 PDF under
+  /// a default title, including a scan containing only one page.
   Future<void> scanDocuments() async {
     if (isReadOnly.value) return;
 
     try {
-      // Without this, the scanner writes PNGs (its default) while the block
-      // below names the file "Scan.jpg" — display doesn't care (image
-      // decoding goes by content, not extension) but it's a real mismatch
-      // for anything downstream that trusts the name, and PNG is needlessly
-      // large for a scanned page. JPEG matches every other photo attachment
-      // in this file, which all go through image_picker's own compression.
-      final pages = await CunningDocumentScanner.getPictures(
-        iosScannerOptions: IosScannerOptions(
-          imageFormat: IosImageFormat.jpg,
-          jpgCompressionQuality: 0.8,
-        ),
+      final result = await FlutterDocScanner().getScannedDocumentAsImages(
+        page: 20,
+        imageFormat: ImageFormat.jpeg,
+        quality: 0.8,
       );
-      if (pages == null || pages.isEmpty) return;
-
-      if (pages.length == 1) {
-        _insertBlock(
-          AttachmentBlock(
-            id: _generateId(),
-            displayName: 'Scan.jpg',
-            localPath: pages.first,
-            attachmentId: 0,
-          ),
-        );
-      } else {
-        final id = _generateId();
-        final pdfPath = await buildMultiPageImagePdf(
-          imagePaths: pages,
-          blockId: id,
-          title: 'Scanned Document',
-        );
-        _insertBlock(
-          AttachmentBlock(
-            id: id,
-            displayName: 'Scanned Document.pdf',
-            localPath: pdfPath,
-            attachmentId: 0,
-          ),
-        );
-      }
-      blocks.refresh();
-      addTextBlock();
+      final pages = await _materializeScanPages(result?.images ?? const []);
+      if (pages.isEmpty) return;
+      await _insertScannedDocumentPdf(pages);
     } catch (e) {
       debugPrint('[SCAN DOCS ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan document');
     }
   }
 
+  /// "Document from Photo" — same output as [scanDocuments], but the pages
+  /// come from the photo gallery instead of the live document camera.
+  Future<void> scanDocumentsFromGallery() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final files = await _picker.pickMultiImage(imageQuality: 80);
+      if (files.isEmpty) return;
+      final pages = files.map((file) => file.path).toList(growable: false);
+      await _insertScannedDocumentPdf(pages);
+    } catch (e) {
+      debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
+      AppSnackbar.error('Error', 'Could not add those photos');
+    }
+  }
+
+  Future<void> _insertScannedDocumentPdf(List<String> pages) async {
+    final title = 'note_editor_scanned_document_default_title'.tr;
+    final id = 'scan_${_generateId()}';
+    final pdfPath = await buildMultiPageImagePdf(
+      imagePaths: pages,
+      blockId: id,
+      title: title,
+      showTitle: true,
+      createdAt: DateTime.now(),
+      showPageNumbers: true,
+      pageLabel: 'note_editor_pdf_page'.tr,
+      ofLabel: 'note_editor_pdf_of'.tr,
+    );
+    _insertBlock(
+      AttachmentBlock(
+        id: id,
+        displayName: _scannedDocumentFileName(title),
+        localPath: pdfPath,
+        attachmentId: 0,
+      ),
+    );
+    blocks.refresh();
+    addTextBlock();
+    unawaited(saveNote(silent: true));
+  }
+
+  Future<List<String>> _materializeScanPages(List<String> rawPaths) async {
+    final pages = <String>[];
+    for (final rawPath in rawPaths) {
+      final uri = Uri.tryParse(rawPath);
+      if (uri?.scheme == 'content') {
+        final copiedPath = await _contentUriChannel.invokeMethod<String>(
+          'copyContentUriToCache',
+          {'uri': rawPath, 'extension': '.jpg'},
+        );
+        if (copiedPath != null && copiedPath.isNotEmpty) pages.add(copiedPath);
+      } else if (uri?.scheme == 'file') {
+        pages.add(uri!.toFilePath());
+      } else {
+        pages.add(rawPath);
+      }
+    }
+    return pages;
+  }
+
+  String _scannedDocumentFileName(String title) {
+    var name = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '-');
+    if (name.toLowerCase().endsWith('.pdf')) {
+      name = name.substring(0, name.length - 4).trim();
+    }
+    if (name.isEmpty) name = 'note_editor_scanned_document_default_title'.tr;
+    return '$name.pdf';
+  }
+
   /// "Scan Text" — captures one page with the same document camera as
-  /// [scanDocuments], runs on-device text recognition over it, and drops the
-  /// result in as a new text block rather than attaching the photo itself.
+  /// [scanDocuments], runs on-device text recognition over it, then throws
+  /// the photo away and attaches the recognized *text* itself as a clean,
+  /// typeset PDF — unlike [scanDocuments], which keeps the photographed page.
   Future<void> scanText() async {
     if (isReadOnly.value) return;
 
     try {
-      final pages = await CunningDocumentScanner.getPictures(noOfPages: 1);
-      final path = pages?.firstOrNull;
-      if (path == null) return;
-
-      final recognizer = mlkit.TextRecognizer(
-        script: mlkit.TextRecognitionScript.latin,
+      final result = await FlutterDocScanner().getScannedDocumentAsImages(
+        page: 1,
+        imageFormat: ImageFormat.jpeg,
+        quality: 0.9,
       );
-      final mlkit.RecognizedText result;
-      try {
-        result = await recognizer.processImage(
-          mlkit.InputImage.fromFilePath(path),
-        );
-      } finally {
-        unawaited(recognizer.close());
-      }
-
-      final text = result.text.trim();
-      if (text.isEmpty) {
-        AppSnackbar.info(
-          'No text found',
-          "Couldn't find any text in that scan.",
-        );
-        return;
-      }
-
-      _insertBlock(TextBlock(id: _generateId(), text: text, style: 'body'));
-      blocks.refresh();
-      addTextBlock();
+      final pages = await _materializeScanPages(result?.images ?? const []);
+      final path = pages.firstOrNull;
+      if (path == null) return;
+      await _insertScannedTextPdf(path);
     } catch (e) {
       debugPrint('[SCAN TEXT ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan text');
     }
   }
 
+  /// "Text from Photo" — same output as [scanText], but the source page
+  /// comes from the photo gallery instead of the live document camera.
+  Future<void> scanTextFromGallery() async {
+    if (isReadOnly.value) return;
+
+    try {
+      final file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 90,
+      );
+      if (file == null) return;
+      await _insertScannedTextPdf(file.path);
+    } catch (e) {
+      debugPrint('[SCAN TEXT FROM GALLERY ERROR] $e');
+      AppSnackbar.error('Error', 'Could not scan text from that photo');
+    }
+  }
+
+  Future<void> _insertScannedTextPdf(String imagePath) async {
+    final recognizer = mlkit.TextRecognizer(
+      script: mlkit.TextRecognitionScript.latin,
+    );
+    final mlkit.RecognizedText recognizedText;
+    try {
+      recognizedText = await recognizer.processImage(
+        mlkit.InputImage.fromFilePath(imagePath),
+      );
+    } finally {
+      await recognizer.close();
+    }
+
+    final text = recognizedText.text.trim();
+    if (text.isEmpty) {
+      AppSnackbar.info('No text found', "Couldn't find any text in that scan.");
+      return;
+    }
+
+    final title = _titleFromRecognizedText(text);
+    final id = 'scan_${_generateId()}';
+    final pdfPath = await buildTextPdf(
+      title: title,
+      text: text,
+      date: DateTime.now(),
+    );
+    _insertBlock(
+      AttachmentBlock(
+        id: id,
+        displayName: _scannedDocumentFileName(title),
+        localPath: pdfPath,
+        attachmentId: 0,
+      ),
+    );
+    blocks.refresh();
+    addTextBlock();
+    unawaited(saveNote(silent: true));
+  }
+
+  /// The first non-empty line of the OCR result, capped to a sane file-name
+  /// length — falls back to the generic default when nothing usable is left.
+  String _titleFromRecognizedText(String text) {
+    final firstLine = text
+        .split('\n')
+        .map((line) => line.trim())
+        .firstWhere((line) => line.isNotEmpty, orElse: () => '');
+    if (firstLine.isEmpty) {
+      return 'note_editor_scanned_text_default_title'.tr;
+    }
+    return firstLine.length > 60
+        ? '${firstLine.substring(0, 60).trim()}…'
+        : firstLine;
+  }
+
   /// "Record Audio" — the sheet owns the entire record/stop/cancel flow and
   /// only calls back once, with a finished file. This just attaches it the
   /// same way every other pick does.
   Future<void> recordAudio() async {
-    if (isReadOnly.value) return;
+    if (isReadOnly.value || _isAudioRecorderOpen) return;
 
-    await Get.to(
-      () => NoteAudioRecorderSheet(
-        onRecorded: (path, displayName) {
-          _insertBlock(
-            AttachmentBlock(
-              id: _generateId(),
-              displayName: displayName,
-              localPath: path,
-              attachmentId: 0,
-            ),
-          );
-          blocks.refresh();
-          addTextBlock();
-        },
-      ),
-      fullscreenDialog: true,
-      transition: Transition.cupertino,
-    );
+    _isAudioRecorderOpen = true;
+    try {
+      await Get.to(
+        () => NoteAudioRecorderSheet(onRecorded: _addRecordedAttachment),
+        fullscreenDialog: true,
+        transition: Transition.cupertino,
+      );
+    } finally {
+      _isAudioRecorderOpen = false;
+    }
+  }
+
+  Future<void> _addRecordedAttachment(String path, String displayName) async {
+    try {
+      final id = _generateId();
+      final persistedPath = await _persistAttachment(path, id);
+      _insertBlock(
+        AttachmentBlock(
+          id: id,
+          displayName: displayName,
+          localPath: persistedPath,
+          attachmentId: 0,
+        ),
+      );
+      blocks.refresh();
+      addTextBlock();
+      unawaited(saveNote(silent: true));
+    } catch (error) {
+      debugPrint('[AUDIO SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that recording');
+    }
   }
 
   /// Resolves a local file for [remoteUrl] so the image editor has something to
@@ -733,33 +864,77 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Downloads a remote PDF into temporary storage so it can be rendered by
+  /// the inline paper preview and full-screen viewer.
+  Future<String?> cacheAttachmentForPreview(
+    String remoteUrl, {
+    required String extension,
+  }) async {
+    final directory = await getTemporaryDirectory();
+    final savePath =
+        '${directory.path}/preview_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+    final result = await _downloadAttachment(
+      DownloadAttachmentParams(url: remoteUrl, savePath: savePath),
+    );
+
+    switch (result) {
+      case Ok(:final value):
+        return value;
+      case Err(:final failure):
+        AppSnackbar.failure('note_editor_pdf_preview_failed'.tr, failure);
+        return null;
+    }
+  }
+
   void updateAttachmentImage(int blockIndex, String editedPath) {
+    unawaited(_persistEditedAttachment(blockIndex, editedPath));
+  }
+
+  Future<void> _persistEditedAttachment(
+    int blockIndex,
+    String editedPath,
+  ) async {
     if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
     }
     final block = blocks[blockIndex];
     if (block is! AttachmentBlock) return;
 
-    // ios_image_editor saves the markup in place and hands back the same
-    // path it was given, so Flutter's image cache — keyed by FileImage(path),
-    // not file contents — would otherwise keep painting the pre-edit bytes
-    // forever. Evict it so the edit is actually visible.
-    PaintingBinding.instance.imageCache.evict(FileImage(File(editedPath)));
+    try {
+      // ios_image_editor may return a temporary path or overwrite the input
+      // in place. Copying first gives the edit a stable, uniquely keyed file.
+      final persistedPath = await _persistAttachment(
+        editedPath,
+        block.id,
+        forceCopy: true,
+      );
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != block.id) {
+        return;
+      }
 
-    blocks[blockIndex] = AttachmentBlock(
-      id: block.id,
-      attachmentId: 0,
-      // Keep a real extension on the name — it's the most reliable of the
-      // three signals note_attachment_block.dart uses to tell an image
-      // attachment from a generic file, since a re-upload can come back
-      // from the server as an extensionless URL.
-      displayName: 'Edited Image${_extensionOf(editedPath)}',
-      localPath: editedPath,
-      url: block.url,
-    );
-    // Leave persisting to the checkmark button, same as any other edit to
-    // the note — editing an image shouldn't trigger its own separate save.
-    blocks.refresh();
+      PaintingBinding.instance.imageCache.evict(FileImage(File(persistedPath)));
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        // Keep a real extension on the name — it's the most reliable of the
+        // three signals note_attachment_block.dart uses to identify images.
+        displayName: 'Edited Image${_extensionOf(persistedPath)}',
+        localPath: persistedPath,
+        url: block.url,
+      );
+      blocks.refresh();
+      if (block.localPath != persistedPath) {
+        await AppMediaStorage.deleteIfManaged(
+          path: block.localPath,
+          folder: 'note_attachments',
+        );
+      }
+      unawaited(saveNote(silent: true));
+    } catch (error) {
+      debugPrint('[EDITED IMAGE SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that edited image');
+    }
   }
 
   /// `.jpg` from `/tmp/.../photo.jpg`, or `''` if [path] has no extension.
@@ -950,7 +1125,8 @@ class NoteDetailController extends GetxController {
       await attachmentsDir.create(recursive: true);
     }
 
-    final name = 'restored_${DateTime.now().millisecondsSinceEpoch}${_extensionOf(file.path)}';
+    final name =
+        'restored_${DateTime.now().millisecondsSinceEpoch}${_extensionOf(file.path)}';
     final dest = await file.copy('${attachmentsDir.path}/$name');
     return dest.path;
   }
@@ -966,14 +1142,24 @@ class NoteDetailController extends GetxController {
   }
 
   void updateDrawing(int blockIndex, String path) {
+    unawaited(_persistDrawing(blockIndex, path));
+  }
+
+  Future<void> _persistDrawing(int blockIndex, String path) async {
     if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
     }
-    blocks[blockIndex] = DrawingBlock(
-      id: blocks[blockIndex].id,
-      localPath: path,
-    );
-    blocks.refresh();
+    try {
+      final id = blocks[blockIndex].id;
+      final persistedPath = await _persistAttachment(path, id);
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != id) return;
+      blocks[blockIndex] = DrawingBlock(id: id, localPath: persistedPath);
+      blocks.refresh();
+      unawaited(saveNote(silent: true));
+    } catch (error) {
+      debugPrint('[DRAWING SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that drawing');
+    }
   }
 
   // --- Checklist Actions ---
@@ -1188,6 +1374,139 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Adds a web link to the current selection, or inserts linked text at the
+  /// cursor when nothing is selected.
+  Future<void> addLink() async {
+    if (isReadOnly.value || activeBlockIndex.value < 0) {
+      AppSnackbar.info(
+        'note_editor_link_title'.tr,
+        'note_editor_link_focus_message'.tr,
+      );
+      return;
+    }
+
+    final block = blocks[activeBlockIndex.value];
+    if (block is! TextBlock) return;
+    final quillController = quillControllers[block.id];
+    final context = Get.context;
+    if (quillController == null || context == null) return;
+
+    final selection = quillController.selection;
+    final selectionStart = selection.start.clamp(
+      0,
+      quillController.document.length - 1,
+    );
+    final selectionLength = selection.isCollapsed
+        ? 0
+        : selection.end - selection.start;
+    final selectedText = selectionLength > 0
+        ? quillController.document.getPlainText(selectionStart, selectionLength)
+        : '';
+    final textController = TextEditingController(text: selectedText);
+    final urlController = TextEditingController();
+
+    void insertLink() {
+      final url = _normalizedWebLink(urlController.text);
+      if (url == null) {
+        AppSnackbar.warning(
+          'note_editor_invalid_link_title'.tr,
+          'note_editor_invalid_link_message'.tr,
+        );
+        return;
+      }
+
+      final label = textController.text.trim().isEmpty
+          ? url
+          : textController.text.trim();
+      quillController.replaceText(
+        selectionStart,
+        selectionLength,
+        label,
+        TextSelection.collapsed(offset: selectionStart + label.length),
+      );
+      quillController.formatText(
+        selectionStart,
+        label.length,
+        quill.LinkAttribute(url),
+      );
+      Get.back();
+    }
+
+    try {
+      await CustomGlassSheet.show<void>(
+        context: context,
+        isScrollable: false,
+        builder: (sheetContext) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24,
+            8,
+            24,
+            MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'note_editor_link_title'.tr,
+                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 18),
+              CustomGlassTextField(
+                controller: textController,
+                placeholder: 'note_editor_link_text_hint'.tr,
+                textInputAction: TextInputAction.next,
+                autofocus: selectedText.isEmpty,
+                useOwnLayer: false,
+              ),
+              const SizedBox(height: 12),
+              CustomGlassTextField(
+                controller: urlController,
+                placeholder: 'note_editor_link_url_hint'.tr,
+                keyboardType: TextInputType.url,
+                textInputAction: TextInputAction.done,
+                autofocus: selectedText.isNotEmpty,
+                useOwnLayer: false,
+                onSubmitted: (_) => insertLink(),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: CustomGlassButton(
+                  onPressed: insertLink,
+                  semanticLabel: 'note_editor_link_add'.tr,
+                  borderRadius: 24,
+                  glassColor: Theme.of(sheetContext).colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Text(
+                    'note_editor_link_add'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      textController.dispose();
+      urlController.dispose();
+    }
+  }
+
+  String? _normalizedWebLink(String rawValue) {
+    final raw = rawValue.trim();
+    if (raw.isEmpty) return null;
+    final candidate = raw.contains('://') ? raw : 'https://$raw';
+    final uri = Uri.tryParse(candidate);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return null;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return null;
+    return uri.toString();
+  }
+
   /// `Attribute.indent` carries no level, so running it through
   /// [applyInlineFormat] clears indentation instead of increasing it —
   /// indentation is stepped via [quill.QuillController.indentSelection].
@@ -1284,6 +1603,19 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  Future<String> _persistAttachment(
+    String sourcePath,
+    String blockId, {
+    bool forceCopy = false,
+  }) {
+    return AppMediaStorage.persist(
+      sourcePath: sourcePath,
+      folder: 'note_attachments',
+      fileName: '${blockId}_${DateTime.now().microsecondsSinceEpoch}',
+      forceCopy: forceCopy,
+    );
+  }
+
   void _syncBlocks() {
     for (int i = 0; i < blocks.length; i++) {
       final block = blocks[i];
@@ -1373,10 +1705,8 @@ class NoteDetailController extends GetxController {
       );
 
       if (failedUploads.isNotEmpty) {
-        // These never reached the server, so re-attach them locally too —
-        // otherwise the picture is silently lost even though everything
-        // else just saved successfully.
-        blocks.addAll(failedUploads);
+        // Failed blocks remain in the live list with their durable local path
+        // and will retry on the next save.
         blocks.refresh();
         AppSnackbar.warning(
           'Saved with an issue',
@@ -1387,6 +1717,14 @@ class NoteDetailController extends GetxController {
       } else if (!silent) {
         AppSnackbar.success('Saved', 'Note saved');
       }
+    } catch (e) {
+      // Every other async flow in this file reports failures via
+      // AppSnackbar; this one only had a `finally`, so an unexpected error
+      // (e.g. a RangeError from a stale block index) used to propagate
+      // unhandled — isSaving still got reset, so the UI looked idle/
+      // successful while the note silently failed to save.
+      debugPrint('[SAVE ERROR] $e');
+      AppSnackbar.error('Error', 'Could not save note');
     } finally {
       isSaving.value = false;
     }
@@ -1406,10 +1744,8 @@ class NoteDetailController extends GetxController {
     if (titleController.text.trim().isNotEmpty) return true;
     for (final block in blocks) {
       if (block is TextBlock) {
-        final plainText = quillControllers[block.id]
-                ?.document
-                .toPlainText() ??
-            block.text;
+        final plainText =
+            quillControllers[block.id]?.document.toPlainText() ?? block.text;
         if (plainText.trim().isNotEmpty) return true;
       } else {
         // Any non-text block (checklist, attachment, drawing, table) is
@@ -1481,47 +1817,68 @@ class NoteDetailController extends GetxController {
   Future<List<AttachmentBlock>> _handleAttachmentUploads(int noteId) async {
     bool stateChanged = false;
     final failed = <AttachmentBlock>[];
-    for (int i = 0; i < blocks.length; i++) {
-      final block = blocks[i];
-      if (block is AttachmentBlock &&
-          block.attachmentId == 0 &&
-          block.localPath != null) {
-        final result = await _uploadAttachment(
-          UploadAttachmentParams(
-            noteId: noteId,
-            filePath: block.localPath!,
-            blockId: block.id,
-            displayOrder: i,
-          ),
-        );
+    // Snapshot which blocks need uploading before the loop starts: `blocks`
+    // is live and user-editable (e.g. deleting a block) while an earlier
+    // upload's `await` is in flight, so writing back through a captured
+    // index afterward can land on the wrong block — or throw — once
+    // positions have shifted underneath it. Re-resolving each block's
+    // current index by id right before writing back keeps this safe.
+    final pending = blocks
+        .whereType<AttachmentBlock>()
+        .where((b) => b.attachmentId == 0 && b.localPath != null)
+        .toList();
 
-        switch (result) {
-          case Ok(:final value):
-            // Guest-mode "uploads" have nowhere to go but this device, so the
-            // repository hands back a real file it just copied into permanent
-            // storage rather than a server URL. Treating that path as a URL
-            // would send Image.network to a host that was never asked for it.
-            final isLocalFile = File(value.filePath).existsSync();
-            blocks[i] = AttachmentBlock(
-              id: block.id,
-              attachmentId: value.attachmentId,
-              displayName: block.displayName,
-              // Resolve immediately rather than waiting for the next fetch —
-              // otherwise the block briefly (or, if the raw path is
-              // malformed, permanently) carries an unresolved server path
-              // and the image renders as unavailable right after saving.
-              url: isLocalFile
-                  ? null
-                  : (normalizeAttachmentUrl(value.filePath) ?? value.filePath),
-              localPath: isLocalFile ? value.filePath : null,
-            );
+    for (final block in pending) {
+      final displayOrder = blocks.indexWhere((b) => b.id == block.id);
+      final result = await _uploadAttachment(
+        UploadAttachmentParams(
+          noteId: noteId,
+          filePath: block.localPath!,
+          blockId: block.id,
+          displayOrder: displayOrder < 0 ? 0 : displayOrder,
+        ),
+      );
+
+      switch (result) {
+        case Ok(:final value):
+          // Guest-mode "uploads" have nowhere to go but this device, so the
+          // repository hands back a real file it just copied into permanent
+          // storage rather than a server URL. Treating that path as a URL
+          // would send Image.network to a host that was never asked for it.
+          final isLocalFile = File(value.filePath).existsSync();
+          final originalPath = normalizeLocalPath(block.localPath);
+          final uploadedLocalPath = isLocalFile
+              ? normalizeLocalPath(value.filePath)
+              : null;
+          final uploaded = AttachmentBlock(
+            id: block.id,
+            attachmentId: value.attachmentId,
+            displayName: block.displayName,
+            // Resolve immediately rather than waiting for the next fetch —
+            // otherwise the block briefly (or, if the raw path is
+            // malformed, permanently) carries an unresolved server path
+            // and the image renders as unavailable right after saving.
+            url: isLocalFile
+                ? null
+                : (normalizeAttachmentUrl(value.filePath) ?? value.filePath),
+            localPath: isLocalFile ? value.filePath : null,
+          );
+          final currentIndex = blocks.indexWhere((b) => b.id == block.id);
+          if (currentIndex != -1) {
+            blocks[currentIndex] = uploaded;
             stateChanged = true;
-          case Err(:final failure):
-            // Keep the local path so the block survives and can retry on the
-            // next save rather than silently vanishing.
-            failed.add(block);
-            debugPrint('[UPLOAD] BlockId=${block.id}: ${failure.message}');
-        }
+          }
+          if (originalPath != null && originalPath != uploadedLocalPath) {
+            _deleteFileAt(originalPath);
+          }
+        // Else: the block was deleted while its upload was in flight. The
+        // upload still succeeded server-side, but there's nothing local
+        // left to attach it to, so it's dropped rather than resurrected.
+        case Err(:final failure):
+          // Keep the local path so the block survives and can retry on the
+          // next save rather than silently vanishing.
+          failed.add(block);
+          debugPrint('[UPLOAD] BlockId=${block.id}: ${failure.message}');
       }
     }
     if (stateChanged) blocks.refresh();
@@ -1861,48 +2218,96 @@ class NoteDetailController extends GetxController {
     // calling this (see toggleSearch()'s note above), and this is also
     // called directly by tapping the folder label in the editor, which
     // never had a menu to close in the first place.
-    if (isLoading.value || currentNote.value == null) return;
+    if (isLoading.value ||
+        isSaving.value ||
+        isReadOnly.value ||
+        currentNote.value == null) {
+      return;
+    }
     await _openFolderPicker();
   }
 
   Future<void> _openFolderPicker() async {
+    final sourceNote = currentNote.value;
+    if (sourceNote == null) return;
+
     final foldersResult = await _getFolders(const NoParams());
     if (foldersResult case Err(:final failure)) {
-      AppSnackbar.failure('Could not load folders', failure);
+      AppSnackbar.failure('note_editor_load_folders_failed_title'.tr, failure);
       return;
     }
 
     final folders = foldersResult.valueOrNull!.folders;
     if (folders.isEmpty) {
-      AppSnackbar.info('No destination', 'Create another folder first.');
+      AppSnackbar.info(
+        'note_editor_no_destination_title'.tr,
+        'note_editor_no_destination_message'.tr,
+      );
       return;
     }
 
     await Get.to(
       () => NoteMoveFolderModal(
         folders: folders,
-        currentFolderId: currentNote.value!.folderId,
+        currentFolderId: sourceNote.folderId,
         onFolderSelected: (targetFolder) async {
-          Get.back(); // Pop modal
+          Get.back();
+          final note = currentNote.value;
+          if (note == null || note.folderId == targetFolder.id) return;
+
+          // A new note does not have a server id yet. Changing its folder is
+          // therefore a local draft update; the regular first-save flow will
+          // persist the selected folder together with the note. Sending id 0
+          // through the move endpoint would create metadata prematurely and
+          // then try to fetch a note that still has id 0.
+          if (note.id == 0) {
+            currentNote.value = Note(
+              id: note.id,
+              folderId: targetFolder.id,
+              folderName: targetFolder.displayName,
+              title: note.title,
+              content: note.content,
+              isPinned: note.isPinned,
+              isArchived: note.isArchived,
+              isLocked: note.isLocked,
+              updatedAt: note.updatedAt,
+              deletedAt: note.deletedAt,
+              attachmentCount: note.attachmentCount,
+              isDeleteFlag: note.isDeleteFlag,
+            );
+            AppSnackbar.success(
+              'note_editor_folder_updated_title'.tr,
+              'note_editor_folder_updated_message'.trParams({
+                'folder': targetFolder.displayName,
+              }),
+            );
+            return;
+          }
+
           isLoading.value = true;
           try {
             final result = await _saveNoteMetadata(
               SaveNoteParams(
                 folderId: targetFolder.id,
                 title: titleController.text,
-                noteId: currentNote.value!.id,
+                noteId: note.id,
               ),
             );
             switch (result) {
               case Ok():
-                await fetchNoteDetail(currentNote.value!.id);
+                await fetchNoteDetail(note.id);
                 _refreshNoteList();
                 AppSnackbar.success(
-                  'Moved',
-                  'Moved to ${targetFolder.displayName}',
+                  'note_editor_move_success_title'.tr,
+                  'note_editor_move_success_message'.trParams({
+                    'folder': targetFolder.displayName,
+                  }),
                 );
               case Err(:final failure):
-                AppSnackbar.failure('Could not move note', failure);
+                AppSnackbar.failure(
+                  'note_editor_move_failed_title'.tr,
+                  failure,
+                );
             }
           } finally {
             isLoading.value = false;

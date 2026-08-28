@@ -16,8 +16,7 @@ abstract class AuthRepository {
     required String deviceType,
   });
 
-  /// Unsupported by the current backend — always fails with
-  /// [UnsupportedFeatureFailure] carrying the reason to show the user.
+  /// Requests password-recovery instructions for the account phone number.
   Future<Result<void>> forgotPassword(String phone);
 
   Future<Result<void>> logout();

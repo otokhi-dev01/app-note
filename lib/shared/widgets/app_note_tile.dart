@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
+import 'package:get/get.dart';
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/utils/attachment_url.dart';
@@ -12,30 +13,15 @@ import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/selection_indicator.dart';
 
-/// The row a note is shown as in the notes list, archive, and trash.
-///
-/// Previously three widgets that were ~85% identical and had drifted apart in
-/// their date format and empty-state wording. The differences that actually
-/// matter are now parameters.
 class AppNoteTile extends StatelessWidget {
   final Note note;
 
-  /// Edit mode: swaps the leading slot for a selection circle.
   final bool isEditing;
   final bool isSelected;
-
-  /// Shows the note's image attachment at the trailing edge when it has one.
   final bool showAttachmentThumbnail;
-
-  /// Trailing chevron, hidden while selecting.
   final bool showChevron;
-
-  /// Overrides the subtitle's leading timestamp (trash shows deletion date).
   final DateTime? timestamp;
-
-  /// Replaces the computed subtitle entirely.
   final String? subtitleOverride;
-
   final EdgeInsetsGeometry contentPadding;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -59,10 +45,22 @@ class AppNoteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!Get.isRegistered<SettingsPreferences>()) {
+      return _buildTile(context, hidePreview: false);
+    }
+
+    final preferences = Get.find<SettingsPreferences>();
+    return Obx(
+      () =>
+          _buildTile(context, hidePreview: preferences.hideNotePreviews.value),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, {required bool hidePreview}) {
     final theme = Theme.of(context);
     final colors = AppColors.of(context);
 
-    final attachment = showAttachmentThumbnail
+    final attachment = showAttachmentThumbnail && !hidePreview
         ? note.content.whereType<AttachmentBlock>().firstOrNull
         : null;
 
@@ -84,7 +82,7 @@ class AppNoteTile extends StatelessWidget {
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 2),
         child: Text(
-          _subtitle(),
+          _subtitle(hidePreview: hidePreview),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colors.secondaryText,
             fontSize: 13,
@@ -115,9 +113,10 @@ class AppNoteTile extends StatelessWidget {
     return Icon(Icons.chevron_right, color: colors.mutedIcon, size: 20);
   }
 
-  String _subtitle() {
+  String _subtitle({required bool hidePreview}) {
     if (subtitleOverride != null) return subtitleOverride!;
     final when = DateFormatter.relative(timestamp ?? note.updatedAt);
+    if (hidePreview) return when;
     final snippet = NoteSnippet.of(note);
     return when.isEmpty ? snippet : '$when  $snippet';
   }

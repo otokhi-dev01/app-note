@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/date_formatter.dart';
@@ -38,7 +39,7 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           onRefresh: () => controller.fetchDeletedItems(),
           color: theme.primaryColor,
           backgroundColor: theme.scaffoldBackgroundColor,
-          edgeOffset: 140,
+          edgeOffset: MediaQuery.paddingOf(context).top + 52,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -61,18 +62,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
 
   Widget _buildAppBar(BuildContext context) {
     final theme = Theme.of(context);
-    return CustomGlassSliverAppBar(
-      expandedHeight: 140,
-      toolbarHeight: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+    return AppScreenSliverAppBar(
       centerTitle: true,
-      title: Text(
-        "trash_title".tr,
-        style: theme.textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 17,
-        ),
-      ),
+      title: "trash_title".tr,
       leading: CustomGlassButton(
         onPressed: () => Get.back(),
         width: 44,
@@ -127,15 +119,6 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
           ),
         ),
       ],
-      largeTitleAlignment: Alignment.bottomCenter,
-      largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-      largeTitle: Text(
-        "trash_title".tr,
-        style: theme.textTheme.headlineLarge?.copyWith(
-          fontWeight: FontWeight.bold,
-          fontSize: 27,
-        ),
-      ),
     );
   }
 
@@ -151,9 +134,11 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'trash_item_count_one'.trPluralParams('trash_item_count_other', totalItems, {
-                  'count': '$totalItems',
-                }),
+                'trash_item_count_one'.trPluralParams(
+                  'trash_item_count_other',
+                  totalItems,
+                  {'count': '$totalItems'},
+                ),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withValues(
                     alpha: 0.6,
@@ -199,10 +184,23 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    CupertinoIcons.trash,
-                    size: 60,
-                    color: Colors.grey.withValues(alpha: 0.3),
+                  CustomGlassContainer(
+                    width: 72,
+                    height: 72,
+                    borderRadius: 20,
+                    blur: 16,
+                    opacity: 0.12,
+                    thickness: 7,
+                    refractiveIndex: 1.1,
+                    glassColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      CupertinoIcons.trash,
+                      size: 30,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -343,7 +341,10 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             onLongPress: isEditing ? null : openMenu,
             leading: isEditing
                 ? _buildSelectionIndicator(context, isSelected)
-                : FolderGlyph(folder: folder, size: 28),
+                : _buildGlassItemIcon(
+                    context,
+                    child: FolderGlyph(folder: folder, size: 24),
+                  ),
             title: Text(
               folder.displayName,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -385,6 +386,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: Obx(() {
         final isSelected = controller.selectedNoteIds.contains(note.id);
         final isEditing = controller.isEditing.value;
+        final hidePreview =
+            Get.isRegistered<SettingsPreferences>() &&
+            Get.find<SettingsPreferences>().hideNotePreviews.value;
 
         return TrashItemContextMenu(
           note: note,
@@ -401,7 +405,14 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             onLongPress: isEditing ? null : openMenu,
             leading: isEditing
                 ? _buildSelectionIndicator(context, isSelected)
-                : null,
+                : _buildGlassItemIcon(
+                    context,
+                    child: Icon(
+                      CupertinoIcons.doc_text_fill,
+                      size: 19,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
             title: Text(
               note.displayTitle,
               style: theme.textTheme.bodyLarge?.copyWith(
@@ -413,7 +424,9 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                "${DateFormatter.relative(note.updatedAt)}  ${NoteSnippet.of(note)}",
+                hidePreview
+                    ? DateFormatter.relative(note.updatedAt)
+                    : "${DateFormatter.relative(note.updatedAt)}  ${NoteSnippet.of(note)}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -472,6 +485,23 @@ class RecentlyDeletedView extends GetView<RecentlyDeletedController> {
       child: isSelected
           ? Icon(Icons.check, color: theme.colorScheme.surface, size: 14)
           : null,
+    );
+  }
+
+  Widget _buildGlassItemIcon(BuildContext context, {required Widget child}) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return CustomGlassContainer(
+      width: 40,
+      height: 40,
+      borderRadius: 11,
+      blur: 12,
+      opacity: 0.12,
+      thickness: 6,
+      refractiveIndex: 1.1,
+      glassColor: scheme.primary.withValues(alpha: 0.1),
+      alignment: Alignment.center,
+      child: child,
     );
   }
 

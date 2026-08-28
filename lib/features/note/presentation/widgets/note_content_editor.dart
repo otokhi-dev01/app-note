@@ -18,10 +18,7 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 class NoteContentEditor extends StatelessWidget {
   final NoteDetailController controller;
 
-  const NoteContentEditor({
-    super.key,
-    required this.controller,
-  });
+  const NoteContentEditor({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -32,25 +29,31 @@ class NoteContentEditor extends StatelessWidget {
     return Stack(
       children: [
         _PageContent(
-          // Same scroll architecture as the rest of the app (Folder,
-          // Recently Deleted, Note List): a CustomScrollView whose app bar
-          // is a sliver that scrolls with the content instead of floating
-          // as a separately-positioned fixed overlay.
           child: Obx(() {
             final isLoading = controller.isLoading.value;
             final isReadOnly = controller.isReadOnly.value;
 
-            // BUG FIX: Gracefully handle null note during deletion cleanup
             final note = controller.currentNote.value;
 
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              // iOS Notes lets you scroll the note up and down while typing
-              // without the keyboard dropping — dismissing on drag would
-              // fight the cursor-follows-keyboard behavior above.
+
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
               slivers: [
-                NoteEditorTopBar(controller: controller),
+                NoteEditorTopBar(
+                  controller: controller,
+                  title: note?.title.trim().isNotEmpty == true
+                      ? note!.title
+                      : 'note_list_new_note'.tr,
+                  backgroundColor: theme.scaffoldBackgroundColor,
+                  shadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
                 if (isReadOnly)
                   SliverToBoxAdapter(child: _buildReadOnlyBanner(context)),
                 if (isLoading)
@@ -74,10 +77,7 @@ class NoteContentEditor extends StatelessWidget {
                           controller: controller.titleController,
                           focusNode: controller.titleFocusNode,
                           enabled: !isReadOnly,
-                          // iOS Notes opens a brand-new note with the cursor
-                          // already blinking and the keyboard up, ready to
-                          // type — match that instead of requiring an extra
-                          // tap to focus in.
+
                           autofocus: !isReadOnly && note?.id == 0,
                           onTap: () => controller.activeBlockIndex.value = -1,
                           cursorColor: AppTheme.folderYellow,
@@ -115,11 +115,7 @@ class NoteContentEditor extends StatelessWidget {
                       ]),
                     ),
                   ),
-                // iOS-Notes-style "tap anywhere to keep typing": fills
-                // whatever viewport space is left below the content, however
-                // little or much that is, rather than only catching taps in
-                // a fixed-height strip that leaves the rest of a short
-                // note's blank space dead.
+
                 if (!isReadOnly && !isLoading)
                   SliverFillRemaining(
                     hasScrollBody: false,
@@ -134,7 +130,7 @@ class NoteContentEditor extends StatelessWidget {
             );
           }),
         ),
-        // Search Bar Overlay
+
         Obx(() {
           final searchTopPadding = MediaQuery.paddingOf(context).top + 60;
           return controller.isSearchVisible.value
@@ -267,8 +263,6 @@ class NoteContentEditor extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: GestureDetector(
-          // Same long-press-to-delete pattern as attachment images, so a
-          // drawing can be removed like any other block.
           onLongPress: () => _showDeleteDrawingMenu(context, blockIndex),
           child: Stack(
             children: [
@@ -276,9 +270,7 @@ class NoteContentEditor extends StatelessWidget {
                 key: ValueKey('drawing-${block.id}'),
                 onSave: (path) => controller.updateDrawing(blockIndex, path),
               ),
-              // Direct delete button, matching the one on image/file
-              // attachments — same reasoning: don't make removal depend on
-              // finding the long-press menu first.
+
               if (!controller.isReadOnly.value)
                 Positioned(
                   top: 8,
@@ -336,7 +328,6 @@ class NoteContentEditor extends StatelessWidget {
     final focusNode = controller.getBlockFocusNode(block.id);
     final isReadOnly = controller.isReadOnly.value;
 
-    // Set readOnly on the controller for flutter_quill 10+
     quillController.readOnly = isReadOnly;
 
     return Padding(
@@ -362,10 +353,6 @@ class NoteContentEditor extends StatelessWidget {
     );
   }
 
-  /// Renders a block at the size/weight its Format-panel style implies
-  /// ("Title", "Heading", "Subheading", "Body") — previously `block.style`
-  /// was only used to highlight the selected button, with no visual effect
-  /// on the block itself.
   quill.DefaultStyles _paragraphStylesFor(BuildContext context, String style) {
     final base = Theme.of(context).textTheme.bodyLarge!;
     final textStyle = switch (style) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 
 class FolderSectionHeader extends StatelessWidget {
   final String title;
@@ -45,18 +46,21 @@ class FolderSectionHeader extends StatelessWidget {
               const SizedBox(width: 8),
               IconButton(
                 onPressed: onCreateFolder,
-                tooltip: 'folder_create_folder_in'.trParams({
-                  'section': title,
-                }),
+                tooltip: 'folder_create_folder_in'.trParams({'section': title}),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints.tightFor(
                   width: 36,
                   height: 36,
                 ),
-                icon: Icon(
-                  CupertinoIcons.folder_badge_plus,
+                icon: const FolderGlassIcon(
                   color: AppTheme.folderPink,
-                  size: 25,
+                  size: 32,
+                  borderRadius: 9,
+                  child: Icon(
+                    CupertinoIcons.folder_badge_plus,
+                    color: AppTheme.folderPink,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
@@ -99,10 +103,15 @@ class _SectionExpandToggle extends StatelessWidget {
               turns: isExpanded.value ? 0.25 : 0,
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeOut,
-              child: const Icon(
-                Icons.arrow_forward_ios,
+              child: const FolderGlassIcon(
                 color: AppTheme.folderPink,
-                size: 20,
+                size: 32,
+                borderRadius: 9,
+                child: Icon(
+                  Icons.arrow_forward_ios,
+                  color: AppTheme.folderPink,
+                  size: 14,
+                ),
               ),
             ),
           ),

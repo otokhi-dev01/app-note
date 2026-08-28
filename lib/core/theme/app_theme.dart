@@ -50,14 +50,18 @@ class AppTheme {
     ),
     dividerTheme: const DividerThemeData(color: dividerColor, thickness: 0.5),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
+      backgroundColor: bodyColor,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Color(0x1F000000),
+      elevation: 4,
+      scrolledUnderElevation: 4,
       centerTitle: true,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
       titleTextStyle: TextStyle(
         color: textPrimary,
         fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
       ),
       iconTheme: IconThemeData(color: folderPink),
     ),
@@ -105,15 +109,18 @@ class AppTheme {
     // AppBar
     // ------------------------------------------------------------
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.transparent,
+      backgroundColor: darkBackground,
       surfaceTintColor: Colors.transparent,
-      elevation: 0,
+      shadowColor: Color(0x1F000000),
+      elevation: 4,
+      scrolledUnderElevation: 4,
       centerTitle: true,
       systemOverlayStyle: SystemUiOverlayStyle.light,
       titleTextStyle: TextStyle(
         color: darkTextPrimary,
         fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
       ),
       iconTheme: IconThemeData(color: darkFolderPink, size: 24),
     ),

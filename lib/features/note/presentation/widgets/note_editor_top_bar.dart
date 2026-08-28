@@ -8,50 +8,40 @@ import 'package:Note/features/note/presentation/widgets/note_detail_more_popup.d
 
 class NoteEditorTopBar extends StatelessWidget {
   final NoteDetailController controller;
+  final String? title;
+  final bool showShare;
+  final bool showMore;
+  final bool alwaysShowSave;
+  final Color? backgroundColor;
+  final List<BoxShadow>? shadow;
 
-  /// What Back does. Defaults to save-then-close, which is right for a note
-  /// that already exists. [CreateNoteView] overrides it: a blank new note must
-  /// never be written just because the user backed out of it, so it goes
-  /// through `saveAndExitIfNeeded` instead.
   final VoidCallback? onBack;
 
   const NoteEditorTopBar({
     super.key,
     required this.controller,
     this.onBack,
+    this.title,
+    this.showShare = true,
+    this.showMore = true,
+    this.alwaysShowSave = false,
+    this.backgroundColor,
+    this.shadow,
   });
 
-  // A sliver (not a fixed-position overlay) so it scrolls with the note
-  // body the same way every other screen's CustomGlassSliverAppBar does
-  // (Folder, Recently Deleted, Note List) — pinned at a fixed compact
-  // height rather than expanding into a large title, since the note's own
-  // title is edited inline in the content below.
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.onSurface;
-    // Only while actively editing (keyboard up) — once it's dismissed
-    // (tapping away, or after Save itself unfocuses), the bar goes back to
-    // the plain back/undo/share/more row instead of keeping a checkmark
-    // around with nothing left to confirm.
+
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return CustomGlassSliverAppBar(
-      toolbarHeight: 52,
-      expandedHeight: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+    return AppScreenSliverAppBar(
+      backgroundColor: backgroundColor,
+      shadow: shadow,
+      title: title,
       leading: _GlassIconButton(
         icon: CupertinoIcons.chevron_left,
-        // The note list only re-fetches after returning here when the popped
-        // result is `true` (see NoteListTile/NoteGridTile) — without this,
-        // edits made in this screen (deleting an attachment, retitling, …)
-        // never show up until the list is refreshed some other way.
-        //
-        // The Save button only renders while the keyboard is up, so an edit
-        // made without ever bringing up the keyboard (toggling a checklist
-        // item, deleting an attachment via its own button, …) would
-        // otherwise have no save path at all — there's no autosave anywhere
-        // else in this controller. Save silently here as a safety net
-        // before leaving, regardless of how the note was edited.
+
         onTap: onBack ?? () => _saveAndClose(controller),
         size: 44,
         iconSize: 28,
@@ -63,20 +53,20 @@ class NoteEditorTopBar extends StatelessWidget {
           onTap: controller.undo,
           color: color,
         ),
-        _GlassIconButton(
-          icon: CupertinoIcons.share,
-          onTap: controller.shareNote,
-          color: color,
-        ),
-        // The button is the menu's trigger now — it morphs into the pull-down
-        // rather than calling out to a screen-level popup, so the screens no
-        // longer route a callback down here just to open it.
-        NoteDetailMorePopup(
-          controller: controller,
-          triggerBuilder: (context, toggleMenu) =>
-              MoreButton(onPressed: toggleMenu, iconColor: color),
-        ),
-        if (isKeyboardVisible)
+        if (showShare)
+          _GlassIconButton(
+            icon: CupertinoIcons.share,
+            onTap: controller.shareNote,
+            color: color,
+          ),
+
+        if (showMore)
+          NoteDetailMorePopup(
+            controller: controller,
+            triggerBuilder: (context, toggleMenu) =>
+                MoreButton(onPressed: toggleMenu, iconColor: color),
+          ),
+        if (isKeyboardVisible || alwaysShowSave)
           Obx(
             () => controller.isReadOnly.value
                 ? const SizedBox.shrink()

@@ -26,31 +26,20 @@ class LoginView extends GetView<AuthController> {
             ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        extendBodyBehindAppBar: true,
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            CustomGlassSliverAppBar(
-              expandedHeight: 100,
-              toolbarHeight: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
-              centerTitle: true,
-              title: Text(
-                "login_title".tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
+            const SliverToBoxAdapter(
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: LanguageToggleButton(),
+                  ),
                 ),
               ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(25, 0, 16, 12),
-              largeTitle: Text(
-                "login_title".tr,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30,
-                ),
-              ),
-              actions: const [LanguageToggleButton()],
             ),
             SliverFillRemaining(
               hasScrollBody: false,

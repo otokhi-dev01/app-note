@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/settings/presentation/controllers/note_preferences_controller.dart';
@@ -34,10 +33,8 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            CustomGlassSliverAppBar(
-              expandedHeight: 120,
-              toolbarHeight: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
+            AppScreenSliverAppBar(
+              title: "note_preferences_title".tr,
               centerTitle: true,
               leading: CustomGlassButton(
                 onPressed: () => Get.back(),
@@ -54,28 +51,16 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                   size: 24,
                 ),
               ),
-              title: Text(
-                "note_preferences_title".tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
-                ),
-              ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-              largeTitle: Text(
-                "note_preferences_title".tr,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30,
-                ),
-              ),
             ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
-                    _buildSectionHeader(context, "note_preferences_default_view".tr),
+                    _buildSectionHeader(
+                      context,
+                      "note_preferences_default_view".tr,
+                    ),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,
@@ -122,7 +107,10 @@ class NotePreferencesView extends GetView<NotePreferencesController> {
                       ],
                     ),
                     const SizedBox(height: 24),
-                    _buildSectionHeader(context, "note_preferences_folders_section".tr),
+                    _buildSectionHeader(
+                      context,
+                      "note_preferences_folders_section".tr,
+                    ),
                     const SizedBox(height: 12),
                     GlassCard(
                       borderRadius: 28,

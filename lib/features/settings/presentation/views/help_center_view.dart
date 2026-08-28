@@ -12,22 +12,10 @@ class _FaqEntry {
 }
 
 List<_FaqEntry> get _faqEntries => [
-  _FaqEntry(
-    'help_center_faq_q1'.tr,
-    'help_center_faq_a1'.tr,
-  ),
-  _FaqEntry(
-    'help_center_faq_q2'.tr,
-    'help_center_faq_a2'.tr,
-  ),
-  _FaqEntry(
-    'help_center_faq_q3'.tr,
-    'help_center_faq_a3'.tr,
-  ),
-  _FaqEntry(
-    'help_center_faq_q4'.tr,
-    'help_center_faq_a4'.tr,
-  ),
+  _FaqEntry('help_center_faq_q1'.tr, 'help_center_faq_a1'.tr),
+  _FaqEntry('help_center_faq_q2'.tr, 'help_center_faq_a2'.tr),
+  _FaqEntry('help_center_faq_q3'.tr, 'help_center_faq_a3'.tr),
+  _FaqEntry('help_center_faq_q4'.tr, 'help_center_faq_a4'.tr),
 ];
 
 /// Placeholder support screen — the app doesn't have a support inbox or FAQ
@@ -59,10 +47,8 @@ class HelpCenterView extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            CustomGlassSliverAppBar(
-              expandedHeight: 120,
-              toolbarHeight: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 13),
+            AppScreenSliverAppBar(
+              title: "help_center_title".tr,
               centerTitle: true,
               leading: CustomGlassButton(
                 onPressed: () => Get.back(),
@@ -77,21 +63,6 @@ class HelpCenterView extends StatelessWidget {
                   CupertinoIcons.chevron_left,
                   color: theme.colorScheme.onSurface,
                   size: 24,
-                ),
-              ),
-              title: Text(
-                "help_center_title".tr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17,
-                ),
-              ),
-              largeTitlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
-              largeTitle: Text(
-                "help_center_title".tr,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 34,
                 ),
               ),
             ),

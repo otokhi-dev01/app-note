@@ -1,10 +1,14 @@
 import 'dart:math' as math;
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
-/// Reusable app bar backed directly by [lg.GlassAppBar].
+/// The app-bar surface used by Create Note and, by default, every screen-level
+/// app bar in the app.
+const kCreateNoteAppBarShadow = <BoxShadow>[
+  BoxShadow(color: Color(0x1F000000), blurRadius: 16, offset: Offset(0, 6)),
+];
+
 class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
   final Widget? leading;
@@ -49,15 +53,14 @@ class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// A pinned sliver navigation bar whose controls are rendered by
-/// [CustomGlassAppBar]. It preserves the app's existing expanded-title layout
-/// while removing feature-level `SliverAppBar` implementations.
 class CustomGlassSliverAppBar extends StatelessWidget {
   final Widget? title;
   final Widget? largeTitle;
   final Widget? leading;
   final List<Widget>? actions;
   final bool centerTitle;
+  final Color backgroundColor;
+  final List<BoxShadow>? shadow;
   final double toolbarHeight;
   final double expandedHeight;
   final EdgeInsetsGeometry padding;
@@ -71,6 +74,8 @@ class CustomGlassSliverAppBar extends StatelessWidget {
     this.leading,
     this.actions,
     this.centerTitle = true,
+    this.backgroundColor = Colors.transparent,
+    this.shadow,
     this.toolbarHeight = 44,
     this.expandedHeight = 140,
     this.padding = const EdgeInsets.symmetric(horizontal: 8),
@@ -89,12 +94,64 @@ class CustomGlassSliverAppBar extends StatelessWidget {
         leading: leading,
         actions: actions,
         centerTitle: centerTitle,
+        backgroundColor: backgroundColor,
+        shadow: shadow,
         toolbarHeight: toolbarHeight,
         expandedHeight: expandedHeight,
         padding: padding,
         largeTitlePadding: largeTitlePadding,
         largeTitleAlignment: largeTitleAlignment,
       ),
+    );
+  }
+}
+
+/// A compact screen app bar matching the Create Note editor exactly.
+///
+/// Route-specific controls stay injectable, while height, spacing, title
+/// typography, surface color, and shadow remain consistent across the app.
+class AppScreenSliverAppBar extends StatelessWidget {
+  final String? title;
+  final Widget? leading;
+  final List<Widget>? actions;
+  final bool centerTitle;
+  final Color? backgroundColor;
+  final List<BoxShadow>? shadow;
+
+  const AppScreenSliverAppBar({
+    super.key,
+    this.title,
+    this.leading,
+    this.actions,
+    this.centerTitle = true,
+    this.backgroundColor,
+    this.shadow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return CustomGlassSliverAppBar(
+      toolbarHeight: 52,
+      expandedHeight: 52,
+      backgroundColor: backgroundColor ?? theme.scaffoldBackgroundColor,
+      shadow: shadow ?? kCreateNoteAppBarShadow,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      centerTitle: centerTitle,
+      title: title == null
+          ? null
+          : Text(
+              title!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+              ),
+            ),
+      leading: leading,
+      actions: actions,
     );
   }
 }
@@ -106,6 +163,8 @@ class _CustomGlassSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget? leading;
   final List<Widget>? actions;
   final bool centerTitle;
+  final Color backgroundColor;
+  final List<BoxShadow>? shadow;
   final double toolbarHeight;
   final double expandedHeight;
   final EdgeInsetsGeometry padding;
@@ -119,6 +178,8 @@ class _CustomGlassSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     required this.leading,
     required this.actions,
     required this.centerTitle,
+    required this.backgroundColor,
+    required this.shadow,
     required this.toolbarHeight,
     required this.expandedHeight,
     required this.padding,
@@ -144,39 +205,43 @@ class _CustomGlassSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
         : (1 - shrinkOffset / collapseRange).clamp(0.0, 1.0);
     final compactOpacity = Curves.easeOut.transform(1 - expandedAmount);
 
-    return ClipRect(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Align(
-            alignment: Alignment.topCenter,
-            child: CustomGlassAppBar(
-              title: title == null
-                  ? null
-                  : Opacity(opacity: compactOpacity, child: title),
-              leading: leading,
-              actions: actions,
-              centerTitle: centerTitle,
-              toolbarHeight: toolbarHeight,
-              padding: padding,
+    return DecoratedBox(
+      decoration: BoxDecoration(boxShadow: shadow ?? const []),
+      child: ClipRect(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Align(
+              alignment: Alignment.topCenter,
+              child: CustomGlassAppBar(
+                title: title == null
+                    ? null
+                    : Opacity(opacity: compactOpacity, child: title),
+                leading: leading,
+                actions: actions,
+                centerTitle: centerTitle,
+                backgroundColor: backgroundColor,
+                toolbarHeight: toolbarHeight,
+                padding: padding,
+              ),
             ),
-          ),
-          if (largeTitle != null)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Padding(
-                  padding: largeTitlePadding,
-                  child: Align(
-                    alignment: largeTitleAlignment,
-                    child: Opacity(
-                      opacity: Curves.easeIn.transform(expandedAmount),
-                      child: largeTitle,
+            if (largeTitle != null)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Padding(
+                    padding: largeTitlePadding,
+                    child: Align(
+                      alignment: largeTitleAlignment,
+                      child: Opacity(
+                        opacity: Curves.easeIn.transform(expandedAmount),
+                        child: largeTitle,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -189,6 +254,8 @@ class _CustomGlassSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
         leading != oldDelegate.leading ||
         actions != oldDelegate.actions ||
         centerTitle != oldDelegate.centerTitle ||
+        backgroundColor != oldDelegate.backgroundColor ||
+        shadow != oldDelegate.shadow ||
         toolbarHeight != oldDelegate.toolbarHeight ||
         expandedHeight != oldDelegate.expandedHeight ||
         padding != oldDelegate.padding ||
@@ -197,7 +264,6 @@ class _CustomGlassSliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   }
 }
 
-/// Package-independent tab description used by [CustomGlassTabBar].
 class CustomGlassTab {
   final Widget? icon;
   final Widget? activeIcon;
@@ -297,7 +363,6 @@ class CustomGlassSearchConfig {
   );
 }
 
-/// Reusable facade for all three package GlassTabBar constructors.
 class CustomGlassTabBar extends StatelessWidget implements PreferredSizeWidget {
   final lg.GlassTabBar _tabBar;
 
@@ -397,8 +462,6 @@ class CustomGlassDialogAction {
   });
 }
 
-/// Dialog facade that fixes the package's 0.29.5 barrier-color forwarding bug
-/// and gives every action one explicit owner for route dismissal.
 class CustomGlassDialog extends StatelessWidget {
   final String? title;
   final String? message;
@@ -471,8 +534,6 @@ class CustomGlassDialog extends StatelessWidget {
   }
 }
 
-/// Reusable sheet backed by [lg.GlassSheet]. Quality is explicitly standard
-/// because 0.29.5 resolves a null quality to premium during sheet animation.
 class CustomGlassSheet extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;

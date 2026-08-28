@@ -9,11 +9,8 @@ import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/theme/app_theme.dart';
-import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Backs both the login and register screens.
 ///
@@ -133,98 +130,34 @@ class AuthController extends GetxController {
   }
 
   Future<void> forgotPassword() async {
-    final context = Get.context;
-    if (context == null) return;
-
-    final forgotPhoneController = TextEditingController(
-      text: phoneController.text,
+    await Get.toNamed(
+      Routes.FORGOT_PASSWORD,
+      arguments: {
+        'initialPhone': phoneController.text.trim(),
+        'onSubmit': _submitForgotPassword,
+      },
     );
-    try {
-      await CustomGlassSheet.show<void>(
-        context: context,
-        isScrollable: true,
-        builder: (sheetContext) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            8,
-            24,
-            MediaQuery.viewInsetsOf(sheetContext).bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'reset_password_title'.tr,
-                style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'reset_password_desc'.tr,
-                style: Theme.of(sheetContext).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              CustomGlassTextField(
-                controller: forgotPhoneController,
-                placeholder: 'phone_number_hint'.tr,
-                prefixIcon: const Icon(Icons.phone, color: AppTheme.folderPink),
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.done,
-                textStyle: Theme.of(sheetContext).textTheme.bodyLarge,
-                useOwnLayer: false,
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: CustomGlassButton(
-                  onPressed: () async {
-                    final phone = forgotPhoneController.text.trim();
-                    final invalid = Validators.phone(phone);
-                    if (invalid != null) {
-                      AppSnackbar.warning('invalid_phone_title'.tr, invalid);
-                      return;
-                    }
+  }
 
-                    Navigator.of(sheetContext).pop();
-                    isLoading.value = true;
-                    try {
-                      // Always fails today: the server has no reset route. The
-                      // use case surfaces that reason rather than pretending a
-                      // link was sent.
-                      final result = await _forgotPassword(phone);
-                      if (result case Err(:final failure)) {
-                        AppSnackbar.failure('reset_password_title'.tr, failure);
-                      } else {
-                        AppSnackbar.success(
-                          'reset_request_sent_title'.tr,
-                          'reset_request_sent_message'.trParams({
-                            'phone': phone,
-                          }),
-                        );
-                      }
-                    } finally {
-                      isLoading.value = false;
-                    }
-                  },
-                  semanticLabel: 'Send reset link',
-                  borderRadius: 30,
-                  foregroundColor: Colors.white,
-                  glassColor: AppTheme.folderPink,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    'send_reset_link'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+  Future<bool> _submitForgotPassword(String phone) async {
+    if (isLoading.value) return false;
+
+    isLoading.value = true;
+    try {
+      final result = await _forgotPassword(phone);
+      switch (result) {
+        case Ok():
+          AppSnackbar.success(
+            'reset_request_sent_title'.tr,
+            'reset_request_sent_message'.trParams({'phone': phone}),
+          );
+          return true;
+        case Err(:final failure):
+          AppSnackbar.failure('forgot_password_title'.tr, failure);
+          return false;
+      }
     } finally {
-      forgotPhoneController.dispose();
+      isLoading.value = false;
     }
   }
 

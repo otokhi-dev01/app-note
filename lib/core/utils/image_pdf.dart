@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -35,6 +37,24 @@ String _extensionOf(String path) {
   return dot > slash ? path.substring(dot) : '';
 }
 
+Future<pw.ThemeData> _loadImagePdfTheme() async {
+  Future<pw.Font> load(String asset) async {
+    final data = await rootBundle.load(asset);
+    return pw.Font.ttf(data);
+  }
+
+  final base = await load('assets/fonts/NotoSans-Regular.ttf');
+  final bold = await load('assets/fonts/NotoSans-Bold.ttf');
+  final khmer = await load('assets/fonts/NotoSansKhmer-Regular.ttf');
+  final khmerBold = await load('assets/fonts/NotoSansKhmer-Bold.ttf');
+
+  return pw.ThemeData.withFont(
+    base: base,
+    bold: bold,
+    fontFallback: [khmer, khmerBold],
+  );
+}
+
 /// Writes a single-page PDF containing [imagePath] and returns its path.
 ///
 /// Standardized to A4 format with margins, like a PDF printer. [blockId] names
@@ -53,9 +73,8 @@ Future<String> buildImagePdf({
     pw.Page(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(32),
-      build: (context) => pw.Center(
-        child: pw.Image(image, fit: pw.BoxFit.contain),
-      ),
+      build: (context) =>
+          pw.Center(child: pw.Image(image, fit: pw.BoxFit.contain)),
     ),
   );
 
@@ -70,21 +89,94 @@ Future<String> buildImagePdf({
 ///
 /// Standardized to A4 format with margins. Multi-page document scans are
 /// rendered as a cohesive document where each page fits into the print area.
+/// When [showTitle] is true, [title] and [createdAt] form a printed header on
+/// every page. [showPageNumbers] adds a `Page 1 of 3`-style footer.
 Future<String> buildMultiPageImagePdf({
   required List<String> imagePaths,
   required String blockId,
   String? title,
+  bool showTitle = false,
+  DateTime? createdAt,
+  bool showPageNumbers = false,
+  String pageLabel = 'Page',
+  String ofLabel = 'of',
 }) async {
-  final document = pw.Document(title: title);
-  for (final imagePath in imagePaths) {
+  final visibleTitle = title?.trim() ?? '';
+  final dateTime = createdAt == null
+      ? ''
+      : DateFormat('MMM d, yyyy  •  h:mm a').format(createdAt.toLocal());
+  final document = pw.Document(
+    title: visibleTitle,
+    theme: await _loadImagePdfTheme(),
+  );
+  for (var index = 0; index < imagePaths.length; index++) {
+    final imagePath = imagePaths[index];
     final bytes = await File(imagePath).readAsBytes();
     final image = pw.MemoryImage(bytes);
     document.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
-        build: (context) => pw.Center(
-          child: pw.Image(image, fit: pw.BoxFit.contain),
+        build: (context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: [
+            if (showTitle && visibleTitle.isNotEmpty) ...[
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Expanded(
+                    child: pw.Text(
+                      visibleTitle,
+                      maxLines: 2,
+                      style: pw.TextStyle(
+                        fontSize: 17,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (dateTime.isNotEmpty) ...[
+                    pw.SizedBox(width: 16),
+                    pw.Text(
+                      dateTime,
+                      style: const pw.TextStyle(
+                        fontSize: 9,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              pw.Divider(color: PdfColors.grey400, thickness: 0.6),
+              pw.SizedBox(height: 14),
+            ],
+            pw.Expanded(
+              child: pw.Container(
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey300, width: 0.6),
+                ),
+                padding: const pw.EdgeInsets.all(8),
+                child: pw.Center(
+                  child: pw.Image(image, fit: pw.BoxFit.contain),
+                ),
+              ),
+            ),
+            if (showPageNumbers) ...[
+              pw.SizedBox(height: 12),
+              pw.Divider(color: PdfColors.grey400, thickness: 0.6),
+              pw.SizedBox(height: 6),
+              pw.Align(
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text(
+                  '$pageLabel ${index + 1} $ofLabel ${imagePaths.length}',
+                  style: const pw.TextStyle(
+                    fontSize: 9,
+                    color: PdfColors.grey600,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

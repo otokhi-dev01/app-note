@@ -51,21 +51,32 @@ class AuthResponse {
   bool get isSuccess => code == 200 || code == 201;
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    final dynamic dataRaw = json['data'];
+    final dynamic dataRaw = json['data'] ?? json['Data'];
     final Map<String, dynamic> data = dataRaw is Map
         ? Map<String, dynamic>.from(dataRaw)
         : {};
-    final int code = asInt(json['code']);
+    final dynamic userRaw =
+        data['user'] ?? data['userData'] ?? data['profile'] ?? data['User'];
+    final Map<String, dynamic> user = userRaw is Map
+        ? Map<String, dynamic>.from(userRaw)
+        : data;
+    final int code = asInt(json['code'] ?? json['Code']);
 
     return AuthResponse(
-      token: asString(data['token']),
+      token: asString(
+        data['token'] ??
+            data['accessToken'] ??
+            data['Token'] ??
+            json['token'] ??
+            json['accessToken'],
+      ),
       // Only parse user data on success codes; an error body's `data` holds
       // validation details, not a user.
       user: (code == 200 || code == 201)
-          ? UserData.fromJson(data)
+          ? UserData.fromJson(user)
           : const UserData(),
       code: code,
-      message: asString(json['message']),
+      message: asString(json['message'] ?? json['Message']),
     );
   }
 }
@@ -82,12 +93,21 @@ class UserData extends AuthUser {
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) => UserData(
-    id: (json['userId'] ?? json['id'])?.toString(),
-    fullName: (json['fullName'] ?? json['name'])?.toString(),
-    phone: (json['phone'] ?? json['email'])?.toString(),
-    deviceName: json['deviceName']?.toString(),
-    deviceType: json['deviceType']?.toString(),
-    profileImage: (json['profileImage'] ?? json['avatar'])?.toString(),
+    id: (json['userId'] ?? json['id'] ?? json['UserId'] ?? json['Id'])
+        ?.toString(),
+    fullName:
+        (json['fullName'] ?? json['name'] ?? json['FullName'] ?? json['Name'])
+            ?.toString(),
+    phone: (json['phone'] ?? json['email'] ?? json['Phone'] ?? json['Email'])
+        ?.toString(),
+    deviceName: (json['deviceName'] ?? json['DeviceName'])?.toString(),
+    deviceType: (json['deviceType'] ?? json['DeviceType'])?.toString(),
+    profileImage:
+        (json['profileImage'] ??
+                json['avatar'] ??
+                json['ProfileImage'] ??
+                json['Avatar'])
+            ?.toString(),
   );
 
   Map<String, dynamic> toJson() => {

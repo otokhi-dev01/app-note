@@ -74,7 +74,11 @@ class LocalFolderRepository implements FolderRepository {
     final existing = all[index];
     all[index] = Folder(
       id: existing.id,
-      parentId: parentId ?? existing.parentId,
+      // Per the interface contract, `null` means "move to root" — not
+      // "leave the parent unchanged" — matching the remote repository's
+      // `isRoot ? null : parentId`. Falling back to `existing.parentId`
+      // here made moving a folder to the top level silently a no-op.
+      parentId: parentId,
       name: trimmed,
       iconName: iconName,
       colorValue: colorValue,

@@ -2,14 +2,9 @@ import 'package:get/get.dart';
 
 import 'package:Note/shared/widgets/ios_confirmation_dialog.dart';
 
-/// Confirmations, in one place.
-///
-/// Thin wrapper over [IOSConfirmationDialog] so callers state intent
-/// ("confirm deleting N notes") rather than assembling labels each time.
 class AppDialogs {
   AppDialogs._();
 
-  /// Returns `true` only if the user confirmed.
   static Future<bool> confirm({
     required String title,
     required String confirmLabel,
@@ -28,7 +23,6 @@ class AppDialogs {
     return confirmed;
   }
 
-  /// "Move 3 notes to Recently Deleted?" — pluralized for you.
   static Future<bool> confirmDeleteNotes(int count) => confirm(
     title: count == 1
         ? 'Are you sure you want to move this note to Recently Deleted?'

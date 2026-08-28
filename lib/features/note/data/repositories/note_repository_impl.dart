@@ -1,5 +1,6 @@
 import 'package:Note/core/error/guard.dart';
 import 'package:Note/core/error/result.dart';
+import 'package:Note/core/utils/json_parsers.dart';
 import 'package:Note/features/note/data/datasources/note_remote_data_source.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
@@ -113,10 +114,14 @@ class NoteRepositoryImpl implements NoteRepository {
       blockId,
       displayOrder,
     );
+    // Lenient the same way the folder repository's raw-envelope reads are —
+    // the API is documented to send ids as both int and numeric string, and
+    // a hard `as int`/`as String` cast would throw a TypeError (surfacing as
+    // an opaque UnknownFailure) the moment it does here too.
     return AttachmentUpload(
-      attachmentId: raw['AttachmentId'] as int,
-      filePath: raw['FilePath'] as String,
-      blockId: raw['BlockId'] as String,
+      attachmentId: asInt(raw['AttachmentId']),
+      filePath: asString(raw['FilePath']),
+      blockId: asString(raw['BlockId']),
     );
   });
 

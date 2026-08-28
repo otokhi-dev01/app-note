@@ -8,11 +8,11 @@ import 'package:get/get.dart';
 class Validators {
   Validators._();
 
-  /// 8–15 digits, no separators — matches what the backend accepts.
+  /// 8–15 digits with an optional leading `+` — matches the auth API.
   static String? phone(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return 'validator_phone_required'.tr;
-    if (!RegExp(r'^[0-9]{8,15}$').hasMatch(trimmed)) {
+    if (!RegExp(r'^\+?[0-9]{8,15}$').hasMatch(trimmed)) {
       return 'validator_phone_invalid'.tr;
     }
     return null;

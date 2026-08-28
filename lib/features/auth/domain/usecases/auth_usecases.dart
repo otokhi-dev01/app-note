@@ -83,7 +83,14 @@ class ForgotPassword extends UseCase<void, String> {
   const ForgotPassword(this._repository);
 
   @override
-  Future<Result<void>> call(String phone) => _repository.forgotPassword(phone);
+  Future<Result<void>> call(String phone) {
+    final normalizedPhone = phone.trim();
+    final invalid = Validators.phone(normalizedPhone);
+    if (invalid != null) {
+      return Future.value(Err(ValidationFailure(invalid)));
+    }
+    return _repository.forgotPassword(normalizedPhone);
+  }
 }
 
 class Logout extends UseCase<void, NoParams> {

@@ -6,13 +6,8 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 export 'package:Note/shared/widgets/glass_inputs.dart';
 export 'package:Note/shared/widgets/glass_surfaces.dart';
 
-/// Shapes supported by the app's reusable liquid-glass widgets.
 enum GlassShape { roundedRectangle, oval, circle }
 
-/// A reusable, standalone liquid-glass surface.
-///
-/// This app-level wrapper keeps package-specific setup in one place while
-/// still exposing the options commonly needed by feature widgets.
 class CustomGlassContainer extends StatelessWidget {
   final Widget? child;
   final double blur;
@@ -27,7 +22,6 @@ class CustomGlassContainer extends StatelessWidget {
   final double refractiveIndex;
   final double chromaticAberration;
 
-  /// The lighting direction in degrees.
   final double lightAngle;
 
   final double glowIntensity;
@@ -106,10 +100,6 @@ class CustomGlassContainer extends StatelessWidget {
   }
 }
 
-/// A reusable button rendered by [lg.GlassButton].
-///
-/// Set [onPressed] to null to show the package's disabled state. The child can
-/// be text, an icon, or any custom layout.
 class CustomGlassButton extends StatelessWidget {
   final Widget child;
   final VoidCallback? onPressed;
@@ -129,7 +119,6 @@ class CustomGlassButton extends StatelessWidget {
   final double refractiveIndex;
   final double chromaticAberration;
 
-  /// The lighting direction in degrees.
   final double lightAngle;
 
   final Color? glassColor;
@@ -242,7 +231,6 @@ class CustomGlassButton extends StatelessWidget {
   }
 }
 
-/// A ready-to-use liquid-glass ellipsis button for overflow menus.
 class MoreButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final double size;
@@ -284,9 +272,6 @@ class MoreButton extends StatelessWidget {
   }
 }
 
-/// Backwards-compatible name used by the existing screens.
-///
-/// New code can use [CustomGlassContainer] directly.
 class LiquidGlassContainer extends CustomGlassContainer {
   final bool useFakeGlass;
   final BoxBorder? border;
