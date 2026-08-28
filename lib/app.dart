@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/di/injector.dart';
 import 'package:Note/core/localization/app_translations.dart';
 import 'package:Note/core/storage/language_preferences.dart';

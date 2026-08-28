@@ -11,16 +11,25 @@ import 'package:Note/features/note/domain/entities/note_block.dart';
 class NoteBlockMapper {
   NoteBlockMapper._();
 
+  static const _appPayloadKey = '_piiNoteBlock';
+  static const _appPayloadVersion = 1;
+
   static NoteBlock fromJson(Map<String, dynamic> json) {
     final type = asString(json['type'] ?? json['Type']).toLowerCase();
     final id = asString(json['id'] ?? json['Id']);
 
     switch (type) {
       case 'text':
+        final rawText = json['text'] ?? json['Text'] ?? json['content'];
+        final payload = _appPayload(rawText);
         return TextBlock(
           id: id,
-          text: _textContent(json['text'] ?? json['Text'] ?? json['content']),
-          style: asString(json['style'] ?? json['Style'] ?? 'body'),
+          text: payload?['text'] is String
+              ? payload!['text'] as String
+              : _textContent(rawText),
+          style: asString(
+            payload?['style'] ?? json['style'] ?? json['Style'] ?? 'body',
+          ),
         );
       case 'checklist':
         final raw = json['items'] ?? json['Items'];
@@ -50,7 +59,9 @@ class NoteBlockMapper {
           localPath: asString(json['localPath']),
         );
       case 'table':
-        final raw = json['rows'] ?? json['Rows'];
+        final rawText = json['text'] ?? json['Text'];
+        final payload = _appPayload(rawText);
+        final raw = json['rows'] ?? json['Rows'] ?? payload?['rows'];
         return TableBlock(
           id: id,
           rows: (raw is List ? raw : const [])
@@ -62,22 +73,30 @@ class NoteBlockMapper {
               .toList(),
         );
       case 'drawing':
+        final payload = _appPayload(json['text'] ?? json['Text']);
         return DrawingBlock(
           id: id,
-          localPath: asString(json['localPath']),
-          url: asString(json['url'] ?? json['Url']),
+          localPath: asString(json['localPath'] ?? payload?['localPath']),
+          url: asString(json['url'] ?? json['Url'] ?? payload?['url']),
         );
       default:
         return TextBlock(id: id, text: 'Unknown block type: $type');
     }
   }
 
+  /// Produces exactly the fields accepted by `NoteContentBlockRequest`.
+  ///
+  /// The logged-in API rejects unmapped JSON properties. App-only values are
+  /// therefore encoded inside its nullable `text` field instead of being sent
+  /// as unsupported top-level keys. Guest storage uses the same mapper, so the
+  /// matching decoder above keeps those richer blocks round-trippable too.
   static Map<String, dynamic> toJson(NoteBlock block) => switch (block) {
     TextBlock(:final id, :final text, :final style) => {
       'id': id,
       'type': 'text',
-      'text': text,
-      'style': style,
+      'text': style == 'body'
+          ? text
+          : _encodeAppPayload({'text': text, 'style': style}),
     },
     ChecklistBlock(:final id, :final items) => {
       'id': id,
@@ -87,31 +106,39 @@ class NoteBlockMapper {
           {'id': i.id, 'text': i.text, 'checked': i.checked},
       ],
     },
-    AttachmentBlock(
-      :final id,
-      :final attachmentId,
-      :final displayName,
-      :final url,
-    ) =>
-      {
-        'id': id,
-        'type': 'attachment',
-        'attachmentId': attachmentId,
-        'displayName': displayName,
-        'url': ?url,
-      },
+    AttachmentBlock(:final id, :final attachmentId, :final displayName) => {
+      'id': id,
+      'type': 'attachment',
+      'attachmentId': attachmentId,
+      'displayName': displayName,
+    },
     TableBlock(:final id, :final rows) => {
       'id': id,
       'type': 'table',
-      'rows': rows,
+      'text': _encodeAppPayload({'rows': rows}),
     },
     DrawingBlock(:final id, :final localPath, :final url) => {
       'id': id,
       'type': 'drawing',
-      'localPath': localPath,
-      'url': url,
+      'text': _encodeAppPayload({'localPath': ?localPath, 'url': ?url}),
     },
   };
+
+  static String _encodeAppPayload(Map<String, dynamic> values) =>
+      jsonEncode({_appPayloadKey: _appPayloadVersion, ...values});
+
+  static Map<String, dynamic>? _appPayload(dynamic value) {
+    if (value is! String || value.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map || decoded[_appPayloadKey] != _appPayloadVersion) {
+        return null;
+      }
+      return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Quill stores its document as a delta list; keep it encoded as a string so
   /// a text block round-trips whether the server sends plain text or a delta.

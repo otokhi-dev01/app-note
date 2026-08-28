@@ -64,7 +64,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                 children: [
                   _buildProfileCard(context),
                   const SizedBox(height: 24),
-                  _buildSectionLabel(context, 'section_preferences'.tr),
+                  _buildSectionLabel(context, 'section preferences'.tr),
                   _buildGroup(
                     context,
                     children: [
@@ -128,13 +128,13 @@ class SettingsDrawer extends GetView<ProfileController> {
                         context,
                         icon: CupertinoIcons.chat_bubble_2_fill,
                         iconColor: _iosGreen,
-                        title: 'contact_us_title'.tr,
+                        title: 'contact us'.tr,
                         onTap: () => _closeThenGo(context, Routes.CONTACT_US),
                       ),
                     ],
                   ),
                   const SizedBox(height: 22),
-                  _buildSectionLabel(context, 'section_support'.tr),
+                  _buildSectionLabel(context, 'section support'.tr),
                   Obx(
                     () => _buildGroup(
                       context,
@@ -144,7 +144,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                             context,
                             icon: CupertinoIcons.lock_rotation,
                             iconColor: _iosOrange,
-                            title: 'forgot_password_title'.tr,
+                            title: 'forgot password'.tr,
                             onTap: () => _closeThenGo(
                               context,
                               Routes.FORGOT_PASSWORD,
@@ -158,7 +158,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                           context,
                           icon: CupertinoIcons.question_circle_fill,
                           iconColor: _iosBlue,
-                          title: 'help_center_title'.tr,
+                          title: 'help center title'.tr,
                           onTap: () =>
                               _closeThenGo(context, Routes.HELP_CENTER),
                         ),
@@ -166,7 +166,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                           context,
                           icon: CupertinoIcons.lock_shield_fill,
                           iconColor: _iosGreen,
-                          title: 'privacy_security_title'.tr,
+                          title: 'privacy security title'.tr,
                           onTap: () =>
                               _closeThenGo(context, Routes.PRIVACY_SECURITY),
                         ),
@@ -174,7 +174,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  _buildSectionLabel(context, 'account_label'.tr),
+                  _buildSectionLabel(context, 'account label'.tr),
                   Obx(
                     () => _buildGroup(
                       context,
@@ -207,7 +207,7 @@ class SettingsDrawer extends GetView<ProfileController> {
         children: [
           Expanded(
             child: Text(
-              'settings_title'.tr,
+              'settings title'.tr,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: 21,
                 fontWeight: FontWeight.w700,
@@ -224,14 +224,12 @@ class SettingsDrawer extends GetView<ProfileController> {
   Widget _buildProfileCard(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-
     return Obx(() {
       final isGuest = controller.isGuestMode.value;
       final imagePath = controller.userImagePath.value;
       final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
       final username = controller.userUsername.value;
       final account = controller.userAccount.value;
-
       return CustomGlassContainer(
         borderRadius: 20,
         blur: 24,
@@ -473,7 +471,6 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Widget _buildAccountAction(BuildContext context) {
     final guestMode = Get.find<GuestModeService>();
-
     return Obx(() {
       final isGuest = guestMode.isGuestMode.value;
       return _buildActionRow(
@@ -508,7 +505,7 @@ class SettingsDrawer extends GetView<ProfileController> {
       return _buildActionRow(
         context,
         icon: CupertinoIcons.trash_fill,
-        title: 'delete_account_title'.tr,
+        title: 'delete account title'.tr,
         isDestructive: true,
         showChevron: true,
         onTap: () => _closeThenGo(context, Routes.DELETE_ACCOUNT),
@@ -526,7 +523,6 @@ class SettingsDrawer extends GetView<ProfileController> {
   }) {
     final theme = Theme.of(context);
     final color = isDestructive ? _iosRed : _iosBlue;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -570,7 +566,7 @@ class SettingsDrawer extends GetView<ProfileController> {
         ),
         const SizedBox(width: 7),
         Text(
-          'Piisiit Note',
+          'Pii Note',
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
             fontWeight: FontWeight.w600,

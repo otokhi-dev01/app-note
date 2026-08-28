@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -100,6 +101,26 @@ void main() {
       }
       if (route != Routes.PROFILE && route != Routes.FORGOT_PASSWORD) {
         expect(find.byType(SettingsSliverAppBar), findsOneWidget);
+      }
+      if (route == Routes.NOTIFICATIONS) {
+        final settingsAppBar = tester.widget<SettingsSliverAppBar>(
+          find.byType(SettingsSliverAppBar),
+        );
+        expect(settingsAppBar.useIosBackButtonColors, isTrue);
+
+        final appBar = tester.widget<AppScreenSliverAppBar>(
+          find.byType(AppScreenSliverAppBar),
+        );
+        final backButton = appBar.leading! as CustomGlassButton;
+        expect(backButton.glassColor, isNull);
+        expect(
+          backButton.foregroundColor,
+          CupertinoDynamicColor.resolve(
+            CupertinoColors.systemBlue,
+            tester.element(find.byType(SettingsSliverAppBar)),
+          ),
+        );
+        expect((backButton.child as Icon).icon, CupertinoIcons.back);
       }
       if (route == Routes.PROFILE) {
         expect(find.text('Light Mode'), findsOneWidget);

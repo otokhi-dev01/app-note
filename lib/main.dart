@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-
 import 'package:Note/app.dart';
 
 /*

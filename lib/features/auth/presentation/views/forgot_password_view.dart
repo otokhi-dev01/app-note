@@ -1,36 +1,30 @@
 import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
-
   @override
   State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
 }
 
 class _ForgotPasswordViewState extends State<ForgotPasswordView> {
-  static const _maxPhoneLength = 16;
-
+  static const int _maxPhoneLength = 16;
   late final TextEditingController _phoneController;
   late final Future<bool> Function(String phone) _onSubmit;
   bool _isSubmitting = false;
   String? _errorText;
-
   String get _phone => _phoneController.text.trim();
-
   @override
   void initState() {
     super.initState();
     final arguments = Get.arguments;
-    final values = arguments is Map ? arguments : const {};
+    final values = arguments is Map ? arguments : {};
     _onSubmit = values['onSubmit'] is Future<bool> Function(String)
         ? values['onSubmit'] as Future<bool> Function(String)
         : (_) async => false;
@@ -75,7 +69,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
     return PopScope(
       canPop: !_isSubmitting,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -85,10 +78,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
           extendBodyBehindAppBar: true,
           body: CustomScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            physics: const BouncingScrollPhysics(),
+            physics: BouncingScrollPhysics(),
             slivers: [
               AppScreenSliverAppBar(
-                title: 'forgot_password_title'.tr,
+                title: 'forgot password title'.tr,
                 centerTitle: true,
                 leading: CustomGlassButton(
                   semanticLabel: MaterialLocalizations.of(
@@ -102,14 +95,14 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   opacity: 0.15,
                   thickness: 8,
                   padding: EdgeInsets.zero,
-                  child: const Icon(CupertinoIcons.chevron_left, size: 23),
+                  child: Icon(CupertinoIcons.chevron_left, size: 23),
                 ),
               ),
               SliverToBoxAdapter(
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 620),
+                    constraints: BoxConstraints(maxWidth: 620),
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
                         20,
@@ -121,36 +114,36 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'forgot_password_desc'.tr,
+                            'forgot password'.tr,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                               height: 1.45,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
                           CustomGlassContainer(
                             borderRadius: 22,
                             blur: 20,
                             opacity: 0.12,
                             thickness: 8,
-                            padding: const EdgeInsets.all(20),
+                            padding: EdgeInsets.all(20),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'phone_number_label'.tr,
+                                  'phone number label'.tr,
                                   style: theme.textTheme.labelLarge?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                SizedBox(height: 10),
                                 _buildPhoneField(context),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 22),
+                          SizedBox(height: 22),
                           CustomGlassButton(
-                            semanticLabel: 'send_reset_request'.tr,
+                            semanticLabel: 'send reset request'.tr,
                             onPressed: _isSubmitting || _phone.isEmpty
                                 ? null
                                 : _submit,
@@ -161,7 +154,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                             ),
                             foregroundColor: Colors.white,
                             child: _isSubmitting
-                                ? const SizedBox.square(
+                                ? SizedBox.square(
                                     dimension: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
@@ -169,8 +162,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                     ),
                                   )
                                 : Text(
-                                    'send_reset_request'.tr,
-                                    style: const TextStyle(
+                                    'send reset request'.tr,
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -197,7 +190,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
         color: scheme.outlineVariant.withValues(alpha: 0.75),
       ),
     );
-
     return TextField(
       controller: _phoneController,
       autofocus: true,
@@ -211,32 +203,23 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       ],
       onSubmitted: (_) => _submit(),
       decoration: InputDecoration(
-        hintText: 'phone_number_hint'.tr,
+        hintText: 'phone number'.tr,
         errorText: _errorText,
         counterText: '',
         filled: true,
         fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        prefixIcon: const Icon(
-          CupertinoIcons.phone,
-          color: IosSemanticColors.green,
-        ),
+        prefixIcon: Icon(CupertinoIcons.phone, color: IosSemanticColors.green),
         border: border,
         enabledBorder: border,
         disabledBorder: border,
         focusedBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.blue,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: IosSemanticColors.blue, width: 1.5),
         ),
         errorBorder: border.copyWith(
-          borderSide: const BorderSide(color: IosSemanticColors.red),
+          borderSide: BorderSide(color: IosSemanticColors.red),
         ),
         focusedErrorBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.red,
-            width: 1.5,
-          ),
+          borderSide: BorderSide(color: IosSemanticColors.red, width: 1.5),
         ),
       ),
     );

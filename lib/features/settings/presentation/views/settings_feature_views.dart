@@ -26,6 +26,7 @@ class NotificationSettingsView extends StatelessWidget {
 
     return _SettingsFeatureScaffold(
       title: 'notifications_title'.tr,
+      useIosBackButtonColors: true,
       child: Obx(
         () => _FeatureCard(
           children: [
@@ -537,11 +538,13 @@ class _SettingsFeatureScaffold extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget child;
+  final bool useIosBackButtonColors;
 
   const _SettingsFeatureScaffold({
     required this.title,
     required this.child,
     this.subtitle,
+    this.useIosBackButtonColors = false,
   });
 
   @override
@@ -558,7 +561,10 @@ class _SettingsFeatureScaffold extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SettingsSliverAppBar(title: title),
+            SettingsSliverAppBar(
+              title: title,
+              useIosBackButtonColors: useIosBackButtonColors,
+            ),
             SliverToBoxAdapter(
               child: Align(
                 alignment: Alignment.topCenter,
