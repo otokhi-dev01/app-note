@@ -47,7 +47,10 @@ class HelpCenterView extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SettingsSliverAppBar(title: "help_center_title".tr),
+            SettingsSliverAppBar(
+              title: "help_center_title".tr,
+              useSurfaceBackButtonColor: true,
+            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(24.0),

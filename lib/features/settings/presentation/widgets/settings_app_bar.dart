@@ -4,21 +4,21 @@ import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
-/// Shared settings app bar with an optional adaptive iOS back-button palette.
+/// Shared settings app bar with an optional theme-adaptive back-arrow color.
 class SettingsSliverAppBar extends StatelessWidget {
   final String title;
-  final bool useIosBackButtonColors;
+  final bool useSurfaceBackButtonColor;
 
   const SettingsSliverAppBar({
     super.key,
     required this.title,
-    this.useIosBackButtonColors = false,
+    this.useSurfaceBackButtonColor = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final backButtonColor = useIosBackButtonColors
-        ? CupertinoDynamicColor.resolve(CupertinoColors.systemBlue, context)
+    final backButtonColor = useSurfaceBackButtonColor
+        ? Theme.of(context).colorScheme.onSurface
         : Colors.white;
 
     return AppScreenSliverAppBar(
@@ -33,7 +33,7 @@ class SettingsSliverAppBar extends StatelessWidget {
         blur: 10,
         opacity: 0.15,
         thickness: 8,
-        glassColor: useIosBackButtonColors
+        glassColor: useSurfaceBackButtonColor
             ? null
             : IosSemanticColors.blue.withValues(alpha: 0.82),
         foregroundColor: backButtonColor,

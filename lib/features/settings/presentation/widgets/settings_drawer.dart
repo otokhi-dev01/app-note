@@ -18,6 +18,14 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_popup.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 
+/// Stable access to the Folders scaffold that hosts the Settings drawer.
+///
+/// The drawer's own build context is deactivated after it closes, so it
+/// cannot be reused to reopen Settings when a pushed feature screen returns.
+final settingsHostScaffoldKey = GlobalKey<ScaffoldState>(
+  debugLabel: 'settings-host',
+);
+
 /// The settings panel opened from the Folders screen.
 ///
 /// The drawer uses a restrained, grouped layout: identity first, everyday
@@ -64,7 +72,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                 children: [
                   _buildProfileCard(context),
                   const SizedBox(height: 24),
-                  _buildSectionLabel(context, 'section preferences'.tr),
+                  _buildSectionLabel(context, 'section_preferences'.tr),
                   _buildGroup(
                     context,
                     children: [
@@ -73,8 +81,11 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.bell_fill,
                         iconColor: _iosRed,
                         title: 'notifications_title'.tr,
-                        onTap: () =>
-                            _closeThenGo(context, Routes.NOTIFICATIONS),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.NOTIFICATIONS,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       _buildRow(
                         context,
@@ -106,7 +117,11 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.checkmark_shield_fill,
                         iconColor: _iosIndigo,
                         title: 'permissions_title'.tr,
-                        onTap: () => _closeThenGo(context, Routes.PERMISSIONS),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.PERMISSIONS,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       _buildRow(
                         context,
@@ -121,20 +136,27 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.doc_text_fill,
                         iconColor: _iosPurple,
                         title: 'privacy_policy_title'.tr,
-                        onTap: () =>
-                            _closeThenGo(context, Routes.PRIVACY_POLICY),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.PRIVACY_POLICY,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.chat_bubble_2_fill,
                         iconColor: _iosGreen,
-                        title: 'contact us'.tr,
-                        onTap: () => _closeThenGo(context, Routes.CONTACT_US),
+                        title: 'contact_us_title'.tr,
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.CONTACT_US,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 22),
-                  _buildSectionLabel(context, 'section support'.tr),
+                  _buildSectionLabel(context, 'section_support'.tr),
                   Obx(
                     () => _buildGroup(
                       context,
@@ -144,7 +166,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                             context,
                             icon: CupertinoIcons.lock_rotation,
                             iconColor: _iosOrange,
-                            title: 'forgot password'.tr,
+                            title: 'forgot_password_title'.tr,
                             onTap: () => _closeThenGo(
                               context,
                               Routes.FORGOT_PASSWORD,
@@ -152,29 +174,36 @@ class SettingsDrawer extends GetView<ProfileController> {
                                 'initialPhone': controller.userPhone.value,
                                 'onSubmit': controller.submitForgotPassword,
                               },
+                              reopenSettingsOnReturn: true,
                             ),
                           ),
                         _buildRow(
                           context,
                           icon: CupertinoIcons.question_circle_fill,
                           iconColor: _iosBlue,
-                          title: 'help center title'.tr,
-                          onTap: () =>
-                              _closeThenGo(context, Routes.HELP_CENTER),
+                          title: 'help_center_title'.tr,
+                          onTap: () => _closeThenGo(
+                            context,
+                            Routes.HELP_CENTER,
+                            reopenSettingsOnReturn: true,
+                          ),
                         ),
                         _buildRow(
                           context,
                           icon: CupertinoIcons.lock_shield_fill,
                           iconColor: _iosGreen,
-                          title: 'privacy security title'.tr,
-                          onTap: () =>
-                              _closeThenGo(context, Routes.PRIVACY_SECURITY),
+                          title: 'privacy_security_title'.tr,
+                          onTap: () => _closeThenGo(
+                            context,
+                            Routes.PRIVACY_SECURITY,
+                            reopenSettingsOnReturn: true,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 22),
-                  _buildSectionLabel(context, 'account label'.tr),
+                  _buildSectionLabel(context, 'account_label'.tr),
                   Obx(
                     () => _buildGroup(
                       context,
@@ -207,7 +236,7 @@ class SettingsDrawer extends GetView<ProfileController> {
         children: [
           Expanded(
             child: Text(
-              'settings title'.tr,
+              'settings_title'.tr,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: 21,
                 fontWeight: FontWeight.w700,
@@ -505,10 +534,14 @@ class SettingsDrawer extends GetView<ProfileController> {
       return _buildActionRow(
         context,
         icon: CupertinoIcons.trash_fill,
-        title: 'delete account title'.tr,
+        title: 'delete_account_title'.tr,
         isDestructive: true,
         showChevron: true,
-        onTap: () => _closeThenGo(context, Routes.DELETE_ACCOUNT),
+        onTap: () => _closeThenGo(
+          context,
+          Routes.DELETE_ACCOUNT,
+          reopenSettingsOnReturn: true,
+        ),
       );
     });
   }
@@ -602,6 +635,7 @@ class SettingsDrawer extends GetView<ProfileController> {
     BuildContext context,
     String route, {
     Object? arguments,
+    bool reopenSettingsOnReturn = false,
   }) async {
     Navigator.of(context).pop();
     // Avoid overlapping disposal of the drawer's glass render layers with
@@ -609,5 +643,12 @@ class SettingsDrawer extends GetView<ProfileController> {
     await Future<void>.delayed(kThemeAnimationDuration);
     if (Get.key.currentState == null) return;
     await Get.toNamed(route, arguments: arguments);
+
+    // Notifications is part of Settings, so its back arrow should return to
+    // the Settings drawer instead of leaving the user on the Folders screen.
+    if (!reopenSettingsOnReturn) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      settingsHostScaffoldKey.currentState?.openDrawer();
+    });
   }
 }

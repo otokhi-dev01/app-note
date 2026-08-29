@@ -81,7 +81,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
             physics: BouncingScrollPhysics(),
             slivers: [
               AppScreenSliverAppBar(
-                title: 'forgot password title'.tr,
+                title: 'forgot_password_title'.tr,
                 centerTitle: true,
                 leading: CustomGlassButton(
                   semanticLabel: MaterialLocalizations.of(
@@ -94,8 +94,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   blur: 10,
                   opacity: 0.15,
                   thickness: 8,
+                  glassColor: null,
+                  foregroundColor: theme.colorScheme.onSurface,
                   padding: EdgeInsets.zero,
-                  child: Icon(CupertinoIcons.chevron_left, size: 23),
+                  child: Icon(CupertinoIcons.back, size: 23),
                 ),
               ),
               SliverToBoxAdapter(
@@ -114,7 +116,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'forgot password'.tr,
+                            'forgot_password_desc'.tr,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                               height: 1.45,
@@ -131,7 +133,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'phone number label'.tr,
+                                  'phone_number_label'.tr,
                                   style: theme.textTheme.labelLarge?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -203,7 +205,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       ],
       onSubmitted: (_) => _submit(),
       decoration: InputDecoration(
-        hintText: 'phone number'.tr,
+        hintText: 'phone_number_hint'.tr,
         errorText: _errorText,
         counterText: '',
         filled: true,

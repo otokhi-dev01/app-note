@@ -10,11 +10,13 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import 'package:Note/core/di/injector.dart';
 import 'package:Note/core/localization/app_translations.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_id_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
 import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_drawer.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_popup.dart';
@@ -51,6 +53,86 @@ void main() {
   });
 
   tearDown(() => Get.reset());
+
+  for (final destination in [
+    (label: 'Notifications', route: Routes.NOTIFICATIONS),
+    (label: 'Privacy Policy', route: Routes.PRIVACY_POLICY),
+    (label: 'Contact Us', route: Routes.CONTACT_US),
+    (label: 'Permissions', route: Routes.PERMISSIONS),
+    (label: 'Forgot Password', route: Routes.FORGOT_PASSWORD),
+    (label: 'Help Center', route: Routes.HELP_CENTER),
+    (label: 'Privacy & Security', route: Routes.PRIVACY_SECURITY),
+    (label: 'Delete Account', route: Routes.DELETE_ACCOUNT),
+  ]) {
+    testWidgets('${destination.label} back arrow returns to Settings', (
+      tester,
+    ) async {
+      InitialBinding().dependencies();
+      Get.find<GuestModeService>().disable();
+
+      await tester.pumpWidget(
+        LiquidGlassWidgets.wrap(
+          brightnessResolver: Theme.maybeBrightnessOf,
+          theme: GlassThemeData(
+            light: const GlassThemeVariant(quality: GlassQuality.standard),
+            dark: const GlassThemeVariant(quality: GlassQuality.standard),
+          ),
+          child: GetMaterialApp(
+            translations: AppTranslations(),
+            locale: const Locale('en', 'US'),
+            getPages: AppPages.routes,
+            home: Scaffold(
+              key: settingsHostScaffoldKey,
+              drawer: const SettingsDrawer(),
+              body: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      settingsHostScaffoldKey.currentState!.openDrawer();
+      await tester.pumpAndSettle();
+      final tile = find.text(destination.label);
+      await tester.scrollUntilVisible(
+        tile,
+        280,
+        scrollable: find
+            .descendant(
+              of: find.byType(SettingsDrawer),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      if (destination.route == Routes.PERMISSIONS) {
+        await tester.pump(kThemeAnimationDuration);
+        await tester.pump(const Duration(milliseconds: 400));
+      } else {
+        await tester.pumpAndSettle();
+      }
+      expect(Get.currentRoute, destination.route);
+
+      await tester.tap(find.byIcon(CupertinoIcons.back));
+      await tester.pumpAndSettle();
+
+      expect(Get.currentRoute, isNot(destination.route));
+      expect(settingsHostScaffoldKey.currentState!.isDrawerOpen, isTrue);
+      expect(find.byType(SettingsDrawer), findsOneWidget);
+    });
+  }
+
+  final surfaceColorBackRoutes = {
+    Routes.NOTIFICATIONS,
+    Routes.PERMISSIONS,
+    Routes.PRIVACY_POLICY,
+    Routes.CONTACT_US,
+    Routes.HELP_CENTER,
+    Routes.PRIVACY_SECURITY,
+    Routes.FORGOT_PASSWORD,
+    Routes.DELETE_ACCOUNT,
+  };
 
   for (final route in [
     Routes.PROFILE,
@@ -102,11 +184,13 @@ void main() {
       if (route != Routes.PROFILE && route != Routes.FORGOT_PASSWORD) {
         expect(find.byType(SettingsSliverAppBar), findsOneWidget);
       }
-      if (route == Routes.NOTIFICATIONS) {
-        final settingsAppBar = tester.widget<SettingsSliverAppBar>(
-          find.byType(SettingsSliverAppBar),
-        );
-        expect(settingsAppBar.useIosBackButtonColors, isTrue);
+      if (surfaceColorBackRoutes.contains(route)) {
+        if (route != Routes.FORGOT_PASSWORD) {
+          final settingsAppBar = tester.widget<SettingsSliverAppBar>(
+            find.byType(SettingsSliverAppBar),
+          );
+          expect(settingsAppBar.useSurfaceBackButtonColor, isTrue);
+        }
 
         final appBar = tester.widget<AppScreenSliverAppBar>(
           find.byType(AppScreenSliverAppBar),
@@ -115,10 +199,9 @@ void main() {
         expect(backButton.glassColor, isNull);
         expect(
           backButton.foregroundColor,
-          CupertinoDynamicColor.resolve(
-            CupertinoColors.systemBlue,
-            tester.element(find.byType(SettingsSliverAppBar)),
-          ),
+          Theme.of(
+            tester.element(find.byType(AppScreenSliverAppBar)),
+          ).colorScheme.onSurface,
         );
         expect((backButton.child as Icon).icon, CupertinoIcons.back);
       }

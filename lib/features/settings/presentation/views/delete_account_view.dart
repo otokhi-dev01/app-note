@@ -42,7 +42,10 @@ class _DeleteAccountViewState extends State<DeleteAccountView> {
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SettingsSliverAppBar(title: 'delete_account_title'.tr),
+            SettingsSliverAppBar(
+              title: 'delete_account_title'.tr,
+              useSurfaceBackButtonColor: true,
+            ),
             SliverToBoxAdapter(
               child: Align(
                 alignment: Alignment.topCenter,

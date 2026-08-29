@@ -11,6 +11,7 @@ class NoteDetailView extends GetView<NoteDetailController> {
   const NoteDetailView({super.key, this.tag});
 
   @override
+  // ignore: overridden_fields
   final String? tag;
 
   @override
