@@ -259,6 +259,7 @@ class LocalNoteRepository implements NoteRepository {
           attachmentId: id,
           filePath: copied.path,
           blockId: blockId,
+          isLocal: true,
         ),
       );
     } catch (_) {
@@ -306,7 +307,10 @@ class LocalNoteRepository implements NoteRepository {
 
   List<Note> _readAll() {
     final raw = _storage.read<List>(_notesKey);
-    if (raw == null) return const [];
+    // Callers update this collection before writing it back. Returning a
+    // const empty list makes the very first guest-note save throw when it
+    // tries to add the new note.
+    if (raw == null) return <Note>[];
     return raw
         .whereType<Map>()
         .map((m) => _fromJson(Map<String, dynamic>.from(m)))

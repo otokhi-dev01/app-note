@@ -7,17 +7,17 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart'
-    as mlkit;
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:quill_native_bridge/quill_native_bridge.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:ui' as ui;
 import 'dart:io';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/app_media_storage.dart';
+import 'package:Note/core/services/native_media_services.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
@@ -120,6 +120,10 @@ class NoteDetailController extends GetxController {
   final isFormatPanelVisible = false.obs;
   bool _autoRecordRequested = false;
   bool _isAudioRecorderOpen = false;
+  AttachmentBlock? _attachmentClipboard;
+  String? _attachmentClipboardPdfSourcePath;
+
+  bool get hasAttachmentClipboard => _attachmentClipboard != null;
 
   // --- Global Drawing Mode (iOS 18 Style) ---
   final isDrawingMode = false.obs;
@@ -353,10 +357,32 @@ class NoteDetailController extends GetxController {
   void focusFirstTextBlock() {
     final firstText = blocks.whereType<TextBlock>().firstOrNull;
     if (firstText != null) {
-      getBlockFocusNode(firstText.id).requestFocus();
-    } else {
-      FocusManager.instance.primaryFocus?.unfocus();
+      _focusTextBlockAtEnd(firstText);
+      return;
     }
+
+    addTextBlock();
+    final created = blocks.whereType<TextBlock>().firstOrNull;
+    if (created == null) return;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusTextBlockAtEnd(created),
+    );
+  }
+
+  /// Gives the whole create-note canvas one predictable tap target. A fresh
+  /// draft starts in the title; once a title exists, tapping unused space
+  /// continues writing at the end of the body.
+  void focusCreateNoteComposer() {
+    if (isReadOnly.value) return;
+    if (titleController.text.trim().isEmpty) {
+      activeBlockIndex.value = -1;
+      titleController.selection = TextSelection.collapsed(
+        offset: titleController.text.length,
+      );
+      titleFocusNode.requestFocus();
+      return;
+    }
+    focusLastTextBlock();
   }
 
   /// iOS-Notes-style "tap anywhere to keep typing": tapping the empty space
@@ -365,12 +391,32 @@ class NoteDetailController extends GetxController {
   void focusLastTextBlock() {
     final lastText = blocks.whereType<TextBlock>().lastOrNull;
     if (lastText != null) {
-      getBlockFocusNode(lastText.id).requestFocus();
+      _focusTextBlockAtEnd(lastText);
       return;
     }
     addTextBlock();
     final created = blocks.whereType<TextBlock>().lastOrNull;
-    if (created != null) getBlockFocusNode(created.id).requestFocus();
+    if (created == null) return;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _focusTextBlockAtEnd(created),
+    );
+  }
+
+  void _focusTextBlockAtEnd(TextBlock block) {
+    final blockIndex = blocks.indexWhere(
+      (candidate) => candidate.id == block.id,
+    );
+    if (blockIndex == -1) return;
+
+    final quillController = getQuillController(block.id, block.text);
+    final end = quillController.document.length - 1;
+    quillController.updateSelection(
+      TextSelection.collapsed(offset: end < 0 ? 0 : end),
+      quill.ChangeSource.local,
+    );
+    activeBlockIndex.value = blockIndex;
+    currentBlockStyle.value = block.style;
+    getBlockFocusNode(block.id).requestFocus();
   }
 
   /// iOS 26 Notes-style body Backspace: once a block has just been
@@ -570,12 +616,14 @@ class NoteDetailController extends GetxController {
     if (isReadOnly.value) return;
 
     try {
-      final result = await FilePicker.platform.pickFiles();
-      final picked = result?.files.single;
-      if (picked?.path == null) return;
+      final result = await FilePicker.pickFiles(allowMultiple: false);
+      if (result == null || result.files.isEmpty) return;
+
+      final picked = result.files.single;
+      if (picked.path == null) return;
 
       final id = _generateId();
-      final persistedPath = await _persistAttachment(picked!.path!, id);
+      final persistedPath = await _persistAttachment(picked.path!, id);
       _insertBlock(
         AttachmentBlock(
           id: id,
@@ -726,19 +774,7 @@ class NoteDetailController extends GetxController {
   }
 
   Future<void> _insertScannedTextPdf(String imagePath) async {
-    final recognizer = mlkit.TextRecognizer(
-      script: mlkit.TextRecognitionScript.latin,
-    );
-    final mlkit.RecognizedText recognizedText;
-    try {
-      recognizedText = await recognizer.processImage(
-        mlkit.InputImage.fromFilePath(imagePath),
-      );
-    } finally {
-      await recognizer.close();
-    }
-
-    final text = recognizedText.text.trim();
+    final text = (await NativeMediaServices.recognizeText(imagePath)).trim();
     if (text.isEmpty) {
       AppSnackbar.info('No text found', "Couldn't find any text in that scan.");
       return;
@@ -902,7 +938,7 @@ class NoteDetailController extends GetxController {
     if (block is! AttachmentBlock) return;
 
     try {
-      // ios_image_editor may return a temporary path or overwrite the input
+      // The native editor may return a temporary path or overwrite the input
       // in place. Copying first gives the edit a stable, uniquely keyed file.
       final persistedPath = await _persistAttachment(
         editedPath,
@@ -985,6 +1021,7 @@ class NoteDetailController extends GetxController {
         url: null,
       );
       blocks.refresh();
+      await saveNote(silent: true);
       AppSnackbar.success('Converted', '$name is ready');
     } catch (e) {
       debugPrint('[PDF CONVERT ERROR] $e');
@@ -1031,6 +1068,7 @@ class NoteDetailController extends GetxController {
         url: null,
       );
       blocks.refresh();
+      await saveNote(silent: true);
       AppSnackbar.success('Restored', 'Attachment is an image again');
     } catch (e) {
       debugPrint('[IMAGE RESTORE ERROR] $e');
@@ -1038,11 +1076,9 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// Re-opens the picture a PDF block was built from in the markup editor and
-  /// rebuilds the PDF from the edited result.
-  ///
-  /// Only works where the source copy is: a PDF attached from Files, or one
-  /// converted on another device, has nothing to go back to.
+  /// Re-opens the picture an image-backed PDF was built from in
+  /// `ios_image_editor` and rebuilds the PDF after editing. Imported PDFs are
+  /// rasterized by [_editPdfFile] before opening the same package.
   Future<void> editPdfSourceImage(int blockIndex) async {
     if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
       return;
@@ -1052,10 +1088,7 @@ class NoteDetailController extends GetxController {
 
     final sourcePath = await findPdfSourceImage(block.id);
     if (sourcePath == null || !File(sourcePath).existsSync()) {
-      AppSnackbar.info(
-        'Not editable',
-        'The original image for this PDF isn\'t on this device.',
-      );
+      await _editPdfFile(blockIndex, block);
       return;
     }
 
@@ -1084,9 +1117,161 @@ class NoteDetailController extends GetxController {
         url: null,
       );
       blocks.refresh();
+      await saveNote(silent: true);
     } catch (e) {
       debugPrint('[PDF EDIT ERROR] $e');
       AppSnackbar.error('Error', 'Could not edit that PDF');
+    }
+  }
+
+  /// Rebuilds a PDF after the UI has composited another photo onto its first
+  /// page. Image-backed PDFs keep their editable source; imported PDFs retain
+  /// every page after page one.
+  Future<void> updatePdfFirstPageFromImage(
+    int blockIndex, {
+    required String editedImagePath,
+    required String originalPdfPath,
+    required bool sourceBacked,
+  }) async {
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock || !File(editedImagePath).existsSync()) {
+      return;
+    }
+
+    final renderedPages = <String>[];
+    try {
+      late final String rebuiltPdfPath;
+      if (sourceBacked) {
+        await storePdfSourceImage(
+          imagePath: editedImagePath,
+          blockId: block.id,
+        );
+        rebuiltPdfPath = await buildImagePdf(
+          imagePath: editedImagePath,
+          blockId: block.id,
+          title: block.displayName,
+        );
+      } else {
+        renderedPages.addAll(
+          await renderPdfPagesForImageEditing(originalPdfPath),
+        );
+        if (renderedPages.isEmpty) {
+          throw StateError('The PDF has no pages');
+        }
+        rebuiltPdfPath = await buildMultiPageImagePdf(
+          imagePaths: [editedImagePath, ...renderedPages.skip(1)],
+          blockId: block.id,
+          title: block.displayName,
+        );
+      }
+
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != block.id) {
+        return;
+      }
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        displayName: block.displayName.toLowerCase().endsWith('.pdf')
+            ? block.displayName
+            : '${block.displayName}.pdf',
+        localPath: rebuiltPdfPath,
+        url: null,
+      );
+      blocks.refresh();
+      if (block.localPath != rebuiltPdfPath) {
+        await AppMediaStorage.deleteIfManaged(
+          path: block.localPath,
+          folder: 'note_attachments',
+        );
+      }
+      await saveNote(silent: true);
+      AppSnackbar.success('Saved', 'Image added to PDF');
+    } catch (error) {
+      debugPrint('[PDF ADD IMAGE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not add that image to the PDF');
+    } finally {
+      for (final path in renderedPages) {
+        try {
+          await File(path).delete();
+        } catch (_) {
+          // Temporary rendered page cleanup is best-effort.
+        }
+      }
+    }
+  }
+
+  /// Opens an ordinary PDF through the image-only iOS editor.
+  ///
+  /// Every page is rendered to a temporary PNG. The package edits page one,
+  /// then the document is rebuilt with the untouched remaining pages so a
+  /// multi-page import is not accidentally truncated.
+  Future<void> _editPdfFile(int blockIndex, AttachmentBlock block) async {
+    var pdfPath = normalizeLocalPath(block.localPath);
+    if (pdfPath == null || !File(pdfPath).existsSync()) {
+      final remoteUrl = normalizeAttachmentUrl(block.url);
+      if (remoteUrl == null || remoteUrl.isEmpty) {
+        AppSnackbar.info(
+          'Not editable',
+          'The PDF is not available on this device.',
+        );
+        return;
+      }
+      pdfPath = await cacheAttachmentForPreview(remoteUrl, extension: '.pdf');
+    }
+    if (pdfPath == null || !File(pdfPath).existsSync()) return;
+
+    final renderedPages = <String>[];
+    try {
+      renderedPages.addAll(await renderPdfPagesForImageEditing(pdfPath));
+      if (renderedPages.isEmpty) {
+        throw StateError('The PDF has no editable pages');
+      }
+
+      final editedPath = await IOSImageEditor.editImage(renderedPages.first);
+      if (editedPath == null || editedPath.isEmpty) return;
+
+      final rebuiltPages = [editedPath, ...renderedPages.skip(1)];
+      final rebuiltPdfPath = await buildMultiPageImagePdf(
+        imagePaths: rebuiltPages,
+        blockId: block.id,
+        title: block.displayName,
+      );
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != block.id) {
+        return;
+      }
+
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        displayName: block.displayName.toLowerCase().endsWith('.pdf')
+            ? block.displayName
+            : '${block.displayName}.pdf',
+        localPath: rebuiltPdfPath,
+        url: null,
+      );
+      blocks.refresh();
+      if (block.localPath != rebuiltPdfPath) {
+        await AppMediaStorage.deleteIfManaged(
+          path: block.localPath,
+          folder: 'note_attachments',
+        );
+      }
+      await saveNote(silent: true);
+      AppSnackbar.success('Saved', 'PDF edits were saved');
+    } catch (error) {
+      debugPrint('[PDF IMAGE EDITOR SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that edited PDF');
+    } finally {
+      for (final path in renderedPages) {
+        try {
+          await File(path).delete();
+        } catch (_) {
+          // Temporary editor input cleanup is best-effort.
+        }
+      }
     }
   }
 
@@ -1550,6 +1735,306 @@ class NoteDetailController extends GetxController {
 
   // --- General Actions ---
 
+  Future<bool> copyAttachmentBlock(
+    int index, {
+    bool showFeedback = true,
+  }) async {
+    if (index < 0 || index >= blocks.length) return false;
+    final block = blocks[index];
+    if (block is! AttachmentBlock) return false;
+
+    try {
+      await _replaceAttachmentClipboard(block);
+      if (showFeedback) {
+        AppSnackbar.success('note_editor_attachment_copied'.tr);
+      }
+      return true;
+    } catch (error) {
+      debugPrint('[ATTACHMENT COPY ERROR] $error');
+      if (showFeedback) {
+        AppSnackbar.error(
+          'note_editor_error_title'.tr,
+          'note_editor_could_not_copy_attachment'.tr,
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> cutAttachmentBlock(int index) async {
+    if (isReadOnly.value || index < 0 || index >= blocks.length) return;
+    final block = blocks[index];
+    if (block is! AttachmentBlock) return;
+
+    try {
+      await _replaceAttachmentClipboard(block);
+      deleteBlock(index);
+      await saveNote(silent: true);
+      AppSnackbar.success('note_editor_attachment_cut'.tr);
+    } catch (error) {
+      debugPrint('[ATTACHMENT CUT ERROR] $error');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_cut_attachment'.tr,
+      );
+    }
+  }
+
+  Future<void> pasteAttachmentBlock({required int afterIndex}) async {
+    if (isReadOnly.value) return;
+    final clipboard = _attachmentClipboard;
+    if (clipboard == null) {
+      AppSnackbar.info('note_editor_nothing_to_paste'.tr);
+      return;
+    }
+
+    try {
+      final id = _generateId();
+      final clipboardPath = normalizeLocalPath(clipboard.localPath);
+      final localPath =
+          clipboardPath != null && File(clipboardPath).existsSync()
+          ? await _persistAttachment(clipboardPath, id, forceCopy: true)
+          : null;
+      final clipboardPdfSourcePath = _attachmentClipboardPdfSourcePath;
+      if (clipboardPdfSourcePath != null &&
+          File(clipboardPdfSourcePath).existsSync()) {
+        await storePdfSourceImage(
+          imagePath: clipboardPdfSourcePath,
+          blockId: id,
+        );
+      }
+      final pasted = AttachmentBlock(
+        id: id,
+        displayName: clipboard.displayName,
+        localPath: localPath,
+        url: localPath == null ? clipboard.url : null,
+        attachmentId: 0,
+      );
+      final insertIndex = (afterIndex + 1).clamp(0, blocks.length);
+      blocks.insert(insertIndex, pasted);
+      activeBlockIndex.value = insertIndex;
+      blocks.refresh();
+
+      if (insertIndex == blocks.length - 1 ||
+          blocks[insertIndex + 1] is! TextBlock) {
+        addTextBlock();
+      }
+      await saveNote(silent: true);
+      AppSnackbar.success('note_editor_attachment_pasted'.tr);
+    } catch (error) {
+      debugPrint('[ATTACHMENT PASTE ERROR] $error');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_paste_attachment'.tr,
+      );
+    }
+  }
+
+  /// Pastes the app's most recently copied attachment. When that clipboard is
+  /// empty, it falls back to the device clipboard so an image copied from
+  /// Photos/Safari, a GIF, a supported file, or plain text can still be added
+  /// to the note from the same Paste action.
+  Future<void> pasteClipboardContent({required int afterIndex}) async {
+    if (isReadOnly.value) return;
+    if (_attachmentClipboard != null) {
+      await pasteAttachmentBlock(afterIndex: afterIndex);
+      return;
+    }
+
+    try {
+      final bridge = QuillNativeBridge();
+      Uint8List? imageBytes;
+      String imageExtension = '.png';
+
+      try {
+        if (await bridge.isSupported(
+          QuillNativeBridgeFeature.getClipboardImage,
+        )) {
+          imageBytes = await bridge.getClipboardImage();
+        }
+      } catch (error) {
+        debugPrint('[CLIPBOARD IMAGE READ ERROR] $error');
+      }
+      if (imageBytes == null) {
+        try {
+          if (await bridge.isSupported(
+            QuillNativeBridgeFeature.getClipboardGif,
+          )) {
+            imageBytes = await bridge.getClipboardGif();
+            imageExtension = '.gif';
+          }
+        } catch (error) {
+          debugPrint('[CLIPBOARD GIF READ ERROR] $error');
+        }
+      }
+      if (imageBytes != null && imageBytes.isNotEmpty) {
+        await _pasteClipboardImage(
+          imageBytes,
+          extension: imageExtension,
+          afterIndex: afterIndex,
+        );
+        return;
+      }
+
+      try {
+        if (await bridge.isSupported(
+          QuillNativeBridgeFeature.getClipboardFiles,
+        )) {
+          final paths = await bridge.getClipboardFiles();
+          final existingPaths = paths
+              .map(normalizeLocalPath)
+              .whereType<String>()
+              .where((path) => File(path).existsSync())
+              .toList(growable: false);
+          if (existingPaths.isNotEmpty) {
+            await _pasteClipboardFiles(existingPaths, afterIndex: afterIndex);
+            return;
+          }
+        }
+      } catch (error) {
+        debugPrint('[CLIPBOARD FILE READ ERROR] $error');
+      }
+
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+      final text = clipboardData?.text;
+      if (text != null && text.isNotEmpty) {
+        final insertIndex = (afterIndex + 1).clamp(0, blocks.length);
+        final textBlock = TextBlock(id: _generateId(), text: text);
+        blocks.insert(insertIndex, textBlock);
+        activeBlockIndex.value = insertIndex;
+        blocks.refresh();
+        getQuillController(textBlock.id, text);
+        await saveNote(silent: true);
+        AppSnackbar.success('note_editor_content_pasted'.tr);
+        return;
+      }
+
+      AppSnackbar.info('note_editor_nothing_to_paste'.tr);
+    } catch (error) {
+      debugPrint('[SYSTEM CLIPBOARD PASTE ERROR] $error');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_paste_attachment'.tr,
+      );
+    }
+  }
+
+  Future<void> _pasteClipboardImage(
+    Uint8List bytes, {
+    required String extension,
+    required int afterIndex,
+  }) async {
+    final directory = await getTemporaryDirectory();
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final temporary = File(
+      '${directory.path}/clipboard_image_$timestamp$extension',
+    );
+    await temporary.writeAsBytes(bytes, flush: true);
+    try {
+      await _pasteClipboardFiles([temporary.path], afterIndex: afterIndex);
+    } finally {
+      if (temporary.existsSync()) await temporary.delete();
+    }
+  }
+
+  Future<void> _pasteClipboardFiles(
+    List<String> paths, {
+    required int afterIndex,
+  }) async {
+    var insertIndex = (afterIndex + 1).clamp(0, blocks.length);
+    for (final path in paths) {
+      final id = _generateId();
+      final localPath = await _persistAttachment(path, id, forceCopy: true);
+      final name = path.split(Platform.pathSeparator).last;
+      blocks.insert(
+        insertIndex,
+        AttachmentBlock(
+          id: id,
+          displayName: name.isEmpty ? 'Pasted Attachment' : name,
+          localPath: localPath,
+          attachmentId: 0,
+        ),
+      );
+      insertIndex++;
+    }
+    activeBlockIndex.value = insertIndex - 1;
+    blocks.refresh();
+    if (insertIndex == blocks.length || blocks[insertIndex] is! TextBlock) {
+      addTextBlock();
+    }
+    await saveNote(silent: true);
+    AppSnackbar.success('note_editor_attachment_pasted'.tr);
+  }
+
+  Future<void> _replaceAttachmentClipboard(AttachmentBlock block) async {
+    final previousPath = _attachmentClipboard?.localPath;
+    final previousPdfSourcePath = _attachmentClipboardPdfSourcePath;
+    var sourcePath = normalizeLocalPath(block.localPath);
+    if (sourcePath == null || !File(sourcePath).existsSync()) {
+      final remoteUrl = normalizeAttachmentUrl(block.url);
+      if (remoteUrl != null && remoteUrl.isNotEmpty) {
+        final directory = await getTemporaryDirectory();
+        final extension = _extensionOf(block.displayName).isNotEmpty
+            ? _extensionOf(block.displayName)
+            : _extensionOf(Uri.parse(remoteUrl).path);
+        final savePath =
+            '${directory.path}/clipboard_${DateTime.now().microsecondsSinceEpoch}$extension';
+        final result = await _downloadAttachment(
+          DownloadAttachmentParams(url: remoteUrl, savePath: savePath),
+        );
+        sourcePath = switch (result) {
+          Ok(:final value) => value,
+          Err(:final failure) => throw StateError(failure.message),
+        };
+      }
+    }
+
+    final clipboardPath = sourcePath != null && File(sourcePath).existsSync()
+        ? await AppMediaStorage.persist(
+            sourcePath: sourcePath,
+            folder: 'note_clipboard',
+            fileName: 'clipboard_${DateTime.now().microsecondsSinceEpoch}',
+            forceCopy: true,
+          )
+        : null;
+    if (clipboardPath == null) {
+      throw StateError('Attachment source unavailable');
+    }
+
+    final pdfSourcePath = await findPdfSourceImage(block.id);
+    final clipboardPdfSourcePath =
+        pdfSourcePath != null && File(pdfSourcePath).existsSync()
+        ? await AppMediaStorage.persist(
+            sourcePath: pdfSourcePath,
+            folder: 'note_clipboard',
+            fileName:
+                'clipboard_pdf_source_${DateTime.now().microsecondsSinceEpoch}',
+            forceCopy: true,
+          )
+        : null;
+
+    _attachmentClipboard = AttachmentBlock(
+      id: 'clipboard_${block.id}',
+      displayName: block.displayName,
+      localPath: clipboardPath,
+      url: null,
+      attachmentId: 0,
+    );
+    _attachmentClipboardPdfSourcePath = clipboardPdfSourcePath;
+    unawaited(
+      AppMediaStorage.deleteIfManaged(
+        path: previousPath,
+        folder: 'note_clipboard',
+      ),
+    );
+    unawaited(
+      AppMediaStorage.deleteIfManaged(
+        path: previousPdfSourcePath,
+        folder: 'note_clipboard',
+      ),
+    );
+  }
+
   void deleteBlock(int index) {
     if (isReadOnly.value) return;
     final block = blocks[index];
@@ -1924,10 +2409,12 @@ class NoteDetailController extends GetxController {
         : null;
 
     try {
-      await Share.share(
-        buffer.toString().trim(),
-        subject: title.isEmpty ? 'Untitled Note' : title,
-        sharePositionOrigin: origin,
+      await SharePlus.instance.share(
+        ShareParams(
+          text: buffer.toString().trim(),
+          subject: title.isEmpty ? 'Untitled Note' : title,
+          sharePositionOrigin: origin,
+        ),
       );
     } catch (e) {
       debugPrint('[SHARE ERROR] $e');
@@ -2036,7 +2523,9 @@ class NoteDetailController extends GetxController {
           ? box.localToGlobal(Offset.zero) & box.size
           : null;
 
-      await Share.shareXFiles([XFile(path)], sharePositionOrigin: origin);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(path)], sharePositionOrigin: origin),
+      );
     } catch (e) {
       debugPrint('[EXPORT PDF ERROR] $e');
       AppSnackbar.error('Error', 'Could not export this note as a PDF');
@@ -2352,6 +2841,18 @@ class NoteDetailController extends GetxController {
 
   @override
   void onClose() {
+    unawaited(
+      AppMediaStorage.deleteIfManaged(
+        path: _attachmentClipboard?.localPath,
+        folder: 'note_clipboard',
+      ),
+    );
+    unawaited(
+      AppMediaStorage.deleteIfManaged(
+        path: _attachmentClipboardPdfSourcePath,
+        folder: 'note_clipboard',
+      ),
+    );
     titleController.dispose();
     titleFocusNode.dispose();
     _clearControllers();

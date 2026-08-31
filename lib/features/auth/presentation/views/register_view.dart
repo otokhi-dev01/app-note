@@ -28,9 +28,9 @@ class RegisterView extends GetView<AuthController> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: BouncingScrollPhysics(),
           slivers: [
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: SafeArea(
                 bottom: false,
                 child: Padding(
@@ -45,20 +45,20 @@ class RegisterView extends GetView<AuthController> {
             SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const AppLogo(height: 78)
+                    AppLogo(height: 78)
                         .animate()
                         .scale(
                           duration: 600.ms,
                           curve: Curves.easeOutBack,
-                          begin: const Offset(0.9, 0.9),
-                          end: const Offset(1, 1),
+                          begin: Offset(0.9, 0.9),
+                          end: Offset(1, 1),
                         )
                         .fadeIn(duration: 400.ms),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Text(
                           "register_create_account".tr,
                           style: theme.textTheme.headlineSmall?.copyWith(
@@ -69,14 +69,12 @@ class RegisterView extends GetView<AuthController> {
                         .animate()
                         .fadeIn(duration: 400.ms)
                         .slideY(begin: 0.2, end: 0),
-
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       "register_subtitle".tr,
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 100.ms),
-
-                    const SizedBox(height: 15),
+                    SizedBox(height: 15),
                     // Register Card
                     CustomGlassContainer(
                       borderRadius: 30,
@@ -89,7 +87,7 @@ class RegisterView extends GetView<AuthController> {
                         borderRadius: BorderRadius.circular(30),
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: EdgeInsets.all(24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -97,7 +95,7 @@ class RegisterView extends GetView<AuthController> {
                                 child: Container(
                                   width: 40,
                                   height: 4,
-                                  margin: const EdgeInsets.only(bottom: 24),
+                                  margin: EdgeInsets.only(bottom: 24),
                                   decoration: BoxDecoration(
                                     color: theme.dividerColor.withValues(
                                       alpha: 0.3,
@@ -112,7 +110,7 @@ class RegisterView extends GetView<AuthController> {
                                 hint: "full_name_hint".tr,
                                 icon: FontAwesomeIcons.user,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               _buildTextField(
                                 context,
                                 controller: controller.phoneController,
@@ -120,7 +118,7 @@ class RegisterView extends GetView<AuthController> {
                                 icon: FontAwesomeIcons.phone,
                                 keyboardType: TextInputType.phone,
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               Obx(
                                 () => _buildTextField(
                                   context,
@@ -142,7 +140,7 @@ class RegisterView extends GetView<AuthController> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               Obx(
                                 () => _buildTextField(
                                   context,
@@ -166,8 +164,7 @@ class RegisterView extends GetView<AuthController> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 32),
-
+                              SizedBox(height: 32),
                               Obx(
                                 () => SizedBox(
                                   width: double.infinity,
@@ -178,7 +175,7 @@ class RegisterView extends GetView<AuthController> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.folderPink,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
+                                      padding: EdgeInsets.symmetric(
                                         vertical: 16,
                                       ),
                                       elevation: 0,
@@ -187,7 +184,7 @@ class RegisterView extends GetView<AuthController> {
                                       ),
                                     ),
                                     child: controller.isLoading.value
-                                        ? const SizedBox(
+                                        ? SizedBox(
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
@@ -197,7 +194,7 @@ class RegisterView extends GetView<AuthController> {
                                           )
                                         : Text(
                                             "register_button".tr,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
                                             ),
@@ -210,9 +207,7 @@ class RegisterView extends GetView<AuthController> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 20),
-
+                    SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -227,7 +222,7 @@ class RegisterView extends GetView<AuthController> {
                           onPressed: () => Get.back(),
                           style: TextButton.styleFrom(
                             foregroundColor: AppTheme.folderPink,
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            padding: EdgeInsets.symmetric(horizontal: 5),
                           ),
                           child: Text(
                             "login_link".tr,
@@ -278,7 +273,7 @@ class RegisterView extends GetView<AuthController> {
           prefixIcon: icon is IconData
               ? Icon(icon, color: theme.colorScheme.onSurfaceVariant)
               : Padding(
-                  padding: const EdgeInsets.all(14.0),
+                  padding: EdgeInsets.all(14.0),
                   child: FaIcon(
                     icon,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -287,10 +282,7 @@ class RegisterView extends GetView<AuthController> {
                 ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

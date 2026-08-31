@@ -27,9 +27,9 @@ class LoginView extends GetView<AuthController> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: BouncingScrollPhysics(),
           slivers: [
-            const SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: SafeArea(
                 bottom: false,
                 child: Padding(
@@ -44,22 +44,22 @@ class LoginView extends GetView<AuthController> {
             SliverFillRemaining(
               hasScrollBody: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const AppLogo(height: 78)
+                    AppLogo(height: 78)
                         .animate()
                         .scale(
                           duration: 600.ms,
                           curve: Curves.easeOutBack,
-                          begin: const Offset(0.9, 0.9),
-                          end: const Offset(1, 1),
+                          begin: Offset(0.9, 0.9),
+                          end: Offset(1, 1),
                         )
                         .fadeIn(duration: 400.ms),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
                     Text(
-                          "login_welcome_back".tr,
+                          "login welcome back".tr,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 30,
@@ -68,12 +68,12 @@ class LoginView extends GetView<AuthController> {
                         .animate()
                         .fadeIn(delay: 200.ms)
                         .slideY(begin: 0.2, end: 0),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       "login_subtitle".tr,
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 300.ms),
-                    const SizedBox(height: 15),
+                    SizedBox(height: 15),
                     // Login Card
                     CustomGlassContainer(
                       borderRadius: 30,
@@ -86,14 +86,14 @@ class LoginView extends GetView<AuthController> {
                         borderRadius: BorderRadius.circular(30),
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: EdgeInsets.all(24),
                           child: Column(
                             children: [
                               Center(
                                 child: Container(
                                   width: 40,
                                   height: 4,
-                                  margin: const EdgeInsets.only(bottom: 24),
+                                  margin: EdgeInsets.only(bottom: 24),
                                   decoration: BoxDecoration(
                                     color: theme.dividerColor.withValues(
                                       alpha: 0.3,
@@ -105,16 +105,16 @@ class LoginView extends GetView<AuthController> {
                               _buildTextField(
                                 context,
                                 controller: controller.phoneController,
-                                hint: "phone_number_hint".tr,
+                                hint: "phone number".tr,
                                 icon: FontAwesomeIcons.phone,
                                 keyboardType: TextInputType.phone,
                               ),
-                              const SizedBox(height: 20),
+                              SizedBox(height: 20),
                               Obx(
                                 () => _buildTextField(
                                   context,
                                   controller: controller.passwordController,
-                                  hint: "password_hint".tr,
+                                  hint: "password".tr,
                                   icon: FontAwesomeIcons.lock,
                                   isPassword:
                                       !controller.isPasswordVisible.value,
@@ -131,8 +131,8 @@ class LoginView extends GetView<AuthController> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 20),
-                              const Divider(height: 1),
+                              SizedBox(height: 20),
+                              Divider(height: 1),
                               Row(
                                 children: [
                                   Obx(
@@ -149,23 +149,23 @@ class LoginView extends GetView<AuthController> {
                                   GestureDetector(
                                     onTap: controller.toggleRememberMe,
                                     child: Text(
-                                      "remember_me".tr,
+                                      "remember me".tr,
                                       style: theme.textTheme.bodyMedium,
                                     ),
                                   ),
-                                  const Spacer(),
+                                  Spacer(),
                                   TextButton(
                                     onPressed: controller.forgotPassword,
                                     child: Text(
-                                      "forgot_password".tr,
-                                      style: const TextStyle(
+                                      "forgot password".tr,
+                                      style: TextStyle(
                                         color: AppTheme.folderPink,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 24),
                               Obx(
                                 () => SizedBox(
                                   width: double.infinity,
@@ -176,7 +176,7 @@ class LoginView extends GetView<AuthController> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.folderPink,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
+                                      padding: EdgeInsets.symmetric(
                                         vertical: 16,
                                       ),
                                       elevation: 0,
@@ -185,7 +185,7 @@ class LoginView extends GetView<AuthController> {
                                       ),
                                     ),
                                     child: controller.isLoading.value
-                                        ? const SizedBox(
+                                        ? SizedBox(
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
@@ -195,7 +195,7 @@ class LoginView extends GetView<AuthController> {
                                           )
                                         : Text(
                                             "login_button".tr,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
                                             ),
@@ -209,7 +209,7 @@ class LoginView extends GetView<AuthController> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    SizedBox(height: 28),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -224,7 +224,7 @@ class LoginView extends GetView<AuthController> {
                           onPressed: () => Get.toNamed(Routes.REGISTER),
                           style: TextButton.styleFrom(
                             foregroundColor: AppTheme.folderPink,
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            padding: EdgeInsets.symmetric(horizontal: 5),
                           ),
                           child: Text(
                             "register_link".tr,
@@ -275,7 +275,7 @@ class LoginView extends GetView<AuthController> {
           prefixIcon: icon is IconData
               ? Icon(icon, color: theme.colorScheme.onSurfaceVariant)
               : Padding(
-                  padding: const EdgeInsets.all(14.0),
+                  padding: EdgeInsets.all(14.0),
                   child: FaIcon(
                     icon,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -284,10 +284,7 @@ class LoginView extends GetView<AuthController> {
                 ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

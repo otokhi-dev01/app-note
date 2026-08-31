@@ -15,6 +15,7 @@ class NoteBinding extends Bindings {
         deleteRestoreNote: Get.find<DeleteRestoreNote>(),
         moveNotes: Get.find<MoveNotesToFolder>(),
         getFolders: Get.find<GetFolders>(),
+        createAudioNote: Get.find<CreateAudioNote>(),
       ),
     );
     // Tagged per push (see NoteNavigation._newInstanceTag): NOTE_DETAIL can be

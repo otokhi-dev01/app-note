@@ -14,6 +14,7 @@ class CreateNoteView extends GetView<NoteDetailController> {
   const CreateNoteView({super.key, this.tag});
 
   @override
+  // ignore: overridden_fields
   final String? tag;
 
   @override
@@ -24,9 +25,7 @@ class CreateNoteView extends GetView<NoteDetailController> {
       value: _systemUiStyle(theme),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-
         resizeToAvoidBottomInset: false,
-
         body: Stack(
           children: [
             _CreateNoteBody(controller: controller),
@@ -129,10 +128,8 @@ class _CreateNoteBody extends StatelessWidget {
     return _MaxWidth(
       child: Obx(() {
         final isReadOnly = controller.isReadOnly.value;
-
         return CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
           slivers: [
             NoteEditorTopBar(
@@ -142,13 +139,6 @@ class _CreateNoteBody extends StatelessWidget {
               showMore: false,
               alwaysShowSave: true,
               backgroundColor: theme.scaffoldBackgroundColor,
-              shadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
               onBack: () => _handleBack(controller),
             ),
             SliverPadding(

@@ -8,7 +8,6 @@ import 'package:Note/features/note/domain/repositories/note_repository.dart';
 
 /// One file per feature rather than one per class: these are thin, and keeping
 /// them together makes the feature's whole surface readable at a glance.
-
 // ─────────────────────────────────────────────────────────────── reads
 
 class GetNotes extends UseCase<NoteBundle, GetNotesParams> {
@@ -121,6 +120,68 @@ class SaveNoteContentParams {
     required this.noteId,
     required this.title,
     required this.content,
+  });
+}
+
+/// Creates a complete audio-only note without opening the note editor.
+///
+/// Metadata must exist before the attachment can be uploaded, and the
+/// uploaded attachment must exist before content is saved. Keeping the three
+/// calls here gives every inline recorder the same transactional ordering.
+class CreateAudioNote extends UseCase<Note, CreateAudioNoteParams> {
+  final NoteRepository _repository;
+
+  const CreateAudioNote(this._repository);
+
+  @override
+  Future<Result<Note>> call(CreateAudioNoteParams params) async {
+    final idResult = await _repository.saveNoteMetadata(
+      folderId: params.folderId,
+      title: params.title,
+    );
+    if (idResult case Err(:final failure)) return Err(failure);
+    final noteId = idResult.valueOrNull!;
+
+    final uploadResult = await _repository.uploadAttachment(
+      noteId: noteId,
+      filePath: params.filePath,
+      blockId: params.blockId,
+      displayOrder: 0,
+    );
+    if (uploadResult case Err(:final failure)) return Err(failure);
+    final upload = uploadResult.valueOrNull!;
+
+    final block = AttachmentBlock(
+      id: params.blockId,
+      attachmentId: upload.attachmentId,
+      displayName: params.displayName,
+      url: upload.isLocal ? null : upload.filePath,
+      localPath: upload.isLocal ? upload.filePath : null,
+    );
+    final contentResult = await _repository.saveNoteContent(
+      noteId: noteId,
+      title: params.title,
+      content: [block],
+    );
+    if (contentResult case Err(:final failure)) return Err(failure);
+
+    return _repository.getNoteDetail(noteId);
+  }
+}
+
+class CreateAudioNoteParams {
+  final int folderId;
+  final String title;
+  final String filePath;
+  final String displayName;
+  final String blockId;
+
+  const CreateAudioNoteParams({
+    required this.folderId,
+    required this.title,
+    required this.filePath,
+    required this.displayName,
+    required this.blockId,
   });
 }
 

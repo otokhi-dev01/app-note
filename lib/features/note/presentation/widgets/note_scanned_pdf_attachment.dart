@@ -5,21 +5,25 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:image_picker/image_picker.dart';
+import 'package:ios_image_editor/ios_image_editor.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'package:Note/core/feedback/app_snackbar.dart';
-import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/core/utils/attachment_url.dart';
+import 'package:Note/core/utils/image_pdf.dart';
 import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
 
 /// Renders the actual first PDF page inside the note, so the inline card is a
 /// faithful paper preview of the file that will be shared or printed.
 class NotePdfAttachment extends StatefulWidget {
   final AttachmentBlock block;
+  final int blockIndex;
   final NoteDetailController controller;
   final bool isReadOnly;
   final VoidCallback onDelete;
@@ -27,6 +31,7 @@ class NotePdfAttachment extends StatefulWidget {
   const NotePdfAttachment({
     super.key,
     required this.block,
+    required this.blockIndex,
     required this.controller,
     required this.isReadOnly,
     required this.onDelete,
@@ -37,7 +42,6 @@ class NotePdfAttachment extends StatefulWidget {
 }
 
 class _NotePdfAttachmentState extends State<NotePdfAttachment> {
-  final _menuController = lg.GlassMenuController();
   Uint8List? _firstPageBytes;
   String? _resolvedPath;
   bool _isLoading = true;
@@ -150,6 +154,154 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
     await shareXFilesSafely(context, [XFile(path)]);
   }
 
+  Future<void> _editPdf() async {
+    if (widget.isReadOnly) {
+      await _openPdf();
+      return;
+    }
+    await widget.controller.editPdfSourceImage(widget.blockIndex);
+    if (mounted) await _loadPreview();
+  }
+
+  Future<void> _addImageOverlay() async {
+    if (widget.isReadOnly) return;
+    final pdfPath = _resolvedPath;
+    if (pdfPath == null || !File(pdfPath).existsSync()) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_pdf_not_available'.tr,
+      );
+      return;
+    }
+
+    final sourcePath = await findPdfSourceImage(widget.block.id);
+    final sourceBacked = sourcePath != null && File(sourcePath).existsSync();
+    String? generatedBasePath;
+    final basePath = sourceBacked
+        ? sourcePath
+        : await () async {
+            final bytes = _firstPageBytes;
+            if (bytes == null) return null;
+            final directory = await getTemporaryDirectory();
+            final path =
+                '${directory.path}/pdf_overlay_base_${DateTime.now().microsecondsSinceEpoch}.png';
+            await File(path).writeAsBytes(bytes, flush: true);
+            generatedBasePath = path;
+            return path;
+          }();
+    if (basePath == null || !File(basePath).existsSync()) {
+      AppSnackbar.error('Error', 'Could not prepare that PDF page');
+      return;
+    }
+
+    String? composedPath;
+    try {
+      final pickedImage = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+      if (pickedImage == null || !mounted) return;
+
+      composedPath = await Navigator.of(context).push<String>(
+        CupertinoPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ImageOverlayComposerPage(
+            baseImagePath: basePath,
+            overlayImagePath: pickedImage.path,
+          ),
+        ),
+      );
+      if (composedPath == null || composedPath.isEmpty) return;
+
+      final editedPath = await IOSImageEditor.editImage(composedPath);
+      if (editedPath == null || editedPath.isEmpty) return;
+
+      await widget.controller.updatePdfFirstPageFromImage(
+        widget.blockIndex,
+        editedImagePath: editedPath,
+        originalPdfPath: pdfPath,
+        sourceBacked: sourceBacked,
+      );
+      if (mounted) await _loadPreview();
+    } catch (error) {
+      debugPrint('[PDF ADD IMAGE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not add that image to the PDF');
+    } finally {
+      for (final path in [generatedBasePath, composedPath]) {
+        if (path == null) continue;
+        try {
+          await File(path).delete();
+        } catch (_) {
+          // Temporary overlay files are best-effort cleanup.
+        }
+      }
+    }
+  }
+
+  void _showContextMenu() {
+    final theme = Theme.of(context);
+    NoteMediaContextMenu.show(
+      context: context,
+      preview: ColoredBox(color: Colors.white, child: _buildPaper(theme)),
+      previewHeight: 440,
+      actions: [
+        NoteMediaMenuAction(
+          title: 'note_editor_copy'.tr,
+          icon: CupertinoIcons.doc_on_doc,
+          onTap: () => unawaited(
+            widget.controller.copyAttachmentBlock(widget.blockIndex),
+          ),
+        ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_paste'.tr,
+            icon: Icons.content_paste_rounded,
+            onTap: () => unawaited(
+              widget.controller.pasteClipboardContent(
+                afterIndex: widget.blockIndex,
+              ),
+            ),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_cut'.tr,
+            icon: Icons.content_cut_rounded,
+            onTap: () => unawaited(
+              widget.controller.cutAttachmentBlock(widget.blockIndex),
+            ),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_delete'.tr,
+            icon: CupertinoIcons.trash,
+            isDestructive: true,
+            onTap: widget.onDelete,
+          ),
+        NoteMediaMenuAction(
+          title: 'note_editor_share'.tr,
+          icon: CupertinoIcons.share,
+          onTap: () => unawaited(_shareOrPrint()),
+        ),
+        NoteMediaMenuAction(
+          title: 'note_editor_open_pdf'.tr,
+          icon: CupertinoIcons.doc_text_search,
+          onTap: () => unawaited(_openPdf()),
+        ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_add_image'.tr,
+            icon: CupertinoIcons.photo_on_rectangle,
+            onTap: () => unawaited(_addImageOverlay()),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_edit_pdf'.tr,
+            icon: CupertinoIcons.pencil,
+            onTap: () => unawaited(_editPdf()),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -160,69 +312,32 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
       label: 'note_editor_attached_file_semantic_label'.trParams({
         'name': name,
       }),
-      child: lg.GlassMenu(
-        controller: _menuController,
-        menuWidth: 250,
-        autoAdjustToScreen: true,
-        menuPadding: const EdgeInsets.all(12),
-        morphFromZero: true,
-        triggerBuilder: (context, _) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _openPdf,
-          onLongPress: _menuController.open,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 430),
-              child: AspectRatio(
-                aspectRatio: 1 / 1.4142,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.black12, width: 0.8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: _buildPaper(theme),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _editPdf,
+        onLongPress: _showContextMenu,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: AspectRatio(
+              aspectRatio: 1 / 1.4142,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black12, width: 0.8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
+                child: _buildPaper(theme),
               ),
             ),
           ),
         ),
-        items: [
-          lg.GlassMenuItem(
-            title: 'note_editor_open_pdf'.tr,
-            icon: const Icon(
-              CupertinoIcons.doc_text_search,
-              color: IosSemanticColors.blue,
-            ),
-            onTap: _openPdf,
-          ),
-          lg.GlassMenuItem(
-            title: 'note_editor_share_print_pdf'.tr,
-            icon: const Icon(
-              CupertinoIcons.share,
-              color: IosSemanticColors.blue,
-            ),
-            onTap: _shareOrPrint,
-          ),
-          if (!widget.isReadOnly) ...[
-            const lg.GlassMenuDivider(),
-            lg.GlassMenuItem(
-              title: 'note_editor_delete'.tr,
-              icon: const Icon(
-                CupertinoIcons.trash,
-                color: IosSemanticColors.red,
-              ),
-              isDestructive: true,
-              onTap: widget.onDelete,
-            ),
-          ],
-        ],
       ),
     );
   }

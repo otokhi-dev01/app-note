@@ -6,7 +6,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 /// The app-bar surface used by Create Note and, by default, every screen-level
 /// app bar in the app.
 const kCreateNoteAppBarShadow = <BoxShadow>[
-  BoxShadow(color: Color(0x1F000000), blurRadius: 16, offset: Offset(0, 6)),
+  BoxShadow(color: Color(0x09000000), blurRadius: 18, offset: Offset(0, 6)),
 ];
 
 class CustomGlassAppBar extends StatelessWidget implements PreferredSizeWidget {

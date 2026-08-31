@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Stable semantic colors matching the system palette used by iOS controls.
 abstract final class IosSemanticColors {
   static const blue = Color(0xFF007AFF);
   static const green = Color(0xFF34C759);

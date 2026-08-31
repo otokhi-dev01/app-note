@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class _FaqEntry {
@@ -47,24 +47,9 @@ class HelpCenterView extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            AppScreenSliverAppBar(
+            SettingsSliverAppBar(
               title: "help_center_title".tr,
-              centerTitle: true,
-              leading: CustomGlassButton(
-                onPressed: () => Get.back(),
-                width: 44,
-                height: 44,
-                shape: GlassShape.circle,
-                blur: 10,
-                opacity: 0.15,
-                thickness: 8,
-                padding: EdgeInsets.zero,
-                child: Icon(
-                  CupertinoIcons.chevron_left,
-                  color: theme.colorScheme.onSurface,
-                  size: 24,
-                ),
-              ),
+              useSurfaceBackButtonColor: true,
             ),
             SliverToBoxAdapter(
               child: Padding(

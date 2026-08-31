@@ -15,7 +15,16 @@ import 'package:Note/features/settings/presentation/widgets/preference_actions.d
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_popup.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
+
+/// Stable access to the Folders scaffold that hosts the Settings drawer.
+///
+/// The drawer's own build context is deactivated after it closes, so it
+/// cannot be reused to reopen Settings when a pushed feature screen returns.
+final settingsHostScaffoldKey = GlobalKey<ScaffoldState>(
+  debugLabel: 'settings-host',
+);
 
 /// The settings panel opened from the Folders screen.
 ///
@@ -72,23 +81,32 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.bell_fill,
                         iconColor: _iosRed,
                         title: 'notifications_title'.tr,
-                        onTap: () =>
-                            _closeThenGo(context, Routes.NOTIFICATIONS),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.NOTIFICATIONS,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.device_phone_portrait,
                         iconColor: _iosGray,
                         title: 'device_title'.tr,
-                        onTap: () => _closeThenGo(context, Routes.DEVICE),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.DEVICE,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
-                      _buildRow(
-                        context,
-                        icon: CupertinoIcons.globe,
-                        iconColor: _iosBlue,
-                        title: 'language_title'.tr,
-                        trailingText: LanguagePreferences().language.label,
-                        onTap: () => _closeThenGo(context, Routes.LANGUAGE),
+                      LanguagePopup(
+                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                          context,
+                          icon: CupertinoIcons.globe,
+                          iconColor: _iosBlue,
+                          title: 'language_title'.tr,
+                          trailingText: LanguagePreferences().language.label,
+                          onTap: toggleMenu,
+                        ),
                       ),
                       _buildRow(
                         context,
@@ -103,7 +121,11 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.checkmark_shield_fill,
                         iconColor: _iosIndigo,
                         title: 'permissions_title'.tr,
-                        onTap: () => _closeThenGo(context, Routes.PERMISSIONS),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.PERMISSIONS,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       _buildRow(
                         context,
@@ -118,15 +140,22 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.doc_text_fill,
                         iconColor: _iosPurple,
                         title: 'privacy_policy_title'.tr,
-                        onTap: () =>
-                            _closeThenGo(context, Routes.PRIVACY_POLICY),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.PRIVACY_POLICY,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.chat_bubble_2_fill,
                         iconColor: _iosGreen,
                         title: 'contact_us_title'.tr,
-                        onTap: () => _closeThenGo(context, Routes.CONTACT_US),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.CONTACT_US,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                     ],
                   ),
@@ -149,6 +178,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                                 'initialPhone': controller.userPhone.value,
                                 'onSubmit': controller.submitForgotPassword,
                               },
+                              reopenSettingsOnReturn: true,
                             ),
                           ),
                         _buildRow(
@@ -156,16 +186,22 @@ class SettingsDrawer extends GetView<ProfileController> {
                           icon: CupertinoIcons.question_circle_fill,
                           iconColor: _iosBlue,
                           title: 'help_center_title'.tr,
-                          onTap: () =>
-                              _closeThenGo(context, Routes.HELP_CENTER),
+                          onTap: () => _closeThenGo(
+                            context,
+                            Routes.HELP_CENTER,
+                            reopenSettingsOnReturn: true,
+                          ),
                         ),
                         _buildRow(
                           context,
                           icon: CupertinoIcons.lock_shield_fill,
                           iconColor: _iosGreen,
                           title: 'privacy_security_title'.tr,
-                          onTap: () =>
-                              _closeThenGo(context, Routes.PRIVACY_SECURITY),
+                          onTap: () => _closeThenGo(
+                            context,
+                            Routes.PRIVACY_SECURITY,
+                            reopenSettingsOnReturn: true,
+                          ),
                         ),
                       ],
                     ),
@@ -221,14 +257,12 @@ class SettingsDrawer extends GetView<ProfileController> {
   Widget _buildProfileCard(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-
     return Obx(() {
       final isGuest = controller.isGuestMode.value;
       final imagePath = controller.userImagePath.value;
       final hasImage = imagePath.isNotEmpty && File(imagePath).existsSync();
       final username = controller.userUsername.value;
       final account = controller.userAccount.value;
-
       return CustomGlassContainer(
         borderRadius: 20,
         blur: 24,
@@ -470,7 +504,6 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Widget _buildAccountAction(BuildContext context) {
     final guestMode = Get.find<GuestModeService>();
-
     return Obx(() {
       final isGuest = guestMode.isGuestMode.value;
       return _buildActionRow(
@@ -508,7 +541,11 @@ class SettingsDrawer extends GetView<ProfileController> {
         title: 'delete_account_title'.tr,
         isDestructive: true,
         showChevron: true,
-        onTap: () => _closeThenGo(context, Routes.DELETE_ACCOUNT),
+        onTap: () => _closeThenGo(
+          context,
+          Routes.DELETE_ACCOUNT,
+          reopenSettingsOnReturn: true,
+        ),
       );
     });
   }
@@ -523,7 +560,6 @@ class SettingsDrawer extends GetView<ProfileController> {
   }) {
     final theme = Theme.of(context);
     final color = isDestructive ? _iosRed : _iosBlue;
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -567,7 +603,7 @@ class SettingsDrawer extends GetView<ProfileController> {
         ),
         const SizedBox(width: 7),
         Text(
-          'Piisiit Note',
+          'Pii Note',
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
             fontWeight: FontWeight.w600,
@@ -603,6 +639,7 @@ class SettingsDrawer extends GetView<ProfileController> {
     BuildContext context,
     String route, {
     Object? arguments,
+    bool reopenSettingsOnReturn = false,
   }) async {
     Navigator.of(context).pop();
     // Avoid overlapping disposal of the drawer's glass render layers with
@@ -610,5 +647,12 @@ class SettingsDrawer extends GetView<ProfileController> {
     await Future<void>.delayed(kThemeAnimationDuration);
     if (Get.key.currentState == null) return;
     await Get.toNamed(route, arguments: arguments);
+
+    // Notifications is part of Settings, so its back arrow should return to
+    // the Settings drawer instead of leaving the user on the Folders screen.
+    if (!reopenSettingsOnReturn) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      settingsHostScaffoldKey.currentState?.openDrawer();
+    });
   }
 }

@@ -15,14 +15,18 @@ import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
+import 'package:Note/features/note/presentation/widgets/telegram_audio_record_button.dart';
 
 class SearchView extends GetView<sc.SearchController> {
   const SearchView({super.key});
 
-  void _recordAudio() {
+  Future<void> _saveRecordedAudio(TelegramAudioRecording recording) async {
     FocusManager.instance.primaryFocus?.unfocus();
     if (Get.isRegistered<FolderController>()) {
-      Get.find<FolderController>().createAudioNote();
+      await Get.find<FolderController>().saveRecordedAudio(
+        filePath: recording.path,
+        displayName: recording.displayName,
+      );
     }
   }
 
@@ -505,20 +509,10 @@ class SearchView extends GetView<sc.SearchController> {
 
                     const SizedBox(width: 8),
 
-                    /// Creates a new note and starts recording immediately.
-                    Semantics(
-                      button: true,
-                      label: 'note_editor_record_audio'.tr,
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(38, 50),
-                        onPressed: _recordAudio,
-                        child: Icon(
-                          CupertinoIcons.mic_fill,
-                          color: CupertinoColors.systemRed.resolveFrom(context),
-                          size: 20,
-                        ),
-                      ),
+                    /// Records and saves a voice note without leaving Search.
+                    TelegramAudioRecordButton(
+                      semanticLabel: 'note_editor_record_audio'.tr,
+                      onRecorded: _saveRecordedAudio,
                     ),
                   ],
                 ),

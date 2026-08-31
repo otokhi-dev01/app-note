@@ -2,12 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
-
 import 'package:Note/app.dart';
 
 /*
   App: Pii Note App
-  Date: 08.27.2026 update by nona in the evening at 8:00pm
+  Date: 08.28.2026 update by nona in the evening at 8:00pm
   Update by: branch nona_developer
   Update by: branch nona
   Feature: All the feature and the logic and integration with api

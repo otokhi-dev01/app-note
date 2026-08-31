@@ -14,6 +14,7 @@ import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/settings/presentation/widgets/preference_actions.dart';
+import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class NotificationSettingsView extends StatelessWidget {
@@ -25,6 +26,7 @@ class NotificationSettingsView extends StatelessWidget {
 
     return _SettingsFeatureScaffold(
       title: 'notifications_title'.tr,
+      useSurfaceBackButtonColor: true,
       child: Obx(
         () => _FeatureCard(
           children: [
@@ -71,6 +73,7 @@ class DeviceSettingsView extends StatelessWidget {
 
     return _SettingsFeatureScaffold(
       title: 'device_title'.tr,
+      useSurfaceBackButtonColor: true,
       child: _FeatureCard(
         children: [
           _FeatureTile(
@@ -179,6 +182,7 @@ class PrivacySecurityView extends StatelessWidget {
 
     return _SettingsFeatureScaffold(
       title: 'privacy_security_title'.tr,
+      useSurfaceBackButtonColor: true,
       child: Obx(
         () => _FeatureCard(
           children: [
@@ -224,6 +228,7 @@ class PrivacyPolicyView extends StatelessWidget {
     return _SettingsFeatureScaffold(
       title: 'privacy_policy_title'.tr,
       subtitle: 'privacy_policy_updated'.tr,
+      useSurfaceBackButtonColor: true,
       child: _FeatureCard(
         padding: const EdgeInsets.all(20),
         children: [
@@ -264,6 +269,7 @@ class ContactUsView extends StatelessWidget {
     return _SettingsFeatureScaffold(
       title: 'contact_us_title'.tr,
       subtitle: 'contact_us_subtitle'.tr,
+      useSurfaceBackButtonColor: true,
       child: _FeatureCard(
         children: [
           _FeatureTile(
@@ -331,6 +337,7 @@ class _PermissionsViewState extends State<PermissionsView>
     return _SettingsFeatureScaffold(
       title: 'permissions_title'.tr,
       subtitle: 'permissions_subtitle'.tr,
+      useSurfaceBackButtonColor: true,
       child: Column(
         children: [
           _PermissionOverview(
@@ -536,11 +543,13 @@ class _SettingsFeatureScaffold extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget child;
+  final bool useSurfaceBackButtonColor;
 
   const _SettingsFeatureScaffold({
     required this.title,
     required this.child,
     this.subtitle,
+    this.useSurfaceBackButtonColor = false,
   });
 
   @override
@@ -557,23 +566,9 @@ class _SettingsFeatureScaffold extends StatelessWidget {
         body: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            AppScreenSliverAppBar(
+            SettingsSliverAppBar(
               title: title,
-              centerTitle: true,
-              leading: CustomGlassButton(
-                semanticLabel: MaterialLocalizations.of(
-                  context,
-                ).backButtonTooltip,
-                onPressed: () => Get.back(),
-                width: 44,
-                height: 44,
-                shape: GlassShape.circle,
-                blur: 10,
-                opacity: 0.15,
-                thickness: 8,
-                padding: EdgeInsets.zero,
-                child: const Icon(CupertinoIcons.chevron_left, size: 23),
-              ),
+              useSurfaceBackButtonColor: useSurfaceBackButtonColor,
             ),
             SliverToBoxAdapter(
               child: Align(

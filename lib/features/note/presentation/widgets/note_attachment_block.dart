@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-import 'package:share_plus/share_plus.dart';
+import 'package:quill_native_bridge/quill_native_bridge.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
@@ -17,6 +19,8 @@ import 'package:Note/core/utils/image_pdf.dart';
 import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/presentation/widgets/note_video_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_scanned_pdf_attachment.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
 
 const _imageExtensions = {
   'jpg',
@@ -81,6 +85,8 @@ class NoteAttachmentBlock extends StatelessWidget {
         child: NoteVideoAttachment(
           key: ValueKey('video-${block.id}'),
           block: block,
+          blockIndex: blockIndex,
+          controller: controller,
           isReadOnly: controller.isReadOnly.value,
           onDelete: () => controller.deleteBlock(blockIndex),
         ),
@@ -93,6 +99,7 @@ class NoteAttachmentBlock extends StatelessWidget {
         child: _AudioTile(
           key: ValueKey('audio-${block.id}'),
           block: block,
+          blockIndex: blockIndex,
           isReadOnly: controller.isReadOnly.value,
           controller: controller,
           onDelete: () => controller.deleteBlock(blockIndex),
@@ -108,6 +115,7 @@ class NoteAttachmentBlock extends StatelessWidget {
           child: NotePdfAttachment(
             key: ValueKey('scanned-pdf-${block.id}'),
             block: block,
+            blockIndex: blockIndex,
             controller: controller,
             isReadOnly: controller.isReadOnly.value,
             onDelete: () => controller.deleteBlock(blockIndex),
@@ -123,6 +131,11 @@ class NoteAttachmentBlock extends StatelessWidget {
           onTap: () => _openOrShareFile(context),
           onDelete: () => controller.deleteBlock(blockIndex),
           onShare: () => _openOrShareFile(context),
+          onCopy: () => unawaited(controller.copyAttachmentBlock(blockIndex)),
+          onPaste: () => unawaited(
+            controller.pasteClipboardContent(afterIndex: blockIndex),
+          ),
+          onCut: () => unawaited(controller.cutAttachmentBlock(blockIndex)),
 
           onEdit: isPdf
               ? () => controller.editPdfSourceImage(blockIndex)
@@ -155,6 +168,11 @@ class NoteAttachmentBlock extends StatelessWidget {
           semanticsLabel: semanticsLabel,
           isDark: isDark,
           onEdit: () => _openImageEditor(context),
+          onAddImage: () => _addImageOverlay(context),
+          onCopy: () => unawaited(_copyImage(context)),
+          onPaste: () => unawaited(
+            controller.pasteClipboardContent(afterIndex: blockIndex),
+          ),
           onConvertToPdf: () => controller.convertAttachmentToPdf(blockIndex),
           onShare: () => _shareImage(context),
           onDelete: () => controller.deleteBlock(blockIndex),
@@ -207,15 +225,58 @@ class NoteAttachmentBlock extends StatelessWidget {
     }
   }
 
-  Future<void> _shareImage(BuildContext context) async {
-    final path = normalizeLocalPath(block.localPath);
-    if (path == null || !File(path).existsSync()) {
+  Future<void> _addImageOverlay(BuildContext context) async {
+    if (controller.isReadOnly.value) return;
+
+    final basePath = await _resolveImagePath(context);
+    if (basePath == null) {
       AppSnackbar.info(
         'note_editor_not_available_title'.tr,
         'note_editor_image_not_on_device'.tr,
       );
       return;
     }
+
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedImage == null || !context.mounted) return;
+
+    final composedPath = await Navigator.of(context).push<String>(
+      CupertinoPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ImageOverlayComposerPage(
+          baseImagePath: basePath,
+          overlayImagePath: pickedImage.path,
+        ),
+      ),
+    );
+    if (composedPath == null || composedPath.isEmpty) return;
+
+    try {
+      final editedPath = await IOSImageEditor.editImage(composedPath);
+      if (editedPath != null && editedPath.isNotEmpty) {
+        controller.updateAttachmentImage(blockIndex, editedPath);
+      }
+    } catch (error) {
+      debugPrint('[IMAGE OVERLAY EDIT ERROR] $error');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_open_image_editor'.tr,
+      );
+    }
+  }
+
+  Future<void> _shareImage(BuildContext context) async {
+    final path = await _resolveImagePath(context);
+    if (path == null) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_image_not_on_device'.tr,
+      );
+      return;
+    }
+    if (!context.mounted) return;
     try {
       await shareXFilesSafely(context, [XFile(path)]);
     } catch (e) {
@@ -225,6 +286,64 @@ class NoteAttachmentBlock extends StatelessWidget {
         'note_editor_could_not_share_image'.tr,
       );
     }
+  }
+
+  Future<void> _copyImage(BuildContext context) async {
+    final path = await _resolveImagePath(context);
+    if (path == null) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_image_not_on_device'.tr,
+      );
+      return;
+    }
+
+    final stagedInApp = await controller.copyAttachmentBlock(
+      blockIndex,
+      showFeedback: false,
+    );
+    var copiedToDevice = false;
+    try {
+      final bridge = QuillNativeBridge();
+      final supported = await bridge.isSupported(
+        QuillNativeBridgeFeature.copyImageToClipboard,
+      );
+      if (supported) {
+        await bridge.copyImageToClipboard(await File(path).readAsBytes());
+        copiedToDevice = true;
+      }
+    } catch (error) {
+      debugPrint('[SYSTEM IMAGE COPY ERROR] $error');
+    }
+
+    if (stagedInApp || copiedToDevice) {
+      AppSnackbar.success('note_editor_image_copied'.tr);
+    } else {
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_copy_image'.tr,
+      );
+    }
+  }
+
+  Future<String?> _resolveImagePath(BuildContext context) async {
+    final localPath = normalizeLocalPath(block.localPath);
+    if (localPath != null && File(localPath).existsSync()) return localPath;
+
+    final networkUrl = normalizeAttachmentUrl(block.url);
+    if (networkUrl == null || networkUrl.isEmpty) return null;
+
+    String? cachedPath;
+    await Get.showOverlay(
+      asyncFunction: () async {
+        cachedPath = await controller.cacheAttachmentForEditing(networkUrl);
+      },
+      loadingWidget: const Center(
+        child: CupertinoActivityIndicator(radius: 15, color: Colors.white),
+      ),
+    );
+    if (!context.mounted || cachedPath == null) return null;
+    return File(cachedPath!).existsSync() ? cachedPath : null;
   }
 
   Future<void> _openOrShareFile(BuildContext context) async {
@@ -255,6 +374,9 @@ class _ImageTile extends StatefulWidget {
   final bool isDark;
   final String semanticsLabel;
   final VoidCallback onEdit;
+  final VoidCallback onAddImage;
+  final VoidCallback onCopy;
+  final VoidCallback onPaste;
   final VoidCallback onConvertToPdf;
   final VoidCallback onShare;
   final VoidCallback onDelete;
@@ -266,6 +388,9 @@ class _ImageTile extends StatefulWidget {
     required this.isDark,
     required this.semanticsLabel,
     required this.onEdit,
+    required this.onAddImage,
+    required this.onCopy,
+    required this.onPaste,
     required this.onConvertToPdf,
     required this.onShare,
     required this.onDelete,
@@ -275,8 +400,10 @@ class _ImageTile extends StatefulWidget {
   State<_ImageTile> createState() => _ImageTileState();
 }
 
+enum _ImageViewSize { small, large }
+
 class _ImageTileState extends State<_ImageTile> {
-  final _menuController = lg.GlassMenuController();
+  _ImageViewSize _viewSize = _ImageViewSize.large;
 
   @override
   Widget build(BuildContext context) {
@@ -284,96 +411,400 @@ class _ImageTileState extends State<_ImageTile> {
       button: true,
       image: true,
       label: '${widget.semanticsLabel}${'note_editor_image_tap_hint'.tr}',
-      child: Stack(
-        children: [
-          lg.GlassMenu(
-            controller: _menuController,
-            menuWidth: 250,
-
-            autoAdjustToScreen: true,
-            menuPadding: const EdgeInsets.all(12),
-
-            morphFromZero: true,
-            triggerBuilder: (context, _) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-
-              onTap: widget.onEdit,
-              onLongPress: _menuController.open,
-              child: _buildImage(),
-            ),
-            items: _menuItems(),
-          ),
-        ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onEdit,
+        onLongPress: _showContextMenu,
+        child: _buildImage(),
       ),
     );
   }
 
-  List<Widget> _menuItems() {
-    return [
-      lg.GlassMenuItem(
-        title: 'note_editor_edit_image'.tr,
-        icon: const Icon(CupertinoIcons.pencil, color: IosSemanticColors.blue),
-        onTap: widget.onEdit,
+  void _showContextMenu() {
+    Feedback.forLongPress(context);
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (dialogContext, _, _) => _ImageContextMenuOverlay(
+        block: widget.block,
+        viewSize: _viewSize,
+        isReadOnly: widget.isReadOnly,
+        onAddImage: widget.onAddImage,
+        onCopy: widget.onCopy,
+        onPaste: widget.onPaste,
+        onShare: widget.onShare,
+        onChooseViewSize: _chooseViewSize,
+        onConvertToPdf: widget.onConvertToPdf,
+        onDelete: widget.onDelete,
       ),
-      if (!widget.isReadOnly)
-        lg.GlassMenuItem(
-          title: 'note_editor_convert_to_pdf'.tr,
-          icon: const Icon(
-            CupertinoIcons.doc_richtext,
-            color: IosSemanticColors.red,
+      transitionBuilder: (_, animation, _, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.97, end: 1).animate(curved),
+            child: child,
           ),
-          onTap: widget.onConvertToPdf,
+        );
+      },
+    );
+  }
+
+  Future<void> _chooseViewSize() async {
+    final selected = await showCupertinoModalPopup<_ImageViewSize>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text('note_editor_view_as'.tr),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext, _ImageViewSize.small),
+            child: Text('note_editor_view_as_small'.tr),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext, _ImageViewSize.large),
+            child: Text('note_editor_view_as_large'.tr),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
         ),
-      lg.GlassMenuItem(
-        title: 'note_editor_share'.tr,
-        icon: const Icon(CupertinoIcons.share, color: IosSemanticColors.blue),
-        onTap: widget.onShare,
       ),
-      if (!widget.isReadOnly) ...[
-        const lg.GlassMenuDivider(),
-        lg.GlassMenuItem(
-          title: 'note_editor_delete'.tr,
-          icon: const Icon(CupertinoIcons.trash, color: IosSemanticColors.red),
-          isDestructive: true,
-          onTap: widget.onDelete,
-        ),
-      ],
-    ];
+    );
+    if (!mounted || selected == null) return;
+    setState(() => _viewSize = selected);
   }
 
   Widget _buildImage() {
     final block = widget.block;
+    final isSmall = _viewSize == _ImageViewSize.small;
+    final imageWidth = isSmall
+        ? (widget.width * 0.55).clamp(140.0, 200.0)
+        : widget.width;
 
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 300, minHeight: 120),
-      width: widget.width,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.zero,
-        border: Border.all(
-          color: widget.isDark
-              ? Colors.white.withValues(alpha: 0.12)
-              : Colors.black.withValues(alpha: 0.08),
-          width: 1,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        constraints: BoxConstraints(
+          minHeight: 120,
+          maxHeight: isSmall ? 160 : 300,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+        width: imageWidth,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: widget.isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.08),
+            width: 1,
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.zero,
-        child: Stack(
-          fit: StackFit.passthrough,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: 240,
-              child: _AttachmentImage(block: block),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: widget.isDark ? 0.2 : 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
+        ),
+        child: ClipRect(
+          child: SizedBox(
+            width: double.infinity,
+            height: isSmall ? 140 : 240,
+            child: _AttachmentImage(block: block),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageContextMenuOverlay extends StatelessWidget {
+  final AttachmentBlock block;
+  final _ImageViewSize viewSize;
+  final bool isReadOnly;
+  final VoidCallback onAddImage;
+  final VoidCallback onCopy;
+  final VoidCallback onPaste;
+  final VoidCallback onShare;
+  final VoidCallback onChooseViewSize;
+  final VoidCallback onConvertToPdf;
+  final VoidCallback onDelete;
+
+  const _ImageContextMenuOverlay({
+    required this.block,
+    required this.viewSize,
+    required this.isReadOnly,
+    required this.onAddImage,
+    required this.onCopy,
+    required this.onPaste,
+    required this.onShare,
+    required this.onChooseViewSize,
+    required this.onConvertToPdf,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final screenSize = MediaQuery.sizeOf(context);
+    final menuHeight = isReadOnly ? 174.0 : 402.0;
+    final previewHeight = (screenSize.height - menuHeight - 110).clamp(
+      180.0,
+      520.0,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.pop(context),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: ColoredBox(
+            color: theme.scaffoldBackgroundColor.withValues(alpha: 0.72),
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          width: double.infinity,
+                          height: previewHeight,
+                          constraints: const BoxConstraints(maxWidth: 560),
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.22),
+                                blurRadius: 28,
+                                offset: const Offset(0, 14),
+                              ),
+                            ],
+                          ),
+                          child: ClipRect(
+                            child: _AttachmentImage(block: block),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: () {},
+                        child: _ImageActionMenu(
+                          viewSize: viewSize,
+                          isReadOnly: isReadOnly,
+                          onAddImage: () => _closeThen(context, onAddImage),
+                          onCopy: () => _closeThen(context, onCopy),
+                          onPaste: () => _closeThen(context, onPaste),
+                          onShare: () => _closeThen(context, onShare),
+                          onChooseViewSize: () =>
+                              _closeThen(context, onChooseViewSize),
+                          onConvertToPdf: () =>
+                              _closeThen(context, onConvertToPdf),
+                          onDelete: () => _closeThen(context, onDelete),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _closeThen(BuildContext context, VoidCallback action) {
+    Navigator.pop(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) => action());
+  }
+}
+
+class _ImageActionMenu extends StatelessWidget {
+  final _ImageViewSize viewSize;
+  final bool isReadOnly;
+  final VoidCallback onAddImage;
+  final VoidCallback onCopy;
+  final VoidCallback onPaste;
+  final VoidCallback onShare;
+  final VoidCallback onChooseViewSize;
+  final VoidCallback onConvertToPdf;
+  final VoidCallback onDelete;
+
+  const _ImageActionMenu({
+    required this.viewSize,
+    required this.isReadOnly,
+    required this.onAddImage,
+    required this.onCopy,
+    required this.onPaste,
+    required this.onShare,
+    required this.onChooseViewSize,
+    required this.onConvertToPdf,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final divider = Divider(
+      height: 1,
+      indent: 54,
+      color: theme.dividerColor.withValues(alpha: 0.32),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          width: 344,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.08),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ImageActionRow(
+                icon: CupertinoIcons.doc_on_doc,
+                title: 'note_editor_copy'.tr,
+                onTap: onCopy,
+              ),
+              if (!isReadOnly) ...[
+                divider,
+                _ImageActionRow(
+                  icon: CupertinoIcons.photo_on_rectangle,
+                  title: 'note_editor_add_image'.tr,
+                  onTap: onAddImage,
+                ),
+                divider,
+                _ImageActionRow(
+                  icon: Icons.content_paste_rounded,
+                  title: 'note_editor_paste'.tr,
+                  onTap: onPaste,
+                ),
+              ],
+              divider,
+              _ImageActionRow(
+                icon: CupertinoIcons.share,
+                title: 'note_editor_share'.tr,
+                onTap: onShare,
+              ),
+              divider,
+              _ImageActionRow(
+                icon: CupertinoIcons.rectangle_grid_1x2,
+                title: 'note_editor_view_as'.tr,
+                subtitle: viewSize == _ImageViewSize.large
+                    ? 'note_editor_view_as_large'.tr
+                    : 'note_editor_view_as_small'.tr,
+                trailing: const Icon(CupertinoIcons.chevron_forward, size: 17),
+                onTap: onChooseViewSize,
+              ),
+              if (!isReadOnly) ...[
+                divider,
+                _ImageActionRow(
+                  icon: CupertinoIcons.doc_richtext,
+                  title: 'note_editor_convert_to_pdf'.tr,
+                  onTap: onConvertToPdf,
+                ),
+                divider,
+                _ImageActionRow(
+                  icon: CupertinoIcons.trash,
+                  title: 'note_editor_delete'.tr,
+                  isDestructive: true,
+                  onTap: onDelete,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageActionRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final bool isDestructive;
+  final VoidCallback onTap;
+
+  const _ImageActionRow({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.trailing,
+    this.isDestructive = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = isDestructive
+        ? CupertinoColors.destructiveRed
+        : theme.colorScheme.onSurface;
+
+    return Semantics(
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: subtitle == null ? 56 : 68,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                SizedBox(width: 28, child: Icon(icon, size: 23, color: color)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: color,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (subtitle != null)
+                        Text(
+                          subtitle!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (trailing != null)
+                  IconTheme(
+                    data: IconThemeData(color: color),
+                    child: trailing!,
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -482,6 +913,9 @@ class _FileTile extends StatefulWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onShare;
+  final VoidCallback onCopy;
+  final VoidCallback onPaste;
+  final VoidCallback onCut;
 
   final VoidCallback? onEdit;
 
@@ -493,6 +927,9 @@ class _FileTile extends StatefulWidget {
     required this.onTap,
     required this.onDelete,
     required this.onShare,
+    required this.onCopy,
+    required this.onPaste,
+    required this.onCut,
     this.isPdf = false,
     this.onEdit,
     this.onConvertToImage,
@@ -628,6 +1065,31 @@ class _FileTileState extends State<_FileTile> {
           ),
         ),
         items: [
+          lg.GlassMenuItem(
+            title: 'note_editor_copy'.tr,
+            icon: const Icon(
+              CupertinoIcons.doc_on_doc,
+              color: IosSemanticColors.blue,
+            ),
+            onTap: widget.onCopy,
+          ),
+          lg.GlassMenuItem(
+            title: 'note_editor_paste'.tr,
+            icon: const Icon(
+              Icons.content_paste_rounded,
+              color: IosSemanticColors.blue,
+            ),
+            onTap: widget.onPaste,
+          ),
+          lg.GlassMenuItem(
+            title: 'note_editor_cut'.tr,
+            icon: const Icon(
+              Icons.content_cut_rounded,
+              color: IosSemanticColors.orange,
+            ),
+            onTap: widget.onCut,
+          ),
+          const lg.GlassMenuDivider(),
           if (widget.isPdf) ...[
             if (widget.onConvertToImage != null)
               lg.GlassMenuItem(
@@ -677,6 +1139,7 @@ class _FileTileState extends State<_FileTile> {
 
 class _AudioTile extends StatefulWidget {
   final AttachmentBlock block;
+  final int blockIndex;
   final bool isReadOnly;
   final NoteDetailController controller;
   final VoidCallback onDelete;
@@ -684,6 +1147,7 @@ class _AudioTile extends StatefulWidget {
   const _AudioTile({
     super.key,
     required this.block,
+    required this.blockIndex,
     required this.isReadOnly,
     required this.controller,
     required this.onDelete,
@@ -747,29 +1211,8 @@ class _AudioTileState extends State<_AudioTile> {
       return;
     }
 
-    var path = _resolvedLocalPath;
-    if (path == null) {
-      final networkUrl = normalizeAttachmentUrl(widget.block.url);
-      if (networkUrl == null) {
-        AppSnackbar.info(
-          'note_editor_not_available_title'.tr,
-          'note_editor_recording_not_on_device'.tr,
-        );
-        return;
-      }
-
-      setState(() => _isLoading = true);
-      final name = widget.block.displayName;
-      final ext = name.contains('.') ? '.${name.split('.').last}' : '.m4a';
-      path = await widget.controller.cacheAttachmentForPlayback(
-        networkUrl,
-        extension: ext,
-      );
-      if (mounted) setState(() => _isLoading = false);
-      if (path == null) return;
-      _resolvedLocalPath = path;
-      await _player.setSourceDeviceFile(path);
-    }
+    final path = await _resolveLocalAudio();
+    if (path == null) return;
 
     try {
       await _player.resume();
@@ -781,6 +1224,147 @@ class _AudioTileState extends State<_AudioTile> {
         'note_editor_could_not_play_recording'.tr,
       );
     }
+  }
+
+  Future<String?> _resolveLocalAudio() async {
+    final existingPath = _resolvedLocalPath;
+    if (existingPath != null && File(existingPath).existsSync()) {
+      return existingPath;
+    }
+
+    final networkUrl = normalizeAttachmentUrl(widget.block.url);
+    if (networkUrl == null) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_recording_not_on_device'.tr,
+      );
+      return null;
+    }
+
+    if (mounted) setState(() => _isLoading = true);
+    final name = widget.block.displayName;
+    final ext = name.contains('.') ? '.${name.split('.').last}' : '.m4a';
+    final path = await widget.controller.cacheAttachmentForPlayback(
+      networkUrl,
+      extension: ext,
+    );
+    if (mounted) setState(() => _isLoading = false);
+    if (path == null) return null;
+    _resolvedLocalPath = path;
+    await _player.setSourceDeviceFile(path);
+    return path;
+  }
+
+  Future<void> _shareAudio() async {
+    final path = await _resolveLocalAudio();
+    if (path == null || !mounted) return;
+    try {
+      await shareXFilesSafely(context, [XFile(path)]);
+    } catch (error) {
+      debugPrint('[AUDIO SHARE ERROR] $error');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_share_recording'.tr,
+      );
+    }
+  }
+
+  void _showContextMenu(String name) {
+    final theme = Theme.of(context);
+    NoteMediaContextMenu.show(
+      context: context,
+      preview: _buildAudioPreview(theme, name),
+      previewHeight: 180,
+      actions: [
+        NoteMediaMenuAction(
+          title: 'note_editor_copy'.tr,
+          icon: CupertinoIcons.doc_on_doc,
+          onTap: () => unawaited(
+            widget.controller.copyAttachmentBlock(widget.blockIndex),
+          ),
+        ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_paste'.tr,
+            icon: Icons.content_paste_rounded,
+            onTap: () => unawaited(
+              widget.controller.pasteClipboardContent(
+                afterIndex: widget.blockIndex,
+              ),
+            ),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_cut'.tr,
+            icon: Icons.content_cut_rounded,
+            onTap: () => unawaited(
+              widget.controller.cutAttachmentBlock(widget.blockIndex),
+            ),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_delete'.tr,
+            icon: CupertinoIcons.trash,
+            isDestructive: true,
+            onTap: widget.onDelete,
+          ),
+        NoteMediaMenuAction(
+          title: 'note_editor_share'.tr,
+          icon: CupertinoIcons.share,
+          onTap: () => unawaited(_shareAudio()),
+        ),
+        NoteMediaMenuAction(
+          title: 'note_editor_tap_to_play'.tr,
+          icon: CupertinoIcons.play_fill,
+          onTap: () => unawaited(_togglePlay()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioPreview(ThemeData theme, String name) {
+    return ColoredBox(
+      color: theme.colorScheme.surface,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: AppTheme.folderPink,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                CupertinoIcons.waveform,
+                size: 30,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _duration > Duration.zero
+                  ? _format(_duration)
+                  : 'note_editor_tap_to_play'.tr,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _format(Duration d) {
@@ -804,115 +1388,120 @@ class _AudioTileState extends State<_AudioTile> {
       label: 'note_editor_audio_recording_semantic_label'.trParams({
         'name': name,
       }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.12)
-                : Colors.black.withValues(alpha: 0.08),
-            width: 1,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: () => _showContextMenu(name),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.08),
+              width: 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _isLoading ? null : _togglePlay,
-              child: Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppTheme.folderPink,
-                  shape: BoxShape.circle,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Icon(
-                        _isPlaying
-                            ? CupertinoIcons.pause_fill
-                            : CupertinoIcons.play_fill,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (hasDuration)
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 2,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 5,
-                        ),
-                        overlayShape: const RoundSliderOverlayShape(
-                          overlayRadius: 10,
-                        ),
-                      ),
-                      child: Slider(
-                        value: _position.inMilliseconds
-                            .clamp(0, _duration.inMilliseconds)
-                            .toDouble(),
-                        max: _duration.inMilliseconds.toDouble(),
-                        onChanged: (value) {
-                          setState(
-                            () => _position = Duration(
-                              milliseconds: value.round(),
-                            ),
-                          );
-                        },
-                        onChangeEnd: (value) =>
-                            _player.seek(Duration(milliseconds: value.round())),
-                      ),
-                    ),
-                  Text(
-                    hasDuration
-                        ? '${_format(_position)} / ${_format(_duration)}'
-                        : 'note_editor_tap_to_play'.tr,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (!widget.isReadOnly) ...[
-              const SizedBox(width: 8),
+          child: Row(
+            children: [
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: widget.onDelete,
-                child: Icon(
-                  CupertinoIcons.trash,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.6,
+                onTap: _isLoading ? null : _togglePlay,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppTheme.folderPink,
+                    shape: BoxShape.circle,
                   ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          _isPlaying
+                              ? CupertinoIcons.pause_fill
+                              : CupertinoIcons.play_fill,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                 ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (hasDuration)
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 2,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 5,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 10,
+                          ),
+                        ),
+                        child: Slider(
+                          value: _position.inMilliseconds
+                              .clamp(0, _duration.inMilliseconds)
+                              .toDouble(),
+                          max: _duration.inMilliseconds.toDouble(),
+                          onChanged: (value) {
+                            setState(
+                              () => _position = Duration(
+                                milliseconds: value.round(),
+                              ),
+                            );
+                          },
+                          onChangeEnd: (value) => _player.seek(
+                            Duration(milliseconds: value.round()),
+                          ),
+                        ),
+                      ),
+                    Text(
+                      hasDuration
+                          ? '${_format(_position)} / ${_format(_duration)}'
+                          : 'note_editor_tap_to_play'.tr,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!widget.isReadOnly) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onDelete,
+                  child: Icon(
+                    CupertinoIcons.trash,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

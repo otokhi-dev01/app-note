@@ -70,10 +70,12 @@ class AttachmentUpload {
   final int attachmentId;
   final String filePath;
   final String blockId;
+  final bool isLocal;
 
   const AttachmentUpload({
     required this.attachmentId,
     required this.filePath,
     required this.blockId,
+    this.isLocal = false,
   });
 }

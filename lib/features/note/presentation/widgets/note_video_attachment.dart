@@ -4,15 +4,15 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:Note/core/feedback/app_snackbar.dart';
-import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
+import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
 
 const _videoExtensions = {
   'mp4',
@@ -50,12 +50,16 @@ bool looksLikeVideoAttachment(AttachmentBlock block) {
 /// editors. It stays paused in the note and opens a dedicated player on tap.
 class NoteVideoAttachment extends StatefulWidget {
   final AttachmentBlock block;
+  final int blockIndex;
+  final NoteDetailController controller;
   final bool isReadOnly;
   final VoidCallback onDelete;
 
   const NoteVideoAttachment({
     super.key,
     required this.block,
+    required this.blockIndex,
+    required this.controller,
     required this.isReadOnly,
     required this.onDelete,
   });
@@ -65,7 +69,6 @@ class NoteVideoAttachment extends StatefulWidget {
 }
 
 class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
-  final _menuController = lg.GlassMenuController();
   VideoPlayerController? _controller;
   bool _hasError = false;
 
@@ -154,6 +157,63 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
     }
   }
 
+  void _showContextMenu() {
+    final controller = _controller;
+    final isReady = controller?.value.isInitialized ?? false;
+    NoteMediaContextMenu.show(
+      context: context,
+      preview: ColoredBox(
+        color: Colors.black,
+        child: _buildVideoSurface(controller, isReady),
+      ),
+      previewHeight: 300,
+      actions: [
+        NoteMediaMenuAction(
+          title: 'note_editor_copy'.tr,
+          icon: CupertinoIcons.doc_on_doc,
+          onTap: () => unawaited(
+            widget.controller.copyAttachmentBlock(widget.blockIndex),
+          ),
+        ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_paste'.tr,
+            icon: Icons.content_paste_rounded,
+            onTap: () => unawaited(
+              widget.controller.pasteClipboardContent(
+                afterIndex: widget.blockIndex,
+              ),
+            ),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_cut'.tr,
+            icon: Icons.content_cut_rounded,
+            onTap: () => unawaited(
+              widget.controller.cutAttachmentBlock(widget.blockIndex),
+            ),
+          ),
+        if (!widget.isReadOnly)
+          NoteMediaMenuAction(
+            title: 'note_editor_delete'.tr,
+            icon: CupertinoIcons.trash,
+            isDestructive: true,
+            onTap: widget.onDelete,
+          ),
+        NoteMediaMenuAction(
+          title: 'note_editor_share'.tr,
+          icon: CupertinoIcons.share,
+          onTap: () => unawaited(_shareVideo()),
+        ),
+        NoteMediaMenuAction(
+          title: 'note_editor_play_video'.tr,
+          icon: CupertinoIcons.play_fill,
+          onTap: () => unawaited(_openPlayer()),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -169,100 +229,65 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
       button: true,
       label: 'note_editor_video_semantic_label'.trParams({'name': name}),
       hint: 'note_editor_tap_to_play'.tr,
-      child: lg.GlassMenu(
-        controller: _menuController,
-        menuWidth: 250,
-        autoAdjustToScreen: true,
-        menuPadding: const EdgeInsets.all(12),
-        morphFromZero: true,
-        triggerBuilder: (context, _) => GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _openPlayer,
-          onLongPress: _menuController.open,
-          child: Container(
-            height: 240,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.08),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _openPlayer,
+        onLongPress: _showContextMenu,
+        child: Container(
+          height: 240,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.black.withValues(alpha: 0.08),
             ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (isReady)
-                  Center(
-                    child: AspectRatio(
-                      aspectRatio: _safeAspectRatio(controller!),
-                      child: VideoPlayer(controller),
-                    ),
-                  )
-                else if (_hasError)
-                  const _VideoUnavailable()
-                else
-                  const Center(
-                    child: CupertinoActivityIndicator(color: Colors.white),
-                  ),
-                Center(
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.58),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.play_fill,
-                      color: Colors.white,
-                      size: 25,
-                    ),
-                  ),
-                ),
-              ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: _buildVideoSurface(controller, isReady),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVideoSurface(VideoPlayerController? controller, bool isReady) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (isReady)
+          Center(
+            child: AspectRatio(
+              aspectRatio: _safeAspectRatio(controller!),
+              child: VideoPlayer(controller),
+            ),
+          )
+        else if (_hasError)
+          const _VideoUnavailable()
+        else
+          const Center(child: CupertinoActivityIndicator(color: Colors.white)),
+        Center(
+          child: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.58),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              CupertinoIcons.play_fill,
+              color: Colors.white,
+              size: 25,
             ),
           ),
         ),
-        items: [
-          lg.GlassMenuItem(
-            title: 'note_editor_play_video'.tr,
-            icon: const Icon(
-              CupertinoIcons.play_fill,
-              color: IosSemanticColors.blue,
-            ),
-            onTap: _openPlayer,
-          ),
-          lg.GlassMenuItem(
-            title: 'note_editor_share'.tr,
-            icon: const Icon(
-              CupertinoIcons.share,
-              color: IosSemanticColors.blue,
-            ),
-            onTap: _shareVideo,
-          ),
-          if (!widget.isReadOnly) ...[
-            const lg.GlassMenuDivider(),
-            lg.GlassMenuItem(
-              title: 'note_editor_delete'.tr,
-              icon: const Icon(
-                CupertinoIcons.trash,
-                color: IosSemanticColors.red,
-              ),
-              isDestructive: true,
-              onTap: widget.onDelete,
-            ),
-          ],
-        ],
-      ),
+      ],
     );
   }
 }
