@@ -489,6 +489,7 @@ const Map<String, String> enUS = {
   'note_editor_pdf_not_available': 'This PDF is not available.',
   'note_editor_take_photo_video': 'Take Photo or Video',
   'note_editor_choose_photo_video': 'Choose Photo or Video',
+  'note_editor_add_image': 'Add Image',
   'note_editor_record_audio': 'Record Audio',
   'note_editor_attach_file': 'Attach File',
   'note_editor_add_item': 'Add Item',

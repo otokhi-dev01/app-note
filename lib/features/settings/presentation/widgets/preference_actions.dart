@@ -16,10 +16,12 @@ class PreferenceActions {
         ? renderObject.localToGlobal(Offset.zero) & renderObject.size
         : null;
     try {
-      await Share.share(
-        'share_message'.tr,
-        subject: 'Pii Note',
-        sharePositionOrigin: origin,
+      await SharePlus.instance.share(
+        ShareParams(
+          text: 'share_message'.tr,
+          subject: 'Pii Note',
+          sharePositionOrigin: origin,
+        ),
       );
     } catch (_) {
       _showUnavailable();

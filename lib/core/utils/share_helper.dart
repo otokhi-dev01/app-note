@@ -13,9 +13,11 @@ Rect? shareOriginFromContext(BuildContext context) {
       : null;
 }
 
-Future<void> shareXFilesSafely(BuildContext context, List<XFile> files) {
-  return Share.shareXFiles(
-    files,
-    sharePositionOrigin: shareOriginFromContext(context),
+Future<void> shareXFilesSafely(BuildContext context, List<XFile> files) async {
+  await SharePlus.instance.share(
+    ShareParams(
+      files: files,
+      sharePositionOrigin: shareOriginFromContext(context),
+    ),
   );
 }

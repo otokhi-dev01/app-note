@@ -5,10 +5,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:quill_native_bridge/quill_native_bridge.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
@@ -20,6 +20,7 @@ import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/presentation/widgets/note_video_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_scanned_pdf_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
 
 const _imageExtensions = {
   'jpg',
@@ -167,6 +168,7 @@ class NoteAttachmentBlock extends StatelessWidget {
           semanticsLabel: semanticsLabel,
           isDark: isDark,
           onEdit: () => _openImageEditor(context),
+          onAddImage: () => _addImageOverlay(context),
           onCopy: () => unawaited(_copyImage(context)),
           onPaste: () => unawaited(
             controller.pasteClipboardContent(afterIndex: blockIndex),
@@ -216,6 +218,48 @@ class NoteAttachmentBlock extends StatelessWidget {
       }
     } catch (e) {
       debugPrint('Error opening native editor: $e');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_could_not_open_image_editor'.tr,
+      );
+    }
+  }
+
+  Future<void> _addImageOverlay(BuildContext context) async {
+    if (controller.isReadOnly.value) return;
+
+    final basePath = await _resolveImagePath(context);
+    if (basePath == null) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_image_not_on_device'.tr,
+      );
+      return;
+    }
+
+    final pickedImage = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedImage == null || !context.mounted) return;
+
+    final composedPath = await Navigator.of(context).push<String>(
+      CupertinoPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ImageOverlayComposerPage(
+          baseImagePath: basePath,
+          overlayImagePath: pickedImage.path,
+        ),
+      ),
+    );
+    if (composedPath == null || composedPath.isEmpty) return;
+
+    try {
+      final editedPath = await IOSImageEditor.editImage(composedPath);
+      if (editedPath != null && editedPath.isNotEmpty) {
+        controller.updateAttachmentImage(blockIndex, editedPath);
+      }
+    } catch (error) {
+      debugPrint('[IMAGE OVERLAY EDIT ERROR] $error');
       AppSnackbar.error(
         'note_editor_error_title'.tr,
         'note_editor_could_not_open_image_editor'.tr,
@@ -330,6 +374,7 @@ class _ImageTile extends StatefulWidget {
   final bool isDark;
   final String semanticsLabel;
   final VoidCallback onEdit;
+  final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
   final VoidCallback onConvertToPdf;
@@ -343,6 +388,7 @@ class _ImageTile extends StatefulWidget {
     required this.isDark,
     required this.semanticsLabel,
     required this.onEdit,
+    required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
     required this.onConvertToPdf,
@@ -386,6 +432,7 @@ class _ImageTileState extends State<_ImageTile> {
         block: widget.block,
         viewSize: _viewSize,
         isReadOnly: widget.isReadOnly,
+        onAddImage: widget.onAddImage,
         onCopy: widget.onCopy,
         onPaste: widget.onPaste,
         onShare: widget.onShare,
@@ -453,7 +500,6 @@ class _ImageTileState extends State<_ImageTile> {
         ),
         width: imageWidth,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(isSmall ? 16 : 20),
           border: Border.all(
             color: widget.isDark
                 ? Colors.white.withValues(alpha: 0.12)
@@ -468,8 +514,7 @@ class _ImageTileState extends State<_ImageTile> {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(isSmall ? 16 : 20),
+        child: ClipRect(
           child: SizedBox(
             width: double.infinity,
             height: isSmall ? 140 : 240,
@@ -485,6 +530,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
   final AttachmentBlock block;
   final _ImageViewSize viewSize;
   final bool isReadOnly;
+  final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
   final VoidCallback onShare;
@@ -496,6 +542,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
     required this.block,
     required this.viewSize,
     required this.isReadOnly,
+    required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
     required this.onShare,
@@ -508,7 +555,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenSize = MediaQuery.sizeOf(context);
-    final menuHeight = isReadOnly ? 174.0 : 346.0;
+    final menuHeight = isReadOnly ? 174.0 : 402.0;
     final previewHeight = (screenSize.height - menuHeight - 110).clamp(
       180.0,
       520.0,
@@ -537,7 +584,6 @@ class _ImageContextMenuOverlay extends StatelessWidget {
                           height: previewHeight,
                           constraints: const BoxConstraints(maxWidth: 560),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.22),
@@ -546,8 +592,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(24),
+                          child: ClipRect(
                             child: _AttachmentImage(block: block),
                           ),
                         ),
@@ -558,6 +603,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
                         child: _ImageActionMenu(
                           viewSize: viewSize,
                           isReadOnly: isReadOnly,
+                          onAddImage: () => _closeThen(context, onAddImage),
                           onCopy: () => _closeThen(context, onCopy),
                           onPaste: () => _closeThen(context, onPaste),
                           onShare: () => _closeThen(context, onShare),
@@ -588,6 +634,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
 class _ImageActionMenu extends StatelessWidget {
   final _ImageViewSize viewSize;
   final bool isReadOnly;
+  final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
   final VoidCallback onShare;
@@ -598,6 +645,7 @@ class _ImageActionMenu extends StatelessWidget {
   const _ImageActionMenu({
     required this.viewSize,
     required this.isReadOnly,
+    required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
     required this.onShare,
@@ -637,6 +685,12 @@ class _ImageActionMenu extends StatelessWidget {
                 onTap: onCopy,
               ),
               if (!isReadOnly) ...[
+                divider,
+                _ImageActionRow(
+                  icon: CupertinoIcons.photo_on_rectangle,
+                  title: 'note_editor_add_image'.tr,
+                  onTap: onAddImage,
+                ),
                 divider,
                 _ImageActionRow(
                   icon: Icons.content_paste_rounded,

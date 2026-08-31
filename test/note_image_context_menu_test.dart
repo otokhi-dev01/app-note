@@ -28,6 +28,64 @@ void main() {
 
   tearDown(Get.reset);
 
+  testWidgets('tapping an image opens the iOS image editor package', (
+    tester,
+  ) async {
+    const editorChannel = MethodChannel('ios_image_editor');
+    MethodCall? editorCall;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(editorChannel, (call) async {
+          editorCall = call;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(editorChannel, null),
+    );
+
+    InitialBinding().dependencies();
+    final controller = Get.put(
+      NoteDetailController(
+        getNoteDetail: Get.find<GetNoteDetail>(),
+        saveNoteMetadata: Get.find<SaveNoteMetadata>(),
+        saveNoteContent: Get.find<SaveNoteContent>(),
+        updateNoteState: Get.find<UpdateNoteState>(),
+        deleteRestoreNote: Get.find<DeleteRestoreNote>(),
+        uploadAttachment: Get.find<UploadAttachment>(),
+        downloadAttachment: Get.find<DownloadAttachment>(),
+        getFolders: Get.find<GetFolders>(),
+      ),
+    );
+    final imagePath =
+        '${Directory.current.path}/assets/icons/piisiit_logo_mark.png';
+    final block = AttachmentBlock(
+      id: 'tap-to-edit-image',
+      displayName: 'piisiit_logo_mark.png',
+      localPath: imagePath,
+    );
+    controller.blocks.assignAll([block]);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: Scaffold(
+          body: NoteAttachmentBlock(
+            block: block,
+            blockIndex: 0,
+            controller: controller,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(ValueKey('local-${block.id}-$imagePath')));
+    await tester.pumpAndSettle();
+
+    expect(editorCall?.method, 'editImage');
+    expect(editorCall?.arguments, {'path': imagePath});
+  });
+
   testWidgets('long press shows image actions and View As choices', (
     tester,
   ) async {

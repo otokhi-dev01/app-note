@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdfx/pdfx.dart' as pdfx;
 
 /// Building an image-backed PDF attachment, and getting back to the picture it
 /// was built from.
@@ -186,6 +187,58 @@ Future<String> buildMultiPageImagePdf({
   final file = File('${dir.path}/$blockId.pdf');
   await file.writeAsBytes(await document.save(), flush: true);
   return file.path;
+}
+
+/// Rasterizes every page of [pdfPath] to a temporary PNG so an image-only
+/// editor can edit a PDF without dropping the document's remaining pages.
+///
+/// The caller owns the returned files and should delete them after rebuilding
+/// the PDF.
+Future<List<String>> renderPdfPagesForImageEditing(String pdfPath) async {
+  final outputDirectory = await getTemporaryDirectory();
+  final token = DateTime.now().microsecondsSinceEpoch;
+  final renderedPaths = <String>[];
+  final document = await pdfx.PdfDocument.openFile(pdfPath);
+
+  try {
+    for (var pageNumber = 1; pageNumber <= document.pagesCount; pageNumber++) {
+      pdfx.PdfPage? page;
+      try {
+        page = await document.getPage(pageNumber);
+        const renderWidth = 1600.0;
+        final rendered = await page.render(
+          width: renderWidth,
+          height: renderWidth * page.height / page.width,
+          format: pdfx.PdfPageImageFormat.png,
+          backgroundColor: '#FFFFFF',
+          forPrint: true,
+        );
+        if (rendered == null) {
+          throw StateError('Could not render PDF page $pageNumber');
+        }
+
+        final output = File(
+          '${outputDirectory.path}/pdf_edit_${token}_page_$pageNumber.png',
+        );
+        await output.writeAsBytes(rendered.bytes, flush: true);
+        renderedPaths.add(output.path);
+      } finally {
+        if (page != null && !page.isClosed) await page.close();
+      }
+    }
+    return renderedPaths;
+  } catch (_) {
+    for (final path in renderedPaths) {
+      try {
+        await File(path).delete();
+      } catch (_) {
+        // Best-effort cleanup for temporary rendered pages.
+      }
+    }
+    rethrow;
+  } finally {
+    if (!document.isClosed) await document.close();
+  }
 }
 
 /// Keeps [imagePath] as the editable original behind [blockId]'s PDF.

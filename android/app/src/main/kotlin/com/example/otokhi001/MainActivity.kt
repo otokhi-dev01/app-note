@@ -2,6 +2,9 @@ package com.example.otokhi001
 
 import android.net.Uri
 import java.io.File
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -45,6 +48,49 @@ class MainActivity : FlutterActivity() {
                 result.error(
                     "COPY_FAILED",
                     "The scanned page could not be copied.",
+                    error.localizedMessage
+                )
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.kimchheang.otokhi-note/media"
+        ).setMethodCallHandler { call, result ->
+            if (call.method != "recognizeText") {
+                result.notImplemented()
+                return@setMethodCallHandler
+            }
+
+            val path = call.argument<String>("path")
+            if (path.isNullOrBlank() || !File(path).isFile) {
+                result.error("INVALID_IMAGE", "A readable image path is required.", null)
+                return@setMethodCallHandler
+            }
+
+            try {
+                val image = InputImage.fromFilePath(this, Uri.fromFile(File(path)))
+                val recognizer = TextRecognition.getClient(
+                    TextRecognizerOptions.DEFAULT_OPTIONS
+                )
+                recognizer.process(image)
+                    .addOnSuccessListener { recognizedText ->
+                        result.success(recognizedText.text)
+                    }
+                    .addOnFailureListener { error ->
+                        result.error(
+                            "TEXT_RECOGNITION_FAILED",
+                            "The image could not be processed.",
+                            error.localizedMessage
+                        )
+                    }
+                    .addOnCompleteListener {
+                        recognizer.close()
+                    }
+            } catch (error: Exception) {
+                result.error(
+                    "TEXT_RECOGNITION_FAILED",
+                    "The image could not be processed.",
                     error.localizedMessage
                 )
             }

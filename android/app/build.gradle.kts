@@ -42,3 +42,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Bundled Latin-script OCR model; available immediately without a
+    // Google Play Services model download.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+}
