@@ -73,6 +73,7 @@ class DeviceSettingsView extends StatelessWidget {
 
     return _SettingsFeatureScaffold(
       title: 'device_title'.tr,
+      useSurfaceBackButtonColor: true,
       child: _FeatureCard(
         children: [
           _FeatureTile(

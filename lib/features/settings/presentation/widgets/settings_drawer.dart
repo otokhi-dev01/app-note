@@ -92,7 +92,11 @@ class SettingsDrawer extends GetView<ProfileController> {
                         icon: CupertinoIcons.device_phone_portrait,
                         iconColor: _iosGray,
                         title: 'device_title'.tr,
-                        onTap: () => _closeThenGo(context, Routes.DEVICE),
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.DEVICE,
+                          reopenSettingsOnReturn: true,
+                        ),
                       ),
                       LanguagePopup(
                         triggerBuilder: (context, toggleMenu) => _buildRow(

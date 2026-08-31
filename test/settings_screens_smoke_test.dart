@@ -56,6 +56,7 @@ void main() {
 
   for (final destination in [
     (label: 'Notifications', route: Routes.NOTIFICATIONS),
+    (label: 'Device', route: Routes.DEVICE),
     (label: 'Privacy Policy', route: Routes.PRIVACY_POLICY),
     (label: 'Contact Us', route: Routes.CONTACT_US),
     (label: 'Permissions', route: Routes.PERMISSIONS),
@@ -125,6 +126,7 @@ void main() {
 
   final surfaceColorBackRoutes = {
     Routes.NOTIFICATIONS,
+    Routes.DEVICE,
     Routes.PERMISSIONS,
     Routes.PRIVACY_POLICY,
     Routes.CONTACT_US,
