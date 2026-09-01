@@ -67,6 +67,7 @@ class NoteSnippet {
           .whereType<Map>()
           .map((item) => item['insert']?.toString() ?? '')
           .join()
+          .replaceAll('\u200B', '')
           .trim();
     }
 
@@ -79,7 +80,7 @@ class NoteSnippet {
           // Not JSON after all — fall through and use it verbatim.
         }
       }
-      return text;
+      return text.replaceAll('\u200B', '');
     }
 
     return value.toString();

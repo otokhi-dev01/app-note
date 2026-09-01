@@ -143,13 +143,37 @@ class NoteBlockList extends StatelessWidget {
               ensureBlockVisible(blockContext);
             }
           },
-          child: quill.QuillEditor.basic(
-            controller: quillController,
-            focusNode: focusNode,
-            config: quill.QuillEditorConfig(
-              placeholder: textPlaceholder,
-              customStyles: _paragraphStylesFor(context, block.style),
-            ),
+          child: Stack(
+            alignment: Alignment.topLeft,
+            children: [
+              if (textPlaceholder != null)
+                AnimatedBuilder(
+                  animation: quillController,
+                  builder: (context, _) =>
+                      controller.isTextBlockVisiblyEmpty(block.id)
+                      ? IgnorePointer(
+                          child: Text(
+                            textPlaceholder!,
+                            style: _textStyleFor(context, block.style).copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.3),
+                            ),
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              quill.QuillEditor.basic(
+                controller: quillController,
+                focusNode: focusNode,
+                config: quill.QuillEditorConfig(
+                  scrollable: false,
+                  scrollBottomInset: _keyboardClearance(context),
+                  customStyles: _paragraphStylesFor(context, block.style),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -157,13 +181,7 @@ class NoteBlockList extends StatelessWidget {
   }
 
   quill.DefaultStyles _paragraphStylesFor(BuildContext context, String style) {
-    final base = Theme.of(context).textTheme.bodyLarge!;
-    final textStyle = switch (style) {
-      'title' => base.copyWith(fontSize: 26, fontWeight: FontWeight.bold),
-      'heading' => base.copyWith(fontSize: 22, fontWeight: FontWeight.w700),
-      'subheading' => base.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
-      _ => base.copyWith(fontSize: 17, fontWeight: FontWeight.normal),
-    };
+    final textStyle = _textStyleFor(context, style);
     return quill.DefaultStyles(
       paragraph: quill.DefaultTextBlockStyle(
         textStyle,
@@ -173,5 +191,20 @@ class NoteBlockList extends StatelessWidget {
         null,
       ),
     );
+  }
+
+  TextStyle _textStyleFor(BuildContext context, String style) {
+    final base = Theme.of(context).textTheme.bodyLarge!;
+    return switch (style) {
+      'title' => base.copyWith(fontSize: 26, fontWeight: FontWeight.bold),
+      'heading' => base.copyWith(fontSize: 22, fontWeight: FontWeight.w700),
+      'subheading' => base.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
+      _ => base.copyWith(fontSize: 17, fontWeight: FontWeight.normal),
+    };
+  }
+
+  double _keyboardClearance(BuildContext context) {
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+    return keyboardHeight == 0 ? 0 : keyboardHeight + 72;
   }
 }

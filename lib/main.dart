@@ -6,10 +6,9 @@ import 'package:Note/app.dart';
 
 /*
   App: Pii Note App
-  Date: 08.28.2026 update by nona in the evening at 8:00pm
-  Update by: branch nona_developer
+  Date: 09.01.2026 update by nona in the evening at 8:00pm
   Update by: branch nona
-  Feature: All the feature and the logic and integration with api
+  Feature:
  */
 
 Future<void> main() async {

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_quill/quill_delta.dart' as quill_delta;
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:quill_native_bridge/quill_native_bridge.dart';
@@ -47,6 +48,11 @@ import 'package:Note/shared/widgets/glass_widgets.dart';
 /// as "Backspace at the start of an empty item" and strips before the text
 /// ever reaches [NoteDetailController.onUpdateChecklistItem].
 final String kChecklistItemPlaceholder = String.fromCharCode(0x200B);
+
+/// Invisible character placed in a newly-created empty text block so the
+/// mobile text-input channel has something to delete. iOS does not emit a key
+/// event when Backspace is pressed on a truly empty field.
+final String kTextBlockBackspaceMarker = String.fromCharCode(0x200B);
 
 const _contentUriChannel = MethodChannel(
   'com.kimchheang.otokhi-note/content_uri',
@@ -108,6 +114,7 @@ class NoteDetailController extends GetxController {
   // trailing newline) apart from every other kind of edit — see
   // [_handleTextBlockEmptied].
   final Map<String, int> _lastTextBlockLength = {};
+  final Set<String> _removingTextBlockMarkers = {};
   // Set for the duration of qc.undo() only — see [undo].
   bool _suppressEmptiedCheck = false;
 
@@ -235,17 +242,210 @@ class NoteDetailController extends GetxController {
       } catch (_) {
         doc = quill.Document()..insert(0, content);
       }
+      // A truly empty Quill document cannot report virtual-keyboard
+      // Backspace on iOS. Keep one invisible, removable character in every
+      // empty body line; the widgets render their own visible placeholder.
+      if (doc.isEmpty()) {
+        doc = quill.Document()..insert(0, kTextBlockBackspaceMarker);
+      }
       final qc = quill.QuillController(
         document: doc,
         selection: const TextSelection.collapsed(offset: 0),
+        onReplaceText: (index, length, data) =>
+            _handleTextBlockReplacement(blockId, index, length, data),
       );
       _lastTextBlockLength[blockId] = doc.length;
       qc.addListener(() {
+        _removeTextBlockMarkerAfterTyping(blockId);
         _handleMarkdownShortcut(blockId);
         _handleTextBlockEmptied(blockId);
       });
       return qc;
     });
+  }
+
+  /// Makes each plain Return press a real body block boundary. This keeps
+  /// text, images, checklists, tables, and drawings in one ordered stream, so
+  /// inserting media after the active line places it where the cursor is
+  /// instead of after one large multi-line text block.
+  ///
+  /// Quill list rows keep their native Return behavior because they need to
+  /// create/exit list items inside the same rich-text document.
+  bool _handleTextBlockReplacement(
+    String blockId,
+    int index,
+    int length,
+    Object? data,
+  ) {
+    if (data != '\n') return true;
+
+    final controller = quillControllers[blockId];
+    final listAttribute = controller
+        ?.getSelectionStyle()
+        .attributes[quill.Attribute.list.key];
+    if (listAttribute != null) return true;
+
+    Future.microtask(() => _splitTextBlock(blockId, index, length));
+    return false;
+  }
+
+  void _splitTextBlock(
+    String blockId,
+    int selectionStart,
+    int selectionLength,
+  ) {
+    if (isReadOnly.value) return;
+
+    final blockIndex = blocks.indexWhere((block) => block.id == blockId);
+    if (blockIndex == -1) return;
+    final block = blocks[blockIndex];
+    final controller = quillControllers[blockId];
+    if (block is! TextBlock || controller == null) return;
+
+    final documentLength = controller.document.length;
+    final contentEnd = documentLength - 1;
+    final splitAt = selectionStart.clamp(0, contentEnd);
+    final trailingStart = (splitAt + selectionLength).clamp(
+      splitAt,
+      contentEnd,
+    );
+    final documentDelta = controller.document.toDelta();
+    var leadingDelta = documentDelta.slice(0, splitAt);
+    var trailingDelta = documentDelta.slice(trailingStart, documentLength);
+    _terminateDocumentDelta(leadingDelta);
+    _terminateDocumentDelta(trailingDelta);
+    leadingDelta = _markEmptyTextBlock(leadingDelta);
+    trailingDelta = _markEmptyTextBlock(trailingDelta);
+
+    final leadingJson = jsonEncode(leadingDelta.toJson());
+    final trailingJson = jsonEncode(trailingDelta.toJson());
+    final leadingDocument = quill.Document.fromJson(leadingDelta.toJson());
+    final nextBlock = TextBlock(
+      id: _generateId(),
+      text: trailingJson,
+      style: 'body',
+    );
+
+    // Updating the existing Quill document notifies its listeners. Seed the
+    // new length first so splitting an empty leading half is not mistaken for
+    // a Backspace that should remove the block.
+    _lastTextBlockLength[blockId] = leadingDocument.length;
+    _suppressEmptiedCheck = true;
+    try {
+      controller.document = leadingDocument;
+    } finally {
+      _suppressEmptiedCheck = false;
+    }
+
+    blocks[blockIndex] = TextBlock(
+      id: block.id,
+      text: leadingJson,
+      style: block.style,
+    );
+    blocks.insert(blockIndex + 1, nextBlock);
+    activeBlockIndex.value = blockIndex + 1;
+    currentBlockStyle.value = nextBlock.style;
+    blocks.refresh();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nextController = getQuillController(nextBlock.id, trailingJson);
+      final selectionOffset = _isMarkedEmptyTextBlock(trailingDelta) ? 1 : 0;
+      nextController.updateSelection(
+        TextSelection.collapsed(offset: selectionOffset),
+        quill.ChangeSource.local,
+      );
+      getBlockFocusNode(nextBlock.id).requestFocus();
+    });
+  }
+
+  void _terminateDocumentDelta(quill_delta.Delta delta) {
+    final endsWithNewline =
+        delta.isNotEmpty &&
+        delta.last.data is String &&
+        (delta.last.data as String).endsWith('\n');
+    if (!endsWithNewline) delta.insert('\n');
+  }
+
+  quill_delta.Delta _markEmptyTextBlock(quill_delta.Delta delta) {
+    if (!_isEmptyTextBlockDelta(delta) || _deltaContainsTextMarker(delta)) {
+      return delta;
+    }
+
+    final marked = quill_delta.Delta()..insert(kTextBlockBackspaceMarker);
+    for (final operation in delta.operations) {
+      marked.push(operation);
+    }
+    return marked;
+  }
+
+  bool _isMarkedEmptyTextBlock(quill_delta.Delta delta) =>
+      _isEmptyTextBlockDelta(delta) && _deltaContainsTextMarker(delta);
+
+  bool _isEmptyTextBlockDelta(quill_delta.Delta delta) {
+    final text = delta.operations
+        .where((operation) => operation.isInsert && operation.data is String)
+        .map((operation) => operation.data as String)
+        .join()
+        .replaceAll(kTextBlockBackspaceMarker, '');
+    return text == '\n';
+  }
+
+  bool _deltaContainsTextMarker(quill_delta.Delta delta) => delta.operations
+      .where((operation) => operation.isInsert && operation.data is String)
+      .any(
+        (operation) =>
+            (operation.data as String).contains(kTextBlockBackspaceMarker),
+      );
+
+  quill_delta.Delta _withoutTextBlockMarkers(quill_delta.Delta delta) {
+    final clean = quill_delta.Delta();
+    for (final operation in delta.operations) {
+      if (operation.isInsert && operation.data is String) {
+        clean.insert(
+          (operation.data as String).replaceAll(kTextBlockBackspaceMarker, ''),
+          operation.attributes,
+        );
+      } else {
+        clean.push(operation);
+      }
+    }
+    _terminateDocumentDelta(clean);
+    return clean;
+  }
+
+  /// Once real text is entered, removes the marker and keeps the cursor at
+  /// the same visible position. Marker-only blocks retain it until Backspace
+  /// deletes it and triggers [_handleTextBlockEmptied].
+  void _removeTextBlockMarkerAfterTyping(String blockId) {
+    if (_removingTextBlockMarkers.contains(blockId)) return;
+    final controller = quillControllers[blockId];
+    if (controller == null) return;
+
+    final plainText = controller.document.toPlainText();
+    final markerOffset = plainText.indexOf(kTextBlockBackspaceMarker);
+    if (markerOffset == -1) return;
+    if (plainText.replaceAll(kTextBlockBackspaceMarker, '') == '\n') return;
+
+    int shiftedOffset(int offset) {
+      if (offset < 0 || offset <= markerOffset) return offset;
+      return offset - kTextBlockBackspaceMarker.length;
+    }
+
+    final selection = controller.selection;
+    _removingTextBlockMarkers.add(blockId);
+    try {
+      controller.replaceText(
+        markerOffset,
+        kTextBlockBackspaceMarker.length,
+        '',
+        selection.copyWith(
+          baseOffset: shiftedOffset(selection.baseOffset),
+          extentOffset: shiftedOffset(selection.extentOffset),
+        ),
+      );
+    } finally {
+      _removingTextBlockMarkers.remove(blockId);
+    }
   }
 
   /// iOS 26 Notes-style body Backspace, detected the only way that's
@@ -324,12 +524,20 @@ class NoteDetailController extends GetxController {
           getBlockFocusNode('${blockId}_${newItem.id}').requestFocus();
         });
       } else {
-        qc.replaceText(
-          0,
-          prefixLength,
-          '',
-          const TextSelection.collapsed(offset: 0),
-        );
+        // Consuming the shortcut marker leaves a deliberately empty heading.
+        // Do not let the Backspace listener mistake that programmatic delete
+        // for the user erasing the final character of the block.
+        _suppressEmptiedCheck = true;
+        try {
+          qc.replaceText(
+            0,
+            prefixLength,
+            '',
+            const TextSelection.collapsed(offset: 0),
+          );
+        } finally {
+          _suppressEmptiedCheck = false;
+        }
         blocks[index] = TextBlock(
           id: block.id,
           text: block.text,
@@ -350,6 +558,11 @@ class NoteDetailController extends GetxController {
 
   FocusNode getBlockFocusNode(String blockId) =>
       blockFocusNodes.putIfAbsent(blockId, () => FocusNode());
+
+  bool isTextBlockVisiblyEmpty(String blockId) {
+    final plainText = quillControllers[blockId]?.document.toPlainText() ?? '';
+    return plainText.replaceAll(kTextBlockBackspaceMarker, '') == '\n';
+  }
 
   /// iOS-Notes-style title→body flow: pressing return in the title field
   /// jumps straight into the first text block instead of just inserting a
@@ -465,8 +678,14 @@ class NoteDetailController extends GetxController {
 
   // --- Block Actions ---
 
-  void addTextBlock({String style = 'body'}) {
-    _insertBlock(TextBlock(id: _generateId(), text: '', style: style));
+  void addTextBlock({String style = 'body', bool requestFocus = false}) {
+    final block = TextBlock(id: _generateId(), text: '', style: style);
+    _insertBlock(block);
+    if (requestFocus) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _focusTextBlockAtEnd(block),
+      );
+    }
   }
 
   void addChecklistBlock() {
@@ -536,7 +755,7 @@ class NoteDetailController extends GetxController {
           ),
         );
         blocks.refresh();
-        addTextBlock();
+        addTextBlock(requestFocus: true);
         unawaited(saveNote());
       }
     } catch (e) {
@@ -566,7 +785,7 @@ class NoteDetailController extends GetxController {
         ),
       );
       blocks.refresh();
-      addTextBlock();
+      addTextBlock(requestFocus: true);
       unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[CAMERA ERROR] $e');
@@ -601,7 +820,7 @@ class NoteDetailController extends GetxController {
         );
       }
       blocks.refresh();
-      addTextBlock();
+      addTextBlock(requestFocus: true);
       unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[GALLERY ERROR] $e');
@@ -633,7 +852,7 @@ class NoteDetailController extends GetxController {
         ),
       );
       blocks.refresh();
-      addTextBlock();
+      addTextBlock(requestFocus: true);
       unawaited(saveNote(silent: true));
     } catch (e) {
       debugPrint('[FILE PICKER ERROR] $e');
@@ -700,7 +919,7 @@ class NoteDetailController extends GetxController {
       ),
     );
     blocks.refresh();
-    addTextBlock();
+    addTextBlock(requestFocus: true);
     unawaited(saveNote(silent: true));
   }
 
@@ -796,7 +1015,7 @@ class NoteDetailController extends GetxController {
       ),
     );
     blocks.refresh();
-    addTextBlock();
+    addTextBlock(requestFocus: true);
     unawaited(saveNote(silent: true));
   }
 
@@ -846,7 +1065,7 @@ class NoteDetailController extends GetxController {
         ),
       );
       blocks.refresh();
-      addTextBlock();
+      addTextBlock(requestFocus: true);
       unawaited(saveNote(silent: true));
     } catch (error) {
       debugPrint('[AUDIO SAVE ERROR] $error');
@@ -2107,7 +2326,9 @@ class NoteDetailController extends GetxController {
       if (block is TextBlock) {
         final qc = quillControllers[block.id];
         if (qc != null) {
-          final deltaJson = qc.document.toDelta().toJson();
+          final deltaJson = _withoutTextBlockMarkers(
+            qc.document.toDelta(),
+          ).toJson();
           blocks[i] = TextBlock(
             id: block.id,
             text: jsonEncode(deltaJson),
@@ -2231,7 +2452,12 @@ class NoteDetailController extends GetxController {
       if (block is TextBlock) {
         final plainText =
             quillControllers[block.id]?.document.toPlainText() ?? block.text;
-        if (plainText.trim().isNotEmpty) return true;
+        if (plainText
+            .replaceAll(kTextBlockBackspaceMarker, '')
+            .trim()
+            .isNotEmpty) {
+          return true;
+        }
       } else {
         // Any non-text block (checklist, attachment, drawing, table) is
         // real content on its own.
@@ -2829,6 +3055,7 @@ class NoteDetailController extends GetxController {
     }
     quillControllers.clear();
     _lastTextBlockLength.clear();
+    _removingTextBlockMarkers.clear();
     for (var c in textControllers.values) {
       c.dispose();
     }

@@ -125,7 +125,9 @@ class _SaveButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(
       () => CustomGlassButton(
-        onPressed: controller.isSaving.value ? null : controller.saveNote,
+        onPressed: controller.isSaving.value
+            ? null
+            : () => controller.saveNote(silent: true),
         width: 44,
         height: 44,
         padding: EdgeInsets.zero,
