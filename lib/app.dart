@@ -9,7 +9,6 @@ import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/routes/app_pages.dart';
 
 /// The application widget: themes, routes, and the root dependency graph.
-///
 /// Bootstrapping (bindings init, storage, the glass runtime) stays in
 /// `main.dart`; everything the app *is* lives here.
 class NoteApp extends StatelessWidget {

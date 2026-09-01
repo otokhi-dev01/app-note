@@ -47,6 +47,12 @@
 *.moved-aside
 *.xcuserstate
 *.xcworkspace
+# Flutter's SwiftPM integration requires the Runner workspace even without Pods.
+!ios/Runner.xcworkspace/
+!ios/Runner.xcworkspace/contents.xcworkspacedata
+!ios/Runner.xcworkspace/xcshareddata/
+!ios/Runner.xcworkspace/xcshareddata/swiftpm/
+!ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved
 !**/ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json
 
 # Web related

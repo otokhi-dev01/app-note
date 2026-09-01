@@ -126,6 +126,8 @@ class _CreateNoteBody extends StatelessWidget {
     final bottomPadding = MediaQuery.viewInsetsOf(context).bottom + 140;
 
     return _MaxWidth(
+      key: const ValueKey('create-note-body-tap-target'),
+      onTap: controller.focusCreateNoteComposer,
       child: Obx(() {
         final isReadOnly = controller.isReadOnly.value;
         return CustomScrollView(
@@ -203,7 +205,7 @@ class _CreateNoteBody extends StatelessWidget {
                 fillOverscroll: false,
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onTap: controller.focusLastTextBlock,
+                  onTap: controller.focusCreateNoteComposer,
                   child: const SizedBox(width: double.infinity),
                 ),
               ),
@@ -216,15 +218,21 @@ class _CreateNoteBody extends StatelessWidget {
 
 class _MaxWidth extends StatelessWidget {
   final Widget child;
-  const _MaxWidth({required this.child});
+  final VoidCallback? onTap;
+
+  const _MaxWidth({super.key, required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: SizedBox(width: double.infinity, child: child),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: onTap,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: SizedBox(width: double.infinity, child: child),
+        ),
       ),
     );
   }

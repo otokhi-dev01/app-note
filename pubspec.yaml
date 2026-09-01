@@ -2,7 +2,7 @@ name: Note
 description: "A new Flutter project."
 
 publish_to: 'none'
-version: 1.0.1+16
+version: 1.0.1+17
 
 environment:
   sdk: ^3.11.5
@@ -21,7 +21,9 @@ dependencies:
   image_picker: ^1.2.3
   path_provider: ^2.1.6
   flutter_secure_storage: ^10.3.1
-  ios_image_editor: ^1.0.0
+  # Local SwiftPM-compatible patch of ios_image_editor 1.0.0.
+  ios_image_editor:
+    path: packages/ios_image_editor
   flutter_quill: ^11.0.0
   quill_native_bridge: ^11.1.0
   # Keep the Win32 dependency compatible with the pre-v12 file_picker pin.
@@ -53,6 +55,8 @@ flutter_launcher_icons:
   min_sdk_android: 21
 
 flutter:
+  config:
+    enable-swift-package-manager: true
   uses-material-design: true
   assets:
     - assets/icons/

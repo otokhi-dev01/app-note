@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Note/features/note/presentation/widgets/telegram_audio_record_button.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
@@ -67,34 +66,34 @@ class FolderBottomBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    TelegramAudioRecordButton(
-                      semanticLabel: 'note_editor_record_audio'.tr,
-                      onRecorded: (recording) => controller.saveRecordedAudio(
-                        filePath: recording.path,
-                        displayName: recording.displayName,
-                      ),
-                    ),
+                    // TelegramAudioRecordButton(
+                    //   semanticLabel: 'note_editor_record_audio'.tr,
+                    //   onRecorded: (recording) => controller.saveRecordedAudio(
+                    //     filePath: recording.path,
+                    //     displayName: recording.displayName,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            CustomGlassButton(
-              onPressed: controller.createNewNote,
-              semanticLabel: 'folder_create_note_semantic'.tr,
-              width: 50,
-              height: 50,
-              shape: GlassShape.circle,
-              blur: 10,
-              opacity: 0.15,
-              thickness: 8,
-              padding: EdgeInsets.zero,
-              child: Icon(
-                CupertinoIcons.square_pencil,
-                color: theme.primaryColor,
-                size: 30,
-              ),
-            ),
+            // CustomGlassButton(
+            //   onPressed: controller.createNewNote,
+            //   semanticLabel: 'folder_create_note_semantic'.tr,
+            //   width: 50,
+            //   height: 50,
+            //   shape: GlassShape.circle,
+            //   blur: 10,
+            //   opacity: 0.15,
+            //   thickness: 8,
+            //   padding: EdgeInsets.zero,
+            //   child: Icon(
+            //     CupertinoIcons.square_pencil,
+            //     color: theme.primaryColor,
+            //     size: 30,
+            //   ),
+            // ),
           ],
         ),
       ),

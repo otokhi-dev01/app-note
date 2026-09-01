@@ -338,6 +338,8 @@ class NoteContentEditor extends StatelessWidget {
             controller: quillController,
             focusNode: focusNode,
             config: quill.QuillEditorConfig(
+              scrollable: false,
+              scrollBottomInset: _keyboardClearance(context),
               customStyles: _paragraphStylesFor(context, block.style),
             ),
           ),
@@ -367,6 +369,11 @@ class NoteContentEditor extends StatelessWidget {
 
   double _editorInset(BuildContext context) {
     return (MediaQuery.sizeOf(context).width * 0.065).clamp(21.0, 32.0);
+  }
+
+  double _keyboardClearance(BuildContext context) {
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+    return keyboardHeight == 0 ? 0 : keyboardHeight + 72;
   }
 }
 
