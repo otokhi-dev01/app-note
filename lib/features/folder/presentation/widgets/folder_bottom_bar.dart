@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Note/features/note/presentation/widgets/telegram_audio_record_button.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
@@ -67,13 +66,13 @@ class FolderBottomBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    TelegramAudioRecordButton(
-                      semanticLabel: 'note_editor_record_audio'.tr,
-                      onRecorded: (recording) => controller.saveRecordedAudio(
-                        filePath: recording.path,
-                        displayName: recording.displayName,
-                      ),
-                    ),
+                    // TelegramAudioRecordButton(
+                    //   semanticLabel: 'note_editor_record_audio'.tr,
+                    //   onRecorded: (recording) => controller.saveRecordedAudio(
+                    //     filePath: recording.path,
+                    //     displayName: recording.displayName,
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

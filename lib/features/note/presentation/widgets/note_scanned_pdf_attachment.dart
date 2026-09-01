@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
-
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/image_pdf.dart';
@@ -18,6 +17,8 @@ import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
 import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
+import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Renders the actual first PDF page inside the note, so the inline card is a
 /// faithful paper preview of the file that will be shared or printed.
@@ -125,7 +126,10 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
   }
 
   Future<void> _openPdf() async {
-    final path = _resolvedPath;
+    // Opening the document should not depend on the thumbnail render having
+    // completed successfully. A valid PDF can still be viewed when its inline
+    // first-page preview could not be generated.
+    final path = _resolvedPath ?? await _resolvePath();
     if (path == null || !File(path).existsSync()) {
       AppSnackbar.info(
         'note_editor_not_available_title'.tr,
@@ -133,11 +137,20 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
       );
       return;
     }
+    if (!mounted) return;
 
     await Navigator.of(context).push(
       CupertinoPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => _ScannedPdfPreviewPage(path: path),
+        builder: (_) => _ScannedPdfPreviewPage(
+          path: path,
+          title: widget.block.displayName.trim(),
+          onEdit: widget.isReadOnly
+              ? null
+              : () {
+                  unawaited(_editPdf());
+                },
+        ),
       ),
     );
   }
@@ -159,8 +172,34 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
       await _openPdf();
       return;
     }
-    await widget.controller.editPdfSourceImage(widget.blockIndex);
-    if (mounted) await _loadPreview();
+
+    final pdfPath = _resolvedPath ?? await _resolvePath();
+    if (pdfPath == null || !File(pdfPath).existsSync()) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_pdf_not_available'.tr,
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    final saved = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute<bool>(
+        fullscreenDialog: true,
+        builder: (_) => PdfPagesEditorPage(
+          pdfPath: pdfPath,
+          pageRenderer: (_) => preparePdfPagesForEditing(
+            pdfPath: pdfPath,
+            blockId: widget.block.id,
+          ),
+          onSave: (pages) => widget.controller.updatePdfFromPageImages(
+            widget.blockIndex,
+            pages,
+          ),
+        ),
+      ),
+    );
+    if (mounted && saved == true) await _loadPreview();
   }
 
   Future<void> _addImageOverlay() async {
@@ -314,7 +353,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
       }),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: _editPdf,
+        onTap: _openPdf,
         onLongPress: _showContextMenu,
         child: Center(
           child: ConstrainedBox(
@@ -383,8 +422,14 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
 
 class _ScannedPdfPreviewPage extends StatefulWidget {
   final String path;
+  final String title;
+  final VoidCallback? onEdit;
 
-  const _ScannedPdfPreviewPage({required this.path});
+  const _ScannedPdfPreviewPage({
+    required this.path,
+    required this.title,
+    required this.onEdit,
+  });
 
   @override
   State<_ScannedPdfPreviewPage> createState() => _ScannedPdfPreviewPageState();
@@ -392,6 +437,12 @@ class _ScannedPdfPreviewPage extends StatefulWidget {
 
 class _ScannedPdfPreviewPageState extends State<_ScannedPdfPreviewPage> {
   late final PdfControllerPinch _pdfController;
+  final Set<int> _previewPointers = <int>{};
+  Timer? _editHoldTimer;
+  int? _editHoldPointer;
+  Offset? _editHoldOrigin;
+  int _currentPage = 1;
+  int _pageCount = 0;
 
   @override
   void initState() {
@@ -403,6 +454,7 @@ class _ScannedPdfPreviewPageState extends State<_ScannedPdfPreviewPage> {
 
   @override
   void dispose() {
+    _cancelEditHold();
     _pdfController.dispose();
     super.dispose();
   }
@@ -410,17 +462,192 @@ class _ScannedPdfPreviewPageState extends State<_ScannedPdfPreviewPage> {
   Future<void> _shareOrPrint() =>
       shareXFilesSafely(context, [XFile(widget.path)]);
 
+  void _editPdf({bool fromHold = false}) {
+    final onEdit = widget.onEdit;
+    if (onEdit == null) return;
+
+    if (fromHold) Feedback.forLongPress(context);
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) => onEdit());
+  }
+
+  void _handleDocumentLoaded(PdfDocument document) {
+    if (!mounted) return;
+    setState(() => _pageCount = document.pagesCount);
+  }
+
+  void _handlePageChanged(int page) {
+    if (!mounted || page == _currentPage) return;
+    setState(() => _currentPage = page);
+  }
+
+  void _handlePointerDown(PointerDownEvent event) {
+    _previewPointers.add(event.pointer);
+    if (widget.onEdit == null || _previewPointers.length != 1) {
+      _cancelEditHold();
+      return;
+    }
+
+    _editHoldPointer = event.pointer;
+    _editHoldOrigin = event.position;
+    _editHoldTimer = Timer(kLongPressTimeout, () {
+      if (!mounted ||
+          _previewPointers.length != 1 ||
+          !_previewPointers.contains(_editHoldPointer)) {
+        return;
+      }
+      _editPdf(fromHold: true);
+    });
+  }
+
+  void _handlePointerMove(PointerMoveEvent event) {
+    if (event.pointer != _editHoldPointer) return;
+    final origin = _editHoldOrigin;
+    if (origin == null || (event.position - origin).distance > kTouchSlop) {
+      _cancelEditHold();
+    }
+  }
+
+  void _handlePointerEnd(PointerEvent event) {
+    _previewPointers.remove(event.pointer);
+    if (event.pointer == _editHoldPointer) _cancelEditHold();
+  }
+
+  void _cancelEditHold() {
+    _editHoldTimer?.cancel();
+    _editHoldTimer = null;
+    _editHoldPointer = null;
+    _editHoldOrigin = null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF555555),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned.fill(
+    final theme = Theme.of(context);
+    final title = widget.title.isEmpty
+        ? 'note_editor_scanned_document_default_title'.tr
+        : widget.title;
+    final overlayStyle = theme.brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          )
+        : SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+          );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: Scaffold(
+        key: const ValueKey('pdf-preview-page'),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        appBar: CustomGlassAppBar(
+          key: const ValueKey('pdf-preview-app-bar'),
+          toolbarHeight: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          backgroundColor: theme.scaffoldBackgroundColor,
+          leading: CustomGlassButton(
+            key: const ValueKey('pdf-preview-close'),
+            semanticLabel: MaterialLocalizations.of(context).closeButtonTooltip,
+            onPressed: () => Navigator.of(context).pop(),
+            width: 44,
+            height: 44,
+            shape: GlassShape.circle,
+            blur: 10,
+            opacity: 0.15,
+            thickness: 8,
+            padding: EdgeInsets.zero,
+            child: Icon(
+              CupertinoIcons.xmark,
+              color: theme.primaryColor,
+              size: 22,
+            ),
+          ),
+          title: Column(
+            key: const ValueKey('pdf-preview-title'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              if (_pageCount > 0)
+                Text(
+                  '${'note_editor_pdf_page'.tr} $_currentPage '
+                  '${'note_editor_pdf_of'.tr} $_pageCount',
+                  key: const ValueKey('pdf-preview-page-count'),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            if (widget.onEdit != null)
+              CustomGlassButton(
+                key: const ValueKey('pdf-preview-edit'),
+                semanticLabel: 'note_editor_edit_pdf'.tr,
+                onPressed: _editPdf,
+                height: 44,
+                borderRadius: 22,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                blur: 10,
+                opacity: 0.15,
+                thickness: 8,
+                child: Text(
+                  'folder_edit'.tr,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+            CustomGlassButton(
+              key: const ValueKey('pdf-preview-share'),
+              semanticLabel: 'note_editor_share_print_pdf'.tr,
+              onPressed: _shareOrPrint,
+              width: 44,
+              height: 44,
+              shape: GlassShape.circle,
+              blur: 10,
+              opacity: 0.15,
+              thickness: 8,
+              padding: EdgeInsets.zero,
+              child: Icon(
+                CupertinoIcons.share,
+                color: theme.primaryColor,
+                size: 22,
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          top: false,
+          child: Semantics(
+            onLongPress: widget.onEdit == null
+                ? null
+                : () => _editPdf(fromHold: true),
+            child: Listener(
+              key: const ValueKey('pdf-preview-document'),
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: _handlePointerDown,
+              onPointerMove: _handlePointerMove,
+              onPointerUp: _handlePointerEnd,
+              onPointerCancel: _handlePointerEnd,
               child: PdfViewPinch(
                 controller: _pdfController,
+                scrollDirection: Axis.horizontal,
                 padding: 18,
+                onDocumentLoaded: _handleDocumentLoaded,
+                onPageChanged: _handlePageChanged,
                 backgroundDecoration: const BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
@@ -433,51 +660,8 @@ class _ScannedPdfPreviewPageState extends State<_ScannedPdfPreviewPage> {
                 ),
               ),
             ),
-            Positioned(
-              left: 10,
-              right: 10,
-              top: 8,
-              child: Row(
-                children: [
-                  _PdfOverlayButton(
-                    icon: CupertinoIcons.xmark,
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
-                  const Spacer(),
-                  _PdfOverlayButton(
-                    icon: CupertinoIcons.share,
-                    onTap: _shareOrPrint,
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-}
-
-class _PdfOverlayButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _PdfOverlayButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 42,
-        height: 42,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.62),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }

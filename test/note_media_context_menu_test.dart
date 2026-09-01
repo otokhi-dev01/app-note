@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:pdfx/pdfx.dart';
 
 import 'package:Note/core/di/injector.dart';
 import 'package:Note/core/localization/app_translations.dart';
@@ -16,6 +17,8 @@ import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
+import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -31,21 +34,9 @@ void main() {
 
   tearDown(Get.reset);
 
-  testWidgets('PDF tap is wired to ios_image_editor', (
+  testWidgets('PDF preview Edit button opens the all-page editor', (
     tester,
   ) async {
-    const editorChannel = MethodChannel('ios_image_editor');
-    MethodCall? editorCall;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(editorChannel, (call) async {
-          editorCall = call;
-          return null;
-        });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(editorChannel, null),
-    );
-
     final controller = _createController();
     final token = DateTime.now().microsecondsSinceEpoch.toString();
     final blockId = 'tap-pdf-editor-$token';
@@ -57,10 +48,8 @@ void main() {
         blockId: blockId,
         title: 'Editable PDF',
       );
-      await storePdfSourceImage(imagePath: sourceImage, blockId: blockId);
       return path;
     });
-    final sourcePath = await tester.runAsync(() => findPdfSourceImage(blockId));
     final block = AttachmentBlock(
       id: blockId,
       displayName: 'Editable PDF.pdf',
@@ -70,21 +59,150 @@ void main() {
 
     await _pumpAttachment(tester, controller, block);
     final pdfTile = find.byKey(ValueKey('scanned-pdf-$blockId'));
-    final tapTarget = find.descendant(
-      of: pdfTile,
-      matching: find.byType(GestureDetector),
-    );
-    expect(tester.widget<GestureDetector>(tapTarget.first).onTap, isNotNull);
+    await tester.tap(pdfTile);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.runAsync(() => controller.editPdfSourceImage(0));
+    expect(find.byKey(const ValueKey('pdf-preview-page')), findsOneWidget);
+    final previewScaffold = tester.widget<Scaffold>(
+      find.byKey(const ValueKey('pdf-preview-page')),
+    );
+    expect(
+      previewScaffold.backgroundColor,
+      Theme.of(tester.element(pdfTile)).scaffoldBackgroundColor,
+    );
+    expect(find.byKey(const ValueKey('pdf-preview-app-bar')), findsOneWidget);
+    expect(find.byType(CustomGlassAppBar), findsOneWidget);
+    expect(find.byKey(const ValueKey('pdf-preview-edit')), findsOneWidget);
+    expect(find.text('Editable PDF.pdf'), findsOneWidget);
+    expect(
+      tester.widget<PdfViewPinch>(find.byType(PdfViewPinch)).scrollDirection,
+      Axis.horizontal,
+    );
+
+    // Let the unregistered pdfx test channel report its loading error while
+    // the viewer is still mounted; this avoids a package-level dispose race.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
     await tester.pump();
 
-    expect(editorCall?.method, 'editImage');
-    expect(editorCall?.arguments, {'path': sourcePath});
+    await tester.tap(find.byKey(const ValueKey('pdf-preview-edit')));
+    // PdfViewPinch keeps scheduling frames while its document initializes, so
+    // use a bounded route-transition pump instead of pumpAndSettle here.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('pdf-preview-page')), findsNothing);
+    expect(find.byKey(const ValueKey('pdf-pages-editor-page')), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.runAsync(() => deletePdfFiles(blockId));
+  });
+
+  testWidgets('PDF page editor lists all nine pages in order', (tester) async {
+    final token = DateTime.now().microsecondsSinceEpoch;
+    final fixture = File(
+      '${Directory.current.path}/assets/icons/piisiit_logo_app.png',
+    );
+    final pages = (await tester.runAsync<List<String>>(() async {
+      final paths = <String>[];
+      for (var index = 1; index <= 9; index++) {
+        final path =
+            '${Directory.systemTemp.path}/pdf_editor_${token}_$index.png';
+        await fixture.copy(path);
+        paths.add(path);
+      }
+      return paths;
+    }))!;
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: PdfPagesEditorPage(
+          pdfPath: 'nine-pages.pdf',
+          pageRenderer: (_) async => pages,
+          onSave: (_) async => true,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final grid = tester.widget<GridView>(
+      find.byKey(const ValueKey('pdf-pages-editor-grid')),
+    );
+    expect(grid.childrenDelegate.estimatedChildCount, 9);
+    expect(find.byKey(const ValueKey('pdf-edit-page-1')), findsOneWidget);
+    expect(find.text('Edit PDF'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.runAsync(() async {
+      for (final path in pages) {
+        final file = File(path);
+        if (file.existsSync()) file.deleteSync();
+      }
+    });
+  });
+
+  test('multi-page PDF editing prefers original scan pages', () async {
+    final token = DateTime.now().microsecondsSinceEpoch.toString();
+    final blockId = 'source-pages-$token';
+    final fixture = File(
+      '${Directory.current.path}/assets/icons/piisiit_logo_app.png',
+    );
+    final inputs = <String>[];
+    for (var page = 1; page <= 3; page++) {
+      final path = '${Directory.systemTemp.path}/${blockId}_input_$page.png';
+      fixture.copySync(path);
+      inputs.add(path);
+    }
+
+    await storePdfSourcePages(imagePaths: inputs, blockId: blockId);
+    final stored = await findPdfSourcePages(blockId);
+    final staged = await preparePdfPagesForEditing(
+      pdfPath: '${Directory.systemTemp.path}/does-not-need-to-exist.pdf',
+      blockId: blockId,
+    );
+
+    expect(stored, hasLength(3));
+    expect(staged, hasLength(3));
+    expect(staged, isNot(equals(stored)));
+    for (var index = 0; index < inputs.length; index++) {
+      expect(File(staged[index]).readAsBytesSync(), fixture.readAsBytesSync());
+    }
+
+    for (final path in [...inputs, ...staged]) {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    }
+    await deletePdfFiles(blockId);
+  });
+
+  test('full-size PDF pages support date, time, and page numbers', () async {
+    final blockId =
+        'footer-${DateTime.now().microsecondsSinceEpoch.toString()}';
+    final fixture =
+        '${Directory.current.path}/assets/icons/piisiit_logo_app.png';
+    final path = await buildMultiPageImagePdf(
+      imagePaths: [fixture, fixture],
+      blockId: blockId,
+      createdAt: DateTime(2026, 9, 1, 13, 37),
+      showDateTime: true,
+      showPageNumbers: true,
+      imagesAreCompletePages: true,
+    );
+
+    expect(File(path).existsSync(), isTrue);
+    expect(File(path).lengthSync(), greaterThan(0));
+    await deletePdfFiles(blockId);
   });
 
   for (final media in [

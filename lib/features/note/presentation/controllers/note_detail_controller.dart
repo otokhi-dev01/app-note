@@ -861,8 +861,8 @@ class NoteDetailController extends GetxController {
   }
 
   /// "Scan Documents" — jumps straight into the native document camera with
-  /// no prompts first. Every completed scan is printed into one A4 PDF under
-  /// a default title, including a scan containing only one page.
+  /// no prompts first. Every completed scan is printed into one A4 PDF,
+  /// including a scan containing only one page.
   Future<void> scanDocuments() async {
     if (isReadOnly.value) return;
 
@@ -904,12 +904,15 @@ class NoteDetailController extends GetxController {
       imagePaths: pages,
       blockId: id,
       title: title,
-      showTitle: true,
+      showTitle: false,
       createdAt: DateTime.now(),
+      showDateTime: true,
       showPageNumbers: true,
+      imagesAreCompletePages: true,
       pageLabel: 'note_editor_pdf_page'.tr,
       ofLabel: 'note_editor_pdf_of'.tr,
     );
+    await storePdfSourcePages(imagePaths: pages, blockId: id);
     _insertBlock(
       AttachmentBlock(
         id: id,
@@ -1384,6 +1387,7 @@ class NoteDetailController extends GetxController {
           imagePaths: [editedImagePath, ...renderedPages.skip(1)],
           blockId: block.id,
           title: block.displayName,
+          imagesAreCompletePages: true,
         );
       }
 
@@ -1422,6 +1426,90 @@ class NoteDetailController extends GetxController {
     }
   }
 
+  /// Rebuilds a PDF from the ordered pages shown by the multi-page editor.
+  ///
+  /// A one-page PDF that has an editable source keeps that source in sync;
+  /// imported and scanned documents are rebuilt with every edited page in its
+  /// original position.
+  Future<bool> updatePdfFromPageImages(
+    int blockIndex,
+    List<String> pageImages,
+  ) async {
+    if (isReadOnly.value ||
+        blockIndex < 0 ||
+        blockIndex >= blocks.length ||
+        pageImages.isEmpty ||
+        pageImages.any((path) => !File(path).existsSync())) {
+      return false;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock) return false;
+
+    try {
+      final sourcePages = await findPdfSourcePages(block.id);
+      final sourcePath = await findPdfSourceImage(block.id);
+      final localPdfPath = normalizeLocalPath(block.localPath);
+      var documentDate = currentNote.value?.updatedAt ?? DateTime.now();
+      for (final candidate in [
+        if (sourcePages.isNotEmpty) sourcePages.first,
+        sourcePath,
+        localPdfPath,
+      ]) {
+        if (candidate == null || !File(candidate).existsSync()) continue;
+        documentDate = File(candidate).lastModifiedSync();
+        break;
+      }
+      if (sourcePages.isNotEmpty) {
+        await storePdfSourcePages(imagePaths: pageImages, blockId: block.id);
+      } else if (pageImages.length == 1 &&
+          sourcePath != null &&
+          File(sourcePath).existsSync()) {
+        await storePdfSourceImage(
+          imagePath: pageImages.single,
+          blockId: block.id,
+        );
+      }
+      final rebuiltPdfPath = await buildMultiPageImagePdf(
+        imagePaths: pageImages,
+        blockId: block.id,
+        title: block.displayName,
+        createdAt: documentDate,
+        showDateTime: true,
+        showPageNumbers: true,
+        imagesAreCompletePages: true,
+        pageLabel: 'note_editor_pdf_page'.tr,
+        ofLabel: 'note_editor_pdf_of'.tr,
+      );
+
+      if (blockIndex >= blocks.length || blocks[blockIndex].id != block.id) {
+        return false;
+      }
+      blocks[blockIndex] = AttachmentBlock(
+        id: block.id,
+        attachmentId: 0,
+        displayName: block.displayName.toLowerCase().endsWith('.pdf')
+            ? block.displayName
+            : '${block.displayName}.pdf',
+        localPath: rebuiltPdfPath,
+        url: null,
+      );
+      blocks.refresh();
+      if (block.localPath != rebuiltPdfPath) {
+        await AppMediaStorage.deleteIfManaged(
+          path: block.localPath,
+          folder: 'note_attachments',
+        );
+      }
+      await saveNote(silent: true);
+      AppSnackbar.success('Saved', 'PDF edits were saved');
+      return true;
+    } catch (error) {
+      debugPrint('[PDF MULTI-PAGE SAVE ERROR] $error');
+      AppSnackbar.error('Error', 'Could not save that edited PDF');
+      return false;
+    }
+  }
+
   /// Opens an ordinary PDF through the image-only iOS editor.
   ///
   /// Every page is rendered to a temporary PNG. The package edits page one,
@@ -1457,6 +1545,7 @@ class NoteDetailController extends GetxController {
         imagePaths: rebuiltPages,
         blockId: block.id,
         title: block.displayName,
+        imagesAreCompletePages: true,
       );
       if (blockIndex >= blocks.length || blocks[blockIndex].id != block.id) {
         return;
