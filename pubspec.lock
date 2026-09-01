@@ -648,10 +648,9 @@ packages:
   ios_image_editor:
     dependency: "direct main"
     description:
-      name: ios_image_editor
-      sha256: "53c8d896e9c3cc48b70e933af5d6c95f241966ce2f1ad4cfc9d0d7d0ab7e2d99"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/ios_image_editor"
+      relative: true
+    source: path
     version: "1.0.0"
   is_ios_simulator:
     dependency: transitive
