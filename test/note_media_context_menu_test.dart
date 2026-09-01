@@ -17,6 +17,7 @@ import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/views/create_note_view.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
 import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -34,6 +35,62 @@ void main() {
   });
 
   tearDown(Get.reset);
+
+  test('document scanning requests the full native scanner UI', () async {
+    const scannerChannel = MethodChannel('flutter_doc_scanner');
+    MethodCall? scannerCall;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(scannerChannel, (call) async {
+          scannerCall = call;
+          return null;
+        });
+
+    try {
+      await _createController().scanDocuments();
+
+      expect(scannerCall?.method, 'getScannedDocumentAsImages');
+      final arguments = scannerCall?.arguments as Map<Object?, Object?>;
+      expect(arguments['page'], 20);
+      expect(arguments['useAutomaticSinglePictureProcessing'], isFalse);
+    } finally {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(scannerChannel, null);
+    }
+  });
+
+  testWidgets('tapping the create-note body reopens a hidden keyboard', (
+    tester,
+  ) async {
+    final controller = _createController();
+    controller.currentNote.value = const Note(
+      id: 0,
+      folderId: 0,
+      title: '',
+      folderName: '',
+      content: [],
+    );
+    controller.isLoading.value = false;
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: const CreateNoteView(),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.testTextInput.isVisible, isTrue);
+    tester.testTextInput.hide();
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isFalse);
+
+    await tester.tapAt(const Offset(200, 500));
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.testTextInput.isVisible, isTrue);
+  });
 
   testWidgets('PDF preview Edit button opens the all-page editor', (
     tester,

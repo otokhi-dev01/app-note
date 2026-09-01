@@ -593,9 +593,21 @@ class NoteDetailController extends GetxController {
         offset: titleController.text.length,
       );
       titleFocusNode.requestFocus();
+      _showSoftwareKeyboardAfterFocus();
       return;
     }
     focusLastTextBlock();
+    _showSoftwareKeyboardAfterFocus();
+  }
+
+  /// Android's back button can hide the IME without removing focus from the
+  /// editor. A later requestFocus on that same node is therefore a no-op, so a
+  /// canvas tap also asks the current text-input client to show the keyboard.
+  void _showSoftwareKeyboardAfterFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (FocusManager.instance.primaryFocus == null) return;
+      unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.show'));
+    });
   }
 
   /// iOS-Notes-style "tap anywhere to keep typing": tapping the empty space
@@ -860,9 +872,9 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Scan Documents" — jumps straight into the native document camera with
-  /// no prompts first. Every completed scan is printed into one A4 PDF,
-  /// including a scan containing only one page.
+  /// Opens flutter_doc_scanner's full native scanner. On Android this mode
+  /// provides the in-camera Manual/Auto capture selector, document outline,
+  /// shutter control, and gallery import. Completed pages become one PDF.
   Future<void> scanDocuments() async {
     if (isReadOnly.value) return;
 
@@ -871,6 +883,7 @@ class NoteDetailController extends GetxController {
         page: 20,
         imageFormat: ImageFormat.jpeg,
         quality: 0.8,
+        useAutomaticSinglePictureProcessing: false,
       );
       final pages = await _materializeScanPages(result?.images ?? const []);
       if (pages.isEmpty) return;
