@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,10 +76,10 @@ void main() {
     expect(find.byType(CustomGlassAppBar), findsOneWidget);
     expect(find.byKey(const ValueKey('pdf-preview-edit')), findsOneWidget);
     expect(find.text('Editable PDF.pdf'), findsOneWidget);
-    expect(
-      tester.widget<PdfViewPinch>(find.byType(PdfViewPinch)).scrollDirection,
-      Axis.horizontal,
-    );
+    final pdfView = tester.widget<PdfViewPinch>(find.byType(PdfViewPinch));
+    expect(pdfView.scrollDirection, Axis.horizontal);
+    expect(pdfView.backgroundDecoration.color, Colors.white);
+    expect(pdfView.backgroundDecoration.border, isNull);
 
     // Let the unregistered pdfx test channel report its loading error while
     // the viewer is still mounted; this avoids a package-level dispose race.
@@ -120,6 +121,7 @@ void main() {
       }
       return paths;
     }))!;
+    PdfPaperSize? savedPaperSize;
 
     await tester.pumpWidget(
       GetMaterialApp(
@@ -128,7 +130,10 @@ void main() {
         home: PdfPagesEditorPage(
           pdfPath: 'nine-pages.pdf',
           pageRenderer: (_) async => pages,
-          onSave: (_) async => true,
+          onSave: (_, paperSize) async {
+            savedPaperSize = paperSize;
+            return true;
+          },
         ),
       ),
     );
@@ -141,6 +146,27 @@ void main() {
     expect(grid.childrenDelegate.estimatedChildCount, 9);
     expect(find.byKey(const ValueKey('pdf-edit-page-1')), findsOneWidget);
     expect(find.text('Edit PDF'), findsOneWidget);
+    expect(find.byIcon(CupertinoIcons.pencil), findsNothing);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('pdf-paper-size-label')))
+          .data,
+      'A4',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('pdf-paper-size-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Legal').last);
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('pdf-paper-size-label')))
+          .data,
+      'Legal',
+    );
+    await tester.tap(find.byKey(const ValueKey('pdf-pages-editor-done')));
+    await tester.pumpAndSettle();
+    expect(savedPaperSize, PdfPaperSize.legal);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -198,6 +224,7 @@ void main() {
       showDateTime: true,
       showPageNumbers: true,
       imagesAreCompletePages: true,
+      paperSize: PdfPaperSize.legal,
     );
 
     expect(File(path).existsSync(), isTrue);

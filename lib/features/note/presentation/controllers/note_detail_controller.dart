@@ -908,7 +908,7 @@ class NoteDetailController extends GetxController {
       createdAt: DateTime.now(),
       showDateTime: true,
       showPageNumbers: true,
-      imagesAreCompletePages: true,
+      imagesAreCompletePages: false,
       pageLabel: 'note_editor_pdf_page'.tr,
       ofLabel: 'note_editor_pdf_of'.tr,
     );
@@ -1433,8 +1433,9 @@ class NoteDetailController extends GetxController {
   /// original position.
   Future<bool> updatePdfFromPageImages(
     int blockIndex,
-    List<String> pageImages,
-  ) async {
+    List<String> pageImages, {
+    PdfPaperSize paperSize = PdfPaperSize.a4,
+  }) async {
     if (isReadOnly.value ||
         blockIndex < 0 ||
         blockIndex >= blocks.length ||
@@ -1448,6 +1449,8 @@ class NoteDetailController extends GetxController {
     try {
       final sourcePages = await findPdfSourcePages(block.id);
       final sourcePath = await findPdfSourceImage(block.id);
+      final usesOriginalPageImages =
+          sourcePages.isNotEmpty || sourcePath != null;
       final localPdfPath = normalizeLocalPath(block.localPath);
       var documentDate = currentNote.value?.updatedAt ?? DateTime.now();
       for (final candidate in [
@@ -1476,7 +1479,8 @@ class NoteDetailController extends GetxController {
         createdAt: documentDate,
         showDateTime: true,
         showPageNumbers: true,
-        imagesAreCompletePages: true,
+        imagesAreCompletePages: !usesOriginalPageImages,
+        paperSize: paperSize,
         pageLabel: 'note_editor_pdf_page'.tr,
         ofLabel: 'note_editor_pdf_of'.tr,
       );

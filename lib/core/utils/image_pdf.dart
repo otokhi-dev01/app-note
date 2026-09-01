@@ -7,6 +7,15 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdfx/pdfx.dart' as pdfx;
 
+enum PdfPaperSize { a4, a3, letter, legal }
+
+PdfPageFormat pdfPageFormatFor(PdfPaperSize paperSize) => switch (paperSize) {
+  PdfPaperSize.a4 => PdfPageFormat.a4,
+  PdfPaperSize.a3 => PdfPageFormat.a3,
+  PdfPaperSize.letter => PdfPageFormat.letter,
+  PdfPaperSize.legal => PdfPageFormat.legal,
+};
+
 /// Building an image-backed PDF attachment, and getting back to the picture it
 /// was built from.
 ///
@@ -93,7 +102,8 @@ Future<String> buildImagePdf({
 /// When [showTitle] is true, [title] and [createdAt] form a printed header on
 /// every page. [showDateTime] and [showPageNumbers] add a compact footer.
 /// [imagesAreCompletePages] keeps complete page images edge-to-edge instead of
-/// wrapping them in another layer of margins and padding.
+/// wrapping them in another layer of margins and padding. [paperSize] controls
+/// the physical output size while page orientation follows each image.
 Future<String> buildMultiPageImagePdf({
   required List<String> imagePaths,
   required String blockId,
@@ -103,6 +113,7 @@ Future<String> buildMultiPageImagePdf({
   bool showDateTime = false,
   bool showPageNumbers = false,
   bool imagesAreCompletePages = false,
+  PdfPaperSize paperSize = PdfPaperSize.a4,
   String pageLabel = 'Page',
   String ofLabel = 'of',
 }) async {
@@ -114,13 +125,14 @@ Future<String> buildMultiPageImagePdf({
     title: visibleTitle,
     theme: await _loadImagePdfTheme(),
   );
+  final basePageFormat = pdfPageFormatFor(paperSize);
   for (var index = 0; index < imagePaths.length; index++) {
     final imagePath = imagePaths[index];
     final bytes = await File(imagePath).readAsBytes();
     final image = pw.MemoryImage(bytes);
     final renderedPageFormat = (image.width ?? 0) > (image.height ?? 0)
-        ? PdfPageFormat.a4.landscape
-        : PdfPageFormat.a4;
+        ? basePageFormat.landscape
+        : basePageFormat.portrait;
     final showFooter = (showDateTime && dateTime.isNotEmpty) || showPageNumbers;
     final footer = showFooter
         ? pw.Container(
@@ -153,7 +165,7 @@ Future<String> buildMultiPageImagePdf({
       pw.Page(
         pageFormat: imagesAreCompletePages
             ? renderedPageFormat
-            : PdfPageFormat.a4,
+            : renderedPageFormat,
         margin: imagesAreCompletePages
             ? pw.EdgeInsets.zero
             : const pw.EdgeInsets.all(32),
@@ -209,17 +221,8 @@ Future<String> buildMultiPageImagePdf({
                     pw.SizedBox(height: 14),
                   ],
                   pw.Expanded(
-                    child: pw.Container(
-                      decoration: pw.BoxDecoration(
-                        border: pw.Border.all(
-                          color: PdfColors.grey300,
-                          width: 0.6,
-                        ),
-                      ),
-                      padding: const pw.EdgeInsets.all(8),
-                      child: pw.Center(
-                        child: pw.Image(image, fit: pw.BoxFit.contain),
-                      ),
+                    child: pw.Center(
+                      child: pw.Image(image, fit: pw.BoxFit.contain),
                     ),
                   ),
                   if (footer != null) ...[

@@ -5,12 +5,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:ios_image_editor/ios_image_editor.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/core/utils/image_pdf.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
-typedef SavePdfPages = Future<bool> Function(List<String> pagePaths);
+typedef SavePdfPages =
+    Future<bool> Function(List<String> pagePaths, PdfPaperSize paperSize);
 typedef RenderPdfPages = Future<List<String>> Function(String pdfPath);
 
 /// Shows every PDF page as an editable thumbnail while preserving page order.
@@ -37,6 +40,7 @@ class _PdfPagesEditorPageState extends State<PdfPagesEditorPage> {
   bool _isSaving = false;
   bool _hasChanges = false;
   Object? _loadError;
+  PdfPaperSize _paperSize = PdfPaperSize.a4;
 
   @override
   void initState() {
@@ -110,13 +114,31 @@ class _PdfPagesEditorPageState extends State<PdfPagesEditorPage> {
     }
 
     setState(() => _isSaving = true);
-    final saved = await widget.onSave(List<String>.unmodifiable(_pages));
+    final saved = await widget.onSave(
+      List<String>.unmodifiable(_pages),
+      _paperSize,
+    );
     if (!mounted) return;
     setState(() => _isSaving = false);
     if (saved) Navigator.of(context).pop(true);
   }
 
   Future<void> _cleanTemporaryFiles() => _deletePaths(_temporaryPaths);
+
+  void _selectPaperSize(PdfPaperSize selected) {
+    if (selected == _paperSize) return;
+    setState(() {
+      _paperSize = selected;
+      _hasChanges = true;
+    });
+  }
+
+  String _paperSizeLabel(PdfPaperSize paperSize) => switch (paperSize) {
+    PdfPaperSize.a4 => 'note_editor_paper_a4'.tr,
+    PdfPaperSize.a3 => 'note_editor_paper_a3'.tr,
+    PdfPaperSize.letter => 'note_editor_paper_letter'.tr,
+    PdfPaperSize.legal => 'note_editor_paper_legal'.tr,
+  };
 
   Future<void> _deletePaths(Iterable<String> paths) async {
     for (final path in paths.toSet()) {
@@ -217,22 +239,110 @@ class _PdfPagesEditorPageState extends State<PdfPagesEditorPage> {
       );
     }
 
-    return GridView.builder(
-      key: const ValueKey('pdf-pages-editor-grid'),
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisSpacing: 18,
-        crossAxisSpacing: 14,
-        childAspectRatio: 0.67,
-      ),
-      itemCount: _pages.length,
-      itemBuilder: (context, index) => _PdfEditablePageCard(
-        key: ValueKey('pdf-edit-page-${index + 1}'),
-        path: _pages[index],
-        pageNumber: index + 1,
-        onTap: () => _editPage(index),
-      ),
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          child: Row(
+            children: [
+              Text(
+                'note_editor_paper_size'.tr,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              _PdfPaperSizePopup(
+                selected: _paperSize,
+                labelFor: _paperSizeLabel,
+                onSelected: _selectPaperSize,
+                triggerBuilder: (context, toggleMenu) => CustomGlassButton(
+                  key: const ValueKey('pdf-paper-size-selector'),
+                  semanticLabel: 'note_editor_paper_size'.tr,
+                  onPressed: _isSaving ? null : toggleMenu,
+                  height: 40,
+                  minHeight: 40,
+                  borderRadius: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _paperSizeLabel(_paperSize),
+                        key: const ValueKey('pdf-paper-size-label'),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(CupertinoIcons.chevron_down, size: 14),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: GridView.builder(
+            key: const ValueKey('pdf-pages-editor-grid'),
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 260,
+              mainAxisSpacing: 18,
+              crossAxisSpacing: 14,
+              childAspectRatio: 0.67,
+            ),
+            itemCount: _pages.length,
+            itemBuilder: (context, index) => _PdfEditablePageCard(
+              key: ValueKey('pdf-edit-page-${index + 1}'),
+              path: _pages[index],
+              pageNumber: index + 1,
+              onTap: () => _editPage(index),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PdfPaperSizePopup extends StatelessWidget {
+  final PdfPaperSize selected;
+  final String Function(PdfPaperSize size) labelFor;
+  final ValueChanged<PdfPaperSize> onSelected;
+  final Widget Function(BuildContext context, VoidCallback toggleMenu)
+  triggerBuilder;
+
+  const _PdfPaperSizePopup({
+    required this.selected,
+    required this.labelFor,
+    required this.onSelected,
+    required this.triggerBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return lg.GlassMenu(
+      triggerBuilder: triggerBuilder,
+      menuWidth: 250,
+      menuAlignment: lg.GlassMenuAlignment.topRight,
+      autoAdjustToScreen: true,
+      menuPadding: const EdgeInsets.all(12),
+      items: [
+        for (final paperSize in PdfPaperSize.values)
+          lg.GlassMenuItem(
+            title: labelFor(paperSize),
+            icon: const Icon(CupertinoIcons.doc, size: 21),
+            trailing: selected == paperSize
+                ? const Icon(
+                    CupertinoIcons.checkmark_circle_fill,
+                    color: IosSemanticColors.blue,
+                    size: 20,
+                  )
+                : null,
+            isSelected: selected == paperSize,
+            onTap: () => onSelected(paperSize),
+          ),
+      ],
     );
   }
 }
@@ -268,9 +378,6 @@ class _PdfEditablePageCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: theme.dividerColor.withValues(alpha: 0.6),
-                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -287,23 +394,6 @@ class _PdfEditablePageCard extends StatelessWidget {
                           cacheWidth: 600,
                           gaplessPlayback: true,
                         ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 8,
-                    bottom: 8,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.68),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        CupertinoIcons.pencil,
-                        color: Colors.white,
-                        size: 17,
                       ),
                     ),
                   ),

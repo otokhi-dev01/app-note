@@ -192,10 +192,12 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
             pdfPath: pdfPath,
             blockId: widget.block.id,
           ),
-          onSave: (pages) => widget.controller.updatePdfFromPageImages(
-            widget.blockIndex,
-            pages,
-          ),
+          onSave: (pages, paperSize) =>
+              widget.controller.updatePdfFromPageImages(
+                widget.blockIndex,
+                pages,
+                paperSize: paperSize,
+              ),
         ),
       ),
     );
@@ -648,13 +650,13 @@ class _ScannedPdfPreviewPageState extends State<_ScannedPdfPreviewPage> {
                 padding: 18,
                 onDocumentLoaded: _handleDocumentLoaded,
                 onPageChanged: _handlePageChanged,
-                backgroundDecoration: const BoxDecoration(
+                backgroundDecoration: BoxDecoration(
                   color: Colors.white,
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
+                      color: Color(0x52000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
                     ),
                   ],
                 ),
