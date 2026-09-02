@@ -6,6 +6,7 @@ import 'package:Note/features/note/presentation/controllers/note_controller.dart
 
 class NoteContextMenu extends StatelessWidget {
   final NoteController controller;
+  final VoidCallback? onAddFolder;
 
   final Widget Function(BuildContext context, VoidCallback toggleMenu)
   triggerBuilder;
@@ -14,6 +15,7 @@ class NoteContextMenu extends StatelessWidget {
     super.key,
     required this.controller,
     required this.triggerBuilder,
+    this.onAddFolder,
   });
 
   @override
@@ -26,6 +28,15 @@ class NoteContextMenu extends StatelessWidget {
         autoAdjustToScreen: true,
         menuPadding: const EdgeInsets.all(12),
         items: [
+          if (onAddFolder != null) ...[
+            _item(
+              title: 'note_list_add_folder'.tr,
+              icon: Icons.create_new_folder_outlined,
+              color: IosSemanticColors.green,
+              onTap: onAddFolder!,
+            ),
+            const lg.GlassMenuDivider(),
+          ],
           _item(
             title: controller.viewMode.value == 'list'
                 ? 'note_list_view_as_gallery'.tr

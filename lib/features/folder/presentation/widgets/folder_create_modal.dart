@@ -76,7 +76,7 @@ class FolderCreateLogic extends GetxController {
         ? ''
         : mainController.stripSectionKeyword(folder!.name);
     final initialName = folder == null
-        ? 'New Folder'
+        ? mainController.nextNewFolderName()
         : (strippedName.isEmpty ? folder!.name : strippedName);
     folderName.value = initialName;
     nameController = TextEditingController(text: initialName);

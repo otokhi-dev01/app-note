@@ -132,7 +132,13 @@ void main() {
     expect(find.byKey(const ValueKey('pdf-preview-app-bar')), findsOneWidget);
     expect(find.byType(CustomGlassAppBar), findsOneWidget);
     expect(find.byKey(const ValueKey('pdf-preview-edit')), findsOneWidget);
-    expect(find.text('Editable PDF.pdf'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('pdf-preview-app-bar')),
+        matching: find.text('PDF'),
+      ),
+      findsOneWidget,
+    );
     final pdfView = tester.widget<PdfViewPinch>(find.byType(PdfViewPinch));
     expect(pdfView.scrollDirection, Axis.horizontal);
     expect(pdfView.backgroundDecoration.color, Colors.white);
@@ -161,6 +167,47 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.runAsync(() => deletePdfFiles(blockId));
+  });
+
+  testWidgets('tapping a video opens the PDF-style preview page', (
+    tester,
+  ) async {
+    final controller = _createController();
+    final token = DateTime.now().microsecondsSinceEpoch;
+    final videoPath = '${Directory.systemTemp.path}/preview-$token.mp4';
+    await tester.runAsync(
+      () => File(videoPath).writeAsBytes(const [0, 0, 0, 0], flush: true),
+    );
+    final block = AttachmentBlock(
+      id: 'video-preview-$token',
+      displayName: 'Holiday.mp4',
+      localPath: videoPath,
+    );
+    controller.blocks.assignAll([block]);
+
+    await _pumpAttachment(tester, controller, block);
+    await tester.tap(find.byKey(ValueKey('video-inline-preview-${block.id}')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const ValueKey('video-preview-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('video-preview-app-bar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('video-preview-close')), findsOneWidget);
+    expect(find.byKey(const ValueKey('video-preview-share')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('video-preview-app-bar')),
+        matching: find.text('Video'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.runAsync(() async {
+      final file = File(videoPath);
+      if (file.existsSync()) await file.delete();
+    });
   });
 
   testWidgets('PDF page editor lists all nine pages in order', (tester) async {
@@ -327,6 +374,51 @@ void main() {
       if (media.name == 'PDF') {
         expect(find.text('Edit PDF'), findsOneWidget);
       }
+    });
+  }
+
+  for (final media in [
+    (
+      name: 'video',
+      prefix: 'video',
+      block: const AttachmentBlock(
+        id: 'video-border',
+        displayName: 'video.mp4',
+      ),
+    ),
+    (
+      name: 'PDF',
+      prefix: 'pdf',
+      block: const AttachmentBlock(
+        id: 'pdf-border',
+        displayName: 'document.pdf',
+      ),
+    ),
+  ]) {
+    testWidgets('${media.name} left and right borders show cursor focus', (
+      tester,
+    ) async {
+      final controller = _createController();
+      controller.blocks.assignAll([media.block]);
+      await _pumpAttachment(tester, controller, media.block);
+
+      await tester.tap(find.byKey(ValueKey('${media.prefix}-focus-before')));
+      await tester.pump();
+      expect(
+        find.byKey(ValueKey('${media.prefix}-border-cursor-before')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(ValueKey('${media.prefix}-focus-after')));
+      await tester.pump();
+      expect(
+        find.byKey(ValueKey('${media.prefix}-border-cursor-after')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey('${media.prefix}-border-cursor-before')),
+        findsNothing,
+      );
     });
   }
 

@@ -1,6 +1,6 @@
-<?xml version="1.0.1+17" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0.1+17//EN" "http://www.apple.com/DTDs/PropertyList-1.0.1+17.dtd">
-<plist version="1.0.1+17">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
@@ -13,7 +13,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>1.0.1+17</string>
+	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>Pii Note</string>
 	<key>CFBundlePackageType</key>
@@ -32,6 +32,12 @@
 	<string>We need access to your photo library to pick images and attach them to your notes.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone to record audio and videos for your notes.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_dartVmService._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Allow Flutter debugging tools to connect to Pii Note on your local network.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

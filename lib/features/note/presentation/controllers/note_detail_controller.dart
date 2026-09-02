@@ -23,6 +23,7 @@ import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/image_pdf.dart';
+import 'package:Note/core/utils/media_title.dart';
 import 'package:Note/core/utils/note_pdf.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
@@ -627,6 +628,58 @@ class NoteDetailController extends GetxController {
     );
   }
 
+  /// Treats an image like an inline object in Apple Notes: tapping its left
+  /// edge places the cursor before it, while the right edge places the cursor
+  /// after it. A text line is inserted when that side has no adjacent line.
+  void focusTextBesideAttachment(int blockIndex, {required bool after}) {
+    if (isReadOnly.value ||
+        blockIndex < 0 ||
+        blockIndex >= blocks.length ||
+        blocks[blockIndex] is! AttachmentBlock) {
+      return;
+    }
+
+    final adjacentIndex = after ? blockIndex + 1 : blockIndex - 1;
+    if (adjacentIndex >= 0 && adjacentIndex < blocks.length) {
+      final adjacent = blocks[adjacentIndex];
+      if (adjacent is TextBlock) {
+        if (after) {
+          _focusTextBlockAtStart(adjacent);
+        } else {
+          _focusTextBlockAtEnd(adjacent);
+        }
+        _showSoftwareKeyboardAfterFocus();
+        return;
+      }
+    }
+
+    final textBlock = TextBlock(id: _generateId(), text: '');
+    final insertIndex = after ? blockIndex + 1 : blockIndex;
+    blocks.insert(insertIndex, textBlock);
+    activeBlockIndex.value = insertIndex;
+    blocks.refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusTextBlockAtStart(textBlock);
+      _showSoftwareKeyboardAfterFocus();
+    });
+  }
+
+  void _focusTextBlockAtStart(TextBlock block) {
+    final blockIndex = blocks.indexWhere(
+      (candidate) => candidate.id == block.id,
+    );
+    if (blockIndex == -1) return;
+
+    final quillController = getQuillController(block.id, block.text);
+    quillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      quill.ChangeSource.local,
+    );
+    activeBlockIndex.value = blockIndex;
+    currentBlockStyle.value = block.style;
+    getBlockFocusNode(block.id).requestFocus();
+  }
+
   void _focusTextBlockAtEnd(TextBlock block) {
     final blockIndex = blocks.indexWhere(
       (candidate) => candidate.id == block.id,
@@ -894,7 +947,7 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Document from Photo" — same output as [scanDocuments], but the pages
+  /// "Albums" — same output as [scanDocuments], but the pages
   /// come from the photo gallery instead of the live document camera.
   Future<void> scanDocumentsFromGallery() async {
     if (isReadOnly.value) return;
@@ -1162,6 +1215,32 @@ class NoteDetailController extends GetxController {
     unawaited(_persistEditedAttachment(blockIndex, editedPath));
   }
 
+  Future<void> updateAttachmentTitle(int blockIndex, String title) async {
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock) return;
+
+    final displayName = displayNameWithMediaTitle(
+      title: title,
+      currentDisplayName: block.displayName,
+      localPath: block.localPath,
+      url: block.url,
+    );
+    if (displayName == block.displayName) return;
+
+    blocks[blockIndex] = AttachmentBlock(
+      id: block.id,
+      attachmentId: block.attachmentId,
+      displayName: displayName,
+      localPath: block.localPath,
+      url: block.url,
+    );
+    blocks.refresh();
+    await saveNote(silent: true);
+  }
+
   Future<void> _persistEditedAttachment(
     int blockIndex,
     String editedPath,
@@ -1185,12 +1264,19 @@ class NoteDetailController extends GetxController {
       }
 
       PaintingBinding.instance.imageCache.evict(FileImage(File(persistedPath)));
+      final existingTitle = mediaTitleFromDisplayName(
+        block.displayName,
+        fallback: 'Edited Image',
+      );
       blocks[blockIndex] = AttachmentBlock(
         id: block.id,
         attachmentId: 0,
         // Keep a real extension on the name — it's the most reliable of the
         // three signals note_attachment_block.dart uses to identify images.
-        displayName: 'Edited Image${_extensionOf(persistedPath)}',
+        displayName: displayNameWithMediaTitle(
+          title: existingTitle,
+          currentDisplayName: persistedPath,
+        ),
         localPath: persistedPath,
         url: block.url,
       );

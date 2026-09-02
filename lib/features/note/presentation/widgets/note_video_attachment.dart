@@ -8,11 +8,15 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_cursor_edges.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_title.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 const _videoExtensions = {
   'mp4',
@@ -71,6 +75,7 @@ class NoteVideoAttachment extends StatefulWidget {
 class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
   VideoPlayerController? _controller;
   bool _hasError = false;
+  NoteMediaCursorSide? _cursorSide;
 
   @override
   void initState() {
@@ -120,6 +125,7 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
   }
 
   Future<void> _openPlayer() async {
+    if (_cursorSide != null && mounted) setState(() => _cursorSide = null);
     if (!_hasVideoSource(widget.block)) {
       AppSnackbar.info(
         'note_editor_not_available_title'.tr,
@@ -131,7 +137,10 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
     await Navigator.of(context).push(
       CupertinoPageRoute<void>(
         fullscreenDialog: true,
-        builder: (_) => _VideoPreviewPage(block: widget.block),
+        builder: (_) => _VideoPreviewPage(
+          block: widget.block,
+          onShare: () => _shareVideo(),
+        ),
       ),
     );
   }
@@ -158,6 +167,7 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
   }
 
   void _showContextMenu() {
+    if (_cursorSide != null) setState(() => _cursorSide = null);
     final controller = _controller;
     final isReady = controller?.value.isInitialized ?? false;
     NoteMediaContextMenu.show(
@@ -214,6 +224,14 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
     );
   }
 
+  void _focusVideoEdge(NoteMediaCursorSide side) {
+    setState(() => _cursorSide = side);
+    widget.controller.focusTextBesideAttachment(
+      widget.blockIndex,
+      after: side == NoteMediaCursorSide.after,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -225,34 +243,75 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
     final controller = _controller;
     final isReady = controller?.value.isInitialized ?? false;
 
-    return Semantics(
-      button: true,
-      label: 'note_editor_video_semantic_label'.trParams({'name': name}),
-      hint: 'note_editor_tap_to_play'.tr,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _openPlayer,
-        onLongPress: _showContextMenu,
-        child: Container(
-          height: 240,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.black.withValues(alpha: 0.08),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onLongPress: _showContextMenu,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          NoteMediaTitle(
+            displayName: widget.block.displayName,
+            fallbackTitle: 'note_editor_video_fallback_name'.tr,
+            fixedTitle: 'note_editor_video_fallback_name'.tr,
+            isReadOnly: widget.isReadOnly,
+            onChanged: (title) => widget.controller.updateAttachmentTitle(
+              widget.blockIndex,
+              title,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
-          child: _buildVideoSurface(controller, isReady),
-        ),
+          Semantics(
+            button: true,
+            label: 'note_editor_video_semantic_label'.trParams({'name': name}),
+            hint: 'note_editor_tap_to_play'.tr,
+            child: GestureDetector(
+              key: ValueKey('video-inline-preview-${widget.block.id}'),
+              behavior: HitTestBehavior.opaque,
+              onTap: _openPlayer,
+              child: Container(
+                height: 240,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(
+                    color: _cursorSide != null
+                        ? AppTheme.folderYellow
+                        : isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.08),
+                    width: _cursorSide != null ? 1.5 : 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.06,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _buildVideoSurface(controller, isReady),
+                    if (!widget.isReadOnly)
+                      NoteMediaCursorEdges(
+                        keyPrefix: 'video',
+                        focusedSide: _cursorSide,
+                        beforeSemanticLabel:
+                            'note_editor_write_before_video'.tr,
+                        afterSemanticLabel: 'note_editor_write_after_video'.tr,
+                        onFocusBefore: () =>
+                            _focusVideoEdge(NoteMediaCursorSide.before),
+                        onFocusAfter: () =>
+                            _focusVideoEdge(NoteMediaCursorSide.after),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -294,8 +353,9 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
 
 class _VideoPreviewPage extends StatefulWidget {
   final AttachmentBlock block;
+  final VoidCallback onShare;
 
-  const _VideoPreviewPage({required this.block});
+  const _VideoPreviewPage({required this.block, required this.onShare});
 
   @override
   State<_VideoPreviewPage> createState() => _VideoPreviewPageState();
@@ -351,79 +411,108 @@ class _VideoPreviewPageState extends State<_VideoPreviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final controller = _controller;
     final isReady = controller?.value.isInitialized ?? false;
-    final name = widget.block.displayName.trim();
+    final title = 'note_editor_video_fallback_name'.tr;
 
     return Scaffold(
+      key: const ValueKey('video-preview-page'),
       backgroundColor: Colors.black,
+      appBar: CustomGlassAppBar(
+        key: const ValueKey('video-preview-app-bar'),
+        toolbarHeight: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        leading: CustomGlassButton(
+          key: const ValueKey('video-preview-close'),
+          semanticLabel: MaterialLocalizations.of(context).closeButtonTooltip,
+          onPressed: () => Navigator.of(context).pop(),
+          width: 44,
+          height: 44,
+          shape: GlassShape.circle,
+          blur: 10,
+          opacity: 0.15,
+          thickness: 8,
+          padding: EdgeInsets.zero,
+          child: Icon(
+            CupertinoIcons.xmark,
+            color: theme.primaryColor,
+            size: 22,
+          ),
+        ),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
+        ),
+        actions: [
+          CustomGlassButton(
+            key: const ValueKey('video-preview-share'),
+            semanticLabel: 'note_editor_share'.tr,
+            onPressed: widget.onShare,
+            width: 44,
+            height: 44,
+            shape: GlassShape.circle,
+            blur: 10,
+            opacity: 0.15,
+            thickness: 8,
+            padding: EdgeInsets.zero,
+            child: Icon(
+              CupertinoIcons.share,
+              color: theme.primaryColor,
+              size: 22,
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (isReady)
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _togglePlayback,
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: _safeAspectRatio(controller!),
-                    child: VideoPlayer(controller),
-                  ),
-                ),
-              )
-            else if (_hasError)
-              const _VideoUnavailable()
-            else
-              const Center(
-                child: CupertinoActivityIndicator(
-                  radius: 15,
-                  color: Colors.white,
-                ),
-              ),
-            Positioned(
-              top: 8,
-              left: 8,
-              right: 8,
-              child: Row(
-                children: [
-                  _OverlayButton(
-                    icon: CupertinoIcons.xmark,
-                    onTap: () => Navigator.of(context).pop(),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      name.isEmpty
-                          ? 'note_editor_video_fallback_name'.tr
-                          : name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        shadows: [Shadow(color: Colors.black, blurRadius: 5)],
-                      ),
+        top: false,
+        child: ColoredBox(
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (isReady)
+                GestureDetector(
+                  key: const ValueKey('video-preview-content'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _togglePlayback,
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: _safeAspectRatio(controller!),
+                      child: VideoPlayer(controller),
                     ),
                   ),
-                ],
-              ),
-            ),
-            if (isReady)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: AnimatedBuilder(
-                  animation: controller!,
-                  builder: (context, _) => _VideoControls(
-                    controller: controller,
-                    onTogglePlayback: _togglePlayback,
+                )
+              else if (_hasError)
+                const _VideoUnavailable()
+              else
+                const Center(
+                  child: CupertinoActivityIndicator(
+                    radius: 15,
+                    color: Colors.white,
                   ),
                 ),
-              ),
-          ],
+              if (isReady)
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16,
+                  child: AnimatedBuilder(
+                    animation: controller!,
+                    builder: (context, _) => _VideoControls(
+                      controller: controller,
+                      onTogglePlayback: _togglePlayback,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -486,31 +575,6 @@ class _VideoControls extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _OverlayButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _OverlayButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.58),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 20),
       ),
     );
   }
