@@ -23,6 +23,10 @@ class NoteMediaTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tileColor = CupertinoDynamicColor.resolve(
+      CupertinoColors.systemGrey5,
+      context,
+    );
     final title =
         fixedTitle ??
         mediaTitleFromDisplayName(displayName, fallback: fallbackTitle);
@@ -35,13 +39,18 @@ class NoteMediaTitle extends StatelessWidget {
       child: InkWell(
         key: ValueKey('media-title-$displayName'),
         onTap: canEdit ? () => _showEditor(context, title) : null,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(2, 2, 2, 9),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: tileColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
+              Expanded(
                 child: Text(
                   title,
                   maxLines: 2,
