@@ -201,6 +201,8 @@ class FolderView extends GetView<FolderController> {
               title: "folder_section_icloud".tr,
               isExpanded: controller.isICloudExpanded,
               onTap: controller.toggleICloud,
+              isSortedByDate: controller.isGroupedByDate,
+              onToggleDateSort: controller.toggleDateGrouping,
               onCreateFolder: () => _createFolderInSection(context, 'iCloud'),
             ),
             Obx(
@@ -224,6 +226,8 @@ class FolderView extends GetView<FolderController> {
               title: "folder_section_on_my_phone".tr,
               isExpanded: controller.isOnMyiPhoneExpanded,
               onTap: controller.toggleOnMyiPhone,
+              isSortedByDate: controller.isGroupedByDate,
+              onToggleDateSort: controller.toggleDateGrouping,
               onCreateFolder: () => _createFolderInSection(context, ''),
             ),
             Obx(

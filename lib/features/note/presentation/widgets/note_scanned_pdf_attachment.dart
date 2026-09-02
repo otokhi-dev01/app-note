@@ -16,6 +16,7 @@ import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_title.dart';
 import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
 import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -348,38 +349,50 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
     final theme = Theme.of(context);
     final name = widget.block.displayName.trim();
 
-    return Semantics(
-      button: true,
-      label: 'note_editor_attached_file_semantic_label'.trParams({
-        'name': name,
-      }),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _openPdf,
-        onLongPress: _showContextMenu,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: AspectRatio(
-              aspectRatio: 1 / 1.4142,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black12, width: 0.8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.16),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        NoteMediaTitle(
+          displayName: widget.block.displayName,
+          fallbackTitle: 'note_editor_pdf_fallback_name'.tr,
+          isReadOnly: widget.isReadOnly,
+          onChanged: (title) =>
+              widget.controller.updateAttachmentTitle(widget.blockIndex, title),
+        ),
+        Semantics(
+          button: true,
+          label: 'note_editor_attached_file_semantic_label'.trParams({
+            'name': name,
+          }),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _openPdf,
+            onLongPress: _showContextMenu,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: AspectRatio(
+                  aspectRatio: 1 / 1.4142,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.black12, width: 0.8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.16),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: _buildPaper(theme),
+                  ),
                 ),
-                child: _buildPaper(theme),
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 

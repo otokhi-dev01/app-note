@@ -38,7 +38,6 @@ class OnboardingView extends GetView<OnboardingController> {
                   itemCount: controller.pages.length,
                   itemBuilder: (context, index) {
                     final page = controller.pages[index];
-
                     return _buildOnboardingPage(
                       context,
                       icon: page.icon,
@@ -296,13 +295,6 @@ class OnboardingView extends GetView<OnboardingController> {
     );
   }
 
-  /// Every action a first-run visitor could want — guest, sign in, or
-  /// register — sits here, unconditionally, on every onboarding page. App
-  /// Store guideline 5.1.1(v) requires that non-account features stay
-  /// reachable without registering; putting "Continue without account" as
-  /// the same kind of primary, full-width button as the other two (rather
-  /// than a smaller de-emphasized link below a "Next" CTA) makes that an
-  /// equally obvious choice instead of one a reviewer has to notice.
   Widget _buildBottomSection(BuildContext context) {
     final theme = Theme.of(context);
 
@@ -351,7 +343,10 @@ class OnboardingView extends GetView<OnboardingController> {
               ),
               child: Text(
                 'onboarding_continue_guest'.tr,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -370,7 +365,10 @@ class OnboardingView extends GetView<OnboardingController> {
               ),
               child: Text(
                 'login_title'.tr,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),

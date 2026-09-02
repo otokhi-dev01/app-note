@@ -13,6 +13,7 @@ import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_title.dart';
 
 const _videoExtensions = {
   'mp4',
@@ -225,34 +226,53 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
     final controller = _controller;
     final isReady = controller?.value.isInitialized ?? false;
 
-    return Semantics(
-      button: true,
-      label: 'note_editor_video_semantic_label'.trParams({'name': name}),
-      hint: 'note_editor_tap_to_play'.tr,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _openPlayer,
-        onLongPress: _showContextMenu,
-        child: Container(
-          height: 240,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.black.withValues(alpha: 0.08),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onLongPress: _showContextMenu,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          NoteMediaTitle(
+            displayName: widget.block.displayName,
+            fallbackTitle: 'note_editor_video_fallback_name'.tr,
+            isReadOnly: widget.isReadOnly,
+            onChanged: (title) => widget.controller.updateAttachmentTitle(
+              widget.blockIndex,
+              title,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
-          child: _buildVideoSurface(controller, isReady),
-        ),
+          Semantics(
+            button: true,
+            label: 'note_editor_video_semantic_label'.trParams({'name': name}),
+            hint: 'note_editor_tap_to_play'.tr,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _openPlayer,
+              child: Container(
+                height: 240,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.08),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.2 : 0.06,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: _buildVideoSurface(controller, isReady),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -10,12 +10,14 @@ class NoteListTile extends StatelessWidget {
   final Note note;
   final int folderId;
   final NoteController controller;
+  final bool showChevron;
 
   const NoteListTile({
     super.key,
     required this.note,
     required this.folderId,
     required this.controller,
+    this.showChevron = true,
   });
 
   @override
@@ -45,6 +47,7 @@ class NoteListTile extends StatelessWidget {
             isEditing: isEditing,
             isSelected: isSelected,
             showAttachmentThumbnail: true,
+            showChevron: showChevron,
           ),
         ),
       );

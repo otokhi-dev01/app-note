@@ -23,6 +23,7 @@ import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/image_pdf.dart';
+import 'package:Note/core/utils/media_title.dart';
 import 'package:Note/core/utils/note_pdf.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
@@ -1162,6 +1163,32 @@ class NoteDetailController extends GetxController {
     unawaited(_persistEditedAttachment(blockIndex, editedPath));
   }
 
+  Future<void> updateAttachmentTitle(int blockIndex, String title) async {
+    if (isReadOnly.value || blockIndex < 0 || blockIndex >= blocks.length) {
+      return;
+    }
+    final block = blocks[blockIndex];
+    if (block is! AttachmentBlock) return;
+
+    final displayName = displayNameWithMediaTitle(
+      title: title,
+      currentDisplayName: block.displayName,
+      localPath: block.localPath,
+      url: block.url,
+    );
+    if (displayName == block.displayName) return;
+
+    blocks[blockIndex] = AttachmentBlock(
+      id: block.id,
+      attachmentId: block.attachmentId,
+      displayName: displayName,
+      localPath: block.localPath,
+      url: block.url,
+    );
+    blocks.refresh();
+    await saveNote(silent: true);
+  }
+
   Future<void> _persistEditedAttachment(
     int blockIndex,
     String editedPath,
@@ -1185,12 +1212,19 @@ class NoteDetailController extends GetxController {
       }
 
       PaintingBinding.instance.imageCache.evict(FileImage(File(persistedPath)));
+      final existingTitle = mediaTitleFromDisplayName(
+        block.displayName,
+        fallback: 'Edited Image',
+      );
       blocks[blockIndex] = AttachmentBlock(
         id: block.id,
         attachmentId: 0,
         // Keep a real extension on the name — it's the most reliable of the
         // three signals note_attachment_block.dart uses to identify images.
-        displayName: 'Edited Image${_extensionOf(persistedPath)}',
+        displayName: displayNameWithMediaTitle(
+          title: existingTitle,
+          currentDisplayName: persistedPath,
+        ),
         localPath: persistedPath,
         url: block.url,
       );

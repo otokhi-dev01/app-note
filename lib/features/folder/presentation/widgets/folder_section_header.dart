@@ -14,12 +14,19 @@ class FolderSectionHeader extends StatelessWidget {
   /// "Sources") that aren't a place a new folder can be created into.
   final VoidCallback? onCreateFolder;
 
+  /// Shows a date-sort toggle beside the create-folder button when both this
+  /// callback and [isSortedByDate] are provided.
+  final VoidCallback? onToggleDateSort;
+  final RxBool? isSortedByDate;
+
   const FolderSectionHeader({
     super.key,
     required this.title,
     required this.isExpanded,
     required this.onTap,
     this.onCreateFolder,
+    this.onToggleDateSort,
+    this.isSortedByDate,
   });
 
   @override
@@ -42,8 +49,15 @@ class FolderSectionHeader extends StatelessWidget {
                 child: Text(title, style: theme.textTheme.titleLarge),
               ),
             ),
+            if (onToggleDateSort != null && isSortedByDate != null) ...[
+              const SizedBox(width: 4),
+              _DateSortButton(
+                isSortedByDate: isSortedByDate!,
+                onTap: onToggleDateSort!,
+              ),
+            ],
             if (onCreateFolder != null) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               IconButton(
                 onPressed: onCreateFolder,
                 tooltip: 'folder_create_folder_in'.trParams({'section': title}),
@@ -73,6 +87,38 @@ class FolderSectionHeader extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DateSortButton extends StatelessWidget {
+  final RxBool isSortedByDate;
+  final VoidCallback onTap;
+
+  const _DateSortButton({required this.isSortedByDate, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Obx(() {
+      final active = isSortedByDate.value;
+      final color = active
+          ? AppTheme.folderPink
+          : theme.colorScheme.onSurfaceVariant;
+
+      return IconButton(
+        onPressed: onTap,
+        tooltip: active ? 'folder_sort_manual'.tr : 'folder_sort_by_date'.tr,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+        icon: FolderGlassIcon(
+          color: color,
+          size: 32,
+          borderRadius: 9,
+          child: Icon(Icons.swap_vert_rounded, color: color, size: 17),
+        ),
+      );
+    });
   }
 }
 

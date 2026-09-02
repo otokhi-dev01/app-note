@@ -7,6 +7,7 @@ import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/display_preferences.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/usecase/usecase.dart';
+import 'package:Note/features/folder/domain/folder_default_name.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
@@ -90,17 +91,23 @@ class FolderController extends GetxController {
     _prefs.setFolderGroupByDate(isGroupedByDate.value);
     sortFolders();
     AppSnackbar.info(
-      'Grouping Updated',
-      'Folders are now ${isGroupedByDate.value ? 'grouped' : 'sorted'} by date.',
+      'folder_sort_updated'.tr,
+      (isGroupedByDate.value
+              ? 'folder_sorted_by_date_message'
+              : 'folder_sorted_manually_message')
+          .tr,
     );
   }
 
   void sortFolders() {
     if (isGroupedByDate.value) {
       folders.sort((a, b) {
-        final dateA = a.updatedAt ?? DateTime(0);
-        final dateB = b.updatedAt ?? DateTime(0);
-        return dateB.compareTo(dateA);
+        final dateA = a.updatedAt ?? a.createdAt ?? DateTime(0);
+        final dateB = b.updatedAt ?? b.createdAt ?? DateTime(0);
+        final dateOrder = dateB.compareTo(dateA);
+        if (dateOrder != 0) return dateOrder;
+        final manualOrder = a.sortOrder.compareTo(b.sortOrder);
+        return manualOrder != 0 ? manualOrder : a.name.compareTo(b.name);
       });
     } else {
       folders.sort((a, b) {
@@ -355,6 +362,14 @@ class FolderController extends GetxController {
   /// the user actually typed.
   String stripSectionKeyword(String name) =>
       FolderAppearance.stripSectionKeyword(name);
+
+  /// The next default name shown when opening the create-folder screen.
+  /// Include Recently Deleted so a new folder does not reuse a name that is
+  /// still restorable, and strip storage-section prefixes before comparing.
+  String nextNewFolderName() => nextDefaultFolderName([
+    for (final folder in folders) stripSectionKeyword(folder.name),
+    for (final folder in trashFolders) stripSectionKeyword(folder.name),
+  ]);
 
   /// Sections are encoded in the folder name, since the API has no field for
   /// them — so moving a folder means rewriting its name prefix.

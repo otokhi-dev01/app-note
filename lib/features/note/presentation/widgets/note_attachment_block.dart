@@ -20,6 +20,7 @@ import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/presentation/widgets/note_video_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_scanned_pdf_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_title.dart';
 import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
 
 const _imageExtensions = {
@@ -176,6 +177,8 @@ class NoteAttachmentBlock extends StatelessWidget {
           onConvertToPdf: () => controller.convertAttachmentToPdf(blockIndex),
           onShare: () => _shareImage(context),
           onDelete: () => controller.deleteBlock(blockIndex),
+          onTitleChanged: (title) =>
+              controller.updateAttachmentTitle(blockIndex, title),
         ),
       ),
     );
@@ -380,6 +383,7 @@ class _ImageTile extends StatefulWidget {
   final VoidCallback onConvertToPdf;
   final VoidCallback onShare;
   final VoidCallback onDelete;
+  final ValueChanged<String> onTitleChanged;
 
   const _ImageTile({
     required this.block,
@@ -394,6 +398,7 @@ class _ImageTile extends StatefulWidget {
     required this.onConvertToPdf,
     required this.onShare,
     required this.onDelete,
+    required this.onTitleChanged,
   });
 
   @override
@@ -407,16 +412,27 @@ class _ImageTileState extends State<_ImageTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      image: true,
-      label: '${widget.semanticsLabel}${'note_editor_image_tap_hint'.tr}',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onEdit,
-        onLongPress: _showContextMenu,
-        child: _buildImage(),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        NoteMediaTitle(
+          displayName: widget.block.displayName,
+          fallbackTitle: 'note_editor_image_fallback_name'.tr,
+          isReadOnly: widget.isReadOnly,
+          onChanged: widget.onTitleChanged,
+        ),
+        Semantics(
+          button: true,
+          image: true,
+          label: '${widget.semanticsLabel}${'note_editor_image_tap_hint'.tr}',
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onEdit,
+            onLongPress: _showContextMenu,
+            child: _buildImage(),
+          ),
+        ),
+      ],
     );
   }
 
