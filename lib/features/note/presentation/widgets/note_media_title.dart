@@ -7,6 +7,7 @@ import 'package:Note/core/utils/media_title.dart';
 class NoteMediaTitle extends StatelessWidget {
   final String displayName;
   final String fallbackTitle;
+  final String? fixedTitle;
   final bool isReadOnly;
   final ValueChanged<String> onChanged;
 
@@ -14,6 +15,7 @@ class NoteMediaTitle extends StatelessWidget {
     super.key,
     required this.displayName,
     required this.fallbackTitle,
+    this.fixedTitle,
     required this.isReadOnly,
     required this.onChanged,
   });
@@ -21,18 +23,18 @@ class NoteMediaTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = mediaTitleFromDisplayName(
-      displayName,
-      fallback: fallbackTitle,
-    );
+    final title =
+        fixedTitle ??
+        mediaTitleFromDisplayName(displayName, fallback: fallbackTitle);
+    final canEdit = !isReadOnly && fixedTitle == null;
 
     return Semantics(
-      button: !isReadOnly,
+      button: canEdit,
       label: title,
-      hint: isReadOnly ? null : 'note_editor_edit_media_title'.tr,
+      hint: canEdit ? 'note_editor_edit_media_title'.tr : null,
       child: InkWell(
         key: ValueKey('media-title-$displayName'),
-        onTap: isReadOnly ? null : () => _showEditor(context, title),
+        onTap: canEdit ? () => _showEditor(context, title) : null,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(2, 2, 2, 9),
@@ -50,7 +52,7 @@ class NoteMediaTitle extends StatelessWidget {
                   ),
                 ),
               ),
-              if (!isReadOnly) ...[
+              if (canEdit) ...[
                 const SizedBox(width: 6),
                 Icon(
                   CupertinoIcons.pencil,

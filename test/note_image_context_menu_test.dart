@@ -28,9 +28,7 @@ void main() {
 
   tearDown(Get.reset);
 
-  testWidgets('tapping an image opens the iOS image editor package', (
-    tester,
-  ) async {
+  testWidgets('tapping an image previews it before editing', (tester) async {
     const editorChannel = MethodChannel('ios_image_editor');
     MethodCall? editorCall;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -80,6 +78,20 @@ void main() {
     );
 
     await tester.tap(find.byKey(ValueKey('local-${block.id}-$imagePath')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('image-preview-page')), findsOneWidget);
+    expect(find.byKey(const ValueKey('image-preview-app-bar')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('image-preview-app-bar')),
+        matching: find.text('Image'),
+      ),
+      findsOneWidget,
+    );
+    expect(editorCall, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('image-preview-edit')));
     await tester.pumpAndSettle();
 
     expect(editorCall?.method, 'editImage');
@@ -158,5 +170,56 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getSize(image).width, lessThan(largeWidth));
+  });
+
+  testWidgets('tapping an image edge shows the border cursor', (tester) async {
+    InitialBinding().dependencies();
+    final controller = Get.put(
+      NoteDetailController(
+        getNoteDetail: Get.find<GetNoteDetail>(),
+        saveNoteMetadata: Get.find<SaveNoteMetadata>(),
+        saveNoteContent: Get.find<SaveNoteContent>(),
+        updateNoteState: Get.find<UpdateNoteState>(),
+        deleteRestoreNote: Get.find<DeleteRestoreNote>(),
+        uploadAttachment: Get.find<UploadAttachment>(),
+        downloadAttachment: Get.find<DownloadAttachment>(),
+        getFolders: Get.find<GetFolders>(),
+      ),
+    );
+    const block = AttachmentBlock(
+      id: 'border-cursor-image',
+      displayName: 'photo.jpg',
+    );
+    controller.blocks.assignAll([block]);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: NoteAttachmentBlock(
+              block: block,
+              blockIndex: 0,
+              controller: controller,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('image-border-cursor-before')),
+      findsNothing,
+    );
+    await tester.tap(find.byKey(const ValueKey('image-focus-before')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('image-border-cursor-before')),
+      findsOneWidget,
+    );
+    expect(controller.blocks.first, isA<TextBlock>());
   });
 }

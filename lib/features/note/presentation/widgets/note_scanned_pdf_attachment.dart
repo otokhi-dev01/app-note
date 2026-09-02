@@ -10,12 +10,14 @@ import 'package:ios_image_editor/ios_image_editor.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/core/utils/image_pdf.dart';
 import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_cursor_edges.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_title.dart';
 import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
 import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
@@ -49,6 +51,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
   bool _isLoading = true;
   bool _hasError = false;
   int _loadGeneration = 0;
+  NoteMediaCursorSide? _cursorSide;
 
   @override
   void initState() {
@@ -127,6 +130,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
   }
 
   Future<void> _openPdf() async {
+    if (_cursorSide != null && mounted) setState(() => _cursorSide = null);
     // Opening the document should not depend on the thumbnail render having
     // completed successfully. A valid PDF can still be viewed when its inline
     // first-page preview could not be generated.
@@ -145,7 +149,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
         fullscreenDialog: true,
         builder: (_) => _ScannedPdfPreviewPage(
           path: path,
-          title: widget.block.displayName.trim(),
+          title: 'note_editor_pdf_fallback_name'.tr,
           onEdit: widget.isReadOnly
               ? null
               : () {
@@ -280,6 +284,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
   }
 
   void _showContextMenu() {
+    if (_cursorSide != null) setState(() => _cursorSide = null);
     final theme = Theme.of(context);
     NoteMediaContextMenu.show(
       context: context,
@@ -344,6 +349,14 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
     );
   }
 
+  void _focusPdfEdge(NoteMediaCursorSide side) {
+    setState(() => _cursorSide = side);
+    widget.controller.focusTextBesideAttachment(
+      widget.blockIndex,
+      after: side == NoteMediaCursorSide.after,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -355,6 +368,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
         NoteMediaTitle(
           displayName: widget.block.displayName,
           fallbackTitle: 'note_editor_pdf_fallback_name'.tr,
+          fixedTitle: 'note_editor_pdf_fallback_name'.tr,
           isReadOnly: widget.isReadOnly,
           onChanged: (title) =>
               widget.controller.updateAttachmentTitle(widget.blockIndex, title),
@@ -376,7 +390,12 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      border: Border.all(color: Colors.black12, width: 0.8),
+                      border: Border.all(
+                        color: _cursorSide != null
+                            ? AppTheme.folderYellow
+                            : Colors.black12,
+                        width: _cursorSide != null ? 1.5 : 0.8,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.16),
@@ -385,7 +404,25 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
                         ),
                       ],
                     ),
-                    child: _buildPaper(theme),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildPaper(theme),
+                        if (!widget.isReadOnly)
+                          NoteMediaCursorEdges(
+                            keyPrefix: 'pdf',
+                            focusedSide: _cursorSide,
+                            beforeSemanticLabel:
+                                'note_editor_write_before_pdf'.tr,
+                            afterSemanticLabel:
+                                'note_editor_write_after_pdf'.tr,
+                            onFocusBefore: () =>
+                                _focusPdfEdge(NoteMediaCursorSide.before),
+                            onFocusAfter: () =>
+                                _focusPdfEdge(NoteMediaCursorSide.after),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),

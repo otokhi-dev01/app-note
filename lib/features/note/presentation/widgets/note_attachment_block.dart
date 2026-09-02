@@ -20,8 +20,10 @@ import 'package:Note/core/utils/share_helper.dart';
 import 'package:Note/features/note/presentation/widgets/note_video_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_scanned_pdf_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_context_menu.dart';
+import 'package:Note/features/note/presentation/widgets/note_media_cursor_edges.dart';
 import 'package:Note/features/note/presentation/widgets/note_media_title.dart';
 import 'package:Note/features/note/presentation/widgets/image_overlay_composer_page.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 const _imageExtensions = {
   'jpg',
@@ -168,7 +170,7 @@ class NoteAttachmentBlock extends StatelessWidget {
           isReadOnly: controller.isReadOnly.value,
           semanticsLabel: semanticsLabel,
           isDark: isDark,
-          onEdit: () => _openImageEditor(context),
+          onOpen: () => _openImagePreview(context),
           onAddImage: () => _addImageOverlay(context),
           onCopy: () => unawaited(_copyImage(context)),
           onPaste: () => unawaited(
@@ -179,6 +181,10 @@ class NoteAttachmentBlock extends StatelessWidget {
           onDelete: () => controller.deleteBlock(blockIndex),
           onTitleChanged: (title) =>
               controller.updateAttachmentTitle(blockIndex, title),
+          onFocusBefore: () =>
+              controller.focusTextBesideAttachment(blockIndex, after: false),
+          onFocusAfter: () =>
+              controller.focusTextBesideAttachment(blockIndex, after: true),
         ),
       ),
     );
@@ -226,6 +232,31 @@ class NoteAttachmentBlock extends StatelessWidget {
         'note_editor_could_not_open_image_editor'.tr,
       );
     }
+  }
+
+  Future<void> _openImagePreview(BuildContext context) async {
+    final path = await _resolveImagePath(context);
+    if (path == null || !context.mounted) {
+      AppSnackbar.info(
+        'note_editor_not_available_title'.tr,
+        'note_editor_image_not_on_device'.tr,
+      );
+      return;
+    }
+
+    await Navigator.of(context).push(
+      CupertinoPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => _ImagePreviewPage(
+          path: path,
+          title: 'note_editor_image_fallback_name'.tr,
+          onEdit: controller.isReadOnly.value
+              ? null
+              : () => _openImageEditor(context),
+          onShare: () => _shareImage(context),
+        ),
+      ),
+    );
   }
 
   Future<void> _addImageOverlay(BuildContext context) async {
@@ -376,7 +407,7 @@ class _ImageTile extends StatefulWidget {
   final bool isReadOnly;
   final bool isDark;
   final String semanticsLabel;
-  final VoidCallback onEdit;
+  final VoidCallback onOpen;
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
@@ -384,6 +415,8 @@ class _ImageTile extends StatefulWidget {
   final VoidCallback onShare;
   final VoidCallback onDelete;
   final ValueChanged<String> onTitleChanged;
+  final VoidCallback onFocusBefore;
+  final VoidCallback onFocusAfter;
 
   const _ImageTile({
     required this.block,
@@ -391,7 +424,7 @@ class _ImageTile extends StatefulWidget {
     required this.isReadOnly,
     required this.isDark,
     required this.semanticsLabel,
-    required this.onEdit,
+    required this.onOpen,
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
@@ -399,6 +432,8 @@ class _ImageTile extends StatefulWidget {
     required this.onShare,
     required this.onDelete,
     required this.onTitleChanged,
+    required this.onFocusBefore,
+    required this.onFocusAfter,
   });
 
   @override
@@ -409,6 +444,7 @@ enum _ImageViewSize { small, large }
 
 class _ImageTileState extends State<_ImageTile> {
   _ImageViewSize _viewSize = _ImageViewSize.large;
+  NoteMediaCursorSide? _cursorSide;
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +454,7 @@ class _ImageTileState extends State<_ImageTile> {
         NoteMediaTitle(
           displayName: widget.block.displayName,
           fallbackTitle: 'note_editor_image_fallback_name'.tr,
+          fixedTitle: 'note_editor_image_fallback_name'.tr,
           isReadOnly: widget.isReadOnly,
           onChanged: widget.onTitleChanged,
         ),
@@ -427,7 +464,7 @@ class _ImageTileState extends State<_ImageTile> {
           label: '${widget.semanticsLabel}${'note_editor_image_tap_hint'.tr}',
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: widget.onEdit,
+            onTap: _openImagePreview,
             onLongPress: _showContextMenu,
             child: _buildImage(),
           ),
@@ -436,7 +473,22 @@ class _ImageTileState extends State<_ImageTile> {
     );
   }
 
+  void _openImagePreview() {
+    if (_cursorSide != null) setState(() => _cursorSide = null);
+    widget.onOpen();
+  }
+
+  void _focusImageEdge(NoteMediaCursorSide side) {
+    setState(() => _cursorSide = side);
+    if (side == NoteMediaCursorSide.before) {
+      widget.onFocusBefore();
+    } else {
+      widget.onFocusAfter();
+    }
+  }
+
   void _showContextMenu() {
+    if (_cursorSide != null) setState(() => _cursorSide = null);
     Feedback.forLongPress(context);
     showGeneralDialog<void>(
       context: context,
@@ -504,6 +556,7 @@ class _ImageTileState extends State<_ImageTile> {
     final imageWidth = isSmall
         ? (widget.width * 0.55).clamp(140.0, 200.0)
         : widget.width;
+    final hasFocusedEdge = _cursorSide != null;
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -517,10 +570,12 @@ class _ImageTileState extends State<_ImageTile> {
         width: imageWidth,
         decoration: BoxDecoration(
           border: Border.all(
-            color: widget.isDark
+            color: hasFocusedEdge
+                ? AppTheme.folderYellow
+                : widget.isDark
                 ? Colors.white.withValues(alpha: 0.12)
                 : Colors.black.withValues(alpha: 0.08),
-            width: 1,
+            width: hasFocusedEdge ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -530,11 +585,141 @@ class _ImageTileState extends State<_ImageTile> {
             ),
           ],
         ),
-        child: ClipRect(
-          child: SizedBox(
-            width: double.infinity,
-            height: isSmall ? 140 : 240,
-            child: _AttachmentImage(block: block),
+        child: SizedBox(
+          width: double.infinity,
+          height: isSmall ? 140 : 240,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ClipRect(child: _AttachmentImage(block: block)),
+              if (!widget.isReadOnly)
+                NoteMediaCursorEdges(
+                  keyPrefix: 'image',
+                  focusedSide: _cursorSide,
+                  beforeSemanticLabel: 'note_editor_write_before_image'.tr,
+                  afterSemanticLabel: 'note_editor_write_after_image'.tr,
+                  onFocusBefore: () =>
+                      _focusImageEdge(NoteMediaCursorSide.before),
+                  onFocusAfter: () =>
+                      _focusImageEdge(NoteMediaCursorSide.after),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ImagePreviewPage extends StatelessWidget {
+  final String path;
+  final String title;
+  final VoidCallback? onEdit;
+  final VoidCallback onShare;
+
+  const _ImagePreviewPage({
+    required this.path,
+    required this.title,
+    required this.onEdit,
+    required this.onShare,
+  });
+
+  void _edit(BuildContext context) {
+    final edit = onEdit;
+    if (edit == null) return;
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) => edit());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      key: const ValueKey('image-preview-page'),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: CustomGlassAppBar(
+        key: const ValueKey('image-preview-app-bar'),
+        toolbarHeight: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        backgroundColor: theme.scaffoldBackgroundColor,
+        leading: CustomGlassButton(
+          key: const ValueKey('image-preview-close'),
+          semanticLabel: MaterialLocalizations.of(context).closeButtonTooltip,
+          onPressed: () => Navigator.of(context).pop(),
+          width: 44,
+          height: 44,
+          shape: GlassShape.circle,
+          blur: 10,
+          opacity: 0.15,
+          thickness: 8,
+          padding: EdgeInsets.zero,
+          child: Icon(
+            CupertinoIcons.xmark,
+            color: theme.primaryColor,
+            size: 22,
+          ),
+        ),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
+        ),
+        actions: [
+          if (onEdit != null)
+            CustomGlassButton(
+              key: const ValueKey('image-preview-edit'),
+              semanticLabel: 'note_editor_edit_image'.tr,
+              onPressed: () => _edit(context),
+              height: 44,
+              borderRadius: 22,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              blur: 10,
+              opacity: 0.15,
+              thickness: 8,
+              child: Text(
+                'folder_edit'.tr,
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontSize: 17,
+                ),
+              ),
+            ),
+          CustomGlassButton(
+            key: const ValueKey('image-preview-share'),
+            semanticLabel: 'note_editor_share'.tr,
+            onPressed: onShare,
+            width: 44,
+            height: 44,
+            shape: GlassShape.circle,
+            blur: 10,
+            opacity: 0.15,
+            thickness: 8,
+            padding: EdgeInsets.zero,
+            child: Icon(
+              CupertinoIcons.share,
+              color: theme.primaryColor,
+              size: 22,
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: InteractiveViewer(
+            key: const ValueKey('image-preview-content'),
+            minScale: 0.8,
+            maxScale: 5,
+            child: Image.file(
+              File(path),
+              fit: BoxFit.contain,
+              filterQuality: FilterQuality.high,
+            ),
           ),
         ),
       ),

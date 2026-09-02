@@ -628,6 +628,58 @@ class NoteDetailController extends GetxController {
     );
   }
 
+  /// Treats an image like an inline object in Apple Notes: tapping its left
+  /// edge places the cursor before it, while the right edge places the cursor
+  /// after it. A text line is inserted when that side has no adjacent line.
+  void focusTextBesideAttachment(int blockIndex, {required bool after}) {
+    if (isReadOnly.value ||
+        blockIndex < 0 ||
+        blockIndex >= blocks.length ||
+        blocks[blockIndex] is! AttachmentBlock) {
+      return;
+    }
+
+    final adjacentIndex = after ? blockIndex + 1 : blockIndex - 1;
+    if (adjacentIndex >= 0 && adjacentIndex < blocks.length) {
+      final adjacent = blocks[adjacentIndex];
+      if (adjacent is TextBlock) {
+        if (after) {
+          _focusTextBlockAtStart(adjacent);
+        } else {
+          _focusTextBlockAtEnd(adjacent);
+        }
+        _showSoftwareKeyboardAfterFocus();
+        return;
+      }
+    }
+
+    final textBlock = TextBlock(id: _generateId(), text: '');
+    final insertIndex = after ? blockIndex + 1 : blockIndex;
+    blocks.insert(insertIndex, textBlock);
+    activeBlockIndex.value = insertIndex;
+    blocks.refresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusTextBlockAtStart(textBlock);
+      _showSoftwareKeyboardAfterFocus();
+    });
+  }
+
+  void _focusTextBlockAtStart(TextBlock block) {
+    final blockIndex = blocks.indexWhere(
+      (candidate) => candidate.id == block.id,
+    );
+    if (blockIndex == -1) return;
+
+    final quillController = getQuillController(block.id, block.text);
+    quillController.updateSelection(
+      const TextSelection.collapsed(offset: 0),
+      quill.ChangeSource.local,
+    );
+    activeBlockIndex.value = blockIndex;
+    currentBlockStyle.value = block.style;
+    getBlockFocusNode(block.id).requestFocus();
+  }
+
   void _focusTextBlockAtEnd(TextBlock block) {
     final blockIndex = blocks.indexWhere(
       (candidate) => candidate.id == block.id,

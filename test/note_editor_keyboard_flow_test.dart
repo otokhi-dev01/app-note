@@ -154,6 +154,35 @@ void main() {
       expect(controller.blocks, [first]);
     },
   );
+
+  test('left image edge creates a text line before the image', () {
+    final controller = _createController();
+    const image = AttachmentBlock(id: 'image', displayName: 'photo.jpg');
+    controller.blocks.assignAll([image]);
+
+    controller.focusTextBesideAttachment(0, after: false);
+
+    expect(controller.blocks, hasLength(2));
+    expect(controller.blocks.first, isA<TextBlock>());
+    expect(controller.blocks.last, image);
+    expect(controller.activeBlockIndex.value, 0);
+  });
+
+  test('right image edge reuses the following text line', () {
+    final controller = _createController();
+    const image = AttachmentBlock(id: 'image', displayName: 'photo.jpg');
+    const text = TextBlock(id: 'after-image', text: 'Caption');
+    controller.blocks.assignAll([image, text]);
+
+    controller.focusTextBesideAttachment(0, after: true);
+
+    expect(controller.blocks, [image, text]);
+    expect(controller.activeBlockIndex.value, 1);
+    expect(
+      controller.getQuillController(text.id, text.text).selection,
+      const TextSelection.collapsed(offset: 0),
+    );
+  });
 }
 
 NoteDetailController _createController() {
