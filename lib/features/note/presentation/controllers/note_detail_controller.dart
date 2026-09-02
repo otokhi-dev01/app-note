@@ -895,7 +895,7 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Document from Photo" — same output as [scanDocuments], but the pages
+  /// "Albums" — same output as [scanDocuments], but the pages
   /// come from the photo gallery instead of the live document camera.
   Future<void> scanDocumentsFromGallery() async {
     if (isReadOnly.value) return;

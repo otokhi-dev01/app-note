@@ -501,7 +501,7 @@ const Map<String, String> kmKH = {
   'note_editor_scanned_document_default_title': 'ឯកសារស្កេន',
   'note_editor_scanned_text_default_title': 'អត្ថបទស្កេន',
   'note_editor_scan_text_photo': 'អត្ថបទពីរូបថត',
-  'note_editor_scan_docs_photo': 'ឯកសារពីរូបថត',
+  'note_editor_scan_docs_photo': 'អាល់ប៊ុម',
   'note_editor_pdf_page': 'ទំព័រ',
   'note_editor_pdf_of': 'នៃ',
   'note_editor_open_pdf': 'បើក PDF',

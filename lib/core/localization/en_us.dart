@@ -498,7 +498,7 @@ const Map<String, String> enUS = {
   'note_editor_scanned_document_default_title': 'Scanned Document',
   'note_editor_scanned_text_default_title': 'Scanned Text',
   'note_editor_scan_text_photo': 'Text from Photo',
-  'note_editor_scan_docs_photo': 'Document from Photo',
+  'note_editor_scan_docs_photo': 'Albums',
   'note_editor_pdf_page': 'Page',
   'note_editor_pdf_of': 'of',
   'note_editor_open_pdf': 'Open PDF',
