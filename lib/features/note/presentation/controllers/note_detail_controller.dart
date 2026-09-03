@@ -27,6 +27,8 @@ import 'package:Note/core/utils/media_title.dart';
 import 'package:Note/core/utils/note_pdf.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
+import 'package:Note/features/note/domain/entities/scanned_document_draft.dart';
+import 'package:Note/features/note/data/services/scan_page_processor.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -34,6 +36,7 @@ import 'package:Note/features/folder/presentation/controllers/folder_controller.
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_audio_recorder_sheet.dart';
+import 'package:Note/features/note/presentation/widgets/scanned_document_review_page.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
@@ -128,6 +131,7 @@ class NoteDetailController extends GetxController {
   final isFormatPanelVisible = false.obs;
   bool _autoRecordRequested = false;
   bool _isAudioRecorderOpen = false;
+  bool _isScanFlowOpen = false;
   AttachmentBlock? _attachmentClipboard;
   String? _attachmentClipboardPdfSourcePath;
 
@@ -929,42 +933,117 @@ class NoteDetailController extends GetxController {
   /// provides the in-camera Manual/Auto capture selector, document outline,
   /// shutter control, and gallery import. Completed pages become one PDF.
   Future<void> scanDocuments() async {
-    if (isReadOnly.value) return;
+    if (isReadOnly.value || _isScanFlowOpen) return;
 
+    _isScanFlowOpen = true;
     try {
-      final result = await FlutterDocScanner().getScannedDocumentAsImages(
-        page: 20,
-        imageFormat: ImageFormat.jpeg,
-        quality: 0.8,
-        useAutomaticSinglePictureProcessing: false,
-      );
-      final pages = await _materializeScanPages(result?.images ?? const []);
+      final pages = await _captureDocumentPages();
       if (pages.isEmpty) return;
-      await _insertScannedDocumentPdf(pages);
+      await _openScannedDocumentReview(pages, initiallyOwnedPaths: pages);
     } catch (e) {
       debugPrint('[SCAN DOCS ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan document');
+    } finally {
+      _isScanFlowOpen = false;
     }
   }
 
   /// "Albums" — same output as [scanDocuments], but the pages
   /// come from the photo gallery instead of the live document camera.
   Future<void> scanDocumentsFromGallery() async {
-    if (isReadOnly.value) return;
+    if (isReadOnly.value || _isScanFlowOpen) return;
 
+    _isScanFlowOpen = true;
     try {
-      final files = await _picker.pickMultiImage(imageQuality: 80);
-      if (files.isEmpty) return;
-      final pages = files.map((file) => file.path).toList(growable: false);
-      await _insertScannedDocumentPdf(pages);
+      final pages = await _chooseDocumentPages();
+      if (pages.isEmpty) return;
+      await _openScannedDocumentReview(pages);
     } catch (e) {
       debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not add those photos');
+    } finally {
+      _isScanFlowOpen = false;
     }
   }
 
-  Future<void> _insertScannedDocumentPdf(List<String> pages) async {
-    final title = 'note_editor_scanned_document_default_title'.tr;
+  Future<List<String>> _captureDocumentPages() async {
+    final result = await FlutterDocScanner().getScannedDocumentAsImages(
+      page: 20,
+      imageFormat: ImageFormat.jpeg,
+      quality: 0.8,
+      useAutomaticSinglePictureProcessing: false,
+    );
+    return _materializeScanPages(result?.images ?? const []);
+  }
+
+  Future<List<String>> _chooseDocumentPages() async {
+    final files = await _picker.pickMultiImage(imageQuality: 88);
+    return files.map((file) => file.path).toList(growable: false);
+  }
+
+  Future<void> _openScannedDocumentReview(
+    List<String> pages, {
+    Iterable<String> initiallyOwnedPaths = const [],
+  }) async {
+    final ownedPaths = <String>{...initiallyOwnedPaths};
+    try {
+      await Get.to(
+        () => ScannedDocumentReviewPage(
+          initialPagePaths: pages,
+          initialTitle: 'note_editor_scanned_document_default_title'.tr,
+          onScanMore: () async {
+            final added = await _captureDocumentPages();
+            ownedPaths.addAll(added);
+            return added;
+          },
+          onChoosePhotos: _chooseDocumentPages,
+          onSave: _saveScannedDocumentDraft,
+        ),
+        fullscreenDialog: true,
+        transition: Transition.cupertino,
+      );
+    } finally {
+      await _deleteTemporaryScanPaths(ownedPaths);
+    }
+  }
+
+  Future<bool> _saveScannedDocumentDraft(ScannedDocumentDraft draft) async {
+    PreparedScanPages? prepared;
+    try {
+      prepared = await prepareScannedPages(draft.pages);
+      final defaultTitle = 'note_editor_scanned_document_default_title'.tr;
+      final title = draft.title.trim().isEmpty
+          ? defaultTitle
+          : draft.title.trim();
+      await _insertScannedDocumentPdf(prepared.paths, title: title);
+      return true;
+    } catch (error) {
+      debugPrint('[SCAN SAVE ERROR] $error');
+      AppSnackbar.error(
+        'note_editor_error_title'.tr,
+        'note_editor_scan_save_failed'.tr,
+      );
+      return false;
+    } finally {
+      await prepared?.cleanUp();
+    }
+  }
+
+  Future<void> _deleteTemporaryScanPaths(Iterable<String> paths) async {
+    for (final path in paths) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) file.deleteSync();
+      } catch (_) {
+        // Native scanner results are temporary staging files.
+      }
+    }
+  }
+
+  Future<void> _insertScannedDocumentPdf(
+    List<String> pages, {
+    required String title,
+  }) async {
     final id = 'scan_${_generateId()}';
     final pdfPath = await buildMultiPageImagePdf(
       imagePaths: pages,
