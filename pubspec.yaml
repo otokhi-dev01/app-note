@@ -19,6 +19,7 @@ dependencies:
   intl: ^0.20.2
   font_awesome_flutter: ^11.0.0
   image_picker: ^1.2.3
+  image: ^4.9.2
   path_provider: ^2.1.6
   flutter_secure_storage: ^10.3.1
   # Local SwiftPM-compatible patch of ios_image_editor 1.0.0.
