@@ -78,7 +78,7 @@ class ProfileController extends GetxController {
     _guestModeWorker = ever(_guestMode.isGuestMode, (_) => _syncApiUser());
   }
 
-  void _syncApiUser() {
+  void _syncApiUser() async {
     final user = _session.user.value;
     final isGuest = isGuestMode.value && user == null;
     final apiName = user?.fullName?.trim() ?? '';
@@ -90,12 +90,15 @@ class ProfileController extends GetxController {
         ? 'not_signed_in'.tr
         : (user?.phone?.trim() ?? '');
 
-    // The avatar is a local file path; drop it if the file is gone (app
-    // reinstall, cache clear) so the UI falls back to the placeholder.
+    // The avatar is stored as a path relative to the documents directory
+    // so it survives app container UUID changes on iOS. Resolve it to a real
+    // absolute path for the File widget.
     final savedPath = user?.profileImage ?? '';
-    userImagePath.value = savedPath.isNotEmpty && File(savedPath).existsSync()
-        ? savedPath
-        : '';
+    final resolvedPath = await AppMediaStorage.resolve(savedPath);
+    userImagePath.value =
+        resolvedPath != null && File(resolvedPath).existsSync()
+            ? resolvedPath
+            : '';
 
     unawaited(_loadIdInformation());
   }
@@ -190,8 +193,9 @@ class ProfileController extends GetxController {
         folder: 'profile_images',
         fileName: 'profile_${DateTime.now().microsecondsSinceEpoch}',
       );
+      final relativePath = await AppMediaStorage.makeRelative(persistedPath);
 
-      switch (await _updateProfileImage(persistedPath)) {
+      switch (await _updateProfileImage(relativePath)) {
         case Ok():
           userImagePath.value = persistedPath;
           if (previousPath != persistedPath) {

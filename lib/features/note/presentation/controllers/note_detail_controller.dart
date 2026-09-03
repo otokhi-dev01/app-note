@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
+import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter_quill/quill_delta.dart' as quill_delta;
 import 'package:ios_image_editor/ios_image_editor.dart';
@@ -27,8 +27,6 @@ import 'package:Note/core/utils/media_title.dart';
 import 'package:Note/core/utils/note_pdf.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
-import 'package:Note/features/note/domain/entities/scanned_document_draft.dart';
-import 'package:Note/features/note/data/services/scan_page_processor.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/routes/note_navigation.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
@@ -36,7 +34,6 @@ import 'package:Note/features/folder/presentation/controllers/folder_controller.
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_move_folder_modal.dart';
 import 'package:Note/features/note/presentation/widgets/note_audio_recorder_sheet.dart';
-import 'package:Note/features/note/presentation/widgets/scanned_document_review_page.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/core/utils/note_snippet.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
@@ -929,9 +926,9 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// Opens flutter_doc_scanner's full native scanner. On Android this mode
-  /// provides the in-camera Manual/Auto capture selector, document outline,
-  /// shutter control, and gallery import. Completed pages become one PDF.
+  /// Opens cunning_document_scanner's native scanner. This mode provides
+  /// edge detection, cropping, and automatic capture. Completed pages
+  /// become one PDF.
   Future<void> scanDocuments() async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
@@ -939,7 +936,9 @@ class NoteDetailController extends GetxController {
     try {
       final pages = await _captureDocumentPages();
       if (pages.isEmpty) return;
-      await _openScannedDocumentReview(pages, initiallyOwnedPaths: pages);
+      
+      final title = 'note_editor_scanned_document_default_title'.tr;
+      await _insertScannedDocumentPdf(pages, title: title);
     } catch (e) {
       debugPrint('[SCAN DOCS ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan document');
@@ -957,7 +956,9 @@ class NoteDetailController extends GetxController {
     try {
       final pages = await _chooseDocumentPages();
       if (pages.isEmpty) return;
-      await _openScannedDocumentReview(pages);
+      
+      final title = 'note_editor_scanned_document_default_title'.tr;
+      await _insertScannedDocumentPdf(pages, title: title);
     } catch (e) {
       debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not add those photos');
@@ -967,66 +968,13 @@ class NoteDetailController extends GetxController {
   }
 
   Future<List<String>> _captureDocumentPages() async {
-    final result = await FlutterDocScanner().getScannedDocumentAsImages(
-      page: 20,
-      imageFormat: ImageFormat.jpeg,
-      quality: 0.8,
-      useAutomaticSinglePictureProcessing: false,
-    );
-    return _materializeScanPages(result?.images ?? const []);
+    final images = await CunningDocumentScanner.getPictures();
+    return _materializeScanPages(images ?? const []);
   }
 
   Future<List<String>> _chooseDocumentPages() async {
     final files = await _picker.pickMultiImage(imageQuality: 88);
     return files.map((file) => file.path).toList(growable: false);
-  }
-
-  Future<void> _openScannedDocumentReview(
-    List<String> pages, {
-    Iterable<String> initiallyOwnedPaths = const [],
-  }) async {
-    final ownedPaths = <String>{...initiallyOwnedPaths};
-    try {
-      await Get.to(
-        () => ScannedDocumentReviewPage(
-          initialPagePaths: pages,
-          initialTitle: 'note_editor_scanned_document_default_title'.tr,
-          onScanMore: () async {
-            final added = await _captureDocumentPages();
-            ownedPaths.addAll(added);
-            return added;
-          },
-          onChoosePhotos: _chooseDocumentPages,
-          onSave: _saveScannedDocumentDraft,
-        ),
-        fullscreenDialog: true,
-        transition: Transition.cupertino,
-      );
-    } finally {
-      await _deleteTemporaryScanPaths(ownedPaths);
-    }
-  }
-
-  Future<bool> _saveScannedDocumentDraft(ScannedDocumentDraft draft) async {
-    PreparedScanPages? prepared;
-    try {
-      prepared = await prepareScannedPages(draft.pages);
-      final defaultTitle = 'note_editor_scanned_document_default_title'.tr;
-      final title = draft.title.trim().isEmpty
-          ? defaultTitle
-          : draft.title.trim();
-      await _insertScannedDocumentPdf(prepared.paths, title: title);
-      return true;
-    } catch (error) {
-      debugPrint('[SCAN SAVE ERROR] $error');
-      AppSnackbar.error(
-        'note_editor_error_title'.tr,
-        'note_editor_scan_save_failed'.tr,
-      );
-      return false;
-    } finally {
-      await prepared?.cleanUp();
-    }
   }
 
   Future<void> _deleteTemporaryScanPaths(Iterable<String> paths) async {
@@ -1045,30 +993,36 @@ class NoteDetailController extends GetxController {
     required String title,
   }) async {
     final id = 'scan_${_generateId()}';
-    final pdfPath = await buildMultiPageImagePdf(
-      imagePaths: pages,
-      blockId: id,
-      title: title,
-      showTitle: false,
-      createdAt: DateTime.now(),
-      showDateTime: true,
-      showPageNumbers: true,
-      imagesAreCompletePages: false,
-      pageLabel: 'note_editor_pdf_page'.tr,
-      ofLabel: 'note_editor_pdf_of'.tr,
-    );
-    await storePdfSourcePages(imagePaths: pages, blockId: id);
-    _insertBlock(
-      AttachmentBlock(
-        id: id,
-        displayName: _scannedDocumentFileName(title),
-        localPath: pdfPath,
-        attachmentId: 0,
-      ),
-    );
-    blocks.refresh();
-    addTextBlock(requestFocus: true);
-    unawaited(saveNote(silent: true));
+    try {
+      final pdfPath = await buildMultiPageImagePdf(
+        imagePaths: pages,
+        blockId: id,
+        title: title,
+        showTitle: false,
+        createdAt: DateTime.now(),
+        showDateTime: true,
+        showPageNumbers: true,
+        imagesAreCompletePages: false,
+        pageLabel: 'note_editor_pdf_page'.tr,
+        ofLabel: 'note_editor_pdf_of'.tr,
+      );
+      await storePdfSourcePages(imagePaths: pages, blockId: id);
+      _insertBlock(
+        AttachmentBlock(
+          id: id,
+          displayName: _scannedDocumentFileName(title),
+          localPath: pdfPath,
+          attachmentId: 0,
+        ),
+      );
+      blocks.refresh();
+      addTextBlock(requestFocus: true);
+      unawaited(saveNote(silent: true));
+    } finally {
+      // Cleanup temporary materialized pages after they've been baked into the
+      // PDF and stored as sources.
+      await _deleteTemporaryScanPaths(pages);
+    }
   }
 
   Future<List<String>> _materializeScanPages(List<String> rawPaths) async {
@@ -1107,12 +1061,8 @@ class NoteDetailController extends GetxController {
     if (isReadOnly.value) return;
 
     try {
-      final result = await FlutterDocScanner().getScannedDocumentAsImages(
-        page: 1,
-        imageFormat: ImageFormat.jpeg,
-        quality: 0.9,
-      );
-      final pages = await _materializeScanPages(result?.images ?? const []);
+      final images = await CunningDocumentScanner.getPictures();
+      final pages = await _materializeScanPages(images ?? const []);
       final path = pages.firstOrNull;
       if (path == null) return;
       await _insertScannedTextPdf(path);

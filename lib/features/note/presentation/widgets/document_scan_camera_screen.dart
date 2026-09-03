@@ -1,21 +1,17 @@
 // import 'dart:async';
 // import 'dart:io';
-//
-// import 'package:camera/camera.dart';
+// // import 'package:camera/camera.dart';
 // import 'package:flutter/cupertino.dart';
 // import 'package:flutter/material.dart';
 // import 'package:get/get.dart';
 // import 'package:permission_handler/permission_handler.dart';
-//
 // import 'package:Note/core/feedback/app_snackbar.dart';
 // import 'package:Note/core/theme/ios_semantic_colors.dart';
 // import 'package:Note/features/note/presentation/widgets/scanned_document_review_page.dart'
 //     show ScanPageSource;
 // import 'package:Note/shared/utils/scan_color_matrices.dart';
 // import 'package:Note/shared/widgets/glass_widgets.dart';
-//
 // enum DocumentScanCameraMode { capture, ocr }
-//
 // enum DocumentScanCameraFilterPreset {
 //   original,
 //   grey,
@@ -23,31 +19,16 @@
 //   darken,
 //   lighten,
 // }
-//
-// /// What [DocumentScanCameraScreen] hands back when popped after at least one
-// /// successful capture: the pages produced this session, and which mode the
-// /// screen was left in — [NoteDetailController] uses the mode to decide
-// /// whether the pages become a multi-page PDF or feed on-device OCR.
 // class DocumentScanCameraResult {
 //   final DocumentScanCameraMode mode;
 //   final List<String> pages;
-//
 //   const DocumentScanCameraResult({required this.mode, required this.pages});
 // }
-//
-// /// Turns one raw camera still into a finished page path (perspective-corrected
-// /// and filtered per [DocumentScanCameraFilterPreset]), or `null` when no
-// /// document was detected in the frame. Supplied by the controller so this
-// /// screen never imports `document_scan`/`image` itself.
 // typedef DocumentScanCapture =
 //     Future<String?> Function(
 //       String rawStillPath,
 //       DocumentScanCameraFilterPreset preset,
 //     );
-//
-// /// Full-screen live camera scanning UI: viewfinder, filter presets, a
-// /// Capture/OCR mode toggle, and multi-page capture — replaces handing off to
-// /// the OS's own camera app for document scanning.
 // class DocumentScanCameraScreen extends StatefulWidget {
 //   final DocumentScanCameraMode initialMode;
 //   final bool allowModeToggle;
@@ -55,7 +36,6 @@
 //   final ScanPageSource onPickFromGallery;
 //   final Future<String?> Function()? onPickSingleFromGallery;
 //   final Future<void> Function(Iterable<String> paths)? onDiscardPages;
-//
 //   const DocumentScanCameraScreen({
 //     super.key,
 //     required this.initialMode,
@@ -65,12 +45,10 @@
 //     this.onPickSingleFromGallery,
 //     this.onDiscardPages,
 //   });
-//
 //   @override
 //   State<DocumentScanCameraScreen> createState() =>
 //       _DocumentScanCameraScreenState();
 // }
-//
 // enum _CameraStage {
 //   requestingPermission,
 //   permissionDenied,
@@ -78,28 +56,24 @@
 //   ready,
 //   unavailable,
 // }
-//
 // class _DocumentScanCameraScreenState extends State<DocumentScanCameraScreen>
 //     with WidgetsBindingObserver {
 //   CameraController? _controller;
 //   var _stage = _CameraStage.requestingPermission;
 //   String? _errorMessage;
 //   var _isPermanentlyDenied = false;
-//
 //   var _flashMode = FlashMode.off;
 //   var _preset = DocumentScanCameraFilterPreset.original;
 //   late var _mode = widget.initialMode;
 //   final List<String> _pages = [];
 //   var _isCapturing = false;
 //   var _isPicking = false;
-//
 //   @override
 //   void initState() {
 //     super.initState();
 //     WidgetsBinding.instance.addObserver(this);
 //     unawaited(_ensurePermissionThenStart());
 //   }
-//
 //   @override
 //   void didChangeAppLifecycleState(AppLifecycleState state) {
 //     final controller = _controller;
@@ -113,14 +87,12 @@
 //       unawaited(_ensurePermissionThenStart());
 //     }
 //   }
-//
 //   @override
 //   void dispose() {
 //     WidgetsBinding.instance.removeObserver(this);
 //     _controller?.dispose();
 //     super.dispose();
 //   }
-//
 //   Future<void> _ensurePermissionThenStart() async {
 //     if (mounted) setState(() => _stage = _CameraStage.requestingPermission);
 //     var status = await Permission.camera.status;
@@ -141,7 +113,6 @@
 //       _isPermanentlyDenied = status.isPermanentlyDenied;
 //     });
 //   }
-//
 //   Future<void> _openSettings() async {
 //     try {
 //       if (!await openAppSettings()) _showUnavailable();
@@ -149,14 +120,12 @@
 //       _showUnavailable();
 //     }
 //   }
-//
 //   void _showUnavailable() {
 //     AppSnackbar.warning(
 //       'action_unavailable_title'.tr,
 //       'action_unavailable_message'.tr,
 //     );
 //   }
-//
 //   Future<void> _startCamera() async {
 //     setState(() => _stage = _CameraStage.starting);
 //     try {
@@ -187,7 +156,6 @@
 //       _fail('note_editor_scan_camera_unavailable'.tr);
 //     }
 //   }
-//
 //   void _fail(String message) {
 //     if (!mounted) return;
 //     setState(() {
@@ -195,7 +163,6 @@
 //       _errorMessage = message;
 //     });
 //   }
-//
 //   void _cycleFlash() {
 //     final controller = _controller;
 //     if (controller == null) return;
@@ -210,17 +177,14 @@
 //       }),
 //     );
 //   }
-//
 //   IconData get _flashIcon => switch (_flashMode) {
 //     FlashMode.off => CupertinoIcons.bolt_slash,
 //     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,
 //     _ => CupertinoIcons.bolt_fill,
 //   };
-//
 //   Color get _accentColor => _mode == DocumentScanCameraMode.capture
 //       ? IosSemanticColors.purple
 //       : IosSemanticColors.indigo;
-//
 //   Future<void> _onShutterTap() async {
 //     final controller = _controller;
 //     if (controller == null || !controller.value.isInitialized) return;
@@ -260,7 +224,6 @@
 //       if (mounted) setState(() => _isCapturing = false);
 //     }
 //   }
-//
 //   void _handleCapturedPage(String page) {
 //     if (_mode == DocumentScanCameraMode.ocr) {
 //       Navigator.of(
@@ -270,7 +233,6 @@
 //     }
 //     setState(() => _pages.add(page));
 //   }
-//
 //   Future<void> _onGalleryTap() async {
 //     if (_isPicking || _isCapturing) return;
 //     setState(() => _isPicking = true);
@@ -298,7 +260,6 @@
 //       if (mounted) setState(() => _isPicking = false);
 //     }
 //   }
-//
 //   Future<void> _onClose() async {
 //     if (_pages.isEmpty) {
 //       Navigator.of(context).pop();
@@ -330,23 +291,19 @@
 //     await widget.onDiscardPages?.call(_pages);
 //     if (mounted) Navigator.of(context).pop();
 //   }
-//
 //   void _finish() {
 //     if (_pages.isEmpty) return;
 //     Navigator.of(
 //       context,
 //     ).pop(DocumentScanCameraResult(mode: _mode, pages: _pages));
 //   }
-//
 //   void _setMode(DocumentScanCameraMode mode) {
 //     if (!widget.allowModeToggle || mode == _mode) return;
 //     setState(() => _mode = mode);
 //   }
-//
 //   void _selectPreset(DocumentScanCameraFilterPreset preset) {
 //     setState(() => _preset = preset);
 //   }
-//
 //   String _presetLabel(DocumentScanCameraFilterPreset preset) => switch (preset) {
 //     DocumentScanCameraFilterPreset.original =>
 //       'note_editor_scan_filter_original'.tr,
@@ -358,7 +315,6 @@
 //     DocumentScanCameraFilterPreset.lighten =>
 //       'note_editor_scan_filter_lighten'.tr,
 //   };
-//
 //   @override
 //   Widget build(BuildContext context) {
 //     return PopScope(
@@ -397,7 +353,6 @@
 //       ),
 //     );
 //   }
-//
 //   Widget _buildCameraLayer() {
 //     final controller = _controller;
 //     if (_stage != _CameraStage.ready ||
@@ -408,7 +363,6 @@
 //         child: _buildStatusLayer(),
 //       );
 //     }
-//
 //     Widget preview = _CameraPreviewFill(controller: controller);
 //     final colorFilter = switch (_preset) {
 //       DocumentScanCameraFilterPreset.grey => grayscaleColorFilter,
@@ -436,7 +390,6 @@
 //     }
 //     return preview;
 //   }
-//
 //   Widget _buildStatusLayer() {
 //     switch (_stage) {
 //       case _CameraStage.requestingPermission:
@@ -466,7 +419,6 @@
 //         return const SizedBox.shrink();
 //     }
 //   }
-//
 //   Widget _buildMessageState({
 //     required IconData icon,
 //     required String message,
@@ -500,7 +452,6 @@
 //       ),
 //     );
 //   }
-//
 //   Widget _buildTopBar() {
 //     return Padding(
 //       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -516,7 +467,6 @@
 //       ),
 //     );
 //   }
-//
 //   Widget _glassIconButton({
 //     required IconData icon,
 //     required FutureOr<void> Function() onTap,
@@ -534,7 +484,6 @@
 //       child: Icon(icon, size: 22),
 //     );
 //   }
-//
 //   Widget _buildFilterRow() {
 //     final presets = DocumentScanCameraFilterPreset.values;
 //     return SizedBox(
@@ -556,73 +505,118 @@
 //       ),
 //     );
 //   }
-//
 //   Widget _buildBottomBar() {
 //     final hasPages = _pages.isNotEmpty;
-//     return Padding(
-//       padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//     return Container(
+//       padding: const EdgeInsets.only(bottom: 30),
+//       child: Column(
+//         mainAxisSize: MainAxisSize.min,
 //         children: [
-//           _bottomIconButton(
-//             icon: CupertinoIcons.photo_on_rectangle,
-//             color: IosSemanticColors.pink,
-//             onTap: _isPicking ? null : _onGalleryTap,
+//           if (hasPages && _mode == DocumentScanCameraMode.capture)
+//             Padding(
+//               padding: const EdgeInsets.only(bottom: 20),
+//               child: CustomGlassButton(
+//                 onPressed: _finish,
+//                 shape: GlassShape.oval,
+//                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+//                 blur: 10,
+//                 opacity: 0.9,
+//                 glassColor: IosSemanticColors.purple,
+//                 foregroundColor: Colors.white,
+//                 child: Text(
+//                   'note_editor_scan_pages_count'.trParams({
+//                     'count': '${_pages.length}',
+//                   }),
+//                   style: const TextStyle(fontWeight: FontWeight.bold),
+//                 ),
+//               ),
+//             ),
+//           Padding(
+//             padding: const EdgeInsets.symmetric(horizontal: 30),
+//             child: Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceAround,
+//               children: [
+//                 _CameraBottomAction(
+//                   icon: _flashIcon,
+//                   label: 'Flash',
+//                   onTap: _cycleFlash,
+//                 ),
+//                 _CameraBottomAction(
+//                   icon: CupertinoIcons.circle_grid_3x3_fill,
+//                   label: 'Filters',
+//                   onTap: () {
+//                     // This could toggle the filter row visibility if desired
+//                   },
+//                 ),
+//                 _CameraBottomAction(
+//                   icon: CupertinoIcons.viewfinder,
+//                   label: 'Shutter',
+//                   onTap: _onShutterTap,
+//                 ),
+//                 _CameraBottomAction(
+//                   icon: CupertinoIcons.photo_on_rectangle,
+//                   label: 'Gallery',
+//                   onTap: _isPicking ? null : _onGalleryTap,
+//                 ),
+//               ],
+//             ),
 //           ),
+//           const SizedBox(height: 24),
 //           _ShutterButton(
 //             isBusy: _isCapturing,
 //             onTap: _isCapturing ? null : _onShutterTap,
 //           ),
-//           if (_mode == DocumentScanCameraMode.capture)
-//             CustomGlassButton(
-//               onPressed: hasPages ? _finish : null,
-//               shape: GlassShape.oval,
-//               padding: const EdgeInsets.symmetric(horizontal: 16),
-//               blur: 10,
-//               opacity: hasPages ? 0.9 : 0.15,
-//               glassColor: hasPages ? IosSemanticColors.purple : null,
-//               foregroundColor: Colors.white,
-//               child: Text(
-//                 'note_editor_scan_pages_count'.trParams({
-//                   'count': '${_pages.length}',
-//                 }),
-//               ),
-//             )
-//           else
-//             const SizedBox(width: 52, height: 52),
 //         ],
 //       ),
 //     );
 //   }
+// }
 //
-//   Widget _bottomIconButton({
-//     required IconData icon,
-//     required Color color,
-//     required FutureOr<void> Function()? onTap,
-//   }) {
-//     return CustomGlassButton(
-//       onPressed: onTap == null ? null : () => unawaited(Future.sync(onTap)),
-//       width: 52,
-//       height: 52,
-//       padding: EdgeInsets.zero,
-//       shape: GlassShape.circle,
-//       foregroundColor: color,
-//       blur: 10,
-//       opacity: 0.15,
-//       thickness: 8,
-//       child: Icon(icon, size: 24),
+// class _CameraBottomAction extends StatelessWidget {
+//   final IconData icon;
+//   final String label;
+//   final VoidCallback? onTap;
+//
+//   const _CameraBottomAction({
+//     required this.icon,
+//     required this.label,
+//     this.onTap,
+//   });
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return GestureDetector(
+//       onTap: onTap,
+//       behavior: HitTestBehavior.opaque,
+//       child: Column(
+//         mainAxisSize: MainAxisSize.min,
+//         children: [
+//           Container(
+//             width: 44,
+//             height: 44,
+//             decoration: BoxDecoration(
+//               color: Colors.white.withValues(alpha: 0.15),
+//               shape: BoxShape.circle,
+//             ),
+//             child: Icon(icon, color: Colors.white, size: 22),
+//           ),
+//           const SizedBox(height: 8),
+//           Text(
+//             label,
+//             style: const TextStyle(
+//               color: Colors.white,
+//               fontSize: 12,
+//               fontWeight: FontWeight.w500,
+//             ),
+//           ),
+//         ],
+//       ),
 //     );
 //   }
 // }
-//
-// /// Scales the camera's landscape-reported [CameraController.value.previewSize]
-// /// to cover a portrait screen, matching the fill (not letterboxed) preview in
-// /// the reference design.
 // class _CameraPreviewFill extends StatelessWidget {
 //   final CameraController controller;
-//
 //   const _CameraPreviewFill({required this.controller});
-//
 //   @override
 //   Widget build(BuildContext context) {
 //     final previewSize = controller.value.previewSize;
@@ -639,20 +633,17 @@
 //     );
 //   }
 // }
-//
 // class _FilterPresetChip extends StatelessWidget {
 //   final String label;
 //   final bool selected;
 //   final Color accent;
 //   final VoidCallback onTap;
-//
 //   const _FilterPresetChip({
 //     required this.label,
 //     required this.selected,
 //     required this.accent,
 //     required this.onTap,
 //   });
-//
 //   @override
 //   Widget build(BuildContext context) {
 //     return CustomGlassButton(
@@ -669,19 +660,15 @@
 //     );
 //   }
 // }
-//
 // class _ScanModeSegmentedControl extends StatelessWidget {
 //   static const _segmentWidth = 96.0;
 //   static const _height = 36.0;
-//
 //   final DocumentScanCameraMode mode;
 //   final ValueChanged<DocumentScanCameraMode> onChanged;
-//
 //   const _ScanModeSegmentedControl({
 //     required this.mode,
 //     required this.onChanged,
 //   });
-//
 //   @override
 //   Widget build(BuildContext context) {
 //     return CustomGlassContainer(
@@ -723,7 +710,6 @@
 //       ),
 //     );
 //   }
-//
 //   Widget _segment(DocumentScanCameraMode value, String label) {
 //     final selected = value == mode;
 //     return SizedBox(
@@ -746,13 +732,10 @@
 //     );
 //   }
 // }
-//
 // class _ShutterButton extends StatelessWidget {
 //   final bool isBusy;
 //   final VoidCallback? onTap;
-//
 //   const _ShutterButton({required this.isBusy, required this.onTap});
-//
 //   @override
 //   Widget build(BuildContext context) {
 //     return GestureDetector(
