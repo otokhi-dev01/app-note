@@ -184,7 +184,7 @@ const Map<String, String> enUS = {
   'not_signed_in': 'Not signed in',
 
   // Profile View
-  'profile_title': 'Profile Details',
+  'profile_title': 'My Profile',
   'full_name_label': 'Name',
   'phone_label': 'Phone',
   'guest_status': 'Guest Mode',

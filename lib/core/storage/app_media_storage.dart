@@ -42,13 +42,40 @@ class AppMediaStorage {
   }) async {
     if (path == null || path.isEmpty) return;
 
+    final resolved = await resolve(path);
+    if (resolved == null) return;
+
     final documents = await getApplicationDocumentsDirectory();
     final directoryPrefix =
         '${documents.path}/$folder${Platform.pathSeparator}';
-    final file = File(path);
+    final file = File(resolved);
     if (file.absolute.path.startsWith(directoryPrefix) && file.existsSync()) {
       await file.delete();
     }
+  }
+
+  /// Resolves [path] into an absolute path.
+  ///
+  /// If [path] is already absolute, it's returned as-is. If it's a relative
+  /// path (no leading `/`), it's resolved against the application documents
+  /// directory — which survives app container UUID changes on iOS.
+  static Future<String?> resolve(String? path) async {
+    if (path == null || path.isEmpty) return null;
+    if (path.startsWith('/') || path.contains(':\\')) return path;
+
+    final documents = await getApplicationDocumentsDirectory();
+    return '${documents.path}/$path';
+  }
+
+  /// Extracts the relative part of [absolutePath] if it lives inside the
+  /// application documents directory.
+  static Future<String> makeRelative(String absolutePath) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final prefix = '${documents.path}/';
+    if (absolutePath.startsWith(prefix)) {
+      return absolutePath.substring(prefix.length);
+    }
+    return absolutePath;
   }
 
   static String _extensionOf(String path) {

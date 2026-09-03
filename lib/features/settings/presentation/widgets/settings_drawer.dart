@@ -76,7 +76,27 @@ class SettingsDrawer extends GetView<ProfileController> {
                   _buildGroup(
                     context,
                     children: [
-                      _buildRow(
+
+                      Obx(() {
+                        final imagePath = controller.userImagePath.value;
+                        final hasImage = imagePath.isNotEmpty &&
+                            File(imagePath).existsSync();
+                        return _buildRow(
+                          context,
+                          leading: _buildGlassAvatarBadge(
+                            context,
+                            hasImage: hasImage,
+                            imagePath: imagePath,
+                            color: _iosIndigo,
+                          ),
+                          title: 'profile_title'.tr,
+                          onTap: () => _closeThenGo(
+                            context,
+                            Routes.PROFILE,
+                            reopenSettingsOnReturn: true,
+                          ),
+                        );
+                      }), _buildRow(
                         context,
                         icon: CupertinoIcons.bell_fill,
                         iconColor: _iosRed,
@@ -442,7 +462,8 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Widget _buildRow(
     BuildContext context, {
-    required IconData icon,
+    IconData? icon,
+    Widget? leading,
     required String title,
     Color? iconColor,
     String? trailingText,
@@ -465,7 +486,16 @@ class SettingsDrawer extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              _buildGlassIconBadge(icon, resolvedIconColor),
+              if (leading != null)
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Center(child: leading),
+                )
+              else if (icon != null)
+                _buildGlassIconBadge(icon, resolvedIconColor)
+              else
+                const SizedBox(width: 36, height: 36),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -627,6 +657,49 @@ class SettingsDrawer extends GetView<ProfileController> {
       glowIntensity: 0.18,
       alignment: Alignment.center,
       child: Icon(icon, size: 18, color: Colors.white),
+    );
+  }
+
+  Widget _buildGlassAvatarBadge(
+    BuildContext context, {
+    required bool hasImage,
+    required String imagePath,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    return CustomGlassContainer(
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      blur: 12,
+      opacity: 0.3,
+      thickness: 8,
+      refractiveIndex: 1.1,
+      glassColor: color.withValues(alpha: 0.82),
+      glowIntensity: 0.18,
+      alignment: Alignment.center,
+      child: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: CircleAvatar(
+          radius: 11,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          backgroundImage: hasImage ? FileImage(File(imagePath)) : null,
+          child: hasImage
+              ? null
+              : const Icon(
+                  CupertinoIcons.person_fill,
+                  color: Colors.white,
+                  size: 13,
+                ),
+        ),
+      ),
     );
   }
 
