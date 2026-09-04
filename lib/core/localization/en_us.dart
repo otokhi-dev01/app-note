@@ -426,7 +426,6 @@ const Map<String, String> enUS = {
   // Note editor (create + edit)
   'note_editor_title_hint': 'Title',
   'note_editor_untitled_note': 'Untitled Note',
-  'note_editor_pdf_swipe_pages': 'Swipe left or right to view PDF pages',
   'note_editor_start_writing_placeholder': 'Start writing...',
   'note_editor_readonly_banner_message':
       'This note is in Recently Deleted. Restore it to make changes.',

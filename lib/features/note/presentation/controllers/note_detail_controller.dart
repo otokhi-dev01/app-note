@@ -65,6 +65,11 @@ const _contentUriChannel = MethodChannel(
 /// editor view-state and stays here; everything that touches the server goes
 /// through a use case.
 class NoteDetailController extends GetxController {
+  // The native document scanner belongs to the application, not to an
+  // individual note route. Multiple tagged note controllers can coexist, so
+  // this lock must be shared across every controller instance.
+  static bool _isNativeDocumentScannerOpen = false;
+
   final GetNoteDetail _getNoteDetail;
   final SaveNoteMetadata _saveNoteMetadata;
   final SaveNoteContent _saveNoteContent;
@@ -968,8 +973,27 @@ class NoteDetailController extends GetxController {
   }
 
   Future<List<String>> _captureDocumentPages() async {
-    final images = await CunningDocumentScanner.getPictures();
-    return _materializeScanPages(images ?? const []);
+    return _captureNativeDocumentPages(
+      scannerSource: ScannerSource.cameraAndGallery,
+    );
+  }
+
+  Future<List<String>> _captureNativeDocumentPages({
+    ScannerSource scannerSource = ScannerSource.camera,
+    int noOfPages = 100,
+  }) async {
+    if (_isNativeDocumentScannerOpen) return const [];
+
+    _isNativeDocumentScannerOpen = true;
+    try {
+      final images = await CunningDocumentScanner.getPictures(
+        noOfPages: noOfPages,
+        scannerSource: scannerSource,
+      );
+      return await _materializeScanPages(images ?? const []);
+    } finally {
+      _isNativeDocumentScannerOpen = false;
+    }
   }
 
   Future<List<String>> _chooseDocumentPages() async {
@@ -1061,8 +1085,7 @@ class NoteDetailController extends GetxController {
     if (isReadOnly.value) return;
 
     try {
-      final images = await CunningDocumentScanner.getPictures();
-      final pages = await _materializeScanPages(images ?? const []);
+      final pages = await _captureNativeDocumentPages(noOfPages: 1);
       final path = pages.firstOrNull;
       if (path == null) return;
       await _insertScannedTextPdf(path);

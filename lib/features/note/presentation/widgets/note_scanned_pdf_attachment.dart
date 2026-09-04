@@ -387,43 +387,46 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
             onTap: _openPdf,
             onLongPress: _showContextMenu,
             child: Center(
-              child: AspectRatio(
-                key: const ValueKey('inline-pdf-frame'),
-                aspectRatio: 1 / 1.4142,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: _cursorSide != null
-                          ? AppTheme.folderYellow
-                          : Colors.black12,
-                      width: _cursorSide != null ? 1.5 : 0.8,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.16),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 430),
+                child: AspectRatio(
+                  aspectRatio: 1 / 1.4142,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(
+                        color: _cursorSide != null
+                            ? AppTheme.folderYellow
+                            : Colors.black12,
+                        width: _cursorSide != null ? 1.5 : 0.8,
                       ),
-                    ],
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildPaper(theme),
-                      if (!widget.isReadOnly)
-                        NoteMediaCursorEdges(
-                          keyPrefix: 'pdf',
-                          focusedSide: _cursorSide,
-                          beforeSemanticLabel:
-                              'note_editor_write_before_pdf'.tr,
-                          afterSemanticLabel: 'note_editor_write_after_pdf'.tr,
-                          onFocusBefore: () =>
-                              _focusPdfEdge(NoteMediaCursorSide.before),
-                          onFocusAfter: () =>
-                              _focusPdfEdge(NoteMediaCursorSide.after),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.16),
+                          blurRadius: 14,
+                          offset: const Offset(0, 6),
                         ),
-                    ],
+                      ],
+                    ),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _buildPaper(theme),
+                        if (!widget.isReadOnly)
+                          NoteMediaCursorEdges(
+                            keyPrefix: 'pdf',
+                            focusedSide: _cursorSide,
+                            beforeSemanticLabel:
+                                'note_editor_write_before_pdf'.tr,
+                            afterSemanticLabel:
+                                'note_editor_write_after_pdf'.tr,
+                            onFocusBefore: () =>
+                                _focusPdfEdge(NoteMediaCursorSide.before),
+                            onFocusAfter: () =>
+                                _focusPdfEdge(NoteMediaCursorSide.after),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -435,9 +438,14 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
   }
 
   Widget _buildPaper(ThemeData theme) {
-    final path = _resolvedPath;
-    if (path != null) {
-      return InlinePdfPreview(key: ValueKey(path), path: path);
+    final bytes = _firstPageBytes;
+    if (bytes != null) {
+      return Image.memory(
+        bytes,
+        fit: BoxFit.contain,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+      );
     }
     if (_isLoading) {
       return const Center(child: CupertinoActivityIndicator());
@@ -463,107 +471,6 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// The same horizontal, pinch-to-zoom PDF viewer used by the full-screen PDF
-/// Preview, embedded directly in Create Note.
-class InlinePdfPreview extends StatefulWidget {
-  final String path;
-  final PdfControllerPinch? pdfController;
-
-  const InlinePdfPreview({super.key, required this.path, this.pdfController});
-
-  @override
-  State<InlinePdfPreview> createState() => _InlinePdfPreviewState();
-}
-
-class _InlinePdfPreviewState extends State<InlinePdfPreview> {
-  late final PdfControllerPinch _controller;
-  int _currentPage = 1;
-  int _pageCount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        widget.pdfController ??
-        PdfControllerPinch(document: PdfDocument.openFile(widget.path));
-  }
-
-  @override
-  void dispose() {
-    if (widget.pdfController == null) _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'note_editor_pdf_swipe_pages'.tr,
-      value: _pageCount == 0
-          ? null
-          : '${'note_editor_pdf_page'.tr} $_currentPage '
-                '${'note_editor_pdf_of'.tr} $_pageCount',
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          PdfViewPinch(
-            key: const ValueKey('inline-pdf-page-view'),
-            controller: _controller,
-            scrollDirection: Axis.horizontal,
-            // The full-screen Preview keeps breathing room around the paper,
-            // but Create Note uses an edge-to-edge viewport so every page
-            // fills the phone-width attachment container.
-            padding: 0,
-            onDocumentLoaded: (document) {
-              if (mounted) setState(() => _pageCount = document.pagesCount);
-            },
-            onPageChanged: (page) {
-              if (mounted) setState(() => _currentPage = page);
-            },
-            backgroundDecoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x52000000),
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-          ),
-          if (_pageCount > 1)
-            Positioned(
-              right: 10,
-              bottom: 10,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.62),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    child: Text(
-                      '$_currentPage / $_pageCount',
-                      key: const ValueKey('inline-pdf-page-count'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }

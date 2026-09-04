@@ -99,6 +99,7 @@ class FolderView extends GetView<FolderController> {
   Widget _buildSearchButton(BuildContext context) {
     final theme = Theme.of(context);
     return CustomGlassButton(
+      key: const ValueKey('folder-appbar-search-button'),
       onPressed: () => Get.toNamed(Routes.SEARCH),
       semanticLabel: 'folder_search_semantic'.tr,
       width: 44,

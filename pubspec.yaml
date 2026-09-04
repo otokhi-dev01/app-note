@@ -37,7 +37,10 @@ dependencies:
   file_picker: 11.0.3
   flutter_emoji: ^2.5.1
   pdf: ^3.13.0
-  cunning_document_scanner: ^3.0.2
+  # Local patch adds an in-camera Gallery shutter control on iPhone while
+  # preserving VisionKit document detection and the plugin's crop flow.
+  cunning_document_scanner:
+    path: packages/cunning_document_scanner
   record: ^7.1.1
   audioplayers: ^6.8.1
   video_player: ^2.11.1
