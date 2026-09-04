@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:get/get.dart';
+import 'package:Note/core/utils/image_pdf.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
 import 'package:Note/features/note/presentation/widgets/note_checklist_block.dart';
@@ -15,11 +16,17 @@ class NoteBlockList extends StatelessWidget {
   final NoteDetailController controller;
 
   final String? textPlaceholder;
+  final EdgeInsetsGeometry contentPadding;
+  final bool fullWidthPdf;
+  final double? maxContentWidth;
 
   const NoteBlockList({
     super.key,
     required this.controller,
     this.textPlaceholder,
+    this.contentPadding = EdgeInsets.zero,
+    this.fullWidthPdf = false,
+    this.maxContentWidth,
   });
 
   @override
@@ -37,6 +44,29 @@ class NoteBlockList extends StatelessWidget {
   }
 
   Widget _buildBlock(BuildContext context, NoteBlock block, int blockIndex) {
+    final child = _buildUnpaddedBlock(context, block, blockIndex);
+    final isFullWidthPdf =
+        fullWidthPdf &&
+        block is AttachmentBlock &&
+        looksLikePdf(block.displayName);
+    if (isFullWidthPdf || contentPadding == EdgeInsets.zero) return child;
+    final padded = Padding(padding: contentPadding, child: child);
+    final maxWidth = maxContentWidth;
+    if (maxWidth == null) return padded;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SizedBox(width: double.infinity, child: padded),
+      ),
+    );
+  }
+
+  Widget _buildUnpaddedBlock(
+    BuildContext context,
+    NoteBlock block,
+    int blockIndex,
+  ) {
     if (block is TextBlock) {
       return _buildTextBlock(context, block, blockIndex);
     }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,10 +8,18 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'package:Note/core/di/injector.dart';
+import 'package:Note/core/localization/app_translations.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/theme/folder_appearance.dart';
+import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
+import 'package:Note/features/folder/presentation/bindings/folder_binding.dart';
+import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_editor_header.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -182,6 +191,68 @@ void main() {
       controller.getQuillController(text.id, text.text).selection,
       const TextSelection.collapsed(offset: 0),
     );
+  });
+
+  testWidgets('create note shows a full-width live folder breadcrumb', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
+
+    InitialBinding().dependencies();
+    Get.find<GuestModeService>().enable();
+    FolderBinding().dependencies();
+    final folderController = Get.find<FolderController>();
+    await folderController.fetchFolders();
+    folderController.folders.assignAll(const [
+      Folder(
+        id: 1,
+        name: 'Folder',
+        iconName: FolderAppearance.defaultIconName,
+        colorValue: FolderAppearance.defaultColorValue,
+        sortOrder: 0,
+      ),
+      Folder(
+        id: 2,
+        parentId: 1,
+        name: 'New Folder 5',
+        iconName: FolderAppearance.defaultIconName,
+        colorValue: FolderAppearance.defaultColorValue,
+        sortOrder: 0,
+      ),
+    ]);
+
+    final controller = _createController();
+    controller.currentNote.value = const Note(
+      id: 0,
+      folderId: 2,
+      folderName: 'New Folder 5',
+      title: '',
+      content: [],
+    );
+    controller.isLoading.value = false;
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: Scaffold(body: NoteEditorHeader(controller: controller)),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Folder > New Folder 5 > Untitled Note'), findsOneWidget);
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('note-folder-breadcrumb')))
+          .width,
+      390,
+    );
+
+    controller.titleController.text = 'Project Plan';
+    await tester.pump();
+    expect(find.text('Folder > New Folder 5 > Project Plan'), findsOneWidget);
   });
 }
 

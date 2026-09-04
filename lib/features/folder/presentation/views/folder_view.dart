@@ -3,16 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_section_header.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_tile.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_all_notes_tile.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_system_tiles.dart';
-import 'package:Note/features/folder/presentation/widgets/folder_bottom_bar.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_view_menu.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/settings/presentation/widgets/settings_drawer.dart';
+import 'package:Note/routes/app_pages.dart';
 
 class FolderView extends GetView<FolderController> {
   const FolderView({super.key});
@@ -49,12 +49,12 @@ class FolderView extends GetView<FolderController> {
                 slivers: [_buildAppBar(context), _buildFolderList(context)],
               ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: FolderBottomBar(controller: controller),
-            ),
+            // Positioned(
+            //   left: 0,
+            //   right: 0,
+            //   bottom: 0,
+            //   child: FolderBottomBar(controller: controller),
+            // ),
           ],
         ),
       ),
@@ -62,84 +62,24 @@ class FolderView extends GetView<FolderController> {
   }
 
   Widget _buildAppBar(BuildContext context) {
-    final theme = Theme.of(context);
     return AppScreenSliverAppBar(
       centerTitle: true,
-      leading: Builder(
-        builder: (drawerContext) => CustomGlassButton(
-          onPressed: () => Scaffold.of(drawerContext).openDrawer(),
-          width: 44,
-          height: 44,
-          shape: GlassShape.circle,
-          blur: 10,
-          opacity: 0.15,
-          thickness: 8,
-          padding: EdgeInsets.zero,
-          child: Icon(
-            CupertinoIcons.settings_solid,
-            color: theme.primaryColor,
-            size: 30,
-          ),
-        ),
-      ),
+      leading: _buildSettingsButton(context),
       title: "folder_title".tr,
       actions: [
-        // CustomGlassButton(
-        //   onPressed: () => Get.to(
-        //     () => FolderCreateModal(controller: controller),
-        //     fullscreenDialog: true,
-        //     transition: Transition.cupertino,
-        //   ),
-        //   width: 44,
-        //   height: 44,
-        //   shape: GlassShape.circle,
-        //   blur: 10,
-        //   opacity: 0.15,
-        //   thickness: 8,
-        //   padding: EdgeInsets.zero,
-        //   child: Stack(
-        //     clipBehavior: Clip.none,
-        //     alignment: Alignment.center,
-        //     children: [
-        //       Icon(CupertinoIcons.folder, color: theme.primaryColor, size: 24),
-        //       Positioned(
-        //         right: -2,
-        //         top: -1,
-        //         child: Container(
-        //           width: 13,
-        //           height: 14,
-        //           decoration: BoxDecoration(
-        //             color: theme.primaryColor,
-        //             shape: BoxShape.circle,
-        //           ),
-        //           child: const Center(
-        //             child: Icon(
-        //               CupertinoIcons.plus,
-        //               color: Colors.white,
-        //               size: 10,
-        //               fontWeight: FontWeight.bold,
-        //             ),
-        //           ),
-        //         ),
-        //       ),
-        //     ],
-        //   ),
-        // ),
-        _buildLanguageButton(),
-        Obx(() => _buildEditButton(context)),
+        _buildSearchButton(context),
+        _buildNotificationButton(context),
+        FolderViewMenu(controller: controller),
       ],
     );
   }
 
-  Widget _buildLanguageButton() {
-    return const LanguageToggleButton();
-  }
-
-  Widget _buildEditButton(BuildContext context) {
+  Widget _buildSettingsButton(BuildContext context) {
     final theme = Theme.of(context);
-    if (controller.isEditing.value) {
-      return CustomGlassButton(
-        onPressed: controller.toggleEditing,
+    return Builder(
+      builder: (drawerContext) => CustomGlassButton(
+        onPressed: () => Scaffold.of(drawerContext).openDrawer(),
+        semanticLabel: 'settings_title'.tr,
         width: 44,
         height: 44,
         shape: GlassShape.circle,
@@ -148,29 +88,55 @@ class FolderView extends GetView<FolderController> {
         thickness: 8,
         padding: EdgeInsets.zero,
         child: Icon(
-          Icons.check,
+          CupertinoIcons.settings_solid,
           color: theme.primaryColor,
-          size: 24,
-          fontWeight: FontWeight.bold,
+          size: 26,
         ),
-      );
-    }
-    return CustomGlassButton(
-      onPressed: controller.toggleEditing,
-      height: 44,
-      borderRadius: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      blur: 10,
-      opacity: 0.15,
-      thickness: 8,
-      child: Text(
-        "folder_edit".tr,
-        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 17),
       ),
     );
   }
 
-  void _createFolderInSection(BuildContext context, String sectionKeyword) {
+  Widget _buildSearchButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return CustomGlassButton(
+      onPressed: () => Get.toNamed(Routes.SEARCH),
+      semanticLabel: 'folder_search_semantic'.tr,
+      width: 44,
+      height: 44,
+      shape: GlassShape.circle,
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      padding: EdgeInsets.zero,
+      child: Icon(
+        CupertinoIcons.search,
+        color: theme.colorScheme.onSurface,
+        size: 23,
+      ),
+    );
+  }
+
+  Widget _buildNotificationButton(BuildContext context) {
+    final theme = Theme.of(context);
+    return CustomGlassButton(
+      onPressed: () => Get.toNamed(Routes.NOTIFICATIONS),
+      semanticLabel: 'notifications_title'.tr,
+      width: 44,
+      height: 44,
+      shape: GlassShape.circle,
+      blur: 10,
+      opacity: 0.15,
+      thickness: 8,
+      padding: EdgeInsets.zero,
+      child: Icon(
+        CupertinoIcons.bell_fill,
+        color: theme.primaryColor,
+        size: 22,
+      ),
+    );
+  }
+
+  void _openCreateFolder({String sectionKeyword = ''}) {
     Get.to(
       () => FolderCreateModal(
         controller: controller,
@@ -203,7 +169,7 @@ class FolderView extends GetView<FolderController> {
               onTap: controller.toggleICloud,
               isSortedByDate: controller.isGroupedByDate,
               onToggleDateSort: controller.toggleDateGrouping,
-              onCreateFolder: () => _createFolderInSection(context, 'iCloud'),
+              onCreateFolder: () => _openCreateFolder(sectionKeyword: 'iCloud'),
             ),
             Obx(
               () => controller.isICloudExpanded.value
@@ -228,7 +194,7 @@ class FolderView extends GetView<FolderController> {
               onTap: controller.toggleOnMyiPhone,
               isSortedByDate: controller.isGroupedByDate,
               onToggleDateSort: controller.toggleDateGrouping,
-              onCreateFolder: () => _createFolderInSection(context, ''),
+              onCreateFolder: () => _openCreateFolder(sectionKeyword: ''),
             ),
             Obx(
               () => controller.isOnMyiPhoneExpanded.value

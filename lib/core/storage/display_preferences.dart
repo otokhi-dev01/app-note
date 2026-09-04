@@ -12,6 +12,7 @@ class DisplayPreferences {
 
   static const _noteViewModeKey = 'defaultNoteViewMode';
   static const _noteSortByNameKey = 'defaultNoteSortByName';
+  static const _folderViewModeKey = 'defaultFolderViewMode';
   static const _folderGroupByDateKey = 'defaultFolderGroupByDate';
 
   /// 'list' or 'gallery'.
@@ -22,6 +23,11 @@ class DisplayPreferences {
   bool get noteSortByName => _storage.read(_noteSortByNameKey) ?? false;
   void setNoteSortByName(bool value) =>
       _storage.write(_noteSortByNameKey, value);
+
+  /// 'short' hides folder subtitles; 'list' shows the detailed folder rows.
+  String get folderViewMode => _storage.read(_folderViewModeKey) ?? 'list';
+  void setFolderViewMode(String mode) =>
+      _storage.write(_folderViewModeKey, mode);
 
   /// Folders sort by their manual sort order + name when false, by
   /// last-updated date when true.

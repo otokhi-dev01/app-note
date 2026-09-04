@@ -46,6 +46,7 @@ class FolderController extends GetxController {
   final archivedCount = 0.obs;
   final isLoading = true.obs;
   final isEditing = false.obs;
+  late final viewMode = _prefs.folderViewMode.obs;
   late final isGroupedByDate = _prefs.folderGroupByDate.obs;
 
   // Guards against duplicate API calls from double taps
@@ -97,6 +98,13 @@ class FolderController extends GetxController {
               : 'folder_sorted_manually_message')
           .tr,
     );
+  }
+
+  void setViewMode(String mode) {
+    if (mode != 'short' && mode != 'list') return;
+    if (viewMode.value == mode) return;
+    viewMode.value = mode;
+    _prefs.setFolderViewMode(mode);
   }
 
   void sortFolders() {

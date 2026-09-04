@@ -316,6 +316,9 @@ const Map<String, String> enUS = {
   'folder_search_semantic': 'Search notes and folders',
   'folder_search_label': 'Search',
   'folder_create_note_semantic': 'Create note',
+  'folder_view_menu': 'Folder view options',
+  'folder_short_view': 'Short View',
+  'folder_list_view': 'List View',
   'folder_edit_title': 'Edit Folder',
   'folder_new_title': 'New Folder',
   'folder_cancel': 'Cancel',
@@ -422,6 +425,8 @@ const Map<String, String> enUS = {
 
   // Note editor (create + edit)
   'note_editor_title_hint': 'Title',
+  'note_editor_untitled_note': 'Untitled Note',
+  'note_editor_pdf_swipe_pages': 'Swipe left or right to view PDF pages',
   'note_editor_start_writing_placeholder': 'Start writing...',
   'note_editor_readonly_banner_message':
       'This note is in Recently Deleted. Restore it to make changes.',

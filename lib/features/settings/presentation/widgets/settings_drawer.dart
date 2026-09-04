@@ -76,10 +76,10 @@ class SettingsDrawer extends GetView<ProfileController> {
                   _buildGroup(
                     context,
                     children: [
-
                       Obx(() {
                         final imagePath = controller.userImagePath.value;
-                        final hasImage = imagePath.isNotEmpty &&
+                        final hasImage =
+                            imagePath.isNotEmpty &&
                             File(imagePath).existsSync();
                         return _buildRow(
                           context,
@@ -96,7 +96,8 @@ class SettingsDrawer extends GetView<ProfileController> {
                             reopenSettingsOnReturn: true,
                           ),
                         );
-                      }), _buildRow(
+                      }),
+                      _buildRow(
                         context,
                         icon: CupertinoIcons.bell_fill,
                         iconColor: _iosRed,
@@ -479,6 +480,7 @@ class SettingsDrawer extends GetView<ProfileController> {
         onTap: onTap == null
             ? null
             : () {
+                // Provide tactile feedback for the tap action.
                 HapticFeedback.selectionClick();
                 onTap();
               },
@@ -487,11 +489,7 @@ class SettingsDrawer extends GetView<ProfileController> {
           child: Row(
             children: [
               if (leading != null)
-                SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Center(child: leading),
-                )
+                SizedBox(width: 36, height: 36, child: Center(child: leading))
               else if (icon != null)
                 _buildGlassIconBadge(icon, resolvedIconColor)
               else
@@ -688,6 +686,7 @@ class SettingsDrawer extends GetView<ProfileController> {
           ),
         ),
         child: CircleAvatar(
+          // provides a circular avatar with a border and optional image or placeholder icon
           radius: 11,
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
           backgroundImage: hasImage ? FileImage(File(imagePath)) : null,
