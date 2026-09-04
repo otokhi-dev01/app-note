@@ -9,6 +9,10 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # Local plugin packages include upstream demo/test projects with their own
+    # dependency graphs. They are not part of this application target.
+    - packages/**/example/**
+    - packages/**/test/**
 include: package:flutter_lints/flutter.yaml
 
 linter:
