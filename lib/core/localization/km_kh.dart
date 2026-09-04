@@ -427,7 +427,6 @@ const Map<String, String> kmKH = {
   // Note editor (create + edit)
   'note_editor_title_hint': 'ចំណងជើង',
   'note_editor_untitled_note': 'កំណត់ត្រាគ្មានចំណងជើង',
-  'note_editor_pdf_swipe_pages': 'អូសទៅឆ្វេង ឬស្តាំ ដើម្បីមើលទំព័រ PDF',
   'note_editor_start_writing_placeholder': 'ចាប់ផ្តើមសរសេរ...',
   'note_editor_readonly_banner_message':
       'កំណត់ត្រានេះស្ថិតនៅក្នុង "បានលុបថ្មីៗ"។ សូមយកមកវិញដើម្បីធ្វើការផ្លាស់ប្តូរ។',

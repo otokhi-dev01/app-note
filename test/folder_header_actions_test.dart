@@ -63,6 +63,10 @@ void main() {
     expect(find.byType(LanguageToggleButton), findsNothing);
     expect(find.bySemanticsLabel('Settings'), findsOneWidget);
     expect(find.bySemanticsLabel('Search notes and folders'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('folder-appbar-search-button')),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
     expect(find.bySemanticsLabel('Folder view options'), findsOneWidget);
     expect(find.text('Edit'), findsNothing);
