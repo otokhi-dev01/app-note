@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
-
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/language_preferences.dart';
@@ -432,7 +431,7 @@ class _PermissionsViewState extends State<PermissionsView>
 
   Future<PermissionStatus> _readStatus(_PermissionKind kind) async {
     try {
-      return switch (kind) {
+      return await switch (kind) {
         _PermissionKind.camera => Permission.camera.status,
         _PermissionKind.microphone => Permission.microphone.status,
         _PermissionKind.photos => _readPhotoStatus(),
