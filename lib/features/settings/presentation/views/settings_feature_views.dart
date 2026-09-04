@@ -146,6 +146,7 @@ class _LanguageSettingsViewState extends State<LanguageSettingsView> {
 
     return _SettingsFeatureScaffold(
       title: 'language_title'.tr,
+      useSurfaceBackButtonColor: true,
       child: _FeatureCard(
         children: [
           for (final language in AppLanguage.values)

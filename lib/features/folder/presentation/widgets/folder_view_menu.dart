@@ -5,6 +5,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
+import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class FolderViewMenu extends StatelessWidget {
@@ -54,6 +55,23 @@ class FolderViewMenu extends StatelessWidget {
             ),
             isSelected: isEditing,
             onTap: controller.toggleEditing,
+          ),
+          const lg.GlassMenuDivider(),
+          lg.GlassMenuItem(
+            title: 'language_title'.tr,
+            icon: const Icon(
+              CupertinoIcons.globe,
+              color: IosSemanticColors.blue,
+            ),
+            trailing: Icon(
+              CupertinoIcons.chevron_forward,
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 16,
+            ),
+            onTap: () => Future<void>.delayed(
+              Duration.zero,
+              () => Get.toNamed(Routes.LANGUAGE),
+            ),
           ),
           const lg.GlassMenuDivider(),
           _viewItem(
