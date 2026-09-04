@@ -32,111 +32,134 @@ void main() {
 
   tearDown(() => Get.reset());
 
-  testWidgets('folder header exposes search, notifications, menu, and edit', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(390, 844);
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'folder header exposes search, notifications, menu, edit, and language',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
 
-    await GetStorage().erase();
-    InitialBinding().dependencies();
-    Get.find<GuestModeService>().enable();
+      await GetStorage().erase();
+      InitialBinding().dependencies();
+      Get.find<GuestModeService>().enable();
 
-    await tester.pumpWidget(
-      LiquidGlassWidgets.wrap(
-        brightnessResolver: Theme.maybeBrightnessOf,
-        theme: GlassThemeData(
-          light: const GlassThemeVariant(quality: GlassQuality.standard),
-          dark: const GlassThemeVariant(quality: GlassQuality.standard),
+      await tester.pumpWidget(
+        LiquidGlassWidgets.wrap(
+          brightnessResolver: Theme.maybeBrightnessOf,
+          theme: GlassThemeData(
+            light: const GlassThemeVariant(quality: GlassQuality.standard),
+            dark: const GlassThemeVariant(quality: GlassQuality.standard),
+          ),
+          child: GetMaterialApp(
+            translations: AppTranslations(),
+            locale: const Locale('en', 'US'),
+            initialRoute: Routes.FOLDER,
+            getPages: AppPages.routes,
+          ),
         ),
-        child: GetMaterialApp(
-          translations: AppTranslations(),
-          locale: const Locale('en', 'US'),
-          initialRoute: Routes.FOLDER,
-          getPages: AppPages.routes,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(LanguageToggleButton), findsNothing);
-    expect(find.bySemanticsLabel('Settings'), findsOneWidget);
-    expect(find.bySemanticsLabel('Search notes and folders'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('folder-appbar-search-button')),
-      findsOneWidget,
-    );
-    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
-    expect(find.bySemanticsLabel('Folder view options'), findsOneWidget);
-    expect(find.text('Edit'), findsNothing);
+      expect(find.byType(LanguageToggleButton), findsNothing);
+      expect(find.bySemanticsLabel('Settings'), findsOneWidget);
+      expect(find.bySemanticsLabel('Search notes and folders'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('folder-appbar-search-button')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+      expect(find.bySemanticsLabel('Folder view options'), findsOneWidget);
+      expect(find.text('Edit'), findsNothing);
 
-    final appBar = tester.widget<AppScreenSliverAppBar>(
-      find.byType(AppScreenSliverAppBar),
-    );
-    expect(appBar.actions, hasLength(3));
-    expect(appBar.actions![2], isA<FolderViewMenu>());
+      final appBar = tester.widget<AppScreenSliverAppBar>(
+        find.byType(AppScreenSliverAppBar),
+      );
+      expect(appBar.actions, hasLength(3));
+      expect(appBar.actions![2], isA<FolderViewMenu>());
 
-    await tester.tap(find.bySemanticsLabel('Search notes and folders'));
-    await tester.pumpAndSettle();
-    expect(Get.currentRoute, Routes.SEARCH);
+      await tester.tap(find.bySemanticsLabel('Search notes and folders'));
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.SEARCH);
 
-    Get.back();
-    await tester.pumpAndSettle();
+      Get.back();
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.bySemanticsLabel('Notifications'));
-    await tester.pumpAndSettle();
-    expect(Get.currentRoute, Routes.NOTIFICATIONS);
+      await tester.tap(find.bySemanticsLabel('Notifications'));
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.NOTIFICATIONS);
 
-    Get.back();
-    await tester.pumpAndSettle();
+      Get.back();
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.bySemanticsLabel('Folder view options'));
-    await tester.pumpAndSettle();
-    expect(find.text('Edit'), findsOneWidget);
-    expect(find.text('Short View'), findsOneWidget);
-    expect(find.text('List View'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('Folder view options'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Languages'), findsOneWidget);
+      expect(find.text('Short View'), findsOneWidget);
+      expect(find.text('List View'), findsOneWidget);
 
-    await tester.tap(find.text('Short View'));
-    await tester.pumpAndSettle();
-    expect(Get.find<FolderController>().viewMode.value, 'short');
-    expect(GetStorage().read<String>('defaultFolderViewMode'), 'short');
-    final shortTile = tester.widget<CustomGlassListTile>(
-      find
-          .descendant(
-            of: find.byType(FolderTile),
-            matching: find.byType(CustomGlassListTile),
-          )
-          .first,
-    );
-    expect(shortTile.subtitle, isNull);
+      await tester.tap(find.text('Short View'));
+      await tester.pumpAndSettle();
+      expect(Get.find<FolderController>().viewMode.value, 'short');
+      expect(GetStorage().read<String>('defaultFolderViewMode'), 'short');
+      final shortTile = tester.widget<CustomGlassListTile>(
+        find
+            .descendant(
+              of: find.byType(FolderTile),
+              matching: find.byType(CustomGlassListTile),
+            )
+            .first,
+      );
+      expect(shortTile.subtitle, isNull);
 
-    await tester.tap(find.bySemanticsLabel('Folder view options'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('List View'));
-    await tester.pumpAndSettle();
-    expect(Get.find<FolderController>().viewMode.value, 'list');
-    final listTile = tester.widget<CustomGlassListTile>(
-      find
-          .descendant(
-            of: find.byType(FolderTile),
-            matching: find.byType(CustomGlassListTile),
-          )
-          .first,
-    );
-    expect(listTile.subtitle, isNotNull);
+      await tester.tap(find.bySemanticsLabel('Folder view options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('List View'));
+      await tester.pumpAndSettle();
+      expect(Get.find<FolderController>().viewMode.value, 'list');
+      final listTile = tester.widget<CustomGlassListTile>(
+        find
+            .descendant(
+              of: find.byType(FolderTile),
+              matching: find.byType(CustomGlassListTile),
+            )
+            .first,
+      );
+      expect(listTile.subtitle, isNotNull);
 
-    await tester.tap(find.bySemanticsLabel('Folder view options'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit'));
-    await tester.pumpAndSettle();
-    expect(Get.find<FolderController>().isEditing.value, isTrue);
+      await tester.tap(find.bySemanticsLabel('Folder view options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
+      await tester.pumpAndSettle();
+      expect(Get.find<FolderController>().isEditing.value, isTrue);
 
-    await tester.tap(find.bySemanticsLabel('Folder view options'));
-    await tester.pumpAndSettle();
-    expect(find.text('Done'), findsOneWidget);
-    await tester.tap(find.text('Done'));
-    await tester.pumpAndSettle();
-    expect(Get.find<FolderController>().isEditing.value, isFalse);
-  });
+      await tester.tap(find.bySemanticsLabel('Folder view options'));
+      await tester.pumpAndSettle();
+      expect(find.text('Done'), findsOneWidget);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(Get.find<FolderController>().isEditing.value, isFalse);
+
+      await tester.tap(find.bySemanticsLabel('Folder view options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Languages'));
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.LANGUAGE);
+      expect(find.text('English'), findsOneWidget);
+      expect(find.text('ខ្មែរ'), findsOneWidget);
+      final languageBackButtonFinder = find.ancestor(
+        of: find.bySemanticsLabel('Back'),
+        matching: find.byType(CustomGlassButton),
+      );
+      final languageBackButton = tester.widget<CustomGlassButton>(
+        languageBackButtonFinder,
+      );
+      expect(
+        languageBackButton.foregroundColor,
+        Theme.of(
+          tester.element(languageBackButtonFinder),
+        ).colorScheme.onSurface,
+      );
+    },
+  );
 }

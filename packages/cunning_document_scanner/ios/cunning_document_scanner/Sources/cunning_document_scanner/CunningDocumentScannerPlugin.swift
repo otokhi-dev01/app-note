@@ -190,9 +190,8 @@ public class CunningDocumentScannerPlugin: NSObject,
         }
     }
 
-    /// Adds a Gallery action beside VisionKit's shutter without changing the
-    /// scanner's private view hierarchy. The control is constrained to the
-    /// public safe-area layout guide so it remains stable across iPhone sizes.
+    /// Adds Gallery beside VisionKit's large camera shutter at the bottom,
+    /// without modifying the scanner's private view hierarchy.
     private func installGalleryButton(on controller: VNDocumentCameraViewController) {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -231,7 +230,7 @@ public class CunningDocumentScannerPlugin: NSObject,
 
         controller.view.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.leadingAnchor, constant: 20),
+            stack.trailingAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
             stack.bottomAnchor.constraint(equalTo: controller.view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
             button.widthAnchor.constraint(equalToConstant: 68),
             button.heightAnchor.constraint(equalToConstant: 68),
