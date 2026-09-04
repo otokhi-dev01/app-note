@@ -176,6 +176,7 @@ class NoteAttachmentBlock extends StatelessWidget {
           onPaste: () => unawaited(
             controller.pasteClipboardContent(afterIndex: blockIndex),
           ),
+          onCut: () => unawaited(controller.cutAttachmentBlock(blockIndex)),
           onConvertToPdf: () => controller.convertAttachmentToPdf(blockIndex),
           onShare: () => _shareImage(context),
           onDelete: () => controller.deleteBlock(blockIndex),
@@ -411,6 +412,7 @@ class _ImageTile extends StatefulWidget {
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
+  final VoidCallback onCut;
   final VoidCallback onConvertToPdf;
   final VoidCallback onShare;
   final VoidCallback onDelete;
@@ -428,6 +430,7 @@ class _ImageTile extends StatefulWidget {
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
+    required this.onCut,
     required this.onConvertToPdf,
     required this.onShare,
     required this.onDelete,
@@ -503,6 +506,7 @@ class _ImageTileState extends State<_ImageTile> {
         onAddImage: widget.onAddImage,
         onCopy: widget.onCopy,
         onPaste: widget.onPaste,
+        onCut: widget.onCut,
         onShare: widget.onShare,
         onChooseViewSize: _chooseViewSize,
         onConvertToPdf: widget.onConvertToPdf,
@@ -734,6 +738,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
+  final VoidCallback onCut;
   final VoidCallback onShare;
   final VoidCallback onChooseViewSize;
   final VoidCallback onConvertToPdf;
@@ -746,6 +751,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
+    required this.onCut,
     required this.onShare,
     required this.onChooseViewSize,
     required this.onConvertToPdf,
@@ -756,7 +762,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenSize = MediaQuery.sizeOf(context);
-    final menuHeight = isReadOnly ? 174.0 : 402.0;
+    final menuHeight = isReadOnly ? 174.0 : 458.0;
     final previewHeight = (screenSize.height - menuHeight - 110).clamp(
       180.0,
       520.0,
@@ -807,6 +813,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
                           onAddImage: () => _closeThen(context, onAddImage),
                           onCopy: () => _closeThen(context, onCopy),
                           onPaste: () => _closeThen(context, onPaste),
+                          onCut: () => _closeThen(context, onCut),
                           onShare: () => _closeThen(context, onShare),
                           onChooseViewSize: () =>
                               _closeThen(context, onChooseViewSize),
@@ -838,6 +845,7 @@ class _ImageActionMenu extends StatelessWidget {
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
+  final VoidCallback onCut;
   final VoidCallback onShare;
   final VoidCallback onChooseViewSize;
   final VoidCallback onConvertToPdf;
@@ -849,6 +857,7 @@ class _ImageActionMenu extends StatelessWidget {
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
+    required this.onCut,
     required this.onShare,
     required this.onChooseViewSize,
     required this.onConvertToPdf,
@@ -888,15 +897,21 @@ class _ImageActionMenu extends StatelessWidget {
               if (!isReadOnly) ...[
                 divider,
                 _ImageActionRow(
-                  icon: CupertinoIcons.photo_on_rectangle,
-                  title: 'note_editor_add_image'.tr,
-                  onTap: onAddImage,
-                ),
-                divider,
-                _ImageActionRow(
                   icon: Icons.content_paste_rounded,
                   title: 'note_editor_paste'.tr,
                   onTap: onPaste,
+                ),
+                divider,
+                _ImageActionRow(
+                  icon: Icons.content_cut_rounded,
+                  title: 'note_editor_cut'.tr,
+                  onTap: onCut,
+                ),
+                divider,
+                _ImageActionRow(
+                  icon: CupertinoIcons.photo_on_rectangle,
+                  title: 'note_editor_add_image'.tr,
+                  onTap: onAddImage,
                 ),
               ],
               divider,
