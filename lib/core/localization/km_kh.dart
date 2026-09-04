@@ -317,6 +317,9 @@ const Map<String, String> kmKH = {
   'folder_search_semantic': 'ស្វែងរកកំណត់ត្រា និងថត',
   'folder_search_label': 'ស្វែងរក',
   'folder_create_note_semantic': 'បង្កើតកំណត់ត្រា',
+  'folder_view_menu': 'ជម្រើសទិដ្ឋភាពថត',
+  'folder_short_view': 'ទិដ្ឋភាពខ្លី',
+  'folder_list_view': 'ទិដ្ឋភាពបញ្ជី',
   'folder_edit_title': 'កែសម្រួលថត',
   'folder_new_title': 'ថតថ្មី',
   'folder_cancel': 'បោះបង់',
@@ -423,6 +426,8 @@ const Map<String, String> kmKH = {
 
   // Note editor (create + edit)
   'note_editor_title_hint': 'ចំណងជើង',
+  'note_editor_untitled_note': 'កំណត់ត្រាគ្មានចំណងជើង',
+  'note_editor_pdf_swipe_pages': 'អូសទៅឆ្វេង ឬស្តាំ ដើម្បីមើលទំព័រ PDF',
   'note_editor_start_writing_placeholder': 'ចាប់ផ្តើមសរសេរ...',
   'note_editor_readonly_banner_message':
       'កំណត់ត្រានេះស្ថិតនៅក្នុង "បានលុបថ្មីៗ"។ សូមយកមកវិញដើម្បីធ្វើការផ្លាស់ប្តូរ។',

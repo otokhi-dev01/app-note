@@ -1,5 +1,14 @@
 # flutter_lints was already a dev dependency but nothing enabled it, so the
 # analyzer had been running with no lint rules at all.
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

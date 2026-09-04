@@ -42,6 +42,7 @@ class _FolderTileState extends State<FolderTile> {
     return Obx(() {
       final isEditing = controller.isEditing.value;
       final isSystem = controller.isSystemFolder(folder);
+      final isShortView = controller.viewMode.value == 'short';
 
       return Stack(
         children: [
@@ -51,8 +52,8 @@ class _FolderTileState extends State<FolderTile> {
               contentPadding: EdgeInsets.only(
                 left: leftPadding,
                 right: 20,
-                top: 4,
-                bottom: 4,
+                top: isShortView ? 0 : 4,
+                bottom: isShortView ? 0 : 4,
               ),
               onTap: (isEditing && isSystem)
                   ? null
@@ -80,20 +81,22 @@ class _FolderTileState extends State<FolderTile> {
                   letterSpacing: -0.4,
                 ),
               ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Text(
-                  "folder_tile_subtitle".trParams({
-                    'count': '${folder.noteCount}',
-                  }),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
+              subtitle: isShortView
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        "folder_tile_subtitle".trParams({
+                          'count': '${folder.noteCount}',
+                        }),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.6,
+                          ),
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                    fontSize: 13,
-                  ),
-                ),
-              ),
               trailing: isEditing && !isSystem
                   ? Row(
                       mainAxisSize: MainAxisSize.min,

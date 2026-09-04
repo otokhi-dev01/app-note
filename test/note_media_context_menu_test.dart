@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
@@ -19,6 +20,7 @@ import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/views/create_note_view.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
+import 'package:Note/features/note/presentation/widgets/note_scanned_pdf_attachment.dart';
 import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -90,6 +92,60 @@ void main() {
     await tester.pump();
 
     expect(tester.testTextInput.isVisible, isTrue);
+  });
+
+  testWidgets('Create Note PDF fills the screen while text keeps its inset', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
+
+    final controller = _createController();
+    controller.currentNote.value = const Note(
+      id: 0,
+      folderId: 0,
+      title: '',
+      folderName: '',
+      content: [],
+    );
+    controller.blocks.assignAll(const [
+      AttachmentBlock(id: 'full-width-pdf', displayName: 'Document.pdf'),
+    ]);
+    controller.isLoading.value = false;
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: const CreateNoteView(),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      tester.getSize(find.byKey(const ValueKey('inline-pdf-frame'))).width,
+      390,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('create-note-title-field')))
+          .width,
+      lessThan(390),
+    );
+
+    tester.view.physicalSize = const Size(1024, 1366);
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(const ValueKey('inline-pdf-frame'))).width,
+      1024,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('create-note-title-field')))
+          .width,
+      lessThanOrEqualTo(600),
+    );
   });
 
   testWidgets('PDF preview Edit button opens the all-page editor', (
@@ -167,6 +223,45 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.runAsync(() => deletePdfFiles(blockId));
+  });
+
+  testWidgets('inline PDF uses the horizontal pinch viewer from PDF Preview', (
+    tester,
+  ) async {
+    final pendingDocument = Completer<PdfDocument>();
+    final controller = PdfControllerPinch(document: pendingDocument.future);
+
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 320,
+              height: 450,
+              child: InlinePdfPreview(
+                path: 'inline-preview.pdf',
+                pdfController: controller,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final pdfView = tester.widget<PdfViewPinch>(
+      find.byKey(const ValueKey('inline-pdf-page-view')),
+    );
+    expect(pdfView.scrollDirection, Axis.horizontal);
+    expect(pdfView.padding, 0);
+    expect(pdfView.backgroundDecoration.color, Colors.white);
+    expect(pdfView.backgroundDecoration.border, isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    controller.dispose();
   });
 
   testWidgets('tapping a video opens the PDF-style preview page', (

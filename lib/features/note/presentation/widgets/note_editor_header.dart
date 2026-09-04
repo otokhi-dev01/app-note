@@ -23,7 +23,6 @@ class NoteEditorHeader extends StatelessWidget {
       final note = controller.currentNote.value;
       final date = note?.updatedAt ?? DateTime.now();
       final folder = controller.resolveFolder(note?.folderId ?? 0);
-      final folderName = controller.resolveFolderLabel();
       final isSaving = controller.isSaving.value;
       final canChangeFolder =
           note != null &&
@@ -31,31 +30,33 @@ class NoteEditorHeader extends StatelessWidget {
           !controller.isLoading.value &&
           !isSaving;
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (folderName.isNotEmpty)
+      return ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller.titleController,
+        builder: (context, _, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
             _FolderButton(
               folder: folder,
-              label: folderName,
+              label: controller.resolveNoteBreadcrumb(),
               enabled: canChangeFolder,
               onPressed: () {
                 unawaited(HapticFeedback.selectionClick());
                 unawaited(controller.moveNote());
               },
             ),
-          if (folderName.isNotEmpty) const SizedBox(height: 8),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 160),
-            child: isSaving
-                ? _SavingStatus(key: const ValueKey('saving'), color: muted)
-                : _DateStatus(
-                    key: const ValueKey('date'),
-                    date: date,
-                    color: muted,
-                  ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              child: isSaving
+                  ? _SavingStatus(key: const ValueKey('saving'), color: muted)
+                  : _DateStatus(
+                      key: const ValueKey('date'),
+                      date: date,
+                      color: muted,
+                    ),
+            ),
+          ],
+        ),
       );
     });
   }
@@ -81,7 +82,9 @@ class _FolderButton extends StatelessWidget {
     final folderColor = folder?.color ?? scheme.primary;
 
     final content = Container(
-      constraints: const BoxConstraints(maxWidth: 280, minHeight: 34),
+      key: const ValueKey('note-folder-breadcrumb'),
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 40),
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
         color: folderColor.withValues(alpha: 0.09),
@@ -89,7 +92,6 @@ class _FolderButton extends StatelessWidget {
         border: Border.all(color: folderColor.withValues(alpha: 0.16)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           if (folder != null)
             FolderGlyph(folder: folder!, size: 14)
@@ -100,10 +102,10 @@ class _FolderButton extends StatelessWidget {
               color: folderColor,
             ),
           const SizedBox(width: 7),
-          Flexible(
+          Expanded(
             child: Text(
               label,
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
@@ -155,11 +157,15 @@ class _DateStatus extends StatelessWidget {
       children: [
         Icon(CupertinoIcons.clock, size: 12, color: color),
         const SizedBox(width: 5),
-        Text(
-          DateFormat("MMMM d, yyyy 'at' h:mm a").format(date),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: color,
-            fontSize: 12.5,
+        Flexible(
+          child: Text(
+            DateFormat("MMMM d, yyyy 'at' h:mm a").format(date),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontSize: 12.5,
+            ),
           ),
         ),
       ],

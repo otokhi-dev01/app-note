@@ -125,7 +125,7 @@ class _CreateNoteBody extends StatelessWidget {
 
     final bottomPadding = MediaQuery.viewInsetsOf(context).bottom + 140;
 
-    return _MaxWidth(
+    return _CreateNoteCanvas(
       key: const ValueKey('create-note-body-tap-target'),
       onTap: controller.focusCreateNoteComposer,
       child: Obx(() {
@@ -144,56 +144,62 @@ class _CreateNoteBody extends StatelessWidget {
               onBack: () => _handleBack(controller),
             ),
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalInset,
-                16,
-                horizontalInset,
-                bottomPadding,
-              ),
+              padding: EdgeInsets.fromLTRB(0, 16, 0, bottomPadding),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  NoteEditorHeader(controller: controller),
+                  _CenteredEditorContent(
+                    horizontalInset: horizontalInset,
+                    child: NoteEditorHeader(controller: controller),
+                  ),
                   const SizedBox(height: 16),
-                  TextField(
-                    key: const ValueKey('create-note-title-field'),
-                    controller: controller.titleController,
-                    focusNode: controller.titleFocusNode,
-                    enabled: !isReadOnly,
+                  _CenteredEditorContent(
+                    horizontalInset: horizontalInset,
+                    child: TextField(
+                      key: const ValueKey('create-note-title-field'),
+                      controller: controller.titleController,
+                      focusNode: controller.titleFocusNode,
+                      enabled: !isReadOnly,
 
-                    autofocus: !isReadOnly,
-                    onTap: () => controller.activeBlockIndex.value = -1,
-                    cursorColor: AppTheme.folderYellow,
-                    cursorWidth: 1.5,
-                    maxLines: null,
-                    keyboardType: TextInputType.text,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => controller.focusFirstTextBlock(),
-                    textCapitalization: TextCapitalization.sentences,
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'note_editor_title_hint'.tr,
-                      hintStyle: theme.textTheme.headlineLarge?.copyWith(
+                      autofocus: !isReadOnly,
+                      onTap: () => controller.activeBlockIndex.value = -1,
+                      cursorColor: AppTheme.folderYellow,
+                      cursorWidth: 1.5,
+                      maxLines: null,
+                      keyboardType: TextInputType.text,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => controller.focusFirstTextBlock(),
+                      textCapitalization: TextCapitalization.sentences,
+                      style: theme.textTheme.headlineLarge?.copyWith(
                         fontSize: 32,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.3,
-                        ),
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
                       ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      isCollapsed: true,
-                      filled: false,
-                      fillColor: Colors.transparent,
+                      decoration: InputDecoration(
+                        hintText: 'note_editor_title_hint'.tr,
+                        hintStyle: theme.textTheme.headlineLarge?.copyWith(
+                          fontSize: 32,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.3,
+                          ),
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        isCollapsed: true,
+                        filled: false,
+                        fillColor: Colors.transparent,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
                   NoteBlockList(
                     controller: controller,
                     textPlaceholder: 'note_editor_start_writing_placeholder'.tr,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: horizontalInset,
+                    ),
+                    fullWidthPdf: true,
+                    maxContentWidth: 600,
                   ),
                 ]),
               ),
@@ -216,22 +222,43 @@ class _CreateNoteBody extends StatelessWidget {
   }
 }
 
-class _MaxWidth extends StatelessWidget {
+class _CreateNoteCanvas extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
 
-  const _MaxWidth({super.key, required this.child, this.onTap});
+  const _CreateNoteCanvas({super.key, required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: onTap,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: SizedBox(width: double.infinity, child: child),
+      child: SizedBox(width: double.infinity, child: child),
+    );
+  }
+}
+
+class _CenteredEditorContent extends StatelessWidget {
+  final double horizontalInset;
+  final Widget child;
+
+  const _CenteredEditorContent({
+    required this.horizontalInset,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalInset),
+            child: child,
+          ),
         ),
       ),
     );

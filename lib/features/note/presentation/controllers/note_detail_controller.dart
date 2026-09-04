@@ -936,7 +936,7 @@ class NoteDetailController extends GetxController {
     try {
       final pages = await _captureDocumentPages();
       if (pages.isEmpty) return;
-      
+
       final title = 'note_editor_scanned_document_default_title'.tr;
       await _insertScannedDocumentPdf(pages, title: title);
     } catch (e) {
@@ -956,7 +956,7 @@ class NoteDetailController extends GetxController {
     try {
       final pages = await _chooseDocumentPages();
       if (pages.isEmpty) return;
-      
+
       final title = 'note_editor_scanned_document_default_title'.tr;
       await _insertScannedDocumentPdf(pages, title: title);
     } catch (e) {
@@ -2875,16 +2875,9 @@ class NoteDetailController extends GetxController {
   /// having no folder at all.
   static String get _defaultFolderName => 'note_editor_default_folder_name'.tr;
 
-  /// The folder line exactly as [NoteEditorHeader] resolves and shows it:
-  /// prefer the live [Folder] record (its `displayName` already strips the
-  /// iCloud/Shared section keyword the API bakes into raw names), fall back
-  /// to the note's own `folderName`, and finally to [_defaultFolderName].
-  /// Both the on-screen header and [exportNoteToPdf] call this — keeping it
-  /// in one place means the PDF can't quietly drift from what's shown while
-  /// editing, which is exactly what happened before this existed: the export
-  /// used to read only `currentNote.value?.folderName`, which is empty for a
-  /// brand-new note, so the PDF's folder line was silently blank for any
-  /// note exported before its first save.
+  /// Resolves the selected folder label for exports and as the editor
+  /// breadcrumb's fallback when the full parent chain is unavailable. Prefer
+  /// the live [Folder], then the note payload, then [_defaultFolderName].
   String resolveFolderLabel() {
     final note = currentNote.value;
     final folder = resolveFolder(note?.folderId ?? 0);
@@ -2893,6 +2886,49 @@ class NoteDetailController extends GetxController {
     final fromNote = note?.folderName.trim() ?? '';
     if (fromNote.isNotEmpty) return FolderAppearance.displayName(fromNote);
     return _defaultFolderName;
+  }
+
+  /// Resolves the selected folder from its top-level parent down to the
+  /// current folder. The API exposes parent IDs rather than a ready-made
+  /// breadcrumb, so flatten the locally available tree and walk upward.
+  List<Folder> resolveFolderPath(int folderId) {
+    if (folderId == 0 || !Get.isRegistered<FolderController>()) {
+      return const [];
+    }
+
+    final byId = <int, Folder>{};
+    void collect(Iterable<Folder> folders) {
+      for (final folder in folders) {
+        byId[folder.id] = folder;
+        collect(folder.subFolders);
+      }
+    }
+
+    collect(Get.find<FolderController>().folders);
+    final reversedPath = <Folder>[];
+    final visited = <int>{};
+    Folder? current = byId[folderId];
+    while (current != null && visited.add(current.id)) {
+      reversedPath.add(current);
+      final parentId = current.parentId;
+      current = parentId == null || parentId == 0 ? null : byId[parentId];
+    }
+    return reversedPath.reversed.toList(growable: false);
+  }
+
+  /// Full editor breadcrumb: parent folders, selected folder, then the live
+  /// note title. A new draft remains meaningful before its title is entered.
+  String resolveNoteBreadcrumb() {
+    final note = currentNote.value;
+    final labels = [
+      for (final folder in resolveFolderPath(note?.folderId ?? 0))
+        folder.displayName,
+    ];
+    if (labels.isEmpty) labels.add(resolveFolderLabel());
+
+    final title = titleController.text.trim();
+    labels.add(title.isEmpty ? 'note_editor_untitled_note'.tr : title);
+    return labels.where((label) => label.trim().isNotEmpty).join(' > ');
   }
 
   /// The live [Folder] record for [folderId], or `null` when there isn't
