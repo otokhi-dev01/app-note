@@ -77,6 +77,28 @@ class FolderController extends GetxController {
   void toggleNotesSection() =>
       isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
 
+  /// Resolves live parent folders in order, including nested folder records.
+  List<Folder> resolveFolderPath(int folderId, {Folder? fallback}) {
+    final byId = <int, Folder>{};
+    void collect(Iterable<Folder> folders) {
+      for (final folder in folders) {
+        byId[folder.id] = folder;
+        collect(folder.subFolders);
+      }
+    }
+
+    collect(folders);
+    final reversedPath = <Folder>[];
+    final visited = <int>{};
+    Folder? current = byId[folderId] ?? fallback;
+    while (current != null && visited.add(current.id)) {
+      reversedPath.add(current);
+      final parentId = current.parentId;
+      current = parentId == null || parentId == 0 ? null : byId[parentId];
+    }
+    return reversedPath.reversed.toList(growable: false);
+  }
+
   bool isFolderExpanded(int folderId) => !collapsedFolderIds.contains(folderId);
 
   void toggleFolderExpanded(int folderId) {

@@ -2926,24 +2926,7 @@ class NoteDetailController extends GetxController {
       return const [];
     }
 
-    final byId = <int, Folder>{};
-    void collect(Iterable<Folder> folders) {
-      for (final folder in folders) {
-        byId[folder.id] = folder;
-        collect(folder.subFolders);
-      }
-    }
-
-    collect(Get.find<FolderController>().folders);
-    final reversedPath = <Folder>[];
-    final visited = <int>{};
-    Folder? current = byId[folderId];
-    while (current != null && visited.add(current.id)) {
-      reversedPath.add(current);
-      final parentId = current.parentId;
-      current = parentId == null || parentId == 0 ? null : byId[parentId];
-    }
-    return reversedPath.reversed.toList(growable: false);
+    return Get.find<FolderController>().resolveFolderPath(folderId);
   }
 
   /// Full editor breadcrumb: parent folders, selected folder, then the live

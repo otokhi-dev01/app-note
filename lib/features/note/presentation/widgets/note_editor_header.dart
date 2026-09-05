@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_breadcrumb.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 
 class NoteEditorHeader extends StatelessWidget {
@@ -89,58 +89,15 @@ class _FolderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final folderColor = folder?.color ?? scheme.primary;
-
-    final content = Container(
+    final content = FolderBreadcrumb(
       key: const ValueKey('note-folder-breadcrumb'),
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 40),
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-      decoration: BoxDecoration(
-        color: folderColor.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: folderColor.withValues(alpha: 0.16)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  if (folderPath.isEmpty) ...[
-                    _folderIcon(folder, folderColor),
-                    TextSpan(text: ' $fallbackFolderLabel'),
-                  ] else
-                    for (var index = 0; index < folderPath.length; index++) ...[
-                      if (index > 0) const TextSpan(text: ' › '),
-                      _folderIcon(folderPath[index], folderPath[index].color),
-                      TextSpan(text: ' ${folderPath[index].displayName}'),
-                    ],
-                  TextSpan(text: ' › $noteTitle'),
-                ],
-              ),
-              key: const ValueKey('note-folder-path'),
-              semanticsLabel: label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          if (enabled) ...[
-            const SizedBox(width: 5),
-            Icon(
-              CupertinoIcons.chevron_down,
-              size: 11,
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
-            ),
-          ],
-        ],
-      ),
+      pathKey: const ValueKey('note-folder-path'),
+      folder: folder,
+      folderPath: folderPath,
+      fallbackFolderLabel: fallbackFolderLabel,
+      noteTitle: noteTitle,
+      semanticLabel: label,
+      showDisclosure: enabled,
     );
     if (!enabled) return content;
     return Semantics(
@@ -160,23 +117,6 @@ class _FolderButton extends StatelessWidget {
       ),
     );
   }
-
-  WidgetSpan _folderIcon(Folder? folder, Color color) => WidgetSpan(
-    alignment: PlaceholderAlignment.middle,
-    child: ExcludeSemantics(
-      child: folder != null
-          ? FolderGlyph(
-              key: ValueKey('note-folder-icon-${folder.id}'),
-              folder: folder,
-              size: 14,
-            )
-          : Icon(
-              FolderAppearance.iconFor(FolderAppearance.defaultIconName),
-              size: 14,
-              color: color,
-            ),
-    ),
-  );
 }
 
 class _DateStatus extends StatelessWidget {

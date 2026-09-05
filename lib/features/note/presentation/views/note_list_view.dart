@@ -15,6 +15,7 @@ import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
+import 'package:Note/features/folder/presentation/widgets/folder_breadcrumb.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/utils/note_grouping.dart';
 
@@ -194,11 +195,11 @@ class NoteListView extends GetView<NoteController> {
 
     return SliverToBoxAdapter(
       child: Obx(() {
-        final latestFolder =
-            folderController.folders.firstWhereOrNull(
-              (candidate) => candidate.id == currentFolder.id,
-            ) ??
-            currentFolder;
+        final folderPath = folderController.resolveFolderPath(
+          currentFolder.id,
+          fallback: currentFolder,
+        );
+        final latestFolder = folderPath.last;
         final subfolderCount = _subfoldersOf(
           latestFolder,
           folderController,
@@ -222,18 +223,17 @@ class NoteListView extends GetView<NoteController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                latestFolder.displayName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontSize: 34,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -1.1,
-                  height: 1.08,
-                ),
+              FolderBreadcrumb(
+                key: const ValueKey('folder-detail-breadcrumb'),
+                pathKey: const ValueKey('folder-detail-path'),
+                folder: latestFolder,
+                folderPath: folderPath,
+                fallbackFolderLabel: latestFolder.displayName,
+                semanticLabel: folderPath
+                    .map((folder) => folder.displayName)
+                    .join(' > '),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 8),
               Text(
                 '$noteLabel  ·  $folderLabel',
                 style: theme.textTheme.bodyMedium?.copyWith(
