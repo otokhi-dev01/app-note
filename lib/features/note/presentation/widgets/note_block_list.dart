@@ -49,6 +49,9 @@ class NoteBlockList extends StatelessWidget {
     }
     if (block is AttachmentBlock) {
       return NoteAttachmentBlock(
+        key: block.id == controller.importedPdfBlockId
+            ? controller.importedPdfPreviewKey
+            : ValueKey('attachment-${block.id}'),
         block: block,
         blockIndex: blockIndex,
         controller: controller,

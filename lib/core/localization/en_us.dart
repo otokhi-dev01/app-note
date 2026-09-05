@@ -316,6 +316,8 @@ const Map<String, String> enUS = {
   'folder_search_semantic': 'Search notes and folders',
   'folder_search_label': 'Search',
   'folder_create_note_semantic': 'Create note',
+  'folder_create_note_from_album_semantic':
+      'Create note from photo library as PDF',
   'folder_view_menu': 'Folder view options',
   'folder_short_view': 'Short View',
   'folder_list_view': 'List View',

@@ -89,9 +89,13 @@ void main() {
     },
   );
 
-  for (final fromGallery in [false, true]) {
+  for (final mode in ['camera', 'gallery', 'gallery-pdf']) {
+    final fromGallery = mode != 'camera';
+    final asPdf = mode == 'gallery-pdf';
     test(
-      '${fromGallery ? 'gallery' : 'camera'} scans keep full images in page order',
+      asPdf
+          ? 'Create Note Albums automatically inserts selected images as a PDF'
+          : '$mode scans keep full images in page order',
       () async {
         final directory = await Directory.systemTemp.createTemp('scan-images-');
         final sources = [
@@ -125,12 +129,13 @@ void main() {
           for (final block in controller.blocks.whereType<AttachmentBlock>()) {
             final file = File(block.localPath!);
             if (file.existsSync()) await file.delete();
+            await deletePdfFiles(block.id);
           }
           await directory.delete(recursive: true);
         });
 
         if (fromGallery) {
-          await controller.scanDocumentsFromGallery();
+          await controller.scanDocumentsFromGallery(asPdf: asPdf);
           expect(pickerCall?.method, 'pickMultiImage');
           final options = pickerCall!.arguments as Map<Object?, Object?>;
           expect(options['maxWidth'], isNull);
@@ -143,6 +148,24 @@ void main() {
         final attachments = controller.blocks
             .whereType<AttachmentBlock>()
             .toList();
+        if (asPdf) {
+          expect(attachments, hasLength(1));
+          final document = attachments.single;
+          expect(document.displayName, endsWith('.pdf'));
+          final bytes = await File(document.localPath!).readAsBytes();
+          expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+          final storedPages = await findPdfSourcePages(document.id);
+          expect(storedPages, hasLength(2));
+          for (var index = 0; index < storedPages.length; index++) {
+            expect(
+              File(storedPages[index]).readAsBytesSync(),
+              originalBytes[index],
+            );
+            expect(sources[index].existsSync(), isTrue);
+          }
+          expect(controller.blocks.last, isA<TextBlock>());
+          return;
+        }
         expect(attachments, hasLength(2));
         expect(attachments[0].displayName, endsWith(' 1.png'));
         expect(attachments[1].displayName, endsWith(' 2.jpg'));
@@ -156,6 +179,74 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'Albums shows the automatic PDF on Create Note without a keyboard',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      const pickerChannel = MethodChannel('plugins.flutter.io/image_picker');
+      final source =
+          '${Directory.current.path}/assets/icons/piisiit_logo_mark.png';
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(pickerChannel, (_) async => [source]);
+      final controller = _createController();
+      controller.currentNote.value = const Note(
+        id: 0,
+        folderId: 0,
+        folderName: '',
+        title: '',
+        content: [],
+      );
+      controller.isLoading.value = false;
+      controller.isSaving.value = true;
+      controller.blocks.assignAll([
+        TextBlock(
+          id: 'long-note',
+          text: List.filled(40, 'Existing text').join('\n'),
+        ),
+      ]);
+      addTearDown(() async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(pickerChannel, null);
+        for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+          await deletePdfFiles(block.id);
+        }
+      });
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          home: const CreateNoteView(),
+        ),
+      );
+      await tester.pump();
+      controller.activeBlockIndex.value = 0;
+      await tester.tap(find.bySemanticsLabel('Attachment'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Albums'), findsOneWidget);
+      await tester.tap(find.text('Albums'));
+      for (var attempt = 0; attempt < 100; attempt++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        if (controller.blocks.whereType<AttachmentBlock>().isNotEmpty) break;
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
+      final document = controller.blocks.whereType<AttachmentBlock>().single;
+      final preview = find.byKey(ValueKey('scanned-pdf-${document.id}'));
+      expect(preview, findsOneWidget);
+      expect(tester.getTopLeft(preview).dy, inInclusiveRange(0, 700));
+      expect(tester.testTextInput.isVisible, isFalse);
+      expect(Get.currentRoute, '/');
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('tapping the create-note body reopens a hidden keyboard', (
     tester,

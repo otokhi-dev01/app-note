@@ -317,6 +317,8 @@ const Map<String, String> kmKH = {
   'folder_search_semantic': 'ស្វែងរកកំណត់ត្រា និងថត',
   'folder_search_label': 'ស្វែងរក',
   'folder_create_note_semantic': 'បង្កើតកំណត់ត្រា',
+  'folder_create_note_from_album_semantic':
+      'បង្កើតកំណត់ត្រាពីអាល់ប៊ុមរូបភាពជា PDF',
   'folder_view_menu': 'ជម្រើសទិដ្ឋភាពថត',
   'folder_short_view': 'ទិដ្ឋភាពខ្លី',
   'folder_list_view': 'ទិដ្ឋភាពបញ្ជី',

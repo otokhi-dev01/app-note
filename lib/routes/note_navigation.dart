@@ -28,22 +28,32 @@ class NoteNavigation {
     );
   }
 
-  static Future<T?>? toNewNote<T>(int folderId, {bool autoRecord = false}) =>
-      Get.toNamed(
-        Routes.NOTE_DETAIL,
-        arguments: {
-          'noteId': 0,
-          'folderId': folderId,
-          'isArchived': false,
-          'isDeleted': false,
-          'autoRecord': autoRecord,
-          'instanceTag': _newInstanceTag(),
-        },
-        preventDuplicates: false,
-      );
+  static Future<T?>? toNewNote<T>(
+    int folderId, {
+    bool autoRecord = false,
+    bool autoAlbumPdf = false,
+  }) => Get.toNamed(
+    Routes.NOTE_DETAIL,
+    arguments: {
+      'noteId': 0,
+      'folderId': folderId,
+      'isArchived': false,
+      'isDeleted': false,
+      'autoRecord': autoRecord,
+      'autoAlbumPdf': autoAlbumPdf,
+      'instanceTag': _newInstanceTag(),
+    },
+    preventDuplicates: false,
+  );
 
   static Future<T?>? toNewAudioNote<T>(int folderId) =>
       toNewNote<T>(folderId, autoRecord: true);
+
+  /// Opens a brand-new note that immediately prompts the photo library and
+  /// inserts whatever gets picked as one auto-converted PDF attachment — the
+  /// "Albums" quick action's landing spot.
+  static Future<T?>? toNewNoteFromAlbumPdf<T>(int folderId) =>
+      toNewNote<T>(folderId, autoAlbumPdf: true);
 
   static String _newInstanceTag() =>
       'note_${DateTime.now().microsecondsSinceEpoch}';

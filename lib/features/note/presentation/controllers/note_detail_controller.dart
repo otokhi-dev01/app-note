@@ -132,8 +132,11 @@ class NoteDetailController extends GetxController {
   final searchFocusNode = FocusNode();
   final isFormatPanelVisible = false.obs;
   bool _autoRecordRequested = false;
+  bool _autoAlbumPdfRequested = false;
   bool _isAudioRecorderOpen = false;
   bool _isScanFlowOpen = false;
+  final importedPdfPreviewKey = GlobalKey();
+  String? importedPdfBlockId;
   AttachmentBlock? _attachmentClipboard;
   String? _attachmentClipboardPdfSourcePath;
 
@@ -167,9 +170,14 @@ class NoteDetailController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    if (!_autoRecordRequested) return;
-    _autoRecordRequested = false;
-    unawaited(recordAudio());
+    if (_autoRecordRequested) {
+      _autoRecordRequested = false;
+      unawaited(recordAudio());
+    }
+    if (_autoAlbumPdfRequested) {
+      _autoAlbumPdfRequested = false;
+      unawaited(scanDocumentsFromGallery(asPdf: true));
+    }
   }
 
   void _handleArguments(dynamic args) {
@@ -178,6 +186,7 @@ class NoteDetailController extends GetxController {
       final folderId = args['folderId'];
       isReadOnly.value = args['isDeleted'] == true;
       _autoRecordRequested = noteId == 0 && args['autoRecord'] == true;
+      _autoAlbumPdfRequested = noteId == 0 && args['autoAlbumPdf'] == true;
 
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
@@ -956,18 +965,23 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Albums" — same output as [scanDocuments], but the pages
-  /// come from the photo gallery instead of the live document camera.
-  Future<void> scanDocumentsFromGallery() async {
+  /// "Albums" selects gallery images. Create Note requests a PDF so the
+  /// selected images are inserted automatically as one document in page order.
+  Future<void> scanDocumentsFromGallery({bool asPdf = false}) async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
     _isScanFlowOpen = true;
+    if (asPdf) FocusManager.instance.primaryFocus?.unfocus();
     try {
       final pages = await _chooseDocumentPages();
       if (pages.isEmpty) return;
 
       final title = 'note_editor_scanned_document_default_title'.tr;
-      await _insertScannedDocumentImages(pages, title: title);
+      if (asPdf) {
+        await _insertScannedDocumentPdf(pages, title: title);
+      } else {
+        await _insertScannedDocumentImages(pages, title: title);
+      }
     } catch (e) {
       debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not add those photos');
@@ -1014,6 +1028,52 @@ class NoteDetailController extends GetxController {
         // Native scanner results are temporary staging files.
       }
     }
+  }
+
+  Future<void> _insertScannedDocumentPdf(
+    List<String> pages, {
+    required String title,
+  }) async {
+    final id = 'scan_${_generateId()}';
+    late final String pdfPath;
+    try {
+      pdfPath = await buildMultiPageImagePdf(
+        imagePaths: pages,
+        blockId: id,
+        title: title,
+        imagesAreCompletePages: true,
+      );
+      await storePdfSourcePages(imagePaths: pages, blockId: id);
+    } catch (_) {
+      await deletePdfFiles(id);
+      rethrow;
+    }
+
+    importedPdfBlockId = id;
+    _insertBlock(
+      AttachmentBlock(
+        id: id,
+        displayName: _scannedDocumentFileName(title),
+        localPath: pdfPath,
+        attachmentId: 0,
+      ),
+    );
+    blocks.refresh();
+    addTextBlock();
+    FocusManager.instance.primaryFocus?.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final previewContext = importedPdfPreviewKey.currentContext;
+      if (previewContext == null || !previewContext.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          previewContext,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        ),
+      );
+    });
+    unawaited(saveNote(silent: true));
   }
 
   Future<void> _insertScannedDocumentImages(

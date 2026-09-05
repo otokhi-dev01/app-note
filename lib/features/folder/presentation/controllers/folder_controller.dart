@@ -299,6 +299,11 @@ class FolderController extends GetxController {
 
   void createNewNote() => _openNewNote();
 
+  /// "Albums" quick action: opens a brand-new note that immediately prompts
+  /// the photo library, converts whatever gets picked into a single PDF, and
+  /// shows it inserted in the note.
+  void createNoteFromAlbum() => _openNewNote(fromAlbum: true);
+
   Future<void> saveRecordedAudio({
     required String filePath,
     required String displayName,
@@ -341,7 +346,7 @@ class FolderController extends GetxController {
     );
   }
 
-  void _openNewNote({bool autoRecord = false}) {
+  void _openNewNote({bool autoRecord = false, bool fromAlbum = false}) {
     if (folders.isEmpty) {
       AppSnackbar.info(
         'No folders yet',
@@ -352,9 +357,11 @@ class FolderController extends GetxController {
 
     final defaultFolder = _defaultNoteFolder!;
 
-    NoteNavigation.toNewNote(defaultFolder.id, autoRecord: autoRecord)?.then((
-      value,
-    ) {
+    final opened = fromAlbum
+        ? NoteNavigation.toNewNoteFromAlbumPdf(defaultFolder.id)
+        : NoteNavigation.toNewNote(defaultFolder.id, autoRecord: autoRecord);
+
+    opened?.then((value) {
       if (value == true) fetchFolders(refresh: true);
     });
   }

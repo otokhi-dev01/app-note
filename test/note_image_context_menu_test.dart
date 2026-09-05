@@ -92,12 +92,26 @@ void main() {
       findsOneWidget,
     );
     expect(editorCall, isNull);
+    expect(
+      find.byKey(const ValueKey('image-preview-convert-to-pdf')),
+      findsOneWidget,
+    );
+    expect(find.text('Convert to PDF'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('image-preview-edit')));
     await tester.pumpAndSettle();
 
     expect(editorCall?.method, 'editImage');
     expect(editorCall?.arguments, {'path': imagePath});
+
+    controller.isReadOnly.value = true;
+    await tester.tap(find.byKey(ValueKey('local-${block.id}-$imagePath')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('image-preview-page')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('image-preview-convert-to-pdf')),
+      findsNothing,
+    );
   });
 
   testWidgets('long press shows image actions and View As choices', (

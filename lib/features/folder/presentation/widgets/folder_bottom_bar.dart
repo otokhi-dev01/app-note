@@ -78,6 +78,22 @@ class FolderBottomBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
+            CustomGlassButton(
+              onPressed: controller.createNoteFromAlbum,
+              semanticLabel: 'folder_create_note_from_album_semantic'.tr,
+              width: 50,
+              height: 50,
+              shape: GlassShape.circle,
+              blur: 10,
+              opacity: 0.15,
+              thickness: 8,
+              padding: EdgeInsets.zero,
+              child: Icon(
+                CupertinoIcons.photo_on_rectangle,
+                color: theme.primaryColor,
+                size: 24,
+              ),
+            ),
             // CustomGlassButton(
             //   onPressed: controller.createNewNote,
             //   semanticLabel: 'folder_create_note_semantic'.tr,

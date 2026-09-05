@@ -78,7 +78,7 @@ class CreateNoteView extends GetView<NoteDetailController> {
       case 'scan_docs':
         controller.scanDocuments();
       case 'scan_docs_photo':
-        controller.scanDocumentsFromGallery();
+        controller.scanDocumentsFromGallery(asPdf: true);
       case 'audio':
         controller.recordAudio();
       case 'file':
