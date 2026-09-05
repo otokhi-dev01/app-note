@@ -68,10 +68,12 @@ void main() {
         translations: AppTranslations(),
         locale: const Locale('en', 'US'),
         home: Scaffold(
-          body: NoteAttachmentBlock(
-            block: block,
-            blockIndex: 0,
-            controller: controller,
+          body: SingleChildScrollView(
+            child: NoteAttachmentBlock(
+              block: block,
+              blockIndex: 0,
+              controller: controller,
+            ),
           ),
         ),
       ),

@@ -23,6 +23,7 @@ class NoteEditorHeader extends StatelessWidget {
       final note = controller.currentNote.value;
       final date = note?.updatedAt ?? DateTime.now();
       final folder = controller.resolveFolder(note?.folderId ?? 0);
+      final folderPath = controller.resolveFolderPath(note?.folderId ?? 0);
       final isSaving = controller.isSaving.value;
       final canChangeFolder =
           note != null &&
@@ -37,6 +38,11 @@ class NoteEditorHeader extends StatelessWidget {
           children: [
             _FolderButton(
               folder: folder,
+              folderPath: folderPath,
+              fallbackFolderLabel: controller.resolveFolderLabel(),
+              noteTitle: controller.titleController.text.trim().isEmpty
+                  ? 'note_editor_untitled_note'.tr
+                  : controller.titleController.text.trim(),
               label: controller.resolveNoteBreadcrumb(),
               enabled: canChangeFolder,
               onPressed: () {
@@ -64,12 +70,18 @@ class NoteEditorHeader extends StatelessWidget {
 
 class _FolderButton extends StatelessWidget {
   final Folder? folder;
+  final List<Folder> folderPath;
+  final String fallbackFolderLabel;
+  final String noteTitle;
   final String label;
   final bool enabled;
   final VoidCallback onPressed;
 
   const _FolderButton({
     required this.folder,
+    required this.folderPath,
+    required this.fallbackFolderLabel,
+    required this.noteTitle,
     required this.label,
     required this.enabled,
     required this.onPressed,
@@ -93,18 +105,24 @@ class _FolderButton extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (folder != null)
-            FolderGlyph(folder: folder!, size: 14)
-          else
-            Icon(
-              FolderAppearance.iconFor(FolderAppearance.defaultIconName),
-              size: 14,
-              color: folderColor,
-            ),
-          const SizedBox(width: 7),
           Expanded(
-            child: Text(
-              label,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  if (folderPath.isEmpty) ...[
+                    _folderIcon(folder, folderColor),
+                    TextSpan(text: ' $fallbackFolderLabel'),
+                  ] else
+                    for (var index = 0; index < folderPath.length; index++) ...[
+                      if (index > 0) const TextSpan(text: ' › '),
+                      _folderIcon(folderPath[index], folderPath[index].color),
+                      TextSpan(text: ' ${folderPath[index].displayName}'),
+                    ],
+                  TextSpan(text: ' › $noteTitle'),
+                ],
+              ),
+              key: const ValueKey('note-folder-path'),
+              semanticsLabel: label,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
@@ -142,6 +160,23 @@ class _FolderButton extends StatelessWidget {
       ),
     );
   }
+
+  WidgetSpan _folderIcon(Folder? folder, Color color) => WidgetSpan(
+    alignment: PlaceholderAlignment.middle,
+    child: ExcludeSemantics(
+      child: folder != null
+          ? FolderGlyph(
+              key: ValueKey('note-folder-icon-${folder.id}'),
+              folder: folder,
+              size: 14,
+            )
+          : Icon(
+              FolderAppearance.iconFor(FolderAppearance.defaultIconName),
+              size: 14,
+              color: color,
+            ),
+    ),
+  );
 }
 
 class _DateStatus extends StatelessWidget {

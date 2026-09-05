@@ -268,7 +268,6 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
               behavior: HitTestBehavior.opaque,
               onTap: _openPlayer,
               child: Container(
-                height: 240,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.black,
@@ -290,23 +289,27 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
                     ),
                   ],
                 ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _buildVideoSurface(controller, isReady),
-                    if (!widget.isReadOnly)
-                      NoteMediaCursorEdges(
-                        keyPrefix: 'video',
-                        focusedSide: _cursorSide,
-                        beforeSemanticLabel:
-                            'note_editor_write_before_video'.tr,
-                        afterSemanticLabel: 'note_editor_write_after_video'.tr,
-                        onFocusBefore: () =>
-                            _focusVideoEdge(NoteMediaCursorSide.before),
-                        onFocusAfter: () =>
-                            _focusVideoEdge(NoteMediaCursorSide.after),
-                      ),
-                  ],
+                child: AspectRatio(
+                  aspectRatio: isReady ? _safeAspectRatio(controller!) : 16 / 9,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      _buildVideoSurface(controller, isReady),
+                      if (!widget.isReadOnly)
+                        NoteMediaCursorEdges(
+                          keyPrefix: 'video',
+                          focusedSide: _cursorSide,
+                          beforeSemanticLabel:
+                              'note_editor_write_before_video'.tr,
+                          afterSemanticLabel:
+                              'note_editor_write_after_video'.tr,
+                          onFocusBefore: () =>
+                              _focusVideoEdge(NoteMediaCursorSide.before),
+                          onFocusAfter: () =>
+                              _focusVideoEdge(NoteMediaCursorSide.after),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -564,13 +564,10 @@ class _ImageTileState extends State<_ImageTile> {
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        constraints: BoxConstraints(
-          minHeight: 120,
-          maxHeight: isSmall ? 160 : 300,
-        ),
+      child: Container(
+        constraints: isSmall
+            ? const BoxConstraints(minHeight: 120, maxHeight: 160)
+            : const BoxConstraints(),
         width: imageWidth,
         decoration: BoxDecoration(
           border: Border.all(
@@ -591,21 +588,25 @@ class _ImageTileState extends State<_ImageTile> {
         ),
         child: SizedBox(
           width: double.infinity,
-          height: isSmall ? 140 : 240,
+          height: isSmall ? 140 : null,
           child: Stack(
-            fit: StackFit.expand,
+            fit: isSmall ? StackFit.expand : StackFit.loose,
             children: [
-              ClipRect(child: _AttachmentImage(block: block)),
+              ClipRect(
+                child: _AttachmentImage(block: block, naturalSize: !isSmall),
+              ),
               if (!widget.isReadOnly)
-                NoteMediaCursorEdges(
-                  keyPrefix: 'image',
-                  focusedSide: _cursorSide,
-                  beforeSemanticLabel: 'note_editor_write_before_image'.tr,
-                  afterSemanticLabel: 'note_editor_write_after_image'.tr,
-                  onFocusBefore: () =>
-                      _focusImageEdge(NoteMediaCursorSide.before),
-                  onFocusAfter: () =>
-                      _focusImageEdge(NoteMediaCursorSide.after),
+                Positioned.fill(
+                  child: NoteMediaCursorEdges(
+                    keyPrefix: 'image',
+                    focusedSide: _cursorSide,
+                    beforeSemanticLabel: 'note_editor_write_before_image'.tr,
+                    afterSemanticLabel: 'note_editor_write_after_image'.tr,
+                    onFocusBefore: () =>
+                        _focusImageEdge(NoteMediaCursorSide.before),
+                    onFocusAfter: () =>
+                        _focusImageEdge(NoteMediaCursorSide.after),
+                  ),
                 ),
             ],
           ),
@@ -1029,8 +1030,13 @@ class _ImageActionRow extends StatelessWidget {
 
 class _AttachmentImage extends StatelessWidget {
   final AttachmentBlock block;
+  final bool naturalSize;
 
-  const _AttachmentImage({required this.block});
+  const _AttachmentImage({required this.block, this.naturalSize = false});
+
+  Widget _placeholder() => naturalSize
+      ? AspectRatio(aspectRatio: 4 / 3, child: _AttachmentPlaceholder())
+      : _AttachmentPlaceholder();
 
   @override
   Widget build(BuildContext context) {
@@ -1044,32 +1050,53 @@ class _AttachmentImage extends StatelessWidget {
           file,
           key: ValueKey('local-${block.id}-$localPath'),
           width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
+          height: naturalSize ? null : double.infinity,
+          fit: naturalSize ? BoxFit.contain : BoxFit.cover,
           gaplessPlayback: true,
+          frameBuilder: (_, child, frame, synchronouslyLoaded) =>
+              naturalSize && frame == null && !synchronouslyLoaded
+              ? _placeholder()
+              : child,
           filterQuality: FilterQuality.medium,
           errorBuilder: (_, error, stackTrace) {
             return networkUrl == null
-                ? _AttachmentPlaceholder()
-                : _NetworkAttachmentImage(blockId: block.id, url: networkUrl);
+                ? _placeholder()
+                : _NetworkAttachmentImage(
+                    blockId: block.id,
+                    url: networkUrl,
+                    naturalSize: naturalSize,
+                  );
           },
         );
       }
     }
 
     if (networkUrl != null) {
-      return _NetworkAttachmentImage(blockId: block.id, url: networkUrl);
+      return _NetworkAttachmentImage(
+        blockId: block.id,
+        url: networkUrl,
+        naturalSize: naturalSize,
+      );
     }
 
-    return _AttachmentPlaceholder();
+    return _placeholder();
   }
 }
 
 class _NetworkAttachmentImage extends StatelessWidget {
   final String blockId;
   final String url;
+  final bool naturalSize;
 
-  const _NetworkAttachmentImage({required this.blockId, required this.url});
+  const _NetworkAttachmentImage({
+    required this.blockId,
+    required this.url,
+    this.naturalSize = false,
+  });
+
+  Widget _placeholder() => naturalSize
+      ? AspectRatio(aspectRatio: 4 / 3, child: _AttachmentPlaceholder())
+      : _AttachmentPlaceholder();
 
   @override
   Widget build(BuildContext context) {
@@ -1078,9 +1105,13 @@ class _NetworkAttachmentImage extends StatelessWidget {
       key: ValueKey('network-$blockId-$url'),
       headers: attachmentAuthHeaders(),
       width: double.infinity,
-      height: double.infinity,
-      fit: BoxFit.cover,
+      height: naturalSize ? null : double.infinity,
+      fit: naturalSize ? BoxFit.contain : BoxFit.cover,
       gaplessPlayback: true,
+      frameBuilder: (_, child, frame, synchronouslyLoaded) =>
+          naturalSize && frame == null && !synchronouslyLoaded
+          ? _placeholder()
+          : child,
       filterQuality: FilterQuality.medium,
       loadingBuilder: (_, child, progress) {
         if (progress == null) return child;
@@ -1088,7 +1119,7 @@ class _NetworkAttachmentImage extends StatelessWidget {
         final value = totalBytes == null
             ? null
             : progress.cumulativeBytesLoaded / totalBytes;
-        return Center(
+        final indicator = Center(
           child: SizedBox(
             width: 24,
             height: 24,
@@ -1099,8 +1130,11 @@ class _NetworkAttachmentImage extends StatelessWidget {
             ),
           ),
         );
+        return naturalSize
+            ? AspectRatio(aspectRatio: 4 / 3, child: indicator)
+            : indicator;
       },
-      errorBuilder: (_, _, _) => _AttachmentPlaceholder(),
+      errorBuilder: (_, _, _) => _placeholder(),
     );
   }
 }
