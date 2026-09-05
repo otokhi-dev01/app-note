@@ -68,10 +68,12 @@ void main() {
         translations: AppTranslations(),
         locale: const Locale('en', 'US'),
         home: Scaffold(
-          body: NoteAttachmentBlock(
-            block: block,
-            blockIndex: 0,
-            controller: controller,
+          body: SingleChildScrollView(
+            child: NoteAttachmentBlock(
+              block: block,
+              blockIndex: 0,
+              controller: controller,
+            ),
           ),
         ),
       ),
@@ -155,6 +157,7 @@ void main() {
 
     expect(find.text('Copy'), findsOneWidget);
     expect(find.text('Paste'), findsOneWidget);
+    expect(find.text('Cut'), findsOneWidget);
     expect(find.text('Share'), findsOneWidget);
     expect(find.text('View As'), findsOneWidget);
     expect(find.text('Large'), findsOneWidget);

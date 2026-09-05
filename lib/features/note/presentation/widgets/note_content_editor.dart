@@ -384,10 +384,7 @@ class _PageContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: SizedBox(width: double.infinity, child: child),
-      ),
+      child: SizedBox(width: double.infinity, child: child),
     );
   }
 }

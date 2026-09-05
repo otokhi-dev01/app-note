@@ -242,7 +242,16 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Folder > New Folder 5 > Untitled Note'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('note-folder-path')))
+          .semanticsLabel,
+      'Folder > New Folder 5 > Untitled Note',
+    );
+    final folderIcons = tester.widgetList<FolderGlyph>(
+      find.byType(FolderGlyph),
+    );
+    expect(folderIcons.map((icon) => icon.folder.id), [1, 2]);
     expect(
       tester
           .getSize(find.byKey(const ValueKey('note-folder-breadcrumb')))
@@ -252,7 +261,12 @@ void main() {
 
     controller.titleController.text = 'Project Plan';
     await tester.pump();
-    expect(find.text('Folder > New Folder 5 > Project Plan'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('note-folder-path')))
+          .semanticsLabel,
+      'Folder > New Folder 5 > Project Plan',
+    );
   });
 }
 

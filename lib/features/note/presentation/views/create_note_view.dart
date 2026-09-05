@@ -125,7 +125,7 @@ class _CreateNoteBody extends StatelessWidget {
 
     final bottomPadding = MediaQuery.viewInsetsOf(context).bottom + 140;
 
-    return _MaxWidth(
+    return _CreateNoteContent(
       key: const ValueKey('create-note-body-tap-target'),
       onTap: controller.focusCreateNoteComposer,
       child: Obx(() {
@@ -216,11 +216,11 @@ class _CreateNoteBody extends StatelessWidget {
   }
 }
 
-class _MaxWidth extends StatelessWidget {
+class _CreateNoteContent extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
 
-  const _MaxWidth({super.key, required this.child, this.onTap});
+  const _CreateNoteContent({super.key, required this.child, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -229,10 +229,7 @@ class _MaxWidth extends StatelessWidget {
       onTap: onTap,
       child: Align(
         alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: SizedBox(width: double.infinity, child: child),
-        ),
+        child: SizedBox(width: double.infinity, child: child),
       ),
     );
   }

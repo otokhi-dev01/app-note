@@ -933,7 +933,7 @@ class NoteDetailController extends GetxController {
 
   /// Opens cunning_document_scanner's native scanner. This mode provides
   /// edge detection, cropping, and automatic capture. Completed pages
-  /// become one PDF.
+  /// are inserted as full-size images, one attachment per page.
   Future<void> scanDocuments() async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
@@ -942,8 +942,12 @@ class NoteDetailController extends GetxController {
       final pages = await _captureDocumentPages();
       if (pages.isEmpty) return;
 
-      final title = 'note_editor_scanned_document_default_title'.tr;
-      await _insertScannedDocumentPdf(pages, title: title);
+      try {
+        final title = 'note_editor_scanned_document_default_title'.tr;
+        await _insertScannedDocumentImages(pages, title: title);
+      } finally {
+        await _deleteTemporaryScanPaths(pages);
+      }
     } catch (e) {
       debugPrint('[SCAN DOCS ERROR] $e');
       AppSnackbar.error('Error', 'Could not scan document');
@@ -963,7 +967,7 @@ class NoteDetailController extends GetxController {
       if (pages.isEmpty) return;
 
       final title = 'note_editor_scanned_document_default_title'.tr;
-      await _insertScannedDocumentPdf(pages, title: title);
+      await _insertScannedDocumentImages(pages, title: title);
     } catch (e) {
       debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not add those photos');
@@ -997,7 +1001,7 @@ class NoteDetailController extends GetxController {
   }
 
   Future<List<String>> _chooseDocumentPages() async {
-    final files = await _picker.pickMultiImage(imageQuality: 88);
+    final files = await _picker.pickMultiImage();
     return files.map((file) => file.path).toList(growable: false);
   }
 
@@ -1012,41 +1016,44 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  Future<void> _insertScannedDocumentPdf(
+  Future<void> _insertScannedDocumentImages(
     List<String> pages, {
     required String title,
   }) async {
-    final id = 'scan_${_generateId()}';
+    final attachments = <AttachmentBlock>[];
     try {
-      final pdfPath = await buildMultiPageImagePdf(
-        imagePaths: pages,
-        blockId: id,
-        title: title,
-        showTitle: false,
-        createdAt: DateTime.now(),
-        showDateTime: true,
-        showPageNumbers: true,
-        imagesAreCompletePages: false,
-        pageLabel: 'note_editor_pdf_page'.tr,
-        ofLabel: 'note_editor_pdf_of'.tr,
+      // Copy every page before inserting any blocks. Keep the original image
+      // bytes and dimensions instead of fitting them onto a PDF paper size.
+      for (var index = 0; index < pages.length; index++) {
+        final id = 'scan_${_generateId()}';
+        final path = await _persistAttachment(
+          pages[index],
+          id,
+          forceCopy: true,
+        );
+        final extension = path.split('/').last.split('.').last;
+        attachments.add(
+          AttachmentBlock(
+            id: id,
+            displayName: '$title ${index + 1}.$extension',
+            localPath: path,
+            attachmentId: 0,
+          ),
+        );
+      }
+    } catch (_) {
+      await _deleteTemporaryScanPaths(
+        attachments.map((attachment) => attachment.localPath!),
       );
-      await storePdfSourcePages(imagePaths: pages, blockId: id);
-      _insertBlock(
-        AttachmentBlock(
-          id: id,
-          displayName: _scannedDocumentFileName(title),
-          localPath: pdfPath,
-          attachmentId: 0,
-        ),
-      );
-      blocks.refresh();
-      addTextBlock(requestFocus: true);
-      unawaited(saveNote(silent: true));
-    } finally {
-      // Cleanup temporary materialized pages after they've been baked into the
-      // PDF and stored as sources.
-      await _deleteTemporaryScanPaths(pages);
+      rethrow;
     }
+
+    for (final attachment in attachments) {
+      _insertBlock(attachment);
+    }
+    blocks.refresh();
+    addTextBlock(requestFocus: true);
+    unawaited(saveNote(silent: true));
   }
 
   Future<List<String>> _materializeScanPages(List<String> rawPaths) async {

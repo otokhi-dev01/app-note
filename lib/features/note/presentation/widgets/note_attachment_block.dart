@@ -176,6 +176,7 @@ class NoteAttachmentBlock extends StatelessWidget {
           onPaste: () => unawaited(
             controller.pasteClipboardContent(afterIndex: blockIndex),
           ),
+          onCut: () => unawaited(controller.cutAttachmentBlock(blockIndex)),
           onConvertToPdf: () => controller.convertAttachmentToPdf(blockIndex),
           onShare: () => _shareImage(context),
           onDelete: () => controller.deleteBlock(blockIndex),
@@ -411,6 +412,7 @@ class _ImageTile extends StatefulWidget {
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
+  final VoidCallback onCut;
   final VoidCallback onConvertToPdf;
   final VoidCallback onShare;
   final VoidCallback onDelete;
@@ -428,6 +430,7 @@ class _ImageTile extends StatefulWidget {
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
+    required this.onCut,
     required this.onConvertToPdf,
     required this.onShare,
     required this.onDelete,
@@ -503,6 +506,7 @@ class _ImageTileState extends State<_ImageTile> {
         onAddImage: widget.onAddImage,
         onCopy: widget.onCopy,
         onPaste: widget.onPaste,
+        onCut: widget.onCut,
         onShare: widget.onShare,
         onChooseViewSize: _chooseViewSize,
         onConvertToPdf: widget.onConvertToPdf,
@@ -560,13 +564,10 @@ class _ImageTileState extends State<_ImageTile> {
 
     return Align(
       alignment: Alignment.centerLeft,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        constraints: BoxConstraints(
-          minHeight: 120,
-          maxHeight: isSmall ? 160 : 300,
-        ),
+      child: Container(
+        constraints: isSmall
+            ? const BoxConstraints(minHeight: 120, maxHeight: 160)
+            : const BoxConstraints(),
         width: imageWidth,
         decoration: BoxDecoration(
           border: Border.all(
@@ -587,21 +588,25 @@ class _ImageTileState extends State<_ImageTile> {
         ),
         child: SizedBox(
           width: double.infinity,
-          height: isSmall ? 140 : 240,
+          height: isSmall ? 140 : null,
           child: Stack(
-            fit: StackFit.expand,
+            fit: isSmall ? StackFit.expand : StackFit.loose,
             children: [
-              ClipRect(child: _AttachmentImage(block: block)),
+              ClipRect(
+                child: _AttachmentImage(block: block, naturalSize: !isSmall),
+              ),
               if (!widget.isReadOnly)
-                NoteMediaCursorEdges(
-                  keyPrefix: 'image',
-                  focusedSide: _cursorSide,
-                  beforeSemanticLabel: 'note_editor_write_before_image'.tr,
-                  afterSemanticLabel: 'note_editor_write_after_image'.tr,
-                  onFocusBefore: () =>
-                      _focusImageEdge(NoteMediaCursorSide.before),
-                  onFocusAfter: () =>
-                      _focusImageEdge(NoteMediaCursorSide.after),
+                Positioned.fill(
+                  child: NoteMediaCursorEdges(
+                    keyPrefix: 'image',
+                    focusedSide: _cursorSide,
+                    beforeSemanticLabel: 'note_editor_write_before_image'.tr,
+                    afterSemanticLabel: 'note_editor_write_after_image'.tr,
+                    onFocusBefore: () =>
+                        _focusImageEdge(NoteMediaCursorSide.before),
+                    onFocusAfter: () =>
+                        _focusImageEdge(NoteMediaCursorSide.after),
+                  ),
                 ),
             ],
           ),
@@ -734,6 +739,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
+  final VoidCallback onCut;
   final VoidCallback onShare;
   final VoidCallback onChooseViewSize;
   final VoidCallback onConvertToPdf;
@@ -746,6 +752,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
+    required this.onCut,
     required this.onShare,
     required this.onChooseViewSize,
     required this.onConvertToPdf,
@@ -756,7 +763,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final screenSize = MediaQuery.sizeOf(context);
-    final menuHeight = isReadOnly ? 174.0 : 402.0;
+    final menuHeight = isReadOnly ? 174.0 : 458.0;
     final previewHeight = (screenSize.height - menuHeight - 110).clamp(
       180.0,
       520.0,
@@ -807,6 +814,7 @@ class _ImageContextMenuOverlay extends StatelessWidget {
                           onAddImage: () => _closeThen(context, onAddImage),
                           onCopy: () => _closeThen(context, onCopy),
                           onPaste: () => _closeThen(context, onPaste),
+                          onCut: () => _closeThen(context, onCut),
                           onShare: () => _closeThen(context, onShare),
                           onChooseViewSize: () =>
                               _closeThen(context, onChooseViewSize),
@@ -838,6 +846,7 @@ class _ImageActionMenu extends StatelessWidget {
   final VoidCallback onAddImage;
   final VoidCallback onCopy;
   final VoidCallback onPaste;
+  final VoidCallback onCut;
   final VoidCallback onShare;
   final VoidCallback onChooseViewSize;
   final VoidCallback onConvertToPdf;
@@ -849,6 +858,7 @@ class _ImageActionMenu extends StatelessWidget {
     required this.onAddImage,
     required this.onCopy,
     required this.onPaste,
+    required this.onCut,
     required this.onShare,
     required this.onChooseViewSize,
     required this.onConvertToPdf,
@@ -888,15 +898,21 @@ class _ImageActionMenu extends StatelessWidget {
               if (!isReadOnly) ...[
                 divider,
                 _ImageActionRow(
-                  icon: CupertinoIcons.photo_on_rectangle,
-                  title: 'note_editor_add_image'.tr,
-                  onTap: onAddImage,
-                ),
-                divider,
-                _ImageActionRow(
                   icon: Icons.content_paste_rounded,
                   title: 'note_editor_paste'.tr,
                   onTap: onPaste,
+                ),
+                divider,
+                _ImageActionRow(
+                  icon: Icons.content_cut_rounded,
+                  title: 'note_editor_cut'.tr,
+                  onTap: onCut,
+                ),
+                divider,
+                _ImageActionRow(
+                  icon: CupertinoIcons.photo_on_rectangle,
+                  title: 'note_editor_add_image'.tr,
+                  onTap: onAddImage,
                 ),
               ],
               divider,
@@ -1014,8 +1030,13 @@ class _ImageActionRow extends StatelessWidget {
 
 class _AttachmentImage extends StatelessWidget {
   final AttachmentBlock block;
+  final bool naturalSize;
 
-  const _AttachmentImage({required this.block});
+  const _AttachmentImage({required this.block, this.naturalSize = false});
+
+  Widget _placeholder() => naturalSize
+      ? AspectRatio(aspectRatio: 4 / 3, child: _AttachmentPlaceholder())
+      : _AttachmentPlaceholder();
 
   @override
   Widget build(BuildContext context) {
@@ -1029,32 +1050,53 @@ class _AttachmentImage extends StatelessWidget {
           file,
           key: ValueKey('local-${block.id}-$localPath'),
           width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
+          height: naturalSize ? null : double.infinity,
+          fit: naturalSize ? BoxFit.contain : BoxFit.cover,
           gaplessPlayback: true,
+          frameBuilder: (_, child, frame, synchronouslyLoaded) =>
+              naturalSize && frame == null && !synchronouslyLoaded
+              ? _placeholder()
+              : child,
           filterQuality: FilterQuality.medium,
           errorBuilder: (_, error, stackTrace) {
             return networkUrl == null
-                ? _AttachmentPlaceholder()
-                : _NetworkAttachmentImage(blockId: block.id, url: networkUrl);
+                ? _placeholder()
+                : _NetworkAttachmentImage(
+                    blockId: block.id,
+                    url: networkUrl,
+                    naturalSize: naturalSize,
+                  );
           },
         );
       }
     }
 
     if (networkUrl != null) {
-      return _NetworkAttachmentImage(blockId: block.id, url: networkUrl);
+      return _NetworkAttachmentImage(
+        blockId: block.id,
+        url: networkUrl,
+        naturalSize: naturalSize,
+      );
     }
 
-    return _AttachmentPlaceholder();
+    return _placeholder();
   }
 }
 
 class _NetworkAttachmentImage extends StatelessWidget {
   final String blockId;
   final String url;
+  final bool naturalSize;
 
-  const _NetworkAttachmentImage({required this.blockId, required this.url});
+  const _NetworkAttachmentImage({
+    required this.blockId,
+    required this.url,
+    this.naturalSize = false,
+  });
+
+  Widget _placeholder() => naturalSize
+      ? AspectRatio(aspectRatio: 4 / 3, child: _AttachmentPlaceholder())
+      : _AttachmentPlaceholder();
 
   @override
   Widget build(BuildContext context) {
@@ -1063,9 +1105,13 @@ class _NetworkAttachmentImage extends StatelessWidget {
       key: ValueKey('network-$blockId-$url'),
       headers: attachmentAuthHeaders(),
       width: double.infinity,
-      height: double.infinity,
-      fit: BoxFit.cover,
+      height: naturalSize ? null : double.infinity,
+      fit: naturalSize ? BoxFit.contain : BoxFit.cover,
       gaplessPlayback: true,
+      frameBuilder: (_, child, frame, synchronouslyLoaded) =>
+          naturalSize && frame == null && !synchronouslyLoaded
+          ? _placeholder()
+          : child,
       filterQuality: FilterQuality.medium,
       loadingBuilder: (_, child, progress) {
         if (progress == null) return child;
@@ -1073,7 +1119,7 @@ class _NetworkAttachmentImage extends StatelessWidget {
         final value = totalBytes == null
             ? null
             : progress.cumulativeBytesLoaded / totalBytes;
-        return Center(
+        final indicator = Center(
           child: SizedBox(
             width: 24,
             height: 24,
@@ -1084,8 +1130,11 @@ class _NetworkAttachmentImage extends StatelessWidget {
             ),
           ),
         );
+        return naturalSize
+            ? AspectRatio(aspectRatio: 4 / 3, child: indicator)
+            : indicator;
       },
-      errorBuilder: (_, _, _) => _AttachmentPlaceholder(),
+      errorBuilder: (_, _, _) => _placeholder(),
     );
   }
 }

@@ -89,6 +89,74 @@ void main() {
     },
   );
 
+  for (final fromGallery in [false, true]) {
+    test(
+      '${fromGallery ? 'gallery' : 'camera'} scans keep full images in page order',
+      () async {
+        final directory = await Directory.systemTemp.createTemp('scan-images-');
+        final sources = [
+          await File(
+            'assets/icons/piisiit_logo_mark.png',
+          ).copy('${directory.path}/page-1.png'),
+          await File(
+            'assets/icons/piisiit_logo_cover.jpg',
+          ).copy('${directory.path}/page-2.jpg'),
+        ];
+        final originalBytes = await Future.wait(
+          sources.map((source) => source.readAsBytes()),
+        );
+        final channel = MethodChannel(
+          fromGallery
+              ? 'plugins.flutter.io/image_picker'
+              : 'cunning_document_scanner',
+        );
+        MethodCall? pickerCall;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+              pickerCall = call;
+              return sources.map((source) => source.path).toList();
+            });
+        final controller = _createController();
+        // Keep this test focused on importing files without calling the server.
+        controller.isSaving.value = true;
+        addTearDown(() async {
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+              .setMockMethodCallHandler(channel, null);
+          for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+            final file = File(block.localPath!);
+            if (file.existsSync()) await file.delete();
+          }
+          await directory.delete(recursive: true);
+        });
+
+        if (fromGallery) {
+          await controller.scanDocumentsFromGallery();
+          expect(pickerCall?.method, 'pickMultiImage');
+          final options = pickerCall!.arguments as Map<Object?, Object?>;
+          expect(options['maxWidth'], isNull);
+          expect(options['maxHeight'], isNull);
+          expect(options['imageQuality'], isNull);
+        } else {
+          await controller.scanDocuments();
+        }
+
+        final attachments = controller.blocks
+            .whereType<AttachmentBlock>()
+            .toList();
+        expect(attachments, hasLength(2));
+        expect(attachments[0].displayName, endsWith(' 1.png'));
+        expect(attachments[1].displayName, endsWith(' 2.jpg'));
+        for (var index = 0; index < attachments.length; index++) {
+          final saved = File(attachments[index].localPath!);
+          expect(saved.path, isNot(sources[index].path));
+          expect(await saved.readAsBytes(), originalBytes[index]);
+          expect(sources[index].existsSync(), fromGallery);
+        }
+        expect(controller.blocks.last, isA<TextBlock>());
+      },
+    );
+  }
+
   testWidgets('tapping the create-note body reopens a hidden keyboard', (
     tester,
   ) async {

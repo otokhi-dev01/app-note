@@ -47,6 +47,7 @@ class NotePdfAttachment extends StatefulWidget {
 
 class _NotePdfAttachmentState extends State<NotePdfAttachment> {
   Uint8List? _firstPageBytes;
+  double _pageAspectRatio = 1 / 1.4142;
   String? _resolvedPath;
   bool _isLoading = true;
   bool _hasError = false;
@@ -87,6 +88,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
         _isLoading = true;
         _hasError = false;
         _firstPageBytes = null;
+        _pageAspectRatio = 1 / 1.4142;
         _resolvedPath = null;
       });
     }
@@ -99,6 +101,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
       document = await PdfDocument.openFile(path);
       final page = await document.getPage(1);
       late final Uint8List firstPageBytes;
+      final pageAspectRatio = page.width / page.height;
       try {
         const renderWidth = 1000.0;
         final rendered = await page.render(
@@ -118,6 +121,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
       setState(() {
         _resolvedPath = path;
         _firstPageBytes = firstPageBytes;
+        _pageAspectRatio = pageAspectRatio;
         _isLoading = false;
       });
     } catch (error) {
@@ -387,10 +391,10 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
             onTap: _openPdf,
             onLongPress: _showContextMenu,
             child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
+              child: SizedBox(
+                width: double.infinity,
                 child: AspectRatio(
-                  aspectRatio: 1 / 1.4142,
+                  aspectRatio: _pageAspectRatio,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: Colors.white,
