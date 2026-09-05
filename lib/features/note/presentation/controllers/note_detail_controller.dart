@@ -132,8 +132,11 @@ class NoteDetailController extends GetxController {
   final searchFocusNode = FocusNode();
   final isFormatPanelVisible = false.obs;
   bool _autoRecordRequested = false;
+  bool _autoAlbumPdfRequested = false;
   bool _isAudioRecorderOpen = false;
   bool _isScanFlowOpen = false;
+  final importedPdfPreviewKey = GlobalKey();
+  String? importedPdfBlockId;
   AttachmentBlock? _attachmentClipboard;
   String? _attachmentClipboardPdfSourcePath;
 
@@ -167,9 +170,14 @@ class NoteDetailController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    if (!_autoRecordRequested) return;
-    _autoRecordRequested = false;
-    unawaited(recordAudio());
+    if (_autoRecordRequested) {
+      _autoRecordRequested = false;
+      unawaited(recordAudio());
+    }
+    if (_autoAlbumPdfRequested) {
+      _autoAlbumPdfRequested = false;
+      unawaited(scanDocumentsFromGallery());
+    }
   }
 
   void _handleArguments(dynamic args) {
@@ -178,6 +186,7 @@ class NoteDetailController extends GetxController {
       final folderId = args['folderId'];
       isReadOnly.value = args['isDeleted'] == true;
       _autoRecordRequested = noteId == 0 && args['autoRecord'] == true;
+      _autoAlbumPdfRequested = noteId == 0 && args['autoAlbumPdf'] == true;
 
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
@@ -871,6 +880,10 @@ class NoteDetailController extends GetxController {
   /// that can return several photos and videos in any mix, unlike
   /// [addAttachment] which is locked to whichever `isVideo` says before the
   /// picker even opens and returns at most one file.
+  ///
+  /// Picked photos are bundled into a single auto-converted PDF, same as
+  /// Albums ([scanDocumentsFromGallery]); a video can't become a PDF page,
+  /// so any picked videos are still attached individually.
   Future<void> addMediaAttachment() async {
     if (isReadOnly.value) return;
 
@@ -878,7 +891,23 @@ class NoteDetailController extends GetxController {
       final files = await _picker.pickMultipleMedia(imageQuality: 80);
       if (files.isEmpty) return;
 
+      final imagePaths = <String>[];
+      final otherFiles = <XFile>[];
       for (final file in files) {
+        if (_looksLikeImageName(file.name)) {
+          imagePaths.add(file.path);
+        } else {
+          otherFiles.add(file);
+        }
+      }
+
+      if (imagePaths.isNotEmpty) {
+        await _buildPdfAttachmentBlock(
+          imagePaths,
+          title: 'note_editor_scanned_document_default_title'.tr,
+        );
+      }
+      for (final file in otherFiles) {
         final id = _generateId();
         final persistedPath = await _persistAttachment(file.path, id);
         _insertBlock(
@@ -932,8 +961,8 @@ class NoteDetailController extends GetxController {
   }
 
   /// Opens cunning_document_scanner's native scanner. This mode provides
-  /// edge detection, cropping, and automatic capture. Completed pages
-  /// are inserted as full-size images, one attachment per page.
+  /// edge detection, cropping, and automatic capture. Completed pages are
+  /// bundled and inserted automatically as one PDF, same as Albums.
   Future<void> scanDocuments() async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
@@ -944,7 +973,7 @@ class NoteDetailController extends GetxController {
 
       try {
         final title = 'note_editor_scanned_document_default_title'.tr;
-        await _insertScannedDocumentImages(pages, title: title);
+        await _insertScannedDocumentPdf(pages, title: title);
       } finally {
         await _deleteTemporaryScanPaths(pages);
       }
@@ -956,18 +985,20 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Albums" — same output as [scanDocuments], but the pages
-  /// come from the photo gallery instead of the live document camera.
+  /// "Albums" selects gallery images and inserts them automatically as one
+  /// PDF document in page order — never as separate image blocks, and with
+  /// no manual "Convert to PDF" step in between.
   Future<void> scanDocumentsFromGallery() async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
     _isScanFlowOpen = true;
+    FocusManager.instance.primaryFocus?.unfocus();
     try {
       final pages = await _chooseDocumentPages();
       if (pages.isEmpty) return;
 
       final title = 'note_editor_scanned_document_default_title'.tr;
-      await _insertScannedDocumentImages(pages, title: title);
+      await _insertScannedDocumentPdf(pages, title: title);
     } catch (e) {
       debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not add those photos');
@@ -1016,44 +1047,60 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  Future<void> _insertScannedDocumentImages(
+  Future<void> _insertScannedDocumentPdf(
     List<String> pages, {
     required String title,
   }) async {
-    final attachments = <AttachmentBlock>[];
-    try {
-      // Copy every page before inserting any blocks. Keep the original image
-      // bytes and dimensions instead of fitting them onto a PDF paper size.
-      for (var index = 0; index < pages.length; index++) {
-        final id = 'scan_${_generateId()}';
-        final path = await _persistAttachment(
-          pages[index],
-          id,
-          forceCopy: true,
-        );
-        final extension = path.split('/').last.split('.').last;
-        attachments.add(
-          AttachmentBlock(
-            id: id,
-            displayName: '$title ${index + 1}.$extension',
-            localPath: path,
-            attachmentId: 0,
-          ),
-        );
-      }
-    } catch (_) {
-      await _deleteTemporaryScanPaths(
-        attachments.map((attachment) => attachment.localPath!),
+    await _buildPdfAttachmentBlock(pages, title: title);
+    blocks.refresh();
+    addTextBlock();
+    FocusManager.instance.primaryFocus?.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final previewContext = importedPdfPreviewKey.currentContext;
+      if (previewContext == null || !previewContext.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          previewContext,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        ),
       );
+    });
+    unawaited(saveNote(silent: true));
+  }
+
+  /// Builds a multi-page PDF from [pages] and inserts it as one attachment
+  /// block — the shared core behind every auto-convert-to-PDF entry point
+  /// (Scan Documents, Albums, and the photos picked via Choose Photo/Video).
+  Future<void> _buildPdfAttachmentBlock(
+    List<String> pages, {
+    required String title,
+  }) async {
+    final id = 'scan_${_generateId()}';
+    late final String pdfPath;
+    try {
+      pdfPath = await buildMultiPageImagePdf(
+        imagePaths: pages,
+        blockId: id,
+        title: title,
+        imagesAreCompletePages: true,
+      );
+      await storePdfSourcePages(imagePaths: pages, blockId: id);
+    } catch (_) {
+      await deletePdfFiles(id);
       rethrow;
     }
 
-    for (final attachment in attachments) {
-      _insertBlock(attachment);
-    }
-    blocks.refresh();
-    addTextBlock(requestFocus: true);
-    unawaited(saveNote(silent: true));
+    importedPdfBlockId = id;
+    _insertBlock(
+      AttachmentBlock(
+        id: id,
+        displayName: _scannedDocumentFileName(title),
+        localPath: pdfPath,
+        attachmentId: 0,
+      ),
+    );
   }
 
   Future<List<String>> _materializeScanPages(List<String> rawPaths) async {
@@ -2926,24 +2973,7 @@ class NoteDetailController extends GetxController {
       return const [];
     }
 
-    final byId = <int, Folder>{};
-    void collect(Iterable<Folder> folders) {
-      for (final folder in folders) {
-        byId[folder.id] = folder;
-        collect(folder.subFolders);
-      }
-    }
-
-    collect(Get.find<FolderController>().folders);
-    final reversedPath = <Folder>[];
-    final visited = <int>{};
-    Folder? current = byId[folderId];
-    while (current != null && visited.add(current.id)) {
-      reversedPath.add(current);
-      final parentId = current.parentId;
-      current = parentId == null || parentId == 0 ? null : byId[parentId];
-    }
-    return reversedPath.reversed.toList(growable: false);
+    return Get.find<FolderController>().resolveFolderPath(folderId);
   }
 
   /// Full editor breadcrumb: parent folders, selected folder, then the live

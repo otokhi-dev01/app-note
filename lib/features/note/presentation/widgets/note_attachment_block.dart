@@ -255,6 +255,16 @@ class NoteAttachmentBlock extends StatelessWidget {
               ? null
               : () => _openImageEditor(context),
           onShare: () => _shareImage(context),
+          onConvertToPdf: controller.isReadOnly.value
+              ? null
+              : () {
+                  final index = controller.blocks.indexWhere(
+                    (candidate) => candidate.id == block.id,
+                  );
+                  if (index >= 0) {
+                    unawaited(controller.convertAttachmentToPdf(index));
+                  }
+                },
         ),
       ),
     );
@@ -621,12 +631,14 @@ class _ImagePreviewPage extends StatelessWidget {
   final String title;
   final VoidCallback? onEdit;
   final VoidCallback onShare;
+  final VoidCallback? onConvertToPdf;
 
   const _ImagePreviewPage({
     required this.path,
     required this.title,
     required this.onEdit,
     required this.onShare,
+    required this.onConvertToPdf,
   });
 
   void _edit(BuildContext context) {
@@ -634,6 +646,13 @@ class _ImagePreviewPage extends StatelessWidget {
     if (edit == null) return;
     Navigator.of(context).pop();
     WidgetsBinding.instance.addPostFrameCallback((_) => edit());
+  }
+
+  void _convertToPdf(BuildContext context) {
+    final convert = onConvertToPdf;
+    if (convert == null) return;
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) => convert());
   }
 
   @override
@@ -713,6 +732,42 @@ class _ImagePreviewPage extends StatelessWidget {
           ),
         ],
       ),
+      bottomNavigationBar: onConvertToPdf == null
+          ? null
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: CustomGlassButton(
+                  key: const ValueKey('image-preview-convert-to-pdf'),
+                  semanticLabel: 'note_editor_convert_to_pdf'.tr,
+                  onPressed: () => _convertToPdf(context),
+                  height: 48,
+                  borderRadius: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        CupertinoIcons.doc_richtext,
+                        color: theme.primaryColor,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'note_editor_convert_to_pdf'.tr,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: theme.primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
       body: SafeArea(
         top: false,
         child: Center(

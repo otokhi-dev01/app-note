@@ -77,6 +77,28 @@ class FolderController extends GetxController {
   void toggleNotesSection() =>
       isNotesSectionExpanded.value = !isNotesSectionExpanded.value;
 
+  /// Resolves live parent folders in order, including nested folder records.
+  List<Folder> resolveFolderPath(int folderId, {Folder? fallback}) {
+    final byId = <int, Folder>{};
+    void collect(Iterable<Folder> folders) {
+      for (final folder in folders) {
+        byId[folder.id] = folder;
+        collect(folder.subFolders);
+      }
+    }
+
+    collect(folders);
+    final reversedPath = <Folder>[];
+    final visited = <int>{};
+    Folder? current = byId[folderId] ?? fallback;
+    while (current != null && visited.add(current.id)) {
+      reversedPath.add(current);
+      final parentId = current.parentId;
+      current = parentId == null || parentId == 0 ? null : byId[parentId];
+    }
+    return reversedPath.reversed.toList(growable: false);
+  }
+
   bool isFolderExpanded(int folderId) => !collapsedFolderIds.contains(folderId);
 
   void toggleFolderExpanded(int folderId) {
@@ -277,6 +299,11 @@ class FolderController extends GetxController {
 
   void createNewNote() => _openNewNote();
 
+  /// "Albums" quick action: opens a brand-new note that immediately prompts
+  /// the photo library, converts whatever gets picked into a single PDF, and
+  /// shows it inserted in the note.
+  void createNoteFromAlbum() => _openNewNote(fromAlbum: true);
+
   Future<void> saveRecordedAudio({
     required String filePath,
     required String displayName,
@@ -319,7 +346,7 @@ class FolderController extends GetxController {
     );
   }
 
-  void _openNewNote({bool autoRecord = false}) {
+  void _openNewNote({bool autoRecord = false, bool fromAlbum = false}) {
     if (folders.isEmpty) {
       AppSnackbar.info(
         'No folders yet',
@@ -330,9 +357,11 @@ class FolderController extends GetxController {
 
     final defaultFolder = _defaultNoteFolder!;
 
-    NoteNavigation.toNewNote(defaultFolder.id, autoRecord: autoRecord)?.then((
-      value,
-    ) {
+    final opened = fromAlbum
+        ? NoteNavigation.toNewNoteFromAlbumPdf(defaultFolder.id)
+        : NoteNavigation.toNewNote(defaultFolder.id, autoRecord: autoRecord);
+
+    opened?.then((value) {
       if (value == true) fetchFolders(refresh: true);
     });
   }
