@@ -89,13 +89,12 @@ void main() {
     },
   );
 
-  for (final mode in ['camera', 'gallery', 'gallery-pdf']) {
-    final fromGallery = mode != 'camera';
-    final asPdf = mode == 'gallery-pdf';
+  for (final mode in ['camera', 'gallery']) {
+    final fromGallery = mode == 'gallery';
     test(
-      asPdf
-          ? 'Create Note Albums automatically inserts selected images as a PDF'
-          : '$mode scans keep full images in page order',
+      fromGallery
+          ? 'Albums automatically inserts selected images as a PDF'
+          : 'Scan Documents automatically inserts captured pages as a PDF',
       () async {
         final directory = await Directory.systemTemp.createTemp('scan-images-');
         final sources = [
@@ -135,7 +134,7 @@ void main() {
         });
 
         if (fromGallery) {
-          await controller.scanDocumentsFromGallery(asPdf: asPdf);
+          await controller.scanDocumentsFromGallery();
           expect(pickerCall?.method, 'pickMultiImage');
           final options = pickerCall!.arguments as Map<Object?, Object?>;
           expect(options['maxWidth'], isNull);
@@ -148,37 +147,92 @@ void main() {
         final attachments = controller.blocks
             .whereType<AttachmentBlock>()
             .toList();
-        if (asPdf) {
-          expect(attachments, hasLength(1));
-          final document = attachments.single;
-          expect(document.displayName, endsWith('.pdf'));
-          final bytes = await File(document.localPath!).readAsBytes();
-          expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
-          final storedPages = await findPdfSourcePages(document.id);
-          expect(storedPages, hasLength(2));
-          for (var index = 0; index < storedPages.length; index++) {
-            expect(
-              File(storedPages[index]).readAsBytesSync(),
-              originalBytes[index],
-            );
-            expect(sources[index].existsSync(), isTrue);
-          }
-          expect(controller.blocks.last, isA<TextBlock>());
-          return;
-        }
-        expect(attachments, hasLength(2));
-        expect(attachments[0].displayName, endsWith(' 1.png'));
-        expect(attachments[1].displayName, endsWith(' 2.jpg'));
-        for (var index = 0; index < attachments.length; index++) {
-          final saved = File(attachments[index].localPath!);
-          expect(saved.path, isNot(sources[index].path));
-          expect(await saved.readAsBytes(), originalBytes[index]);
+        expect(attachments, hasLength(1));
+        final document = attachments.single;
+        expect(document.displayName, endsWith('.pdf'));
+        final bytes = await File(document.localPath!).readAsBytes();
+        expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+        final storedPages = await findPdfSourcePages(document.id);
+        expect(storedPages, hasLength(2));
+        for (var index = 0; index < storedPages.length; index++) {
+          expect(
+            File(storedPages[index]).readAsBytesSync(),
+            originalBytes[index],
+          );
+          // Gallery-picked originals are left where the picker put them;
+          // captured scan pages are temporary staging files Scan Documents
+          // deletes once its PDF has copied their bytes into permanent
+          // storage.
           expect(sources[index].existsSync(), fromGallery);
         }
         expect(controller.blocks.last, isA<TextBlock>());
       },
     );
   }
+
+  test(
+    'Choose Photo/Video bundles picked photos into one PDF but keeps '
+    'videos separate',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'media-attachment-',
+      );
+      final imageSources = [
+        await File(
+          'assets/icons/piisiit_logo_mark.png',
+        ).copy('${directory.path}/page-1.png'),
+        await File(
+          'assets/icons/piisiit_logo_cover.jpg',
+        ).copy('${directory.path}/page-2.jpg'),
+      ];
+      final videoSource = await File(
+        'assets/icons/piisiit_logo_mark.png',
+      ).copy('${directory.path}/clip.mp4');
+
+      const channel = MethodChannel('plugins.flutter.io/image_picker');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            channel,
+            (_) async => [
+              imageSources[0].path,
+              imageSources[1].path,
+              videoSource.path,
+            ],
+          );
+      final controller = _createController();
+      controller.isSaving.value = true;
+      addTearDown(() async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+        for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+          final file = File(block.localPath!);
+          if (file.existsSync()) await file.delete();
+          await deletePdfFiles(block.id);
+        }
+        await directory.delete(recursive: true);
+      });
+
+      await controller.addMediaAttachment();
+
+      final attachments = controller.blocks
+          .whereType<AttachmentBlock>()
+          .toList();
+      expect(attachments, hasLength(2));
+
+      final document = attachments[0];
+      expect(document.displayName, endsWith('.pdf'));
+      final bytes = await File(document.localPath!).readAsBytes();
+      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+      final storedPages = await findPdfSourcePages(document.id);
+      expect(storedPages, hasLength(2));
+
+      final video = attachments[1];
+      expect(video.displayName, endsWith('.mp4'));
+      expect(await File(video.localPath!).readAsBytes(), isNotEmpty);
+
+      expect(controller.blocks.last, isA<TextBlock>());
+    },
+  );
 
   testWidgets(
     'Albums shows the automatic PDF on Create Note without a keyboard',

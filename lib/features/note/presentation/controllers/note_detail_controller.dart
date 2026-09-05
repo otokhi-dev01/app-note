@@ -176,7 +176,7 @@ class NoteDetailController extends GetxController {
     }
     if (_autoAlbumPdfRequested) {
       _autoAlbumPdfRequested = false;
-      unawaited(scanDocumentsFromGallery(asPdf: true));
+      unawaited(scanDocumentsFromGallery());
     }
   }
 
@@ -880,6 +880,10 @@ class NoteDetailController extends GetxController {
   /// that can return several photos and videos in any mix, unlike
   /// [addAttachment] which is locked to whichever `isVideo` says before the
   /// picker even opens and returns at most one file.
+  ///
+  /// Picked photos are bundled into a single auto-converted PDF, same as
+  /// Albums ([scanDocumentsFromGallery]); a video can't become a PDF page,
+  /// so any picked videos are still attached individually.
   Future<void> addMediaAttachment() async {
     if (isReadOnly.value) return;
 
@@ -887,7 +891,23 @@ class NoteDetailController extends GetxController {
       final files = await _picker.pickMultipleMedia(imageQuality: 80);
       if (files.isEmpty) return;
 
+      final imagePaths = <String>[];
+      final otherFiles = <XFile>[];
       for (final file in files) {
+        if (_looksLikeImageName(file.name)) {
+          imagePaths.add(file.path);
+        } else {
+          otherFiles.add(file);
+        }
+      }
+
+      if (imagePaths.isNotEmpty) {
+        await _buildPdfAttachmentBlock(
+          imagePaths,
+          title: 'note_editor_scanned_document_default_title'.tr,
+        );
+      }
+      for (final file in otherFiles) {
         final id = _generateId();
         final persistedPath = await _persistAttachment(file.path, id);
         _insertBlock(
@@ -941,8 +961,8 @@ class NoteDetailController extends GetxController {
   }
 
   /// Opens cunning_document_scanner's native scanner. This mode provides
-  /// edge detection, cropping, and automatic capture. Completed pages
-  /// are inserted as full-size images, one attachment per page.
+  /// edge detection, cropping, and automatic capture. Completed pages are
+  /// bundled and inserted automatically as one PDF, same as Albums.
   Future<void> scanDocuments() async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
@@ -953,7 +973,7 @@ class NoteDetailController extends GetxController {
 
       try {
         final title = 'note_editor_scanned_document_default_title'.tr;
-        await _insertScannedDocumentImages(pages, title: title);
+        await _insertScannedDocumentPdf(pages, title: title);
       } finally {
         await _deleteTemporaryScanPaths(pages);
       }
@@ -965,23 +985,20 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  /// "Albums" selects gallery images. Create Note requests a PDF so the
-  /// selected images are inserted automatically as one document in page order.
-  Future<void> scanDocumentsFromGallery({bool asPdf = false}) async {
+  /// "Albums" selects gallery images and inserts them automatically as one
+  /// PDF document in page order — never as separate image blocks, and with
+  /// no manual "Convert to PDF" step in between.
+  Future<void> scanDocumentsFromGallery() async {
     if (isReadOnly.value || _isScanFlowOpen) return;
 
     _isScanFlowOpen = true;
-    if (asPdf) FocusManager.instance.primaryFocus?.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
     try {
       final pages = await _chooseDocumentPages();
       if (pages.isEmpty) return;
 
       final title = 'note_editor_scanned_document_default_title'.tr;
-      if (asPdf) {
-        await _insertScannedDocumentPdf(pages, title: title);
-      } else {
-        await _insertScannedDocumentImages(pages, title: title);
-      }
+      await _insertScannedDocumentPdf(pages, title: title);
     } catch (e) {
       debugPrint('[SCAN DOCS FROM GALLERY ERROR] $e');
       AppSnackbar.error('Error', 'Could not add those photos');
@@ -1034,6 +1051,32 @@ class NoteDetailController extends GetxController {
     List<String> pages, {
     required String title,
   }) async {
+    await _buildPdfAttachmentBlock(pages, title: title);
+    blocks.refresh();
+    addTextBlock();
+    FocusManager.instance.primaryFocus?.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final previewContext = importedPdfPreviewKey.currentContext;
+      if (previewContext == null || !previewContext.mounted) return;
+      unawaited(
+        Scrollable.ensureVisible(
+          previewContext,
+          alignment: 0.1,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        ),
+      );
+    });
+    unawaited(saveNote(silent: true));
+  }
+
+  /// Builds a multi-page PDF from [pages] and inserts it as one attachment
+  /// block — the shared core behind every auto-convert-to-PDF entry point
+  /// (Scan Documents, Albums, and the photos picked via Choose Photo/Video).
+  Future<void> _buildPdfAttachmentBlock(
+    List<String> pages, {
+    required String title,
+  }) async {
     final id = 'scan_${_generateId()}';
     late final String pdfPath;
     try {
@@ -1058,62 +1101,6 @@ class NoteDetailController extends GetxController {
         attachmentId: 0,
       ),
     );
-    blocks.refresh();
-    addTextBlock();
-    FocusManager.instance.primaryFocus?.unfocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final previewContext = importedPdfPreviewKey.currentContext;
-      if (previewContext == null || !previewContext.mounted) return;
-      unawaited(
-        Scrollable.ensureVisible(
-          previewContext,
-          alignment: 0.1,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        ),
-      );
-    });
-    unawaited(saveNote(silent: true));
-  }
-
-  Future<void> _insertScannedDocumentImages(
-    List<String> pages, {
-    required String title,
-  }) async {
-    final attachments = <AttachmentBlock>[];
-    try {
-      // Copy every page before inserting any blocks. Keep the original image
-      // bytes and dimensions instead of fitting them onto a PDF paper size.
-      for (var index = 0; index < pages.length; index++) {
-        final id = 'scan_${_generateId()}';
-        final path = await _persistAttachment(
-          pages[index],
-          id,
-          forceCopy: true,
-        );
-        final extension = path.split('/').last.split('.').last;
-        attachments.add(
-          AttachmentBlock(
-            id: id,
-            displayName: '$title ${index + 1}.$extension',
-            localPath: path,
-            attachmentId: 0,
-          ),
-        );
-      }
-    } catch (_) {
-      await _deleteTemporaryScanPaths(
-        attachments.map((attachment) => attachment.localPath!),
-      );
-      rethrow;
-    }
-
-    for (final attachment in attachments) {
-      _insertBlock(attachment);
-    }
-    blocks.refresh();
-    addTextBlock(requestFocus: true);
-    unawaited(saveNote(silent: true));
   }
 
   Future<List<String>> _materializeScanPages(List<String> rawPaths) async {
