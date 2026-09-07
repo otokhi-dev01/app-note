@@ -15,7 +15,6 @@ import 'package:Note/features/settings/presentation/widgets/preference_actions.d
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/language_popup.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 /// Stable access to the Folders scaffold that hosts the Settings drawer.
@@ -119,15 +118,17 @@ class SettingsDrawer extends GetView<ProfileController> {
                           reopenSettingsOnReturn: true,
                         ),
                       ),
-                      LanguagePopup(
-                        triggerBuilder: (context, toggleMenu) => _buildRow(
+                      _buildRow(
+                        context,
+                        leading: _buildFlagIconBadge(
+                          LanguagePreferences().language.flag,
+                        ),
+                        title: 'language_title'.tr,
+                        trailingText: LanguagePreferences().language.label,
+                        onTap: () => _closeThenGo(
                           context,
-                          leading: _buildFlagIconBadge(
-                            LanguagePreferences().language.flag,
-                          ),
-                          title: 'language_title'.tr,
-                          trailingText: LanguagePreferences().language.label,
-                          onTap: toggleMenu,
+                          Routes.LANGUAGE,
+                          reopenSettingsOnReturn: true,
                         ),
                       ),
                       _buildRow(
