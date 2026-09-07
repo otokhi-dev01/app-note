@@ -470,6 +470,7 @@ class _ImageTileState extends State<_ImageTile> {
           fixedTitle: 'note_editor_image_fallback_name'.tr,
           isReadOnly: widget.isReadOnly,
           onChanged: widget.onTitleChanged,
+          onExpand: _showContextMenu,
         ),
         Semantics(
           button: true,

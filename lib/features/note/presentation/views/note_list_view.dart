@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/features/note/presentation/controllers/note_controller.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
@@ -16,6 +17,7 @@ import 'package:Note/features/folder/presentation/controllers/folder_controller.
 import 'package:Note/features/folder/presentation/widgets/folder_create_modal.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_breadcrumb.dart';
+import 'package:Note/shared/widgets/swipe_move_delete_actions.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/utils/note_grouping.dart';
 
@@ -298,10 +300,16 @@ class NoteListView extends GetView<NoteController> {
                   borderRadius: 30,
                   children: [
                     for (int index = 0; index < children.length; index++) ...[
-                      _FolderContentTile(
-                        folder: children[index],
-                        onTap: () =>
-                            _openSubfolder(children[index], currentFolder),
+                      SwipeMoveDeleteActions(
+                        onMove: () =>
+                            folderController.onMoveFolder(children[index]),
+                        onDelete: () =>
+                            folderController.onDeleteFolder(children[index]),
+                        child: _FolderContentTile(
+                          folder: children[index],
+                          onTap: () =>
+                              _openSubfolder(children[index], currentFolder),
+                        ),
                       ),
                       if (index < children.length - 1)
                         const Divider(indent: 64, height: 1, thickness: 0.5),
@@ -347,6 +355,23 @@ class NoteListView extends GetView<NoteController> {
     await controller.fetchNotes(folderId: child.id);
     await route;
     await controller.fetchNotes(folderId: parent.id, refresh: true);
+  }
+
+  /// Swipe-to-move for a single note tile — same "select just this one, then
+  /// run the bulk mover" trick [NoteItemContextMenu] uses for its Move item,
+  /// so both entry points share one move flow and one folder picker UI.
+  void _moveNote(BuildContext context, Note note, int folderId) {
+    controller.selectOnly(note.id);
+    controller.moveSelectedNotes(context, folderId);
+  }
+
+  /// Swipe-to-delete for a single note tile — mirrors [NoteItemContextMenu]'s
+  /// Delete item: confirm, then reuse the bulk delete path for just this one.
+  Future<void> _deleteNote(Note note, int folderId) async {
+    if (await AppDialogs.confirmDeleteNotes(1)) {
+      controller.selectOnly(note.id);
+      await controller.deleteSelectedNotes(folderId);
+    }
   }
 
   Widget _buildNoteGrid(BuildContext context, int folderId) {
@@ -563,11 +588,17 @@ class NoteListView extends GetView<NoteController> {
                       borderRadius: 30,
                       children: [
                         for (int i = 0; i < pinnedNotes.length; i++) ...[
-                          NoteListTile(
-                            note: pinnedNotes[i],
-                            folderId: folderId,
-                            controller: controller,
-                            showChevron: !isFolderContent,
+                          SwipeMoveDeleteActions(
+                            onMove: () =>
+                                _moveNote(context, pinnedNotes[i], folderId),
+                            onDelete: () =>
+                                _deleteNote(pinnedNotes[i], folderId),
+                            child: NoteListTile(
+                              note: pinnedNotes[i],
+                              folderId: folderId,
+                              controller: controller,
+                              showChevron: !isFolderContent,
+                            ),
                           ),
                           if (i < pinnedNotes.length - 1)
                             const Divider(indent: 56, height: 1),
@@ -630,11 +661,16 @@ class NoteListView extends GetView<NoteController> {
             borderRadius: 30,
             children: [
               for (int i = 0; i < sectionNotes.length; i++) ...[
-                NoteListTile(
-                  note: sectionNotes[i],
-                  folderId: folderId,
-                  controller: controller,
-                  showChevron: !isFolderContent,
+                SwipeMoveDeleteActions(
+                  onMove: () =>
+                      _moveNote(context, sectionNotes[i], folderId),
+                  onDelete: () => _deleteNote(sectionNotes[i], folderId),
+                  child: NoteListTile(
+                    note: sectionNotes[i],
+                    folderId: folderId,
+                    controller: controller,
+                    showChevron: !isFolderContent,
+                  ),
                 ),
                 if (i < sectionNotes.length - 1)
                   const Divider(indent: 56, height: 1),

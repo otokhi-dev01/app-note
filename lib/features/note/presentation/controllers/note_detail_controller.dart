@@ -2262,6 +2262,7 @@ class NoteDetailController extends GetxController {
 
     try {
       await _replaceAttachmentClipboard(block);
+      await _mirrorImageToSystemClipboard(block);
       if (showFeedback) {
         AppSnackbar.success('note_editor_attachment_copied'.tr);
       }
@@ -2285,6 +2286,7 @@ class NoteDetailController extends GetxController {
 
     try {
       await _replaceAttachmentClipboard(block);
+      await _mirrorImageToSystemClipboard(block);
       deleteBlock(index);
       await saveNote(silent: true);
       AppSnackbar.success('note_editor_attachment_cut'.tr);
@@ -2550,6 +2552,39 @@ class NoteDetailController extends GetxController {
         folder: 'note_clipboard',
       ),
     );
+  }
+
+  /// Mirrors a copied/cut image onto the OS clipboard too, best-effort.
+  ///
+  /// [_replaceAttachmentClipboard] only populates this app's own in-memory
+  /// clipboard, which lets Paste bring the attachment back into *this* note
+  /// (or another one) but never reaches outside the app. Pasting already
+  /// falls back to the system clipboard when it holds an image (see
+  /// [pasteClipboardContent]), so without this, copying an image here could
+  /// only ever be pasted back into a note — never into Photos, Messages, or
+  /// any other app. This closes that gap for actual images; PDFs, videos,
+  /// and other files aren't image data the OS clipboard can hold, so those
+  /// stay in-app only. Failures here are swallowed since the in-app
+  /// clipboard copy above already succeeded and that's what matters most.
+  Future<void> _mirrorImageToSystemClipboard(AttachmentBlock block) async {
+    if (!_looksLikeImageName(block.displayName)) return;
+    final path = normalizeLocalPath(_attachmentClipboard?.localPath);
+    if (path == null) return;
+
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return;
+
+      final bridge = QuillNativeBridge();
+      final supported = await bridge.isSupported(
+        QuillNativeBridgeFeature.copyImageToClipboard,
+      );
+      if (!supported) return;
+
+      await bridge.copyImageToClipboard(await file.readAsBytes());
+    } catch (error) {
+      debugPrint('[SYSTEM CLIPBOARD COPY ERROR] $error');
+    }
   }
 
   void deleteBlock(int index) {

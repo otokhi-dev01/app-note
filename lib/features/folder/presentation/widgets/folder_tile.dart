@@ -9,6 +9,7 @@ import 'package:Note/features/folder/presentation/widgets/folder_context_menu.da
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_glass_icon.dart';
+import 'package:Note/shared/widgets/swipe_move_delete_actions.dart';
 
 class FolderTile extends StatefulWidget {
   final Folder folder;
@@ -44,7 +45,7 @@ class _FolderTileState extends State<FolderTile> {
       final isSystem = controller.isSystemFolder(folder);
       final isShortView = controller.viewMode.value == 'short';
 
-      return Stack(
+      final tile = Stack(
         children: [
           Opacity(
             opacity: (isEditing && isSystem) ? 0.3 : 1.0,
@@ -153,6 +154,16 @@ class _FolderTileState extends State<FolderTile> {
             ),
           ),
         ],
+      );
+
+      // System folders can't be moved or deleted, and edit mode already has
+      // its own reorder/"..." trailing controls — so swipe stays off there.
+      if (isSystem || isEditing) return tile;
+
+      return SwipeMoveDeleteActions(
+        onMove: () => controller.onMoveFolder(folder),
+        onDelete: () => controller.onDeleteFolder(folder),
+        child: tile,
       );
     });
   }

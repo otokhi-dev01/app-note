@@ -445,6 +445,7 @@ const Map<String, String> enUS = {
   'note_editor_pdf_fallback_name': 'PDF',
   'note_editor_edit_media_title': 'Edit Title',
   'note_editor_media_title_hint': 'Media title',
+  'note_editor_media_options_hint': 'Show options',
   'note_editor_write_before_image': 'Write before image',
   'note_editor_write_after_image': 'Write after image',
   'note_editor_write_before_video': 'Write before video',

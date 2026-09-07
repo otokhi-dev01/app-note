@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 
+import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/folder/presentation/controllers/folder_controller.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -59,9 +60,9 @@ class FolderViewMenu extends StatelessWidget {
           const lg.GlassMenuDivider(),
           lg.GlassMenuItem(
             title: 'language_title'.tr,
-            icon: const Icon(
-              CupertinoIcons.globe,
-              color: IosSemanticColors.blue,
+            icon: Text(
+              LanguagePreferences().language.flag,
+              style: const TextStyle(fontSize: 20),
             ),
             trailing: Icon(
               CupertinoIcons.chevron_forward,

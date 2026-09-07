@@ -446,6 +446,7 @@ const Map<String, String> kmKH = {
   'note_editor_pdf_fallback_name': 'ឯកសារ PDF',
   'note_editor_edit_media_title': 'កែចំណងជើង',
   'note_editor_media_title_hint': 'ចំណងជើងមេឌៀ',
+  'note_editor_media_options_hint': 'បង្ហាញជម្រើស',
   'note_editor_write_before_image': 'សរសេរមុនរូបភាព',
   'note_editor_write_after_image': 'សរសេរបន្ទាប់ពីរូបភាព',
   'note_editor_write_before_video': 'សរសេរមុនវីដេអូ',
