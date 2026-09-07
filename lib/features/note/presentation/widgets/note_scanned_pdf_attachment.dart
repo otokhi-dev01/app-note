@@ -380,6 +380,7 @@ class _NotePdfAttachmentState extends State<NotePdfAttachment> {
           isReadOnly: widget.isReadOnly,
           onChanged: (title) =>
               widget.controller.updateAttachmentTitle(widget.blockIndex, title),
+          onExpand: _showContextMenu,
         ),
         Semantics(
           button: true,

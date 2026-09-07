@@ -122,8 +122,9 @@ class SettingsDrawer extends GetView<ProfileController> {
                       LanguagePopup(
                         triggerBuilder: (context, toggleMenu) => _buildRow(
                           context,
-                          icon: CupertinoIcons.globe,
-                          iconColor: _iosBlue,
+                          leading: _buildFlagIconBadge(
+                            LanguagePreferences().language.flag,
+                          ),
                           title: 'language_title'.tr,
                           trailingText: LanguagePreferences().language.label,
                           onTap: toggleMenu,
@@ -655,6 +656,24 @@ class SettingsDrawer extends GetView<ProfileController> {
       glowIntensity: 0.18,
       alignment: Alignment.center,
       child: Icon(icon, size: 18, color: Colors.white),
+    );
+  }
+
+  /// Same badge shell as [_buildGlassIconBadge], but for the Language row's
+  /// flag glyph — a neutral tint instead of a solid color, since the flag
+  /// already carries its own colors.
+  Widget _buildFlagIconBadge(String flag) {
+    return CustomGlassContainer(
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      blur: 12,
+      opacity: 0.3,
+      thickness: 8,
+      refractiveIndex: 1.1,
+      glassColor: _iosGray.withValues(alpha: 0.18),
+      alignment: Alignment.center,
+      child: Text(flag, style: const TextStyle(fontSize: 20)),
     );
   }
 

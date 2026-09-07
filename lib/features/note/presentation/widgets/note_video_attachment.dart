@@ -258,6 +258,7 @@ class _NoteVideoAttachmentState extends State<NoteVideoAttachment> {
               widget.blockIndex,
               title,
             ),
+            onExpand: _showContextMenu,
           ),
           Semantics(
             button: true,

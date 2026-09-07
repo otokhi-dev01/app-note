@@ -11,6 +11,12 @@ class NoteMediaTitle extends StatelessWidget {
   final bool isReadOnly;
   final ValueChanged<String> onChanged;
 
+  /// Opens the same long-press context menu the attachment itself uses
+  /// (its preview + Move/Copy/Delete-style actions). When set, a chevron
+  /// button appears at the end of the title row as a discoverable,
+  /// tap-instead-of-hold way to reach that same menu.
+  final VoidCallback? onExpand;
+
   const NoteMediaTitle({
     super.key,
     required this.displayName,
@@ -18,6 +24,7 @@ class NoteMediaTitle extends StatelessWidget {
     this.fixedTitle,
     required this.isReadOnly,
     required this.onChanged,
+    this.onExpand,
   });
 
   @override
@@ -67,6 +74,26 @@ class NoteMediaTitle extends StatelessWidget {
                   CupertinoIcons.pencil,
                   size: 14,
                   color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ],
+              if (onExpand != null) ...[
+                const SizedBox(width: 4),
+                Semantics(
+                  button: true,
+                  label: 'note_editor_media_options_hint'.tr,
+                  child: InkWell(
+                    key: ValueKey('media-title-expand-$displayName'),
+                    onTap: onExpand,
+                    borderRadius: BorderRadius.circular(14),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        CupertinoIcons.chevron_down,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ],
