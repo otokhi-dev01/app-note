@@ -23,10 +23,8 @@ class FolderCreateLogic extends GetxController {
   final String sectionKeyword;
   final FolderController mainController;
 
-  /// How to leave on cancel, rename, or a save with [closeAfterSave].
-  /// Creation otherwise stays open with a cleared form.
+  /// Optional completion action after saving or cancelling.
   final VoidCallback? onDone;
-  final bool closeAfterSave;
 
   FolderCreateLogic({
     this.folder,
@@ -34,7 +32,6 @@ class FolderCreateLogic extends GetxController {
     this.sectionKeyword = '',
     required this.mainController,
     this.onDone,
-    this.closeAfterSave = false,
   });
 
   late final TextEditingController nameController;
@@ -135,7 +132,7 @@ class FolderCreateLogic extends GetxController {
           (f) => f.id == selectedParentId.value,
         );
 
-  /// Save before clearing the draft or completing a caller-managed flow.
+  /// Close the screen only after the folder has been saved successfully.
   Future<void> save() async {
     final typedName = folderName.value.trim();
     if (typedName.isEmpty || isSaving.value) return;
@@ -163,32 +160,11 @@ class FolderCreateLogic extends GetxController {
       );
 
       if (savedId != null && !isClosed) {
-        if (isRenaming || closeAfterSave) {
-          cancel();
-        } else {
-          _resetForNextFolder(newlyCreatedId: savedId);
-        }
+        cancel();
       }
     } finally {
       isSaving.value = false;
     }
-  }
-
-  /// Clear the saved draft and prepare to create a child of the new folder.
-  void _resetForNextFolder({required int newlyCreatedId}) {
-    selectedParentId.value = newlyCreatedId;
-    folderName.value = '';
-    nameController.clear();
-    iconName.value = FolderAppearance.defaultIconName;
-    colorValue.value = FolderAppearance.defaultColorValue;
-
-    HapticFeedback.lightImpact();
-
-    _focusTimer = Timer(const Duration(milliseconds: 80), () {
-      if (nameFocusNode.canRequestFocus) {
-        nameFocusNode.requestFocus();
-      }
-    });
   }
 
   void cancel() {
@@ -197,8 +173,9 @@ class FolderCreateLogic extends GetxController {
     if (onDone != null) {
       onDone!();
     } else {
-      // Navigate back to folder view — same as save() for consistency
-      Get.until((route) => route.settings.name == '/folder');
+      // Pop the page directly: Get.back() can dismiss the success snackbar
+      // instead of closing the form.
+      Get.key.currentState?.pop();
     }
   }
 
@@ -217,7 +194,6 @@ class FolderCreateModal extends StatefulWidget {
   final String sectionKeyword;
   final FolderController controller;
   final VoidCallback? onDone;
-  final bool closeAfterSave;
 
   const FolderCreateModal({
     super.key,
@@ -226,7 +202,6 @@ class FolderCreateModal extends StatefulWidget {
     this.sectionKeyword = '',
     required this.controller,
     this.onDone,
-    this.closeAfterSave = false,
   });
 
   @override
@@ -247,7 +222,6 @@ class _FolderCreateModalState extends State<FolderCreateModal>
       sectionKeyword: widget.sectionKeyword,
       mainController: widget.controller,
       onDone: widget.onDone,
-      closeAfterSave: widget.closeAfterSave,
     )..onStart();
 
     _entrance = AnimationController(

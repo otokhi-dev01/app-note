@@ -132,9 +132,6 @@ class NoteListView extends GetView<NoteController> {
       () => FolderCreateModal(
         controller: folderController,
         parentId: folderId == 0 ? null : folderId,
-        // This modal is nested inside the folder-content route. Return here
-        // on cancel; successful creation clears the form for another subfolder.
-        onDone: () => Get.back(),
       ),
       fullscreenDialog: true,
       transition: Transition.cupertino,

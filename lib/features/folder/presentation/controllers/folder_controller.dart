@@ -286,12 +286,6 @@ class FolderController extends GetxController {
         case Ok(:final value):
           await fetchFolders(refresh: true);
           isEditing.value = false;
-          AppSnackbar.success(
-            'Success',
-            id == 0
-                ? 'Folder created successfully'
-                : 'Folder updated successfully',
-          );
           return value;
         case Err(:final failure):
           AppSnackbar.failure('Unable to save folder', failure);

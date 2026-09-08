@@ -59,8 +59,7 @@ void main() {
   Future<void> openForm(
     WidgetTester tester,
     _FolderController controller, {
-    required VoidCallback onDone,
-    bool closeAfterSave = false,
+    VoidCallback? onDone,
   }) async {
     await tester.pumpWidget(
       LiquidGlassWidgets.wrap(
@@ -68,12 +67,17 @@ void main() {
         child: GetMaterialApp(
           translations: AppTranslations(),
           locale: const Locale('en', 'US'),
-          home: FolderCreateModal(
-            controller: controller,
-            parentId: 7,
-            onDone: onDone,
-            closeAfterSave: closeAfterSave,
-          ),
+          home: const Scaffold(body: Text('Folder list')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    unawaited(
+      Get.to<void>(
+        () => FolderCreateModal(
+          controller: controller,
+          parentId: 7,
+          onDone: onDone,
         ),
       ),
     );
@@ -81,12 +85,11 @@ void main() {
     await tester.enterText(find.byType(EditableText), 'Projects');
   }
 
-  testWidgets('check saves once then clears the form and keeps it open', (
+  testWidgets('check saves once then dismisses the form and keyboard', (
     tester,
   ) async {
     final controller = _FolderController();
-    var doneCount = 0;
-    await openForm(tester, controller, onDone: () => doneCount++);
+    await openForm(tester, controller);
     final field = tester.widget<EditableText>(find.byType(EditableText));
 
     await tester.tap(find.byIcon(CupertinoIcons.checkmark).first);
@@ -98,19 +101,17 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     expect(controller.saveCount, 1);
 
+    // A save success snackbar must not consume the page dismissal.
+    Get.snackbar('Success', 'Folder created successfully');
+    await tester.pump();
     controller.result.complete(42);
     await tester.pumpAndSettle();
-    expect(find.byType(FolderCreateModal), findsOneWidget);
-    expect(field.controller.text, isEmpty);
-    expect(doneCount, 0);
-    expect(find.text('New Folder'), findsNWidgets(2));
-
-    await tester.enterText(find.byType(EditableText), 'Child');
-    await tester.pump();
-    await tester.tap(find.byIcon(CupertinoIcons.checkmark).first);
+    expect(find.byType(FolderCreateModal), findsNothing);
+    expect(find.text('Folder list'), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(controller.saveCount, 1);
+    await tester.pump(const Duration(seconds: 3));
     await tester.pumpAndSettle();
-    expect(controller.savedParentId, 42);
-    expect(controller.saveCount, 2);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -137,13 +138,16 @@ void main() {
     await openForm(
       tester,
       controller,
-      onDone: () => doneCount++,
-      closeAfterSave: true,
+      onDone: () {
+        doneCount++;
+        Get.key.currentState!.pop();
+      },
     );
     await tester.tap(find.byIcon(CupertinoIcons.checkmark).first);
     controller.result.complete(42);
     await tester.pumpAndSettle();
     expect(doneCount, 1);
+    expect(find.byType(FolderCreateModal), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 }
