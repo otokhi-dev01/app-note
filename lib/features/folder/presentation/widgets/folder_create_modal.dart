@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
@@ -22,11 +23,7 @@ class FolderCreateLogic extends GetxController {
   final String sectionKeyword;
   final FolderController mainController;
 
-  /// How to leave this screen once saved/cancelled. Defaults to popping back
-  /// to the main Folder screen — the right call for every entry point except
-  /// ones nested deeper in the stack (e.g. "New Folder" from the note-move
-  /// picker), which pass their own callback so they land back where they
-  /// were instead of being ejected all the way out.
+  /// Optional completion action after saving or cancelling.
   final VoidCallback? onDone;
 
   FolderCreateLogic({
@@ -39,6 +36,7 @@ class FolderCreateLogic extends GetxController {
 
   late final TextEditingController nameController;
   late final FocusNode nameFocusNode;
+  Timer? _focusTimer;
 
   final folderName = ''.obs;
   final isSaving = false.obs;
@@ -72,17 +70,20 @@ class FolderCreateLogic extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    selectedParentId.value = folder?.parentId ?? parentId;
     final strippedName = folder == null
         ? ''
         : mainController.stripSectionKeyword(folder!.name);
     final initialName = folder == null
-        ? mainController.nextNewFolderName()
+        ? mainController.nextNewFolderName(
+            parentId: selectedParentId.value,
+            sectionKeyword: sectionKeyword,
+          )
         : (strippedName.isEmpty ? folder!.name : strippedName);
     folderName.value = initialName;
     nameController = TextEditingController(text: initialName);
     nameController.addListener(() => folderName.value = nameController.text);
     nameFocusNode = FocusNode();
-    selectedParentId.value = folder?.parentId ?? parentId;
 
     // Restore the folder's saved appearance when renaming, so reopening the
     // editor shows the swatch and glyph it was created with.
@@ -90,7 +91,7 @@ class FolderCreateLogic extends GetxController {
     colorValue.value = FolderAppearance.normalizeColor(folder?.colorValue);
 
     // Auto-focus + select all text after screen transition completes
-    Future.delayed(const Duration(milliseconds: 380), () {
+    _focusTimer = Timer(const Duration(milliseconds: 380), () {
       if (nameFocusNode.canRequestFocus) {
         nameFocusNode.requestFocus();
         // Select all text so user can immediately start typing a new name
@@ -104,6 +105,7 @@ class FolderCreateLogic extends GetxController {
 
   @override
   void onClose() {
+    _focusTimer?.cancel();
     nameController.dispose();
     nameFocusNode.dispose();
     super.onClose();
@@ -133,7 +135,7 @@ class FolderCreateLogic extends GetxController {
           (f) => f.id == selectedParentId.value,
         );
 
-  /// FEATURE: ✓ button tapped → save folder → navigate back to folder view
+  /// Close the screen only after the folder has been saved successfully.
   Future<void> save() async {
     final typedName = folderName.value.trim();
     if (typedName.isEmpty || isSaving.value) return;
@@ -146,14 +148,12 @@ class FolderCreateLogic extends GetxController {
         : '$_originalSectionKeyword ${mainController.stripSectionKeyword(typedName)}'
               .trim();
 
+    _focusTimer?.cancel();
     FocusManager.instance.primaryFocus?.unfocus();
     isSaving.value = true;
 
     try {
-      // Reset controller isSaving in case it was stuck from a prior call
-      mainController.isSaving.value = false;
-
-      final success = await mainController.onSaveFolder(
+      final savedId = await mainController.onSaveFolder(
         id: folder?.id ?? 0,
         parentId: selectedParentId.value,
         name: name,
@@ -162,16 +162,8 @@ class FolderCreateLogic extends GetxController {
         sortOrder: folder?.sortOrder,
       );
 
-      if (success) {
-        if (onDone != null) {
-          onDone!();
-        } else {
-          // Pop back to the /folder route rather than a single Get.back():
-          // this screen may sit under nested pushes (e.g. rename opened from
-          // a subfolder several levels deep), and Get.until() unwinds all of
-          // them in one go instead of leaving stragglers in the stack.
-          Get.until((route) => route.settings.name == '/folder');
-        }
+      if (savedId != null && !isClosed) {
+        cancel();
       }
     } finally {
       isSaving.value = false;
@@ -179,12 +171,14 @@ class FolderCreateLogic extends GetxController {
   }
 
   void cancel() {
+    _focusTimer?.cancel();
     FocusManager.instance.primaryFocus?.unfocus();
     if (onDone != null) {
       onDone!();
     } else {
-      // Navigate back to folder view — same as save() for consistency
-      Get.until((route) => route.settings.name == '/folder');
+      // Pop the page directly: Get.back() can dismiss the success snackbar
+      // instead of closing the form.
+      Get.key.currentState?.pop();
     }
   }
 
@@ -225,21 +219,13 @@ class _FolderCreateModalState extends State<FolderCreateModal>
   @override
   void initState() {
     super.initState();
-    final tag = widget.folder != null
-        ? 'rename_${widget.folder!.id}'
-        : (widget.parentId != null
-              ? 'sub_${widget.parentId}'
-              : 'create_${widget.sectionKeyword}');
-    _c = Get.put(
-      FolderCreateLogic(
-        folder: widget.folder,
-        parentId: widget.parentId,
-        sectionKeyword: widget.sectionKeyword,
-        mainController: widget.controller,
-        onDone: widget.onDone,
-      ),
-      tag: tag,
-    );
+    _c = FolderCreateLogic(
+      folder: widget.folder,
+      parentId: widget.parentId,
+      sectionKeyword: widget.sectionKeyword,
+      mainController: widget.controller,
+      onDone: widget.onDone,
+    )..onStart();
 
     _entrance = AnimationController(
       vsync: this,
@@ -254,6 +240,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
   @override
   void dispose() {
     _entrance.dispose();
+    _c.onDelete();
     super.dispose();
   }
 

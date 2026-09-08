@@ -101,7 +101,23 @@ class CunningDocumentCropperViewController: UIViewController {
     
     /// The back button to return to the previous page.
     private let backButton = UIButton(type: .system)
-    
+
+    /// The button (bottom bar, right of Rotate) that enters full-screen mode, hiding the top
+    /// title bar and filter row so the crop image and its handles get more vertical space.
+    private let fullScreenButton = UIButton(type: .system)
+
+    /// The button that exits full-screen mode. Occupies the same bottom-bar slot as
+    /// `fullScreenButton`; the two swap visibility so only one shows at a time.
+    private let exitFullScreenButton = UIButton(type: .system)
+
+    /// Whether the crop editor is currently in full-screen mode (chrome hidden).
+    private var isFullScreen = false
+
+    /// Guards against `handleDone` running twice concurrently. The Done button already
+    /// disables itself while processing, but the swipe-left gesture is a second, independent
+    /// trigger for the same action, so this flag protects against a fast double-swipe.
+    private var isProcessingDone = false
+
     /// The activity spinner shown during background image loading/processing.
     private let activityIndicator = UIActivityIndicatorView(style: .large)
     
@@ -143,6 +159,19 @@ class CunningDocumentCropperViewController: UIViewController {
     /// Whether the filter selector is shown. When false the filter bar collapses to zero height
     /// and every page keeps `defaultFilter`.
     private let showFilterBar: Bool
+
+    /// Pins the image view below the top bar. Active while in the normal (non-full-screen) layout.
+    private var imageViewTopToTopBarConstraint: NSLayoutConstraint!
+
+    /// Pins the image view above the filter bar. Active while in the normal (non-full-screen) layout.
+    private var imageViewBottomToFilterBarConstraint: NSLayoutConstraint!
+
+    /// Pins the image view to the very top of the view, bypassing the top bar. Active in full-screen mode.
+    private var imageViewTopToViewConstraint: NSLayoutConstraint!
+
+    /// Pins the image view to the top of the bottom bar, bypassing the filter bar. Active in
+    /// full-screen mode; the bottom bar itself always stays visible, so this stops just above it.
+    private var imageViewBottomToViewConstraint: NSLayoutConstraint!
 
     /// Initializes a new cropper view controller with a list of images and a localizer.
     /// - Parameters:
@@ -211,7 +240,20 @@ class CunningDocumentCropperViewController: UIViewController {
             self.normBottomRight = self.overlayView.normalizedPoint(fromView: self.overlayView.bottomRight, contentFrame: frame)
         }
         view.addSubview(overlayView)
-        
+
+        // Swipe navigation: lets the user flip between pages without reaching for the small
+        // Back/Done buttons. Swiping left confirms the current crop and advances, exactly like
+        // tapping Done; swiping right returns to the previous page, exactly like tapping Back.
+        // A fast, mostly-horizontal swipe rarely overlaps with the slower, deliberate drags used
+        // to reposition a corner handle, so both gestures coexist on the same view without issue.
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleDone))
+        swipeLeft.direction = .left
+        overlayView.addGestureRecognizer(swipeLeft)
+
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleBack))
+        swipeRight.direction = .right
+        overlayView.addGestureRecognizer(swipeRight)
+
         // Activity Indicator configuration
         activityIndicator.color = .white
         activityIndicator.hidesWhenStopped = true
@@ -269,7 +311,31 @@ class CunningDocumentCropperViewController: UIViewController {
         rotateButton.clipsToBounds = true
         rotateButton.addTarget(self, action: #selector(handleRotate), for: .touchUpInside)
         bottomBar.addSubview(rotateButton)
-        
+
+        // Full Screen Button configuration (bottom bar, right of Rotate).
+        // Lives in the bottom bar itself, which always stays visible, so it (and its
+        // Exit Full Screen counterpart below) remain reachable even while full screen.
+        fullScreenButton.setImage(cornerBracketsIcon(exit: false), for: .normal)
+        fullScreenButton.tintColor = .white
+        fullScreenButton.backgroundColor = UIColor.white.withAlphaComponent(0.15)
+        fullScreenButton.layer.cornerRadius = 22
+        fullScreenButton.clipsToBounds = true
+        fullScreenButton.accessibilityLabel = localize("cunning_document_scanner_fullscreen", "Full Screen")
+        fullScreenButton.addTarget(self, action: #selector(handleEnterFullScreen), for: .touchUpInside)
+        bottomBar.addSubview(fullScreenButton)
+
+        // Exit Full Screen Button configuration. Occupies the exact same slot as
+        // fullScreenButton (right of Rotate); the two swap visibility based on state.
+        exitFullScreenButton.setImage(cornerBracketsIcon(exit: true), for: .normal)
+        exitFullScreenButton.tintColor = .white
+        exitFullScreenButton.backgroundColor = UIColor.white.withAlphaComponent(0.15)
+        exitFullScreenButton.layer.cornerRadius = 22
+        exitFullScreenButton.clipsToBounds = true
+        exitFullScreenButton.isHidden = true
+        exitFullScreenButton.accessibilityLabel = localize("cunning_document_scanner_exit_fullscreen", "Exit Full Screen")
+        exitFullScreenButton.addTarget(self, action: #selector(handleExitFullScreen), for: .touchUpInside)
+        bottomBar.addSubview(exitFullScreenButton)
+
         // Back Button configuration (top-left)
         backButton.setImage(UIImage(systemName: "chevron.left", withConfiguration: config), for: .normal)
         backButton.tintColor = .white
@@ -278,7 +344,7 @@ class CunningDocumentCropperViewController: UIViewController {
         backButton.clipsToBounds = true
         backButton.addTarget(self, action: #selector(handleBack), for: .touchUpInside)
         topBar.addSubview(backButton)
-        
+
         loadCurrentImage()
     }
     
@@ -295,15 +361,37 @@ class CunningDocumentCropperViewController: UIViewController {
         doneButton.translatesAutoresizingMaskIntoConstraints = false
         rotateButton.translatesAutoresizingMaskIntoConstraints = false
         backButton.translatesAutoresizingMaskIntoConstraints = false
+        fullScreenButton.translatesAutoresizingMaskIntoConstraints = false
+        exitFullScreenButton.translatesAutoresizingMaskIntoConstraints = false
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
-        
+
+        // Alternate image view vertical constraints, toggled between normal and full-screen layouts.
+        // In full screen the image goes edge-to-edge at the top (the top/filter bars are hidden)
+        // but its bottom still stops above the bottom bar, which always stays visible.
+        imageViewTopToTopBarConstraint = imageView.topAnchor.constraint(equalTo: topBar.bottomAnchor)
+        imageViewBottomToFilterBarConstraint = imageView.bottomAnchor.constraint(equalTo: filterBar.topAnchor)
+        imageViewTopToViewConstraint = imageView.topAnchor.constraint(equalTo: view.topAnchor)
+        imageViewBottomToViewConstraint = imageView.bottomAnchor.constraint(equalTo: bottomBar.topAnchor)
+
         NSLayoutConstraint.activate([
             // Back Button (Top Bar left)
             backButton.leadingAnchor.constraint(equalTo: topBar.leadingAnchor, constant: 15),
             backButton.centerYAnchor.constraint(equalTo: topBar.centerYAnchor),
             backButton.widthAnchor.constraint(equalToConstant: 44),
             backButton.heightAnchor.constraint(equalToConstant: 44),
-            
+
+            // Full Screen Button and its Exit counterpart (Bottom Bar, right of Rotate).
+            // Both occupy the exact same slot; only one is visible at a time.
+            fullScreenButton.leadingAnchor.constraint(equalTo: rotateButton.trailingAnchor, constant: 16),
+            fullScreenButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            fullScreenButton.widthAnchor.constraint(equalToConstant: 44),
+            fullScreenButton.heightAnchor.constraint(equalToConstant: 44),
+
+            exitFullScreenButton.leadingAnchor.constraint(equalTo: rotateButton.trailingAnchor, constant: 16),
+            exitFullScreenButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            exitFullScreenButton.widthAnchor.constraint(equalToConstant: 44),
+            exitFullScreenButton.heightAnchor.constraint(equalToConstant: 44),
+
             // Activity Indicator
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -351,9 +439,10 @@ class CunningDocumentCropperViewController: UIViewController {
             filterSegmentedControl.leadingAnchor.constraint(equalTo: filterBar.leadingAnchor, constant: 15),
             filterSegmentedControl.trailingAnchor.constraint(equalTo: filterBar.trailingAnchor, constant: -15),
             
-            // Image View (fills space between top and filter bar)
-            imageView.topAnchor.constraint(equalTo: topBar.bottomAnchor),
-            imageView.bottomAnchor.constraint(equalTo: filterBar.topAnchor),
+            // Image View (fills space between top and filter bar in the normal layout;
+            // repinned to the view's own edges in full-screen mode, see handleEnterFullScreen)
+            imageViewTopToTopBarConstraint,
+            imageViewBottomToFilterBarConstraint,
             imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             
@@ -364,7 +453,47 @@ class CunningDocumentCropperViewController: UIViewController {
             overlayView.trailingAnchor.constraint(equalTo: imageView.trailingAnchor)
         ])
     }
-    
+
+    /// Renders the classic "fullscreen" / "fullscreen exit" glyph — four right-angle corner
+    /// brackets forming a square frame — as a tintable template image. SF Symbols has no exact
+    /// match for this style (its closest options are diagonal double-headed arrows), so the
+    /// brackets are hand-drawn here to match the requested look precisely.
+    /// - Parameter exit: `false` draws brackets flush with the icon's outer corners with arms
+    ///   pointing inward (the "enter full screen" look). `true` draws a smaller inset square of
+    ///   brackets with arms pointing outward toward the edges (the "exit full screen" look).
+    private func cornerBracketsIcon(exit: Bool) -> UIImage {
+        let canvas: CGFloat = 24
+        let armLength: CGFloat = exit ? 6 : 7
+        let lineWidth: CGFloat = 2.2
+        let near: CGFloat = exit ? 7 : 2
+        let far: CGFloat = exit ? 17 : 22
+        let arm: CGFloat = exit ? -armLength : armLength
+
+        // Each bracket is described as (vertex, arm endpoint 1, arm endpoint 2).
+        let brackets: [(vertex: CGPoint, arm1: CGPoint, arm2: CGPoint)] = [
+            (CGPoint(x: near, y: near), CGPoint(x: near + arm, y: near), CGPoint(x: near, y: near + arm)), // top-left
+            (CGPoint(x: far, y: near), CGPoint(x: far - arm, y: near), CGPoint(x: far, y: near + arm)),    // top-right
+            (CGPoint(x: near, y: far), CGPoint(x: near + arm, y: far), CGPoint(x: near, y: far - arm)),    // bottom-left
+            (CGPoint(x: far, y: far), CGPoint(x: far - arm, y: far), CGPoint(x: far, y: far - arm))        // bottom-right
+        ]
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: canvas, height: canvas))
+        let image = renderer.image { _ in
+            let path = UIBezierPath()
+            path.lineWidth = lineWidth
+            path.lineCapStyle = .round
+            path.lineJoinStyle = .round
+            for bracket in brackets {
+                path.move(to: bracket.arm1)
+                path.addLine(to: bracket.vertex)
+                path.addLine(to: bracket.arm2)
+            }
+            UIColor.black.setStroke()
+            path.stroke()
+        }
+        return image.withRenderingMode(.alwaysTemplate)
+    }
+
     /// Responds to changes in the filter segmented control.
     @objc private func handleFilterChanged(_ sender: UISegmentedControl) {
         guard currentIndex < images.count, let currentImage = self.currentNormalizedImage else { return }
@@ -396,7 +525,8 @@ class CunningDocumentCropperViewController: UIViewController {
         cancelButton.isEnabled = false
         backButton.isEnabled = false
         filterSegmentedControl.isEnabled = false
-        
+        fullScreenButton.isEnabled = false
+
         // Update Title and Done Button Label
         let pageNum = currentIndex + 1
         let titleFormat = localize("cunning_document_scanner_crop_title", "Crop Page %d of %d")
@@ -440,6 +570,7 @@ class CunningDocumentCropperViewController: UIViewController {
                     self.cancelButton.isEnabled = true
                     self.filterSegmentedControl.isEnabled = true
                     self.backButton.isEnabled = !self.backButton.isHidden
+                    self.fullScreenButton.isEnabled = true
                     return
                 }
                 
@@ -453,7 +584,8 @@ class CunningDocumentCropperViewController: UIViewController {
                 self.cancelButton.isEnabled = true
                 self.filterSegmentedControl.isEnabled = true
                 self.backButton.isEnabled = !self.backButton.isHidden
-                
+                self.fullScreenButton.isEnabled = true
+
                 // Restore coordinates if previously saved, otherwise run auto-detection
                 if let saved = self.savedCoordinates[self.currentIndex] {
                     self.normTopLeft = saved.topLeft
@@ -547,6 +679,71 @@ class CunningDocumentCropperViewController: UIViewController {
         return CGRect(x: x, y: y, width: contentW, height: contentH)
     }
     
+    /// Enters full-screen mode: hides the top title bar and the filter/color row so the crop
+    /// image and its draggable corner handles expand to fill the space above the bottom bar.
+    /// The bottom bar (Cancel/Rotate/Done and this Full Screen toggle) stays visible and fully
+    /// usable the whole time, and the corner handles remain interactive throughout.
+    @objc private func handleEnterFullScreen() {
+        guard !isFullScreen else { return }
+        isFullScreen = true
+
+        fullScreenButton.isHidden = true
+        exitFullScreenButton.isHidden = false
+
+        // If the user hasn't touched the corner handles yet on this page (the auto-detected
+        // box may only cover part of the document, as with a small Vision detection result),
+        // expand the crop selection out to the full image bounds as a clean starting point.
+        // Once the user has manually adjusted the handles, later Full Screen taps leave their
+        // adjustment alone rather than wiping it out again.
+        if !hasUserModifiedPoints {
+            normTopLeft = CGPoint(x: 0, y: 1)
+            normTopRight = CGPoint(x: 1, y: 1)
+            normBottomLeft = CGPoint(x: 0, y: 0)
+            normBottomRight = CGPoint(x: 1, y: 0)
+            hasUserModifiedPoints = true
+            savedCoordinates[currentIndex] = PageCoordinates(
+                topLeft: normTopLeft,
+                topRight: normTopRight,
+                bottomLeft: normBottomLeft,
+                bottomRight: normBottomRight
+            )
+        }
+
+        NSLayoutConstraint.deactivate([imageViewTopToTopBarConstraint, imageViewBottomToFilterBarConstraint])
+        NSLayoutConstraint.activate([imageViewTopToViewConstraint, imageViewBottomToViewConstraint])
+
+        UIView.animate(withDuration: 0.25, animations: {
+            self.topBar.alpha = 0
+            self.filterBar.alpha = 0
+            self.view.layoutIfNeeded()
+        }, completion: { _ in
+            guard self.isFullScreen else { return }
+            self.topBar.isHidden = true
+            self.filterBar.isHidden = true
+        })
+    }
+
+    /// Exits full-screen mode, restoring the top title bar and the filter/color row.
+    @objc private func handleExitFullScreen() {
+        guard isFullScreen else { return }
+        isFullScreen = false
+
+        fullScreenButton.isHidden = false
+        exitFullScreenButton.isHidden = true
+
+        topBar.isHidden = false
+        filterBar.isHidden = !showFilterBar
+
+        NSLayoutConstraint.deactivate([imageViewTopToViewConstraint, imageViewBottomToViewConstraint])
+        NSLayoutConstraint.activate([imageViewTopToTopBarConstraint, imageViewBottomToFilterBarConstraint])
+
+        UIView.animate(withDuration: 0.25, animations: {
+            self.topBar.alpha = 1
+            self.filterBar.alpha = self.showFilterBar ? 1 : 0
+            self.view.layoutIfNeeded()
+        })
+    }
+
     /// Responds to cancel actions, prompting a discard confirmation alert if modifications are present.
     @objc private func handleCancel() {
         let hasChanges = hasUserModifiedPoints || currentIndex > 0
@@ -569,9 +766,11 @@ class CunningDocumentCropperViewController: UIViewController {
     
     /// Confirms selection of current page crop, performs perspective correction, and advances progress.
     @objc private func handleDone() {
+        guard !isProcessingDone else { return }
         guard currentIndex < images.count else { return }
         guard let currentImage = self.currentNormalizedImage else { return }
-        
+        isProcessingDone = true
+
         // Save current coordinates
         self.savedCoordinates[currentIndex] = PageCoordinates(
             topLeft: self.normTopLeft,
@@ -586,6 +785,7 @@ class CunningDocumentCropperViewController: UIViewController {
         rotateButton.isEnabled = false
         backButton.isEnabled = false
         filterSegmentedControl.isEnabled = false
+        fullScreenButton.isEnabled = false
         activityIndicator.startAnimating()
         
         let currentFilter = selectedFilters[currentIndex]
@@ -625,10 +825,12 @@ class CunningDocumentCropperViewController: UIViewController {
                 self.rotateButton.isEnabled = true
                 self.filterSegmentedControl.isEnabled = true
                 self.backButton.isEnabled = true
+                self.fullScreenButton.isEnabled = true
                 self.activityIndicator.stopAnimating()
-                
+                self.isProcessingDone = false
+
                 self.croppedImages.append(finalImage)
-                
+
                 self.currentIndex += 1
                 if self.currentIndex < self.images.count {
                     self.loadCurrentImage()

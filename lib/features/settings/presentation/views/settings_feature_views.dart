@@ -21,36 +21,24 @@ class NotificationSettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final preferences = Get.find<SettingsPreferences>();
-
     return _SettingsFeatureScaffold(
       title: 'notifications_title'.tr,
       useSurfaceBackButtonColor: true,
-      child: Obx(
-        () => _FeatureCard(
-          children: [
-            _FeatureTile(
-              icon: CupertinoIcons.bell_fill,
-              iconColor: IosSemanticColors.red,
-              title: 'notifications_confirmations'.tr,
-              subtitle: 'notifications_confirmations_desc'.tr,
-              trailing: Switch.adaptive(
-                value: preferences.actionConfirmations.value,
-                onChanged: preferences.setActionConfirmations,
-              ),
-              onTap: () => preferences.setActionConfirmations(
-                !preferences.actionConfirmations.value,
-              ),
-            ),
-            _FeatureTile(
-              icon: CupertinoIcons.exclamationmark_shield_fill,
-              iconColor: IosSemanticColors.orange,
-              title: 'notifications_important'.tr,
-              subtitle: 'notifications_important_desc'.tr,
-              trailing: _StatusLabel(enabled: true),
-            ),
-          ],
-        ),
+      child: _FeatureCard(
+        children: [
+          _FeatureTile(
+            icon: CupertinoIcons.bell_fill,
+            iconColor: IosSemanticColors.red,
+            title: 'notifications_confirmations'.tr,
+            trailing: _StatusLabel(enabled: false),
+          ),
+          _FeatureTile(
+            icon: CupertinoIcons.exclamationmark_shield_fill,
+            iconColor: IosSemanticColors.orange,
+            title: 'notifications_important'.tr,
+            trailing: _StatusLabel(enabled: false),
+          ),
+        ],
       ),
     );
   }

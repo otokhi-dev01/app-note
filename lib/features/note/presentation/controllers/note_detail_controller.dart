@@ -3387,7 +3387,6 @@ class NoteDetailController extends GetxController {
           await Get.to(
             () => FolderCreateModal(
               controller: Get.find<FolderController>(),
-              onDone: () => Get.back(),
             ),
             fullscreenDialog: true,
             transition: Transition.cupertino,
