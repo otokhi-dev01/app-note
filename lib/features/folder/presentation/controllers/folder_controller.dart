@@ -399,20 +399,16 @@ class FolderController extends GetxController {
   String stripSectionKeyword(String name) =>
       FolderAppearance.stripSectionKeyword(name);
 
-  /// The next default name shown when opening the create-folder screen,
-  /// scoped to [parentId] (`null`/`0` both mean the top level) so each
-  /// location's "New Folder N" numbering restarts at 1 on its own —
-  /// creating inside a different folder doesn't continue counting from
-  /// whatever the highest number happens to be somewhere else in the app.
-  /// Include Recently Deleted so a new folder does not reuse a name that is
-  /// still restorable, and strip storage-section prefixes before comparing.
-  String nextNewFolderName({int? parentId}) {
-    bool sameLocation(int? id) => (id ?? 0) == (parentId ?? 0);
+  /// Number top-level folders independently in each storage section.
+  /// Subfolders are numbered within their parent. Only active folders count,
+  /// so an empty section or parent starts again at New Folder 1.
+  String nextNewFolderName({int? parentId, String sectionKeyword = ''}) {
+    bool sameLocation(Folder folder) =>
+        (folder.parentId ?? 0) == (parentId ?? 0) &&
+        ((parentId ?? 0) != 0 || sectionKeywordOf(folder) == sectionKeyword);
     return nextDefaultFolderName([
       for (final folder in folders)
-        if (sameLocation(folder.parentId)) stripSectionKeyword(folder.name),
-      for (final folder in trashFolders)
-        if (sameLocation(folder.parentId)) stripSectionKeyword(folder.name),
+        if (sameLocation(folder)) stripSectionKeyword(folder.name),
     ]);
   }
 
