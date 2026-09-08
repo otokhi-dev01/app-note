@@ -133,7 +133,7 @@ class NoteListView extends GetView<NoteController> {
         controller: folderController,
         parentId: folderId == 0 ? null : folderId,
         // This modal is nested inside the folder-content route. Return here
-        // after saving instead of unwinding all the way to the root folders.
+        // on cancel; successful creation clears the form for another subfolder.
         onDone: () => Get.back(),
       ),
       fullscreenDialog: true,
@@ -324,10 +324,19 @@ class NoteListView extends GetView<NoteController> {
   }
 
   List<Folder> _subfoldersOf(Folder parent, FolderController folderController) {
+    // `parent.subFolders` is a point-in-time snapshot taken whenever this
+    // folder was last built into the hierarchy — it never updates on its
+    // own, so a child that gets deleted (or moved elsewhere) would keep
+    // showing up here forever if the snapshot's entries were trusted
+    // unconditionally. Only keep a snapshot entry if the live, reactive
+    // folder list still confirms it's actually a child of this folder.
+    final liveChildren = folderController.folders.where(
+      (f) => f.parentId == parent.id,
+    );
     final byId = <int, Folder>{
-      for (final child in parent.subFolders) child.id: child,
-      for (final child in folderController.folders)
-        if (child.parentId == parent.id) child.id: child,
+      for (final child in parent.subFolders)
+        if (liveChildren.any((f) => f.id == child.id)) child.id: child,
+      for (final child in liveChildren) child.id: child,
     };
     final children = byId.values.toList();
     children.sort((a, b) {
@@ -662,8 +671,7 @@ class NoteListView extends GetView<NoteController> {
             children: [
               for (int i = 0; i < sectionNotes.length; i++) ...[
                 SwipeMoveDeleteActions(
-                  onMove: () =>
-                      _moveNote(context, sectionNotes[i], folderId),
+                  onMove: () => _moveNote(context, sectionNotes[i], folderId),
                   onDelete: () => _deleteNote(sectionNotes[i], folderId),
                   child: NoteListTile(
                     note: sectionNotes[i],

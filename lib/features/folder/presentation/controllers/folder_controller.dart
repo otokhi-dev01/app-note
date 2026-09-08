@@ -252,7 +252,12 @@ class FolderController extends GetxController {
     }
   }
 
-  Future<bool> onSaveFolder({
+  /// Saves a folder (create when [id] is 0, update otherwise). Returns the
+  /// saved folder's id on success — the server-assigned id for a brand-new
+  /// folder, or [id] itself for an update — so a caller that just created a
+  /// folder can, for example, nest the next one inside it. Returns `null` on
+  /// failure or if a save was already in flight.
+  Future<int?> onSaveFolder({
     required int id,
     int? parentId,
     required String name,
@@ -260,7 +265,7 @@ class FolderController extends GetxController {
     String? colorValue,
     int? sortOrder,
   }) async {
-    if (isSaving.value) return false;
+    if (isSaving.value) return null;
     isSaving.value = true;
 
     try {
@@ -278,7 +283,7 @@ class FolderController extends GetxController {
       );
 
       switch (result) {
-        case Ok():
+        case Ok(:final value):
           await fetchFolders(refresh: true);
           isEditing.value = false;
           AppSnackbar.success(
@@ -287,10 +292,10 @@ class FolderController extends GetxController {
                 ? 'Folder created successfully'
                 : 'Folder updated successfully',
           );
-          return true;
+          return value;
         case Err(:final failure):
           AppSnackbar.failure('Unable to save folder', failure);
-          return false;
+          return null;
       }
     } finally {
       isSaving.value = false;
@@ -400,13 +405,22 @@ class FolderController extends GetxController {
   String stripSectionKeyword(String name) =>
       FolderAppearance.stripSectionKeyword(name);
 
-  /// The next default name shown when opening the create-folder screen.
+  /// The next default name shown when opening the create-folder screen,
+  /// scoped to [parentId] (`null`/`0` both mean the top level) so each
+  /// location's "New Folder N" numbering restarts at 1 on its own —
+  /// creating inside a different folder doesn't continue counting from
+  /// whatever the highest number happens to be somewhere else in the app.
   /// Include Recently Deleted so a new folder does not reuse a name that is
   /// still restorable, and strip storage-section prefixes before comparing.
-  String nextNewFolderName() => nextDefaultFolderName([
-    for (final folder in folders) stripSectionKeyword(folder.name),
-    for (final folder in trashFolders) stripSectionKeyword(folder.name),
-  ]);
+  String nextNewFolderName({int? parentId}) {
+    bool sameLocation(int? id) => (id ?? 0) == (parentId ?? 0);
+    return nextDefaultFolderName([
+      for (final folder in folders)
+        if (sameLocation(folder.parentId)) stripSectionKeyword(folder.name),
+      for (final folder in trashFolders)
+        if (sameLocation(folder.parentId)) stripSectionKeyword(folder.name),
+    ]);
+  }
 
   /// Sections are encoded in the folder name, since the API has no field for
   /// them — so moving a folder means rewriting its name prefix.
@@ -416,7 +430,7 @@ class FolderController extends GetxController {
 
     isLoading.value = true;
     try {
-      final success = await onSaveFolder(
+      final savedId = await onSaveFolder(
         id: folder.id,
         parentId: folder.parentId,
         name: newName,
@@ -424,7 +438,7 @@ class FolderController extends GetxController {
         colorValue: folder.colorValue,
         sortOrder: folder.sortOrder,
       );
-      if (success && section.isNotEmpty) {
+      if (savedId != null && section.isNotEmpty) {
         AppSnackbar.success('Moved', 'Moved to ${sectionLabel(section)}');
       }
     } finally {

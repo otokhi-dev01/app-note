@@ -315,7 +315,7 @@ class CunningDocumentCropperViewController: UIViewController {
         // Full Screen Button configuration (bottom bar, right of Rotate).
         // Lives in the bottom bar itself, which always stays visible, so it (and its
         // Exit Full Screen counterpart below) remain reachable even while full screen.
-        fullScreenButton.setImage(UIImage(systemName: "arrow.up.left.and.arrow.down.right", withConfiguration: config), for: .normal)
+        fullScreenButton.setImage(cornerBracketsIcon(exit: false), for: .normal)
         fullScreenButton.tintColor = .white
         fullScreenButton.backgroundColor = UIColor.white.withAlphaComponent(0.15)
         fullScreenButton.layer.cornerRadius = 22
@@ -326,7 +326,7 @@ class CunningDocumentCropperViewController: UIViewController {
 
         // Exit Full Screen Button configuration. Occupies the exact same slot as
         // fullScreenButton (right of Rotate); the two swap visibility based on state.
-        exitFullScreenButton.setImage(UIImage(systemName: "arrow.down.right.and.arrow.up.left", withConfiguration: config), for: .normal)
+        exitFullScreenButton.setImage(cornerBracketsIcon(exit: true), for: .normal)
         exitFullScreenButton.tintColor = .white
         exitFullScreenButton.backgroundColor = UIColor.white.withAlphaComponent(0.15)
         exitFullScreenButton.layer.cornerRadius = 22
@@ -453,7 +453,47 @@ class CunningDocumentCropperViewController: UIViewController {
             overlayView.trailingAnchor.constraint(equalTo: imageView.trailingAnchor)
         ])
     }
-    
+
+    /// Renders the classic "fullscreen" / "fullscreen exit" glyph — four right-angle corner
+    /// brackets forming a square frame — as a tintable template image. SF Symbols has no exact
+    /// match for this style (its closest options are diagonal double-headed arrows), so the
+    /// brackets are hand-drawn here to match the requested look precisely.
+    /// - Parameter exit: `false` draws brackets flush with the icon's outer corners with arms
+    ///   pointing inward (the "enter full screen" look). `true` draws a smaller inset square of
+    ///   brackets with arms pointing outward toward the edges (the "exit full screen" look).
+    private func cornerBracketsIcon(exit: Bool) -> UIImage {
+        let canvas: CGFloat = 24
+        let armLength: CGFloat = exit ? 6 : 7
+        let lineWidth: CGFloat = 2.2
+        let near: CGFloat = exit ? 7 : 2
+        let far: CGFloat = exit ? 17 : 22
+        let arm: CGFloat = exit ? -armLength : armLength
+
+        // Each bracket is described as (vertex, arm endpoint 1, arm endpoint 2).
+        let brackets: [(vertex: CGPoint, arm1: CGPoint, arm2: CGPoint)] = [
+            (CGPoint(x: near, y: near), CGPoint(x: near + arm, y: near), CGPoint(x: near, y: near + arm)), // top-left
+            (CGPoint(x: far, y: near), CGPoint(x: far - arm, y: near), CGPoint(x: far, y: near + arm)),    // top-right
+            (CGPoint(x: near, y: far), CGPoint(x: near + arm, y: far), CGPoint(x: near, y: far - arm)),    // bottom-left
+            (CGPoint(x: far, y: far), CGPoint(x: far - arm, y: far), CGPoint(x: far, y: far - arm))        // bottom-right
+        ]
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: canvas, height: canvas))
+        let image = renderer.image { _ in
+            let path = UIBezierPath()
+            path.lineWidth = lineWidth
+            path.lineCapStyle = .round
+            path.lineJoinStyle = .round
+            for bracket in brackets {
+                path.move(to: bracket.arm1)
+                path.addLine(to: bracket.vertex)
+                path.addLine(to: bracket.arm2)
+            }
+            UIColor.black.setStroke()
+            path.stroke()
+        }
+        return image.withRenderingMode(.alwaysTemplate)
+    }
+
     /// Responds to changes in the filter segmented control.
     @objc private func handleFilterChanged(_ sender: UISegmentedControl) {
         guard currentIndex < images.count, let currentImage = self.currentNormalizedImage else { return }

@@ -330,6 +330,7 @@ class NoteController extends GetxController {
             () => FolderCreateModal(
               controller: Get.find<FolderController>(),
               onDone: () => Get.back(),
+              closeAfterSave: true,
             ),
             fullscreenDialog: true,
             transition: Transition.cupertino,
