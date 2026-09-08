@@ -286,9 +286,6 @@ class _ImageOverlayComposerPageState extends State<ImageOverlayComposerPage> {
     } catch (_) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not add that image')),
-        );
       }
     }
   }
