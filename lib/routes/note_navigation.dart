@@ -55,6 +55,29 @@ class NoteNavigation {
   static Future<T?>? toNewNoteFromAlbumPdf<T>(int folderId) =>
       toNewNote<T>(folderId, autoAlbumPdf: true);
 
+  /// Opens a brand-new note and attaches [filePaths] to it — the landing
+  /// spot for files shared into the app from another app's share sheet
+  /// (Telegram, Files, Photos, ...) via [ShareIntentService].
+  static Future<T?>? toNewNoteFromSharedFiles<T>(
+    int folderId,
+    List<String> filePaths,
+  ) {
+    if (filePaths.isEmpty) return toNewNote<T>(folderId);
+
+    return Get.toNamed(
+      Routes.NOTE_DETAIL,
+      arguments: {
+        'noteId': 0,
+        'folderId': folderId,
+        'isArchived': false,
+        'isDeleted': false,
+        'sharedFilePaths': filePaths,
+        'instanceTag': _newInstanceTag(),
+      },
+      preventDuplicates: false,
+    );
+  }
+
   static String _newInstanceTag() =>
       'note_${DateTime.now().microsecondsSinceEpoch}';
 }

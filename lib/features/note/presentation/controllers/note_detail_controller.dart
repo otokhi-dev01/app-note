@@ -133,6 +133,7 @@ class NoteDetailController extends GetxController {
   final isFormatPanelVisible = false.obs;
   bool _autoRecordRequested = false;
   bool _autoAlbumPdfRequested = false;
+  List<String> _pendingSharedFilePaths = const [];
   bool _isAudioRecorderOpen = false;
   bool _isScanFlowOpen = false;
   final importedPdfPreviewKey = GlobalKey();
@@ -178,6 +179,11 @@ class NoteDetailController extends GetxController {
       _autoAlbumPdfRequested = false;
       unawaited(scanDocumentsFromGallery());
     }
+    if (_pendingSharedFilePaths.isNotEmpty) {
+      final paths = _pendingSharedFilePaths;
+      _pendingSharedFilePaths = const [];
+      unawaited(_importSharedFiles(paths));
+    }
   }
 
   void _handleArguments(dynamic args) {
@@ -187,6 +193,10 @@ class NoteDetailController extends GetxController {
       isReadOnly.value = args['isDeleted'] == true;
       _autoRecordRequested = noteId == 0 && args['autoRecord'] == true;
       _autoAlbumPdfRequested = noteId == 0 && args['autoAlbumPdf'] == true;
+      final sharedPaths = args['sharedFilePaths'];
+      _pendingSharedFilePaths = noteId == 0 && sharedPaths is List
+          ? sharedPaths.whereType<String>().toList()
+          : const [];
 
       if (noteId != null && noteId != 0) {
         fetchNoteDetail(noteId);
@@ -958,6 +968,52 @@ class NoteDetailController extends GetxController {
       debugPrint('[FILE PICKER ERROR] $e');
       AppSnackbar.error('Error', 'Could not attach that file');
     }
+  }
+
+  /// Lands whatever another app handed to Pii Note through the system share
+  /// sheet (Telegram, Files, Photos, ...) — see [ShareIntentService]. Runs
+  /// once, right after this brand-new note's first frame, same timing as
+  /// [_autoRecordRequested] / [_autoAlbumPdfRequested] above.
+  ///
+  /// Each shared item is force-copied into app storage rather than left
+  /// where the OS/plugin put it: on iOS that's the App Group container,
+  /// which the extension can clear on its own schedule, and on Android it's
+  /// a cache file the sending app owns — neither is guaranteed to outlive
+  /// this note.
+  Future<void> _importSharedFiles(List<String> paths) async {
+    var attachedAny = false;
+    for (final sourcePath in paths) {
+      try {
+        if (!File(sourcePath).existsSync()) continue;
+
+        final id = _generateId();
+        final persistedPath = await _persistAttachment(
+          sourcePath,
+          id,
+          forceCopy: true,
+        );
+        _insertBlock(
+          AttachmentBlock(
+            id: id,
+            displayName: sourcePath.split(Platform.pathSeparator).last,
+            localPath: persistedPath,
+            attachmentId: 0,
+          ),
+        );
+        attachedAny = true;
+      } catch (e) {
+        debugPrint('[SHARE IMPORT ERROR] $e');
+      }
+    }
+
+    if (!attachedAny) {
+      AppSnackbar.error('Error', 'Could not attach the shared file');
+      return;
+    }
+
+    blocks.refresh();
+    addTextBlock(requestFocus: true);
+    unawaited(saveNote(silent: true));
   }
 
   /// Opens cunning_document_scanner's native scanner. This mode provides
