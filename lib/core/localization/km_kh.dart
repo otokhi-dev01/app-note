@@ -540,6 +540,8 @@ const Map<String, String> kmKH = {
   'note_editor_pdf_preview_failed': 'មិនអាចផ្ទុកការមើល PDF បានទេ',
   'note_editor_pdf_not_available': 'មិនមាន PDF នេះទេ។',
   'note_editor_take_photo_video': 'ថតរូបភាព ឬវីដេអូ',
+  'note_editor_take_photo': 'ថតរូបភាព',
+  'note_editor_take_video': 'ថតវីដេអូ',
   'note_editor_choose_photo_video': 'ជ្រើសរើសរូបភាព ឬវីដេអូ',
   'note_editor_add_image': 'បន្ថែមរូបភាព',
   'note_editor_record_audio': 'ថតសំឡេង',

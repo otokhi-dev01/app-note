@@ -20,6 +20,7 @@ import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/views/create_note_view.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
+import 'package:Note/features/note/presentation/widgets/note_camera_capture_sheet.dart';
 import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -171,8 +172,8 @@ void main() {
   }
 
   test(
-    'Choose Photo/Video bundles picked photos into one PDF but keeps '
-    'videos separate',
+    'Choose Photo/Video attaches every picked item as its own block, in '
+    'picked order',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'media-attachment-',
@@ -217,20 +218,97 @@ void main() {
       final attachments = controller.blocks
           .whereType<AttachmentBlock>()
           .toList();
-      expect(attachments, hasLength(2));
+      // One block per picked item — no PDF bundling — in the order the
+      // picker returned them.
+      expect(attachments, hasLength(3));
 
-      final document = attachments[0];
-      expect(document.displayName, endsWith('.pdf'));
-      final bytes = await File(document.localPath!).readAsBytes();
-      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
-      final storedPages = await findPdfSourcePages(document.id);
-      expect(storedPages, hasLength(2));
-
-      final video = attachments[1];
-      expect(video.displayName, endsWith('.mp4'));
-      expect(await File(video.localPath!).readAsBytes(), isNotEmpty);
+      final originalSources = [imageSources[0], imageSources[1], videoSource];
+      for (var index = 0; index < attachments.length; index++) {
+        final attachment = attachments[index];
+        final original = originalSources[index];
+        expect(attachment.displayName, original.path.split('/').last);
+        expect(
+          await File(attachment.localPath!).readAsBytes(),
+          await original.readAsBytes(),
+        );
+      }
 
       expect(controller.blocks.last, isA<TextBlock>());
+    },
+  );
+
+  testWidgets(
+    'Camera action sheet opens the picker in the chosen capture mode',
+    (tester) async {
+      final directory = await Directory.systemTemp.createTemp(
+        'camera-sheet-',
+      );
+      final photoSource = await File(
+        'assets/icons/piisiit_logo_mark.png',
+      ).copy('${directory.path}/photo.png');
+      final videoSource = await File(
+        'assets/icons/piisiit_logo_mark.png',
+      ).copy('${directory.path}/video.mp4');
+
+      const channel = MethodChannel('plugins.flutter.io/image_picker');
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return call.method == 'pickVideo'
+                ? videoSource.path
+                : photoSource.path;
+          });
+
+      final controller = _createController();
+      controller.isSaving.value = true;
+      addTearDown(() async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+        for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+          final file = File(block.localPath!);
+          if (file.existsSync()) await file.delete();
+        }
+        await directory.delete(recursive: true);
+      });
+
+      late BuildContext capturedContext;
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          home: Builder(
+            builder: (context) {
+              capturedContext = context;
+              return const Scaffold(body: SizedBox());
+            },
+          ),
+        ),
+      );
+
+      // Choosing "Take Video" must reach image_picker's pickVideo, not
+      // pickImage — that's the whole point of the sheet.
+      final videoPick = showCameraCaptureSheet(capturedContext, controller);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Take Video'));
+      await tester.pumpAndSettle();
+      await videoPick;
+
+      expect(calls.map((call) => call.method).toList(), ['pickVideo']);
+      final videoAttachment = controller.blocks
+          .whereType<AttachmentBlock>()
+          .single;
+      expect(videoAttachment.displayName, endsWith('.mp4'));
+      calls.clear();
+
+      // Choosing "Take Photo" keeps using the still-photo picker.
+      final photoPick = showCameraCaptureSheet(capturedContext, controller);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Take Photo'));
+      await tester.pumpAndSettle();
+      await photoPick;
+
+      expect(calls.map((call) => call.method).toList(), ['pickImage']);
     },
   );
 

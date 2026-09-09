@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/widgets/note_block_list.dart';
+import 'package:Note/features/note/presentation/widgets/note_camera_capture_sheet.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_header.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_top_bar.dart';
@@ -52,7 +54,7 @@ class CreateNoteView extends GetView<NoteDetailController> {
                           controller: controller,
                           isCreating: true,
                           onAttachmentAction: (type) =>
-                              _handleAttachmentAction(type),
+                              _handleAttachmentAction(context, type),
                         ),
                 ),
               );
@@ -63,10 +65,10 @@ class CreateNoteView extends GetView<NoteDetailController> {
     );
   }
 
-  void _handleAttachmentAction(String type) {
+  void _handleAttachmentAction(BuildContext context, String type) {
     switch (type) {
       case 'camera':
-        controller.addAttachment(ImageSource.camera);
+        unawaited(showCameraCaptureSheet(context, controller));
       case 'gallery':
         controller.addMediaAttachment();
       case 'drawing':

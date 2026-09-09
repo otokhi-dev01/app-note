@@ -891,9 +891,11 @@ class NoteDetailController extends GetxController {
   /// [addAttachment] which is locked to whichever `isVideo` says before the
   /// picker even opens and returns at most one file.
   ///
-  /// Picked photos are bundled into a single auto-converted PDF, same as
-  /// Albums ([scanDocumentsFromGallery]); a video can't become a PDF page,
-  /// so any picked videos are still attached individually.
+  /// Every picked item lands as its own attachment block, in picked order,
+  /// one after another down the note — not merged into a single multi-page
+  /// PDF. (Bundling several photos into one scanned-style PDF is still what
+  /// Albums does — see [scanDocumentsFromGallery] — that's a distinct,
+  /// deliberate "scan a document" flow rather than "grab some photos".)
   Future<void> addMediaAttachment() async {
     if (isReadOnly.value) return;
 
@@ -901,23 +903,7 @@ class NoteDetailController extends GetxController {
       final files = await _picker.pickMultipleMedia(imageQuality: 80);
       if (files.isEmpty) return;
 
-      final imagePaths = <String>[];
-      final otherFiles = <XFile>[];
       for (final file in files) {
-        if (_looksLikeImageName(file.name)) {
-          imagePaths.add(file.path);
-        } else {
-          otherFiles.add(file);
-        }
-      }
-
-      if (imagePaths.isNotEmpty) {
-        await _buildPdfAttachmentBlock(
-          imagePaths,
-          title: 'note_editor_scanned_document_default_title'.tr,
-        );
-      }
-      for (final file in otherFiles) {
         final id = _generateId();
         final persistedPath = await _persistAttachment(file.path, id);
         _insertBlock(
