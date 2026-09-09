@@ -29,6 +29,9 @@ dependencies:
   quill_native_bridge: ^11.1.0
   # Keep the Win32 dependency compatible with the pre-v12 file_picker pin.
   share_plus: 12.0.2
+  # Receives files/text shared into the app from other apps (e.g. Telegram's
+  # share sheet) via Android SEND intents and an iOS Share Extension.
+  receive_sharing_intent: ^1.8.1
   url_launcher: ^6.3.2
   permission_handler: ^13.0.1
   liquid_glass_widgets: ^0.29.5
