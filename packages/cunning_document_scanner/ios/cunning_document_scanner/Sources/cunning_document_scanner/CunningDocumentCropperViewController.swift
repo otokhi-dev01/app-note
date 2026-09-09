@@ -92,7 +92,17 @@ class CunningDocumentCropperViewController: UIViewController {
     
     /// The button to dismiss the cropping view.
     private let cancelButton = UIButton(type: .system)
-    
+
+    /// The button (bottom bar, right of Cancel) that expands the current page's crop
+    /// selection to the full image bounds — the common "skip cropping, use the whole photo"
+    /// escape hatch found in most scanner apps.
+    private let selectAllButton = UIButton(type: .system)
+
+    /// The icon and label stacked inside `selectAllButton` — see its setup in `setupViews`
+    /// for why they're separate views rather than the button's own image/title.
+    private let selectAllIconView = UIImageView()
+    private let selectAllLabel = UILabel()
+
     /// The button to advance to the next page or finish.
     private let doneButton = UIButton(type: .system)
     
@@ -101,6 +111,12 @@ class CunningDocumentCropperViewController: UIViewController {
     
     /// The back button to return to the previous page.
     private let backButton = UIButton(type: .system)
+
+    /// Swiping left on the overlay confirms the current page and advances, exactly like
+    /// tapping Done — except on the last page, where it's disabled (see
+    /// `updateSwipeToConfirmEnabled`) so finishing the whole multi-page scan always takes a
+    /// deliberate tap on Done, never an easy-to-trigger-by-accident swipe.
+    private let swipeLeftGesture = UISwipeGestureRecognizer()
 
     /// The button (bottom bar, right of Rotate) that enters full-screen mode, hiding the top
     /// title bar and filter row so the crop image and its handles get more vertical space.
@@ -243,12 +259,13 @@ class CunningDocumentCropperViewController: UIViewController {
 
         // Swipe navigation: lets the user flip between pages without reaching for the small
         // Back/Done buttons. Swiping left confirms the current crop and advances, exactly like
-        // tapping Done; swiping right returns to the previous page, exactly like tapping Back.
-        // A fast, mostly-horizontal swipe rarely overlaps with the slower, deliberate drags used
-        // to reposition a corner handle, so both gestures coexist on the same view without issue.
-        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(handleDone))
-        swipeLeft.direction = .left
-        overlayView.addGestureRecognizer(swipeLeft)
+        // tapping Done (disabled on the last page — see `swipeLeftGesture`'s declaration);
+        // swiping right returns to the previous page, exactly like tapping Back. A fast,
+        // mostly-horizontal swipe rarely overlaps with the slower, deliberate drags used to
+        // reposition a corner handle, so both gestures coexist on the same view without issue.
+        swipeLeftGesture.addTarget(self, action: #selector(handleDone))
+        swipeLeftGesture.direction = .left
+        overlayView.addGestureRecognizer(swipeLeftGesture)
 
         let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(handleBack))
         swipeRight.direction = .right
@@ -298,7 +315,45 @@ class CunningDocumentCropperViewController: UIViewController {
         cancelButton.clipsToBounds = true
         cancelButton.addTarget(self, action: #selector(handleCancel), for: .touchUpInside)
         bottomBar.addSubview(cancelButton)
-        
+
+        // Select All Button configuration (bottom bar, right of Cancel). UIButton's own
+        // built-in image-above-title stacking needs UIButton.Configuration, which is iOS
+        // 15+ only — above the platform floor this Swift package declares — so the icon
+        // and label instead live in their own non-interactive stack view layered on top of
+        // a plain tappable button, the classic pre-iOS-15 way to do this.
+        selectAllButton.backgroundColor = UIColor.white.withAlphaComponent(0.15)
+        selectAllButton.layer.cornerRadius = 10
+        selectAllButton.clipsToBounds = true
+        selectAllButton.addTarget(self, action: #selector(handleSelectAll), for: .touchUpInside)
+        bottomBar.addSubview(selectAllButton)
+
+        selectAllIconView.image = UIImage(
+            systemName: "rectangle.dashed",
+            withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        )
+        selectAllIconView.tintColor = .white
+        selectAllIconView.contentMode = .scaleAspectFit
+        selectAllIconView.isUserInteractionEnabled = false
+
+        selectAllLabel.text = localize("cunning_document_scanner_select_all", "Select All")
+        selectAllLabel.textColor = .white
+        selectAllLabel.font = .systemFont(ofSize: 10, weight: .medium)
+        selectAllLabel.textAlignment = .center
+        selectAllLabel.isUserInteractionEnabled = false
+
+        let selectAllStack = UIStackView(arrangedSubviews: [selectAllIconView, selectAllLabel])
+        selectAllStack.axis = .vertical
+        selectAllStack.alignment = .center
+        selectAllStack.spacing = 2
+        selectAllStack.isUserInteractionEnabled = false
+        selectAllStack.translatesAutoresizingMaskIntoConstraints = false
+        selectAllButton.addSubview(selectAllStack)
+        NSLayoutConstraint.activate([
+            selectAllStack.centerXAnchor.constraint(equalTo: selectAllButton.centerXAnchor),
+            selectAllStack.centerYAnchor.constraint(equalTo: selectAllButton.centerYAnchor),
+            selectAllIconView.heightAnchor.constraint(equalToConstant: 16),
+        ])
+
         doneButton.layer.cornerRadius = 22
         doneButton.clipsToBounds = true
         doneButton.addTarget(self, action: #selector(handleDone), for: .touchUpInside)
@@ -358,6 +413,7 @@ class CunningDocumentCropperViewController: UIViewController {
         bottomBar.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         cancelButton.translatesAutoresizingMaskIntoConstraints = false
+        selectAllButton.translatesAutoresizingMaskIntoConstraints = false
         doneButton.translatesAutoresizingMaskIntoConstraints = false
         rotateButton.translatesAutoresizingMaskIntoConstraints = false
         backButton.translatesAutoresizingMaskIntoConstraints = false
@@ -412,12 +468,18 @@ class CunningDocumentCropperViewController: UIViewController {
             bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomBar.heightAnchor.constraint(equalToConstant: 60),
-            
+
             cancelButton.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 20),
             cancelButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
             cancelButton.widthAnchor.constraint(equalToConstant: 44),
             cancelButton.heightAnchor.constraint(equalToConstant: 44),
-            
+
+            // Select All (same row, right of Cancel/xmark).
+            selectAllButton.leadingAnchor.constraint(equalTo: cancelButton.trailingAnchor, constant: 12),
+            selectAllButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            selectAllButton.widthAnchor.constraint(equalToConstant: 64),
+            selectAllButton.heightAnchor.constraint(equalToConstant: 44),
+
             doneButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -20),
             doneButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
             doneButton.widthAnchor.constraint(equalToConstant: 44),
@@ -511,11 +573,20 @@ class CunningDocumentCropperViewController: UIViewController {
         }
     }
     
+    /// Disables the swipe-left-to-confirm gesture on the last page, since there `handleDone`
+    /// doesn't just advance — it finishes the whole multi-page scan and dismisses. Every
+    /// other page keeps the swipe, where the worst an accidental trigger does is jump ahead
+    /// one page (itself reversible with Back/swipe-right).
+    private func updateSwipeToConfirmEnabled() {
+        swipeLeftGesture.isEnabled = currentIndex < images.count - 1
+    }
+
     /// Loads and processes the image corresponding to the current index.
     /// Normalizes orientation on a global background thread prior to displaying.
     private func loadCurrentImage() {
         guard currentIndex < images.count else { return }
-        
+        updateSwipeToConfirmEnabled()
+
         let imageToProcess = images[currentIndex]
         
         // Show spinner and temporarily disable controls
@@ -763,7 +834,39 @@ class CunningDocumentCropperViewController: UIViewController {
             delegate?.didCancelCropping()
         }
     }
-    
+
+    /// Expands the current page's crop selection to the full image bounds, unconditionally.
+    /// Unlike the similar reset `handleEnterFullScreen` performs on its first use per page,
+    /// this always applies when tapped, even after the user has already dragged the corner
+    /// handles — it's the explicit "skip cropping, use the whole photo" escape hatch.
+    @objc private func handleSelectAll() {
+        let fullBounds = PageCoordinates(
+            topLeft: CGPoint(x: 0, y: 1),
+            topRight: CGPoint(x: 1, y: 1),
+            bottomLeft: CGPoint(x: 0, y: 0),
+            bottomRight: CGPoint(x: 1, y: 0)
+        )
+
+        // Applies to every page in this scan, not just the one on screen — five pages
+        // in, tapping this once should mean all five end up full-bounds. Pages other than
+        // the current one just need their saved entry set: `loadCurrentImage`'s "restore
+        // coordinates if previously saved, otherwise run auto-detection" branch picks this
+        // up the moment the user navigates to them, no re-detection, no extra work needed
+        // here.
+        for index in savedCoordinates.indices {
+            savedCoordinates[index] = fullBounds
+        }
+
+        // The current page also needs its live, on-screen state (and handles) updated now,
+        // rather than waiting for a future navigation to read it back out of savedCoordinates.
+        normTopLeft = fullBounds.topLeft
+        normTopRight = fullBounds.topRight
+        normBottomLeft = fullBounds.bottomLeft
+        normBottomRight = fullBounds.bottomRight
+        hasUserModifiedPoints = true
+        updateHandlesToMatchNormalizedPoints()
+    }
+
     /// Confirms selection of current page crop, performs perspective correction, and advances progress.
     @objc private func handleDone() {
         guard !isProcessingDone else { return }

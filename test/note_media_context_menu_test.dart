@@ -240,15 +240,24 @@ void main() {
   testWidgets(
     'Camera action sheet opens the picker in the chosen capture mode',
     (tester) async {
-      final directory = await Directory.systemTemp.createTemp(
-        'camera-sheet-',
-      );
-      final photoSource = await File(
-        'assets/icons/piisiit_logo_mark.png',
-      ).copy('${directory.path}/photo.png');
-      final videoSource = await File(
-        'assets/icons/piisiit_logo_mark.png',
-      ).copy('${directory.path}/video.mp4');
+      // Real filesystem work inside testWidgets must go through runAsync —
+      // testWidgets runs the body in a fake-async zone that never delivers
+      // the native thread pool's completion callback for genuine dart:io
+      // work, so an un-wrapped `await` on it hangs forever. Every other
+      // real-IO test in this file already follows this pattern.
+      final directory = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('camera-sheet-'),
+      ))!;
+      final photoSource = (await tester.runAsync(
+        () => File(
+          'assets/icons/piisiit_logo_mark.png',
+        ).copy('${directory.path}/photo.png'),
+      ))!;
+      final videoSource = (await tester.runAsync(
+        () => File(
+          'assets/icons/piisiit_logo_mark.png',
+        ).copy('${directory.path}/video.mp4'),
+      ))!;
 
       const channel = MethodChannel('plugins.flutter.io/image_picker');
       final calls = <MethodCall>[];
@@ -265,11 +274,13 @@ void main() {
       addTearDown(() async {
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, null);
-        for (final block in controller.blocks.whereType<AttachmentBlock>()) {
-          final file = File(block.localPath!);
-          if (file.existsSync()) await file.delete();
-        }
-        await directory.delete(recursive: true);
+        await tester.runAsync(() async {
+          for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+            final file = File(block.localPath!);
+            if (file.existsSync()) await file.delete();
+          }
+          await directory.delete(recursive: true);
+        });
       });
 
       late BuildContext capturedContext;
@@ -286,13 +297,30 @@ void main() {
         ),
       );
 
+      // Picking a file inside addAttachment is real IO too, so its
+      // completion (after the tap resolves the sheet) can only be observed
+      // by polling through runAsync — same idiom as the Albums/Scan tests
+      // further down this file that wait on a tap-triggered background
+      // import.
+      Future<void> chooseAndAwaitAttachment(String buttonLabel) async {
+        unawaited(showCameraCaptureSheet(capturedContext, controller));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(buttonLabel));
+        for (var attempt = 0; attempt < 100; attempt++) {
+          await tester.pump(const Duration(milliseconds: 50));
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          if (controller.blocks.whereType<AttachmentBlock>().isNotEmpty) {
+            break;
+          }
+        }
+        await tester.pumpAndSettle();
+      }
+
       // Choosing "Take Video" must reach image_picker's pickVideo, not
       // pickImage — that's the whole point of the sheet.
-      final videoPick = showCameraCaptureSheet(capturedContext, controller);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Take Video'));
-      await tester.pumpAndSettle();
-      await videoPick;
+      await chooseAndAwaitAttachment('Take Video');
 
       expect(calls.map((call) => call.method).toList(), ['pickVideo']);
       final videoAttachment = controller.blocks
@@ -300,15 +328,16 @@ void main() {
           .single;
       expect(videoAttachment.displayName, endsWith('.mp4'));
       calls.clear();
+      controller.blocks.clear();
 
       // Choosing "Take Photo" keeps using the still-photo picker.
-      final photoPick = showCameraCaptureSheet(capturedContext, controller);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Take Photo'));
-      await tester.pumpAndSettle();
-      await photoPick;
+      await chooseAndAwaitAttachment('Take Photo');
 
       expect(calls.map((call) => call.method).toList(), ['pickImage']);
+      final photoAttachment = controller.blocks
+          .whereType<AttachmentBlock>()
+          .single;
+      expect(photoAttachment.displayName, endsWith('.png'));
     },
   );
 
