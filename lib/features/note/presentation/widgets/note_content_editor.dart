@@ -116,6 +116,14 @@ class NoteContentEditor extends StatelessWidget {
                     child: GestureDetector(
                       behavior: HitTestBehavior.translucent,
                       onTap: controller.focusLastTextBlock,
+                      // Long-pressing empty space pastes without needing an
+                      // existing attachment to long-press on first —
+                      // pasteClipboardContent already guards on isReadOnly and
+                      // no-op's quietly when the clipboard has nothing it
+                      // recognizes.
+                      onLongPress: () => controller.pasteClipboardContent(
+                        afterIndex: controller.blocks.length - 1,
+                      ),
                       child: const SizedBox(width: double.infinity),
                     ),
                   ),

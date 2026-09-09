@@ -482,7 +482,10 @@ class CunningDocumentCropperViewController: UIViewController {
 
             doneButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -20),
             doneButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            doneButton.widthAnchor.constraint(equalToConstant: 44),
+            // At least 44pt (matching every other bottom-bar button, and enough for the
+            // icon-only, non-last-page state); free to grow wider to fit the "Done" text
+            // plus its content insets on the last page.
+            doneButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
             doneButton.heightAnchor.constraint(equalToConstant: 44),
             
             rotateButton.centerXAnchor.constraint(equalTo: bottomBar.centerXAnchor),
@@ -604,12 +607,23 @@ class CunningDocumentCropperViewController: UIViewController {
         titleLabel.text = String(format: titleFormat, pageNum, images.count)
         
         let isLastPage = (currentIndex == images.count - 1)
-        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
-        let doneImageName = isLastPage ? "checkmark" : "arrow.right"
-        let doneImage = UIImage(systemName: doneImageName, withConfiguration: config)
-        doneButton.setImage(doneImage, for: .normal)
         doneButton.tintColor = .white
         doneButton.backgroundColor = .systemBlue
+        if isLastPage {
+            // The last page's Done finishes and dismisses the whole multi-page scan — a
+            // more consequential action than "advance one page" — so it reads as the word
+            // "Done" rather than a lone checkmark icon, which could just as easily be read
+            // as "confirm this page" the way it does on every earlier page.
+            doneButton.setImage(nil, for: .normal)
+            doneButton.setTitle(localize("cunning_document_scanner_done", "Done"), for: .normal)
+            doneButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
+            doneButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
+        } else {
+            doneButton.setTitle(nil, for: .normal)
+            doneButton.contentEdgeInsets = .zero
+            let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .bold)
+            doneButton.setImage(UIImage(systemName: "arrow.right", withConfiguration: config), for: .normal)
+        }
         
         // Restore selected filter segment index
         filterSegmentedControl.selectedSegmentIndex = selectedFilters[currentIndex].rawValue

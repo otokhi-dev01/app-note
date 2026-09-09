@@ -443,6 +443,91 @@ void main() {
     expect(tester.testTextInput.isVisible, isTrue);
   });
 
+  testWidgets(
+    'Long-pressing the create-note body pastes without an existing attachment',
+    (tester) async {
+      final controller = _createController();
+      final fixturePath =
+          '${Directory.current.path}/assets/icons/piisiit_logo_app.png';
+      final sourcePath =
+          '${Directory.systemTemp.path}/note_body_paste_source_${DateTime.now().microsecondsSinceEpoch}.png';
+      await tester.runAsync(() => File(fixturePath).copy(sourcePath));
+
+      controller.currentNote.value = const Note(
+        id: 0,
+        folderId: 0,
+        title: '',
+        folderName: '',
+        content: [],
+      );
+      controller.isLoading.value = false;
+      controller.isSaving.value = true;
+
+      // Seed the app's own copy/paste clipboard from a source attachment,
+      // then clear the note back to empty — this deliberately leaves nothing
+      // to long-press on, only something previously copied elsewhere, e.g.
+      // in another note. copyAttachmentBlock/pasteAttachmentBlock only touch
+      // controller.blocks and local files (unlike pasteClipboardContent's
+      // system-clipboard fallback, which goes through QuillNativeBridge and
+      // Clipboard.getData — real platform-channel work with its own
+      // testWidgets/runAsync interaction this file doesn't otherwise
+      // exercise, so it's left untested here).
+      controller.blocks.assignAll([
+        AttachmentBlock(
+          id: 'body-paste-source',
+          displayName: 'source.png',
+          localPath: sourcePath,
+        ),
+      ]);
+      await tester.runAsync(() => controller.copyAttachmentBlock(0));
+      expect(controller.hasAttachmentClipboard, isTrue);
+      controller.blocks.clear();
+
+      addTearDown(() async {
+        await tester.runAsync(() async {
+          for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+            final file = File(block.localPath!);
+            if (file.existsSync()) await file.delete();
+          }
+          if (File(sourcePath).existsSync()) await File(sourcePath).delete();
+        });
+      });
+
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          home: const CreateNoteView(),
+        ),
+      );
+      await tester.pump();
+
+      // No attachment exists on screen to long-press on — this is the whole
+      // point: pasting into an otherwise-empty note works from a long-press
+      // anywhere on the body, not only from an existing attachment's own
+      // context menu.
+      expect(controller.blocks.whereType<AttachmentBlock>(), isEmpty);
+
+      await tester.longPressAt(const Offset(200, 500));
+      for (var attempt = 0; attempt < 100; attempt++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        if (controller.blocks.whereType<AttachmentBlock>().isNotEmpty) break;
+      }
+      // Not pumpAndSettle: something in this full CreateNoteView tree never
+      // reports fully idle here (unrelated to the paste itself, which the
+      // poll loop above already confirms completed), so settling
+      // indefinitely would hang rather than time out cleanly.
+      await tester.pump();
+
+      final pasted = controller.blocks.whereType<AttachmentBlock>().toList();
+      expect(pasted, hasLength(1));
+      expect(File(pasted.single.localPath!).existsSync(), isTrue);
+    },
+  );
+
   testWidgets('PDF preview Edit button opens the all-page editor', (
     tester,
   ) async {

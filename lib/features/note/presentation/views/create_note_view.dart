@@ -130,6 +130,13 @@ class _CreateNoteBody extends StatelessWidget {
     return _CreateNoteContent(
       key: const ValueKey('create-note-body-tap-target'),
       onTap: controller.focusCreateNoteComposer,
+      // Long-pressing empty space pastes without needing an existing attachment
+      // to long-press on first — pasteClipboardContent already guards on
+      // isReadOnly and no-op's quietly when the clipboard has nothing it
+      // recognizes.
+      onLongPress: () => controller.pasteClipboardContent(
+        afterIndex: controller.blocks.length - 1,
+      ),
       child: Obx(() {
         final isReadOnly = controller.isReadOnly.value;
         return CustomScrollView(
@@ -221,14 +228,21 @@ class _CreateNoteBody extends StatelessWidget {
 class _CreateNoteContent extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const _CreateNoteContent({super.key, required this.child, this.onTap});
+  const _CreateNoteContent({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Align(
         alignment: Alignment.topCenter,
         child: SizedBox(width: double.infinity, child: child),
