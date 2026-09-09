@@ -20,6 +20,7 @@ import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 import 'package:Note/features/note/presentation/views/create_note_view.dart';
 import 'package:Note/features/note/presentation/widgets/note_attachment_block.dart';
+import 'package:Note/features/note/presentation/widgets/note_camera_capture_sheet.dart';
 import 'package:Note/features/note/presentation/widgets/pdf_pages_editor_page.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -171,8 +172,8 @@ void main() {
   }
 
   test(
-    'Choose Photo/Video bundles picked photos into one PDF but keeps '
-    'videos separate',
+    'Choose Photo/Video attaches every picked item as its own block, in '
+    'picked order',
     () async {
       final directory = await Directory.systemTemp.createTemp(
         'media-attachment-',
@@ -217,20 +218,126 @@ void main() {
       final attachments = controller.blocks
           .whereType<AttachmentBlock>()
           .toList();
-      expect(attachments, hasLength(2));
+      // One block per picked item — no PDF bundling — in the order the
+      // picker returned them.
+      expect(attachments, hasLength(3));
 
-      final document = attachments[0];
-      expect(document.displayName, endsWith('.pdf'));
-      final bytes = await File(document.localPath!).readAsBytes();
-      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
-      final storedPages = await findPdfSourcePages(document.id);
-      expect(storedPages, hasLength(2));
-
-      final video = attachments[1];
-      expect(video.displayName, endsWith('.mp4'));
-      expect(await File(video.localPath!).readAsBytes(), isNotEmpty);
+      final originalSources = [imageSources[0], imageSources[1], videoSource];
+      for (var index = 0; index < attachments.length; index++) {
+        final attachment = attachments[index];
+        final original = originalSources[index];
+        expect(attachment.displayName, original.path.split('/').last);
+        expect(
+          await File(attachment.localPath!).readAsBytes(),
+          await original.readAsBytes(),
+        );
+      }
 
       expect(controller.blocks.last, isA<TextBlock>());
+    },
+  );
+
+  testWidgets(
+    'Camera action sheet opens the picker in the chosen capture mode',
+    (tester) async {
+      // Real filesystem work inside testWidgets must go through runAsync —
+      // testWidgets runs the body in a fake-async zone that never delivers
+      // the native thread pool's completion callback for genuine dart:io
+      // work, so an un-wrapped `await` on it hangs forever. Every other
+      // real-IO test in this file already follows this pattern.
+      final directory = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('camera-sheet-'),
+      ))!;
+      final photoSource = (await tester.runAsync(
+        () => File(
+          'assets/icons/piisiit_logo_mark.png',
+        ).copy('${directory.path}/photo.png'),
+      ))!;
+      final videoSource = (await tester.runAsync(
+        () => File(
+          'assets/icons/piisiit_logo_mark.png',
+        ).copy('${directory.path}/video.mp4'),
+      ))!;
+
+      const channel = MethodChannel('plugins.flutter.io/image_picker');
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return call.method == 'pickVideo'
+                ? videoSource.path
+                : photoSource.path;
+          });
+
+      final controller = _createController();
+      controller.isSaving.value = true;
+      addTearDown(() async {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+        await tester.runAsync(() async {
+          for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+            final file = File(block.localPath!);
+            if (file.existsSync()) await file.delete();
+          }
+          await directory.delete(recursive: true);
+        });
+      });
+
+      late BuildContext capturedContext;
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          home: Builder(
+            builder: (context) {
+              capturedContext = context;
+              return const Scaffold(body: SizedBox());
+            },
+          ),
+        ),
+      );
+
+      // Picking a file inside addAttachment is real IO too, so its
+      // completion (after the tap resolves the sheet) can only be observed
+      // by polling through runAsync — same idiom as the Albums/Scan tests
+      // further down this file that wait on a tap-triggered background
+      // import.
+      Future<void> chooseAndAwaitAttachment(String buttonLabel) async {
+        unawaited(showCameraCaptureSheet(capturedContext, controller));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(buttonLabel));
+        for (var attempt = 0; attempt < 100; attempt++) {
+          await tester.pump(const Duration(milliseconds: 50));
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 20)),
+          );
+          if (controller.blocks.whereType<AttachmentBlock>().isNotEmpty) {
+            break;
+          }
+        }
+        await tester.pumpAndSettle();
+      }
+
+      // Choosing "Take Video" must reach image_picker's pickVideo, not
+      // pickImage — that's the whole point of the sheet.
+      await chooseAndAwaitAttachment('Take Video');
+
+      expect(calls.map((call) => call.method).toList(), ['pickVideo']);
+      final videoAttachment = controller.blocks
+          .whereType<AttachmentBlock>()
+          .single;
+      expect(videoAttachment.displayName, endsWith('.mp4'));
+      calls.clear();
+      controller.blocks.clear();
+
+      // Choosing "Take Photo" keeps using the still-photo picker.
+      await chooseAndAwaitAttachment('Take Photo');
+
+      expect(calls.map((call) => call.method).toList(), ['pickImage']);
+      final photoAttachment = controller.blocks
+          .whereType<AttachmentBlock>()
+          .single;
+      expect(photoAttachment.displayName, endsWith('.png'));
     },
   );
 
@@ -335,6 +442,91 @@ void main() {
 
     expect(tester.testTextInput.isVisible, isTrue);
   });
+
+  testWidgets(
+    'Long-pressing the create-note body pastes without an existing attachment',
+    (tester) async {
+      final controller = _createController();
+      final fixturePath =
+          '${Directory.current.path}/assets/icons/piisiit_logo_app.png';
+      final sourcePath =
+          '${Directory.systemTemp.path}/note_body_paste_source_${DateTime.now().microsecondsSinceEpoch}.png';
+      await tester.runAsync(() => File(fixturePath).copy(sourcePath));
+
+      controller.currentNote.value = const Note(
+        id: 0,
+        folderId: 0,
+        title: '',
+        folderName: '',
+        content: [],
+      );
+      controller.isLoading.value = false;
+      controller.isSaving.value = true;
+
+      // Seed the app's own copy/paste clipboard from a source attachment,
+      // then clear the note back to empty — this deliberately leaves nothing
+      // to long-press on, only something previously copied elsewhere, e.g.
+      // in another note. copyAttachmentBlock/pasteAttachmentBlock only touch
+      // controller.blocks and local files (unlike pasteClipboardContent's
+      // system-clipboard fallback, which goes through QuillNativeBridge and
+      // Clipboard.getData — real platform-channel work with its own
+      // testWidgets/runAsync interaction this file doesn't otherwise
+      // exercise, so it's left untested here).
+      controller.blocks.assignAll([
+        AttachmentBlock(
+          id: 'body-paste-source',
+          displayName: 'source.png',
+          localPath: sourcePath,
+        ),
+      ]);
+      await tester.runAsync(() => controller.copyAttachmentBlock(0));
+      expect(controller.hasAttachmentClipboard, isTrue);
+      controller.blocks.clear();
+
+      addTearDown(() async {
+        await tester.runAsync(() async {
+          for (final block in controller.blocks.whereType<AttachmentBlock>()) {
+            final file = File(block.localPath!);
+            if (file.existsSync()) await file.delete();
+          }
+          if (File(sourcePath).existsSync()) await File(sourcePath).delete();
+        });
+      });
+
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          home: const CreateNoteView(),
+        ),
+      );
+      await tester.pump();
+
+      // No attachment exists on screen to long-press on — this is the whole
+      // point: pasting into an otherwise-empty note works from a long-press
+      // anywhere on the body, not only from an existing attachment's own
+      // context menu.
+      expect(controller.blocks.whereType<AttachmentBlock>(), isEmpty);
+
+      await tester.longPressAt(const Offset(200, 500));
+      for (var attempt = 0; attempt < 100; attempt++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        if (controller.blocks.whereType<AttachmentBlock>().isNotEmpty) break;
+      }
+      // Not pumpAndSettle: something in this full CreateNoteView tree never
+      // reports fully idle here (unrelated to the paste itself, which the
+      // poll loop above already confirms completed), so settling
+      // indefinitely would hang rather than time out cleanly.
+      await tester.pump();
+
+      final pasted = controller.blocks.whereType<AttachmentBlock>().toList();
+      expect(pasted, hasLength(1));
+      expect(File(pasted.single.localPath!).existsSync(), isTrue);
+    },
+  );
 
   testWidgets('PDF preview Edit button opens the all-page editor', (
     tester,

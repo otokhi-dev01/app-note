@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
+import 'package:Note/features/note/presentation/widgets/note_camera_capture_sheet.dart';
 import 'package:Note/features/note/presentation/widgets/note_content_editor.dart';
 import 'package:Note/features/note/presentation/widgets/note_editor_toolbar.dart';
 import 'package:Note/features/note/presentation/widgets/note_format_panel.dart';
@@ -37,7 +39,8 @@ class NoteDetailView extends GetView<NoteDetailController> {
                 alignment: Alignment.bottomCenter,
                 child: NoteEditorToolbar(
                   controller: controller,
-                  onAttachmentAction: _handleAttachmentAction,
+                  onAttachmentAction: (type) =>
+                      _handleAttachmentAction(context, type),
                 ),
               );
             }),
@@ -79,10 +82,10 @@ class NoteDetailView extends GetView<NoteDetailController> {
     );
   }
 
-  void _handleAttachmentAction(String type) {
+  void _handleAttachmentAction(BuildContext context, String type) {
     switch (type) {
       case 'camera':
-        controller.addAttachment(ImageSource.camera);
+        unawaited(showCameraCaptureSheet(context, controller));
       case 'gallery':
         controller.addMediaAttachment();
       case 'drawing':
