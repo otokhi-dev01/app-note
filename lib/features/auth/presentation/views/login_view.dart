@@ -104,10 +104,9 @@ class LoginView extends GetView<AuthController> {
                               ),
                               _buildTextField(
                                 context,
-                                controller: controller.phoneController,
-                                hint: "phone number".tr,
-                                icon: FontAwesomeIcons.phone,
-                                keyboardType: TextInputType.phone,
+                                controller: controller.accountController,
+                                hint: 'login_account'.tr,
+                                icon: FontAwesomeIcons.user,
                               ),
                               SizedBox(height: 20),
                               Obx(
@@ -266,6 +265,8 @@ class LoginView extends GetView<AuthController> {
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboardType,
+        autocorrect: false,
+        enableSuggestions: false,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: hint,

@@ -1,36 +1,34 @@
 import 'package:Note/core/utils/json_parsers.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
 
-class LoginRequest {
-  final String phone;
+/// Login and registration share the same credentials and device payload.
+class AuthCredentialsRequest {
+  final String account;
   final String password;
-
-  const LoginRequest({required this.phone, required this.password});
-
-  Map<String, dynamic> toJson() => {'phone': phone, 'password': password};
-}
-
-class RegisterRequest {
-  final String fullName;
-  final String phone;
-  final String password;
+  final String clientDeviceId;
+  final String appVersion;
   final String deviceName;
-  final String deviceType;
+  final String platform;
+  final String deviceModel;
 
-  const RegisterRequest({
-    required this.fullName,
-    required this.phone,
+  const AuthCredentialsRequest({
+    required this.account,
     required this.password,
+    required this.clientDeviceId,
+    required this.appVersion,
     required this.deviceName,
-    required this.deviceType,
+    required this.platform,
+    required this.deviceModel,
   });
 
   Map<String, dynamic> toJson() => {
-    'fullName': fullName,
-    'phone': phone,
+    'account': account,
     'password': password,
+    'clientDeviceId': clientDeviceId,
+    'appVersion': appVersion,
     'deviceName': deviceName,
-    'deviceType': deviceType,
+    'platform': platform,
+    'deviceModel': deviceModel,
   };
 }
 
@@ -40,43 +38,58 @@ class AuthResponse {
   final UserData user;
   final int code;
   final String message;
+  final bool? success;
 
   const AuthResponse({
     required this.token,
     required this.user,
     required this.code,
     required this.message,
+    this.success,
   });
 
-  bool get isSuccess => code == 200 || code == 201;
+  bool get isSuccess => success != false && (code == 200 || code == 201);
 
-  factory AuthResponse.fromJson(Map<String, dynamic> json) {
+  factory AuthResponse.fromJson(Map<String, dynamic> json, {int? statusCode}) {
     final dynamic dataRaw = json['data'] ?? json['Data'];
     final Map<String, dynamic> data = dataRaw is Map
         ? Map<String, dynamic>.from(dataRaw)
         : {};
     final dynamic userRaw =
-        data['user'] ?? data['userData'] ?? data['profile'] ?? data['User'];
+        data['user'] ??
+        data['userData'] ??
+        data['profile'] ??
+        data['User'] ??
+        json['user'] ??
+        json['User'];
     final Map<String, dynamic> user = userRaw is Map
         ? Map<String, dynamic>.from(userRaw)
         : data;
-    final int code = asInt(json['code'] ?? json['Code']);
+    final int code = asInt(json['code'] ?? json['Code'] ?? statusCode);
+    final successRaw = json['success'] ?? json['Success'];
+    final success = successRaw == null ? null : asBool(successRaw);
 
     return AuthResponse(
       token: asString(
         data['token'] ??
             data['accessToken'] ??
             data['Token'] ??
+            data['AccessToken'] ??
+            data['access_token'] ??
             json['token'] ??
-            json['accessToken'],
+            json['accessToken'] ??
+            json['Token'] ??
+            json['AccessToken'] ??
+            json['access_token'],
       ),
       // Only parse user data on success codes; an error body's `data` holds
       // validation details, not a user.
-      user: (code == 200 || code == 201)
+      user: success != false && (code == 200 || code == 201)
           ? UserData.fromJson(user)
           : const UserData(),
       code: code,
       message: asString(json['message'] ?? json['Message']),
+      success: success,
     );
   }
 }

@@ -12,35 +12,37 @@ class Login extends UseCase<AuthSession, LoginParams> {
 
   @override
   Future<Result<AuthSession>> call(LoginParams params) async {
-    final invalid = Validators.phone(params.phone);
-    if (invalid != null) return Err(ValidationFailure(invalid));
+    if (params.account.trim().isEmpty) {
+      return const Err(ValidationFailure('Please enter your account.'));
+    }
     if (params.password.isEmpty) {
       return const Err(ValidationFailure('Please enter your password.'));
     }
 
-    return _repository.login(phone: params.phone, password: params.password);
+    return _repository.login(
+      account: params.account.trim(),
+      password: params.password,
+    );
   }
 }
 
 class LoginParams {
-  final String phone;
+  final String account;
   final String password;
 
-  const LoginParams({required this.phone, required this.password});
+  const LoginParams({required this.account, required this.password});
 }
 
-class Register extends UseCase<AuthSession, RegisterParams> {
+class Register extends UseCase<void, RegisterParams> {
   final AuthRepository _repository;
 
   const Register(this._repository);
 
   @override
-  Future<Result<AuthSession>> call(RegisterParams params) async {
-    if (params.fullName.trim().isEmpty) {
-      return const Err(ValidationFailure('Please enter your full name.'));
+  Future<Result<void>> call(RegisterParams params) async {
+    if (params.account.trim().isEmpty) {
+      return const Err(ValidationFailure('Please enter your account.'));
     }
-    final invalid = Validators.phone(params.phone);
-    if (invalid != null) return Err(ValidationFailure(invalid));
 
     final weak = Validators.password(params.password);
     if (weak != null) return Err(ValidationFailure(weak));
@@ -50,30 +52,21 @@ class Register extends UseCase<AuthSession, RegisterParams> {
     }
 
     return _repository.register(
-      fullName: params.fullName.trim(),
-      phone: params.phone,
+      account: params.account.trim(),
       password: params.password,
-      deviceName: params.deviceName,
-      deviceType: params.deviceType,
     );
   }
 }
 
 class RegisterParams {
-  final String fullName;
-  final String phone;
+  final String account;
   final String password;
   final String confirmPassword;
-  final String deviceName;
-  final String deviceType;
 
   const RegisterParams({
-    required this.fullName,
-    required this.phone,
+    required this.account,
     required this.password,
     required this.confirmPassword,
-    required this.deviceName,
-    required this.deviceType,
   });
 }
 

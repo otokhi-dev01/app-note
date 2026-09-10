@@ -42,6 +42,8 @@ class _NoteAppState extends State<NoteApp> {
       initialBinding: InitialBinding(),
       initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
+      routingCallback: (routing) =>
+          ShareIntentService.instance.onRouteChanged(routing?.current),
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeStorage.theme,

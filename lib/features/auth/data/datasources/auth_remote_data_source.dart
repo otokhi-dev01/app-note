@@ -5,30 +5,59 @@ import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
+import 'package:Note/features/auth/data/services/auth_device_service.dart';
 
 /// Raw `/api/auth` transport.
 class AuthRemoteDataSource extends GetxService {
-  final ApiClient _api = Get.find<ApiClient>();
+  final ApiClient _api;
+  final AuthDeviceService _deviceService;
 
-  Future<AuthResponse> login(String phone, String password) async {
-    try {
-      final response = await _api.dio.post(
-        '/api/auth/login',
-        data: {'phone': phone, 'password': password},
+  AuthRemoteDataSource({ApiClient? api, AuthDeviceService? deviceService})
+    : _api = api ?? Get.find<ApiClient>(),
+      _deviceService = deviceService ?? AuthDeviceService();
+
+  Future<AuthResponse> login(String account, String password) =>
+      _submitCredentials(
+        'https://chat.piisiit.com/api/auth/login',
+        account,
+        password,
       );
-      return AuthResponse.fromJson(Map<String, dynamic>.from(response.data));
-    } on dio.DioException catch (e) {
-      throw ApiErrorParser.toException(e);
-    }
-  }
 
-  Future<AuthResponse> register(RegisterRequest request) async {
+  Future<AuthResponse> register(String account, String password) =>
+      _submitCredentials(
+        'https://chat.piisiit.com/api/auth/register',
+        account,
+        password,
+      );
+
+  Future<AuthResponse> _submitCredentials(
+    String url,
+    String account,
+    String password,
+  ) async {
     try {
+      final device = await _deviceService.read();
+      final request = AuthCredentialsRequest(
+        account: account,
+        password: password,
+        clientDeviceId: device.clientDeviceId,
+        appVersion: device.appVersion,
+        deviceName: device.deviceName,
+        platform: device.platform,
+        deviceModel: device.deviceModel,
+      );
       final response = await _api.dio.post(
-        '/api/auth/register',
+        url,
         data: request.toJson(),
+        options: dio.Options(
+          headers: {'Accept': '*/*'},
+          extra: {'requiresAuth': false},
+        ),
       );
-      return AuthResponse.fromJson(Map<String, dynamic>.from(response.data));
+      return AuthResponse.fromJson(
+        Map<String, dynamic>.from(response.data),
+        statusCode: response.statusCode,
+      );
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);
     }

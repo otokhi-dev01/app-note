@@ -17,16 +17,29 @@ class ApiErrorParser {
   static String messageFrom(dynamic responseData) {
     if (responseData is! Map) return 'An unexpected error occurred.';
 
-    final data = responseData['data'];
-    if (data is Map) {
-      for (final value in data.values) {
-        if (value is List && value.isNotEmpty) {
-          return value.first.toString();
+    for (final details in [
+      responseData['errors'] ?? responseData['Errors'],
+      responseData['data'] ?? responseData['Data'],
+    ]) {
+      if (details is Map) {
+        for (final entry in details.entries) {
+          // JSON deserialization diagnostics expose server implementation
+          // details; the top-level validation message is clearer in that case.
+          if (entry.key.toString().startsWith(r'$')) continue;
+          final value = entry.value;
+          if (value is List && value.isNotEmpty) {
+            return value.first.toString();
+          }
         }
       }
     }
 
-    return responseData['message']?.toString() ?? 'Something went wrong.';
+    return (responseData['message'] ??
+                responseData['Message'] ??
+                responseData['detail'] ??
+                responseData['title'])
+            ?.toString() ??
+        'Something went wrong.';
   }
 
   /// Maps a Dio error onto the exception the repository layer expects.

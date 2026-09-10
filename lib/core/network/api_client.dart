@@ -40,7 +40,11 @@ class ApiClient extends GetxService {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           final session = Get.find<SessionStorage>();
-          if (session.isLoggedIn) {
+          if (options.extra['requiresAuth'] == false) {
+            options.headers.removeWhere(
+              (key, _) => key.toLowerCase() == 'authorization',
+            );
+          } else if (session.isLoggedIn) {
             options.headers['Authorization'] = 'Bearer ${session.token.value}';
           }
           return handler.next(options);
@@ -55,7 +59,8 @@ class ApiClient extends GetxService {
               _printErrorResponse(e.response?.data);
             }
           }
-          if (e.response?.statusCode == 401) {
+          if (e.response?.statusCode == 401 &&
+              e.requestOptions.extra['requiresAuth'] != false) {
             Get.find<SessionStorage>().clearSession();
             Get.offAllNamed('/login');
           }

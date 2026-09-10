@@ -4,16 +4,14 @@ import 'package:Note/features/auth/domain/entities/auth_session.dart';
 abstract class AuthRepository {
   /// Authenticates and persists the session so later requests are authorized.
   Future<Result<AuthSession>> login({
-    required String phone,
+    required String account,
     required String password,
   });
 
-  Future<Result<AuthSession>> register({
-    required String fullName,
-    required String phone,
+  /// Creates an account; the user signs in separately after registration.
+  Future<Result<void>> register({
+    required String account,
     required String password,
-    required String deviceName,
-    required String deviceType,
   });
 
   /// Requests password-recovery instructions for the account phone number.
