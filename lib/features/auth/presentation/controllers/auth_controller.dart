@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -9,6 +7,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
 
@@ -33,10 +32,9 @@ class AuthController extends GetxController {
   final _storage = GetStorage();
   final _guestMode = Get.find<GuestModeService>();
 
-  final phoneController = TextEditingController();
+  final accountController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final nameController = TextEditingController();
 
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
@@ -45,6 +43,7 @@ class AuthController extends GetxController {
 
   static const String _keyRememberMe = 'remember_me';
   static const String _keySavedPhone = 'saved_phone';
+  static const String _keySavedAccount = 'saved_account';
 
   @override
   void onInit() {
@@ -59,24 +58,27 @@ class AuthController extends GetxController {
   void _loadRememberMe() {
     rememberMe.value = _storage.read(_keyRememberMe) ?? false;
     if (rememberMe.value) {
-      phoneController.text = _storage.read(_keySavedPhone) ?? '';
+      accountController.text =
+          _storage.read(_keySavedAccount) ??
+          _storage.read(_keySavedPhone) ??
+          '';
     }
   }
 
   Future<void> login() async {
     if (isLoading.value) return;
-    final phone = phoneController.text.trim();
+    final account = accountController.text.trim();
 
     isLoading.value = true;
     try {
       final result = await _login(
-        LoginParams(phone: phone, password: passwordController.text.trim()),
+        LoginParams(account: account, password: passwordController.text),
       );
 
       switch (result) {
         case Ok():
           _guestMode.disable();
-          _persistRememberMe(phone);
+          _persistRememberMe(account);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
           unawaited(Get.offAllNamed(Routes.FOLDER));
         case Err(:final failure):
@@ -94,18 +96,14 @@ class AuthController extends GetxController {
     try {
       final result = await _register(
         RegisterParams(
-          fullName: nameController.text.trim(),
-          phone: phoneController.text.trim(),
-          password: passwordController.text.trim(),
-          confirmPassword: confirmPasswordController.text.trim(),
-          deviceName: 'Mobile App',
-          deviceType: Platform.isAndroid ? 'Android' : 'iOS',
+          account: accountController.text.trim(),
+          password: passwordController.text,
+          confirmPassword: confirmPasswordController.text,
         ),
       );
 
       switch (result) {
         case Ok():
-          _guestMode.disable();
           AppSnackbar.success(
             'success_title'.tr,
             'register_success_message'.tr,
@@ -119,13 +117,15 @@ class AuthController extends GetxController {
     }
   }
 
-  void _persistRememberMe(String phone) {
+  void _persistRememberMe(String account) {
     if (rememberMe.value) {
       _storage.write(_keyRememberMe, true);
-      _storage.write(_keySavedPhone, phone);
+      _storage.write(_keySavedAccount, account);
+      _storage.remove(_keySavedPhone);
     } else {
       _storage.write(_keyRememberMe, false);
       _storage.remove(_keySavedPhone);
+      _storage.remove(_keySavedAccount);
     }
   }
 
@@ -133,7 +133,9 @@ class AuthController extends GetxController {
     await Get.toNamed(
       Routes.FORGOT_PASSWORD,
       arguments: {
-        'initialPhone': phoneController.text.trim(),
+        'initialPhone': Validators.phone(accountController.text) == null
+            ? accountController.text.trim()
+            : '',
         'onSubmit': _submitForgotPassword,
       },
     );

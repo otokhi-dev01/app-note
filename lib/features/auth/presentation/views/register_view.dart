@@ -106,17 +106,9 @@ class RegisterView extends GetView<AuthController> {
                               ),
                               _buildTextField(
                                 context,
-                                controller: controller.nameController,
-                                hint: "full_name_hint".tr,
+                                controller: controller.accountController,
+                                hint: 'login_account'.tr,
                                 icon: FontAwesomeIcons.user,
-                              ),
-                              SizedBox(height: 16),
-                              _buildTextField(
-                                context,
-                                controller: controller.phoneController,
-                                hint: "phone_number_hint".tr,
-                                icon: FontAwesomeIcons.phone,
-                                keyboardType: TextInputType.phone,
                               ),
                               SizedBox(height: 16),
                               Obx(
@@ -264,6 +256,8 @@ class RegisterView extends GetView<AuthController> {
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboardType,
+        autocorrect: false,
+        enableSuggestions: false,
         style: theme.textTheme.bodyLarge,
         decoration: InputDecoration(
           hintText: hint,

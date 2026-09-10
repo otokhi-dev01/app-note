@@ -53,9 +53,35 @@ class SearchView extends GetView<sc.SearchController> {
               Column(
                 children: [
                   _buildTopBar(context),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Obx(
+                      () => CupertinoSlidingSegmentedControl<sc.SearchScope>(
+                        groupValue: controller.scope.value,
+                        children: {
+                          sc.SearchScope.notes: Padding(
+                            key: const ValueKey('search-scope-notes'),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text('note_list_notes'.tr),
+                          ),
+                          sc.SearchScope.users: Padding(
+                            key: const ValueKey('search-scope-users'),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Text('search_users_title'.tr),
+                          ),
+                        },
+                        onValueChanged: (value) {
+                          if (value != null) controller.changeScope(value);
+                        },
+                      ),
+                    ),
+                  ),
 
                   Expanded(
                     child: Obx(() {
+                      if (controller.scope.value == sc.SearchScope.users) {
+                        return _buildUserResults(context);
+                      }
                       if (controller.isSearching.value) {
                         return _buildSearchResults(context);
                       }
@@ -382,6 +408,75 @@ class SearchView extends GetView<sc.SearchController> {
   // FOLDER RESULT TILE
   // ============================================================
 
+  Widget _buildUserResults(BuildContext context) {
+    final theme = Theme.of(context);
+    if (!controller.canSearchUsers) {
+      return _userSearchMessage(
+        'search_users_sign_in'.tr,
+        action: TextButton(
+          onPressed: () => Get.toNamed(Routes.LOGIN),
+          child: Text('login_button'.tr),
+        ),
+      );
+    }
+    if (!controller.isSearching.value) {
+      return _userSearchMessage('search_users_prompt'.tr);
+    }
+    if (controller.isLoadingUsers.value) {
+      return const Center(
+        child: CupertinoActivityIndicator(key: ValueKey('user-search-loading')),
+      );
+    }
+    final error = controller.userSearchError.value;
+    if (error != null) {
+      return _userSearchMessage(
+        error,
+        action: TextButton(
+          onPressed: controller.retryUserSearch,
+          child: Text('note_list_retry'.tr),
+        ),
+      );
+    }
+    if (controller.userResults.isEmpty) {
+      return _userSearchMessage('search_users_empty'.tr);
+    }
+    return ListView.separated(
+      key: const ValueKey('user-search-results'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+      itemCount: controller.userResults.length,
+      separatorBuilder: (_, _) => const Divider(height: 1, indent: 64),
+      itemBuilder: (_, index) {
+        final user = controller.userResults[index];
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: theme.colorScheme.primaryContainer,
+            child: Icon(
+              CupertinoIcons.person,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+          ),
+          title: Text(user.displayName),
+          subtitle: user.account.isNotEmpty && user.account != user.displayName
+              ? Text(user.account)
+              : null,
+        );
+      },
+    );
+  }
+
+  Widget _userSearchMessage(String message, {Widget? action}) => Padding(
+    padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          if (action != null) ...[const SizedBox(height: 12), action],
+        ],
+      ),
+    ),
+  );
+
   Widget _buildFolderResultTile(BuildContext context, Folder folder) {
     final theme = Theme.of(context);
 
@@ -484,6 +579,7 @@ class SearchView extends GetView<sc.SearchController> {
                     /// Search field
                     Expanded(
                       child: TextField(
+                        key: const ValueKey('search-keyword'),
                         controller: controller.searchController,
                         onChanged: controller.onSearchChanged,
                         autofocus: true,
@@ -492,7 +588,10 @@ class SearchView extends GetView<sc.SearchController> {
                           fontSize: 17,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'note_list_search'.tr,
+                          hintText:
+                              controller.scope.value == sc.SearchScope.users
+                              ? 'search_users_hint'.tr
+                              : 'note_list_search'.tr,
                           hintStyle: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant
                                 .withValues(alpha: 0.5),
@@ -507,13 +606,13 @@ class SearchView extends GetView<sc.SearchController> {
                       ),
                     ),
 
-                    const SizedBox(width: 8),
-
-                    /// Records and saves a voice note without leaving Search.
-                    TelegramAudioRecordButton(
-                      semanticLabel: 'note_editor_record_audio'.tr,
-                      onRecorded: _saveRecordedAudio,
-                    ),
+                    if (controller.scope.value == sc.SearchScope.notes) ...[
+                      const SizedBox(width: 8),
+                      TelegramAudioRecordButton(
+                        semanticLabel: 'note_editor_record_audio'.tr,
+                        onRecorded: _saveRecordedAudio,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -556,7 +655,7 @@ class SearchView extends GetView<sc.SearchController> {
   // ============================================================
 
   Widget _buildBottomSearchBar(BuildContext context) {
-    return _buildBottomBar(context);
+    return Obx(() => _buildBottomBar(context));
   }
 }
 

@@ -460,7 +460,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = "Share Extension/Share Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				CUSTOM_GROUP_ID = "group.com.kimchheang.otokhi-note";
 				DEVELOPMENT_TEAM = 76575X555K;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -488,7 +488,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = "Share Extension/Share Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				CUSTOM_GROUP_ID = "group.com.kimchheang.otokhi-note";
 				DEVELOPMENT_TEAM = 76575X555K;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -641,7 +641,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = "Share Extension/Share Extension.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				CUSTOM_GROUP_ID = "group.com.kimchheang.otokhi-note";
 				DEVELOPMENT_TEAM = 76575X555K;
 				GENERATE_INFOPLIST_FILE = NO;

@@ -15,31 +15,27 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<AuthSession>> login({
-    required String phone,
+    required String account,
     required String password,
   }) => guard(() async {
-    final response = await _remote.login(phone, password);
+    final response = await _remote.login(account, password);
     return _persist(response);
   });
 
   @override
-  Future<Result<AuthSession>> register({
-    required String fullName,
-    required String phone,
+  Future<Result<void>> register({
+    required String account,
     required String password,
-    required String deviceName,
-    required String deviceType,
   }) => guard(() async {
-    final response = await _remote.register(
-      RegisterRequest(
-        fullName: fullName,
-        phone: phone,
-        password: password,
-        deviceName: deviceName,
-        deviceType: deviceType,
-      ),
-    );
-    return _persist(response);
+    final response = await _remote.register(account, password);
+    if (!response.isSuccess) {
+      throw ServerException(
+        response.message.isEmpty
+            ? 'Could not create your account. Please try again.'
+            : response.message,
+        statusCode: response.code,
+      );
+    }
   });
 
   @override

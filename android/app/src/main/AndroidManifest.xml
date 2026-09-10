@@ -11,7 +11,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
     <application
-        android:label="otokhi001"
+        android:label="Pii Note"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

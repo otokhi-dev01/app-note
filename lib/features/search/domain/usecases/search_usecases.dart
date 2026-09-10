@@ -5,6 +5,21 @@ import 'package:Note/features/note/domain/entities/note.dart';
 import 'package:Note/features/note/domain/entities/note_block.dart';
 import 'package:Note/features/note/domain/repositories/note_repository.dart';
 import 'package:Note/features/search/domain/entities/search_results.dart';
+import 'package:Note/features/search/domain/entities/search_user.dart';
+import 'package:Note/features/search/domain/repositories/user_search_repository.dart';
+
+class SearchUsers extends UseCase<List<SearchUser>, String> {
+  final UserSearchRepository _repository;
+
+  const SearchUsers(this._repository);
+
+  @override
+  Future<Result<List<SearchUser>>> call(String keyword) {
+    final query = keyword.trim();
+    if (query.isEmpty) return Future.value(const Ok(<SearchUser>[]));
+    return _repository.search(query);
+  }
+}
 
 /// Searches notes and folders in one pass.
 ///
