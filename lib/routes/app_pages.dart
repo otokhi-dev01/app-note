@@ -25,6 +25,7 @@ import 'package:Note/features/settings/presentation/bindings/note_preferences_bi
 import 'package:Note/features/settings/presentation/views/account_view.dart';
 import 'package:Note/features/settings/presentation/views/delete_account_view.dart';
 import 'package:Note/features/settings/presentation/bindings/account_binding.dart';
+import 'package:Note/features/settings/presentation/bindings/device_binding.dart';
 import 'package:Note/features/trash/presentation/views/recently_deleted_view.dart';
 import 'package:Note/features/trash/presentation/bindings/recently_deleted_binding.dart';
 import 'package:Note/features/archive/presentation/views/archive_view.dart';
@@ -97,7 +98,11 @@ class AppPages {
       name: Routes.NOTIFICATIONS,
       page: () => const NotificationSettingsView(),
     ),
-    GetPage(name: Routes.DEVICE, page: () => const DeviceSettingsView()),
+    GetPage(
+      name: Routes.DEVICE,
+      page: () => const DeviceSettingsView(),
+      binding: DeviceBinding(),
+    ),
     GetPage(name: Routes.LANGUAGE, page: () => const LanguageSettingsView()),
     GetPage(name: Routes.PERMISSIONS, page: () => const PermissionsView()),
     GetPage(name: Routes.PRIVACY_POLICY, page: () => const PrivacyPolicyView()),
