@@ -1,6 +1,39 @@
 /// Khmer strings — mirrors the key set in `en_us.dart`. Any key missing here
 /// falls back to English via `AppTranslations.fallbackLocale`.
 const Map<String, String> kmKH = {
+  // Daily note
+  'daily_note_title': 'កំណត់ត្រាប្រចាំថ្ងៃ',
+  'daily_timeline': 'មើលតាមពេលវេលា',
+  'daily_agenda': 'មើលជាបញ្ជី',
+  'daily_search': 'ស្វែងរកក្នុងថ្ងៃនេះ',
+  'daily_add': 'បន្ថែមកំណត់ត្រាប្រចាំថ្ងៃ',
+  'daily_edit': 'កែសម្រួលកំណត់ត្រាប្រចាំថ្ងៃ',
+  'daily_today': 'ថ្ងៃនេះ',
+  'daily_previous_week': 'សប្តាហ៍មុន',
+  'daily_next_week': 'សប្តាហ៍ក្រោយ',
+  'daily_local': 'កំណត់ត្រាប្រចាំថ្ងៃត្រូវបានរក្សាទុកលើឧបករណ៍នេះ។',
+  'daily_empty': 'កន្លែងសម្រាប់រៀបចំផែនការប្រចាំថ្ងៃរបស់អ្នក។',
+  'daily_no_results': 'គ្មានកំណត់ត្រាដែលត្រូវគ្នាសម្រាប់ថ្ងៃនេះទេ។',
+  'daily_title_field': 'ចំណងជើង',
+  'daily_title_required': 'សូមបញ្ចូលចំណងជើង។',
+  'daily_start': 'ចាប់ផ្តើម',
+  'daily_end': 'បញ្ចប់',
+  'daily_body': 'កំណត់ត្រា',
+  'daily_color': 'ពណ៌',
+  'daily_take_photo': 'ថតរូប',
+  'daily_remove_photo': 'ដករូបថតចេញ',
+  'daily_view_photo': 'មើលរូបថត @number',
+  'daily_photo_unavailable': 'រូបថតនេះលែងមាននៅលើឧបករណ៍នេះហើយ។',
+  'daily_camera_permission': 'អនុញ្ញាតឱ្យប្រើកាមេរ៉ាក្នុងការកំណត់ ដើម្បីថតរូប។',
+  'daily_camera_error': 'មិនអាចបើកកាមេរ៉ាបានទេ។ សូមព្យាយាមម្តងទៀត។',
+  'daily_color_number': 'ពណ៌ @number',
+  'daily_save': 'រក្សាទុក',
+  'daily_cancel': 'បោះបង់',
+  'daily_delete': 'លុប',
+  'daily_delete_confirm': 'លុបកំណត់ត្រាប្រចាំថ្ងៃនេះ?',
+  'daily_invalid_time': 'ពេលបញ្ចប់ត្រូវតែក្រោយពេលចាប់ផ្តើមក្នុងថ្ងៃតែមួយ។',
+  'daily_save_error': 'មិនអាចរក្សាទុកការផ្លាស់ប្តូរបានទេ។ សូមព្យាយាមម្តងទៀត។',
+
   // Splash
   'app_tagline': 'ការកត់ត្រាគុណភាពខ្ពស់',
 

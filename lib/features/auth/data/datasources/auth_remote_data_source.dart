@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart' hide Response;
 
+import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
@@ -18,14 +19,14 @@ class AuthRemoteDataSource extends GetxService {
 
   Future<AuthResponse> login(String account, String password) =>
       _submitCredentials(
-        'https://chat.piisiit.com/api/auth/login',
+        '${AppConstants.authBaseUrl}${AppConstants.loginEndpoint}',
         account,
         password,
       );
 
   Future<AuthResponse> register(String account, String password) =>
       _submitCredentials(
-        'https://chat.piisiit.com/api/auth/register',
+        '${AppConstants.authBaseUrl}${AppConstants.registerEndpoint}',
         account,
         password,
       );
@@ -57,6 +58,19 @@ class AuthRemoteDataSource extends GetxService {
       return AuthResponse.fromJson(
         Map<String, dynamic>.from(response.data),
         statusCode: response.statusCode,
+      );
+    } on dio.DioException catch (e) {
+      throw ApiErrorParser.toException(e);
+    }
+  }
+
+  /// Revokes the current device's session server-side. Callers should still
+  /// clear the local session even if this throws — the user asked to sign
+  /// out and must not be left stuck signed in locally over a network hiccup.
+  Future<void> logout() async {
+    try {
+      await _api.dio.post(
+        '${AppConstants.authBaseUrl}${AppConstants.logoutEndpoint}',
       );
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);

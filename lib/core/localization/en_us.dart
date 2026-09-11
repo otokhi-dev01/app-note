@@ -1,6 +1,40 @@
 /// English strings — every screen in the app. This is also the fallback
 /// locale (see `AppTranslations`).
 const Map<String, String> enUS = {
+  // Daily note
+  'daily_note_title': 'Daily note',
+  'daily_timeline': 'Timeline view',
+  'daily_agenda': 'List view',
+  'daily_search': 'Search this day',
+  'daily_add': 'Add daily note',
+  'daily_edit': 'Edit daily note',
+  'daily_today': 'Today',
+  'daily_previous_week': 'Previous week',
+  'daily_next_week': 'Next week',
+  'daily_local': 'Daily notes are saved on this device.',
+  'daily_empty': 'A little space to plan your day.',
+  'daily_no_results': 'No matching notes for this day.',
+  'daily_title_field': 'Title',
+  'daily_title_required': 'Enter a title.',
+  'daily_start': 'Start',
+  'daily_end': 'End',
+  'daily_body': 'Notes',
+  'daily_color': 'Color',
+  'daily_take_photo': 'Take photo',
+  'daily_remove_photo': 'Remove photo',
+  'daily_view_photo': 'View photo @number',
+  'daily_photo_unavailable':
+      'This photo is no longer available on this device.',
+  'daily_camera_permission': 'Allow camera access in Settings to take a photo.',
+  'daily_camera_error': 'Could not open the camera. Please try again.',
+  'daily_color_number': 'Color @number',
+  'daily_save': 'Save',
+  'daily_cancel': 'Cancel',
+  'daily_delete': 'Delete',
+  'daily_delete_confirm': 'Delete this daily note?',
+  'daily_invalid_time': 'End time must be after start time on the same day.',
+  'daily_save_error': 'Could not save changes. Please try again.',
+
   // Splash
   'app_tagline': 'High Fidelity Note Taking',
 

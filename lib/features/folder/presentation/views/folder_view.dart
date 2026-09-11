@@ -174,7 +174,11 @@ class FolderView extends GetView<FolderController> {
             ),
             Obx(
               () => controller.isICloudExpanded.value
-                  ? _buildFolderGroup(context, controller.iCloudFolders)
+                  ? _buildFolderGroup(
+                      context,
+                      controller.iCloudFolders,
+                      includeDailyNote: true,
+                    )
                   : const SizedBox.shrink(),
             ),
             // const SizedBox(height: 24),
@@ -233,8 +237,9 @@ class FolderView extends GetView<FolderController> {
     BuildContext context,
     List<Folder> folders, {
     bool includeSystem = false,
+    bool includeDailyNote = false,
   }) {
-    if (folders.isEmpty && !includeSystem) {
+    if (folders.isEmpty && !includeSystem && !includeDailyNote) {
       return const SizedBox.shrink();
     }
 
@@ -243,6 +248,24 @@ class FolderView extends GetView<FolderController> {
       child: GlassCard(
         borderRadius: 30,
         children: [
+          if (includeDailyNote) ...[
+            CustomGlassListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              leading: Icon(
+                CupertinoIcons.calendar,
+                color: Theme.of(context).primaryColor,
+              ),
+              title: Text(
+                'daily_note_title'.tr,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontSize: 16),
+              ),
+              trailing: const Icon(CupertinoIcons.chevron_right, size: 16),
+              onTap: () => Get.toNamed(Routes.DAILY_NOTE),
+            ),
+            if (folders.isNotEmpty) const Divider(indent: 56, height: 1),
+          ],
           if (includeSystem) ...[
             FolderAllNotesTile(controller: controller),
             const Divider(indent: 56, height: 1),

@@ -3,9 +3,10 @@ import 'package:Note/features/auth/domain/entities/auth_session.dart';
 
 /// Reads and updates the signed-in user's profile.
 ///
-/// The backend has no profile endpoint yet, so the implementation persists to
-/// the stored session. Keeping that behind this interface means swapping in a
-/// real endpoint later touches only the data layer.
+/// [updateName] now round-trips through the `/api/users/update-profile`
+/// endpoint. [updateProfileImage] still persists locally only — the backend
+/// has an upload endpoint, but wiring it changes how the avatar is stored and
+/// resolved app-wide, so that swap is deliberately left for a follow-up.
 abstract class ProfileRepository {
   AuthUser? get currentUser;
 

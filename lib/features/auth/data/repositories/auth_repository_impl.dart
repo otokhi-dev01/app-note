@@ -43,7 +43,15 @@ class AuthRepositoryImpl implements AuthRepository {
       guard(() => _remote.forgotPassword(phone));
 
   @override
-  Future<Result<void>> logout() => guard(() => _session.clearSession());
+  Future<Result<void>> logout() => guard(() async {
+    try {
+      await _remote.logout();
+    } catch (_) {
+      // Best-effort server revocation: still sign out locally even if the
+      // device is offline or the call otherwise fails.
+    }
+    await _session.clearSession();
+  });
 
   @override
   Future<Result<void>> deleteAccount({required String password}) =>

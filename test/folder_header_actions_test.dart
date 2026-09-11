@@ -77,6 +77,13 @@ void main() {
       expect(appBar.actions, hasLength(3));
       expect(appBar.actions![2], isA<FolderViewMenu>());
 
+      await tester.tap(find.text('Daily note'));
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.DAILY_NOTE);
+      expect(find.byKey(const ValueKey('daily-timeline')), findsOneWidget);
+      Get.back();
+      await tester.pumpAndSettle();
+
       await tester.tap(find.bySemanticsLabel('Search notes and folders'));
       await tester.pumpAndSettle();
       expect(Get.currentRoute, Routes.SEARCH);
