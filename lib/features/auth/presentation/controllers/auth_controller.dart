@@ -55,6 +55,12 @@ class AuthController extends GetxController {
   void toggleConfirmPasswordVisibility() => isConfirmPasswordVisible.toggle();
   void toggleRememberMe() => rememberMe.toggle();
 
+  void continueWithoutAccount() {
+    if (isLoading.value) return;
+    _guestMode.enable();
+    unawaited(Get.offAllNamed(Routes.FOLDER));
+  }
+
   void _loadRememberMe() {
     rememberMe.value = _storage.read(_keyRememberMe) ?? false;
     if (rememberMe.value) {

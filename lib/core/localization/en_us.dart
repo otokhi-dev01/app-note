@@ -27,6 +27,8 @@ const Map<String, String> enUS = {
   'login_title': 'Login',
   'login_welcome_back': 'Welcome Back',
   'login_subtitle': 'Login to your account',
+  'login_guest_description':
+      'Use notes and folders now. Guest notes are saved only on this device.',
   'login_account': 'Account',
   'remember_me': 'Remember Me',
   'forgot_password': 'Forgot Password?',
