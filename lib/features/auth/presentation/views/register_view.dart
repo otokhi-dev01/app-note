@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
@@ -64,11 +63,17 @@ class RegisterView extends GetView<AuthController> {
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 30,
+                            color: theme.colorScheme.primary,
                           ),
                         )
                         .animate()
-                        .fadeIn(duration: 400.ms)
-                        .slideY(begin: 0.2, end: 0),
+                        .scale(
+                          duration: 600.ms,
+                          curve: Curves.easeOutBack,
+                          begin: const Offset(0.9, 0.9),
+                          end: const Offset(1, 1),
+                        )
+                        .fadeIn(duration: 400.ms),
                     SizedBox(height: 8),
                     Text(
                       "register_subtitle".tr,
@@ -107,23 +112,23 @@ class RegisterView extends GetView<AuthController> {
                               _buildTextField(
                                 context,
                                 controller: controller.accountController,
-                                hint: 'login_account'.tr,
-                                icon: FontAwesomeIcons.user,
+                                hint: "username_email_phone_hint".tr,
+                                icon: Icons.person,
                               ),
                               SizedBox(height: 16),
                               Obx(
                                 () => _buildTextField(
                                   context,
                                   controller: controller.passwordController,
-                                  hint: "password_hint".tr,
-                                  icon: FontAwesomeIcons.lock,
+                                  hint: "password_label".tr,
+                                  icon: Icons.lock,
                                   isPassword:
                                       !controller.isPasswordVisible.value,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       controller.isPasswordVisible.value
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
                                       color: theme.colorScheme.onSurfaceVariant,
                                       size: 20,
                                     ),
@@ -138,16 +143,16 @@ class RegisterView extends GetView<AuthController> {
                                   context,
                                   controller:
                                       controller.confirmPasswordController,
-                                  hint: "confirm_password_hint".tr,
-                                  icon: FontAwesomeIcons.lock,
+                                  hint: "confirm_password_label".tr,
+                                  icon: Icons.lock,
                                   isPassword: !controller
                                       .isConfirmPasswordVisible
                                       .value,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       controller.isConfirmPasswordVisible.value
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
                                       color: theme.colorScheme.onSurfaceVariant,
                                       size: 20,
                                     ),
@@ -165,7 +170,7 @@ class RegisterView extends GetView<AuthController> {
                                         ? null
                                         : controller.register,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.folderPink,
+                                      backgroundColor: theme.colorScheme.primary,
                                       foregroundColor: Colors.white,
                                       padding: EdgeInsets.symmetric(
                                         vertical: 16,
@@ -180,12 +185,12 @@ class RegisterView extends GetView<AuthController> {
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
-                                              color: AppTheme.folderPink,
+                                              color: Colors.white,
                                               strokeWidth: 2,
                                             ),
                                           )
                                         : Text(
-                                            "register_button".tr,
+                                            "sign_up_button".tr,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
@@ -213,13 +218,13 @@ class RegisterView extends GetView<AuthController> {
                         TextButton(
                           onPressed: () => Get.back(),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.folderPink,
+                            foregroundColor: theme.colorScheme.primary,
                             padding: EdgeInsets.symmetric(horizontal: 5),
                           ),
                           child: Text(
                             "login_link".tr,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.folderPink,
+                              color: theme.colorScheme.primary,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),

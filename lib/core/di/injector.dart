@@ -4,6 +4,7 @@ import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/storage/session_storage.dart';
+import 'package:Note/core/controllers/encryption_controller.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:Note/features/auth/domain/repositories/auth_repository.dart';
@@ -33,6 +34,7 @@ class InitialBinding extends Bindings {
     Get.put(GuestModeService(), permanent: true);
     Get.put(SettingsPreferences(), permanent: true);
     Get.put(ApiClient(), permanent: true);
+    Get.put(EncryptionController(), permanent: true);
 
     Get.lazyPut(() => AuthRemoteDataSource(), fenix: true);
     Get.lazyPut(() => FolderRemoteDataSource(), fenix: true);

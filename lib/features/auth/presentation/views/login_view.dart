@@ -59,10 +59,11 @@ class LoginView extends GetView<AuthController> {
                         .fadeIn(duration: 400.ms),
                     SizedBox(height: 20),
                     Text(
-                          "login welcome back".tr,
+                          "welcome_piisiit".tr,
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 30,
+                            color: theme.colorScheme.primary,
                           ),
                         )
                         .animate()
@@ -70,7 +71,7 @@ class LoginView extends GetView<AuthController> {
                         .slideY(begin: 0.2, end: 0),
                     SizedBox(height: 8),
                     Text(
-                      "login_subtitle".tr,
+                      "sign_in_subtitle".tr,
                       style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
                     ).animate().fadeIn(delay: 300.ms),
                     SizedBox(height: 15),
@@ -105,23 +106,23 @@ class LoginView extends GetView<AuthController> {
                               _buildTextField(
                                 context,
                                 controller: controller.accountController,
-                                hint: 'login_account'.tr,
-                                icon: FontAwesomeIcons.user,
+                                hint: "username_email_phone_hint".tr,
+                                icon: Icons.person,
                               ),
                               SizedBox(height: 20),
                               Obx(
                                 () => _buildTextField(
                                   context,
                                   controller: controller.passwordController,
-                                  hint: "password".tr,
-                                  icon: FontAwesomeIcons.lock,
+                                  hint: "password_label".tr,
+                                  icon: Icons.lock,
                                   isPassword:
                                       !controller.isPasswordVisible.value,
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       controller.isPasswordVisible.value
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
+                                          ? Icons.visibility
+                                          : Icons.visibility_off,
                                       color: theme.colorScheme.onSurfaceVariant,
                                       size: 20,
                                     ),
@@ -148,7 +149,7 @@ class LoginView extends GetView<AuthController> {
                                   GestureDetector(
                                     onTap: controller.toggleRememberMe,
                                     child: Text(
-                                      "remember me".tr,
+                                      "remember_me".tr,
                                       style: theme.textTheme.bodyMedium,
                                     ),
                                   ),
@@ -156,9 +157,9 @@ class LoginView extends GetView<AuthController> {
                                   TextButton(
                                     onPressed: controller.forgotPassword,
                                     child: Text(
-                                      "forgot password".tr,
+                                      "forgot_password".tr,
                                       style: TextStyle(
-                                        color: AppTheme.folderPink,
+                                        color: theme.colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -173,7 +174,7 @@ class LoginView extends GetView<AuthController> {
                                         ? null
                                         : controller.login,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppTheme.folderPink,
+                                      backgroundColor: theme.colorScheme.primary,
                                       foregroundColor: Colors.white,
                                       padding: EdgeInsets.symmetric(
                                         vertical: 16,
@@ -188,12 +189,12 @@ class LoginView extends GetView<AuthController> {
                                             height: 20,
                                             width: 20,
                                             child: CircularProgressIndicator(
-                                              color: AppTheme.folderPink,
+                                              color: Colors.white,
                                               strokeWidth: 2,
                                             ),
                                           )
                                         : Text(
-                                            "login_button".tr,
+                                            "sign_in_button".tr,
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 20,
@@ -250,13 +251,13 @@ class LoginView extends GetView<AuthController> {
                         TextButton(
                           onPressed: () => Get.toNamed(Routes.REGISTER),
                           style: TextButton.styleFrom(
-                            foregroundColor: AppTheme.folderPink,
+                            foregroundColor: theme.colorScheme.primary,
                             padding: EdgeInsets.symmetric(horizontal: 5),
                           ),
                           child: Text(
                             "register_link".tr,
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.folderPink,
+                              color: theme.colorScheme.primary,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
@@ -284,10 +285,15 @@ class LoginView extends GetView<AuthController> {
     TextInputType keyboardType = TextInputType.text,
   }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(30),
+        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.15),
+          width: 1,
+        ),
       ),
       child: TextField(
         controller: controller,
@@ -295,25 +301,25 @@ class LoginView extends GetView<AuthController> {
         keyboardType: keyboardType,
         autocorrect: false,
         enableSuggestions: false,
-        style: theme.textTheme.bodyLarge,
+        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
           ),
           prefixIcon: icon is IconData
-              ? Icon(icon, color: theme.colorScheme.onSurfaceVariant)
+              ? Icon(icon, color: theme.colorScheme.primary.withOpacity(0.7), size: 22)
               : Padding(
-                  padding: EdgeInsets.all(14.0),
+                  padding: const EdgeInsets.all(14.0),
                   child: FaIcon(
                     icon,
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: theme.colorScheme.primary.withOpacity(0.7),
                     size: 18,
                   ),
                 ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

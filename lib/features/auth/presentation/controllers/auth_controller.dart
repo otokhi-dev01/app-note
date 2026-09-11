@@ -10,6 +10,7 @@ import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
+import 'package:Note/core/controllers/encryption_controller.dart';
 
 /// Backs both the login and register screens.
 ///
@@ -86,6 +87,7 @@ class AuthController extends GetxController {
           _guestMode.disable();
           _persistRememberMe(account);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
+          unawaited(Get.find<EncryptionController>().setupForCurrentUser());
           unawaited(Get.offAllNamed(Routes.FOLDER));
         case Err(:final failure):
           AppSnackbar.failure('login_failed_title'.tr, failure);

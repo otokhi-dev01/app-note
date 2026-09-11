@@ -3,9 +3,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/app_logo.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
@@ -115,60 +116,101 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Center(
+                            child: AppLogo(height: 78)
+                                .animate()
+                                .scale(
+                                  duration: 600.ms,
+                                  curve: Curves.easeOutBack,
+                                  begin: const Offset(0.9, 0.9),
+                                  end: const Offset(1, 1),
+                                )
+                                .fadeIn(duration: 400.ms),
+                          ),
+                          const SizedBox(height: 24),
+                          Center(
+                            child: Text(
+                              "forgot_password_title".tr,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 30,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Text(
                             'forgot_password_desc'.tr,
+                            textAlign: TextAlign.center,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                               height: 1.45,
+                              fontSize: 16,
                             ),
                           ),
-                          SizedBox(height: 20),
+                          const SizedBox(height: 24),
                           CustomGlassContainer(
-                            borderRadius: 22,
-                            blur: 20,
-                            opacity: 0.12,
-                            thickness: 8,
-                            padding: EdgeInsets.all(20),
+                            borderRadius: 30,
+                            blur: 35,
+                            opacity: 0.1,
+                            thickness: 15,
+                            showGlow: true,
+                            padding: const EdgeInsets.all(24),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'phone_number_label'.tr,
-                                  style: theme.textTheme.labelLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                Center(
+                                  child: Container(
+                                    width: 40,
+                                    height: 4,
+                                    margin: const EdgeInsets.only(bottom: 24),
+                                    decoration: BoxDecoration(
+                                      color: theme.dividerColor.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
                                   ),
                                 ),
-                                SizedBox(height: 10),
                                 _buildPhoneField(context),
                               ],
                             ),
                           ),
-                          SizedBox(height: 22),
-                          CustomGlassButton(
-                            semanticLabel: 'send reset request'.tr,
-                            onPressed: _isSubmitting || _phone.isEmpty
-                                ? null
-                                : _submit,
-                            minHeight: 52,
-                            borderRadius: 18,
-                            glassColor: IosSemanticColors.blue.withValues(
-                              alpha: 0.88,
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _isSubmitting || _phone.isEmpty
+                                  ? null
+                                  : _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'send_reset_request'.tr,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                      ),
+                                    ),
                             ),
-                            foregroundColor: Colors.white,
-                            child: _isSubmitting
-                                ? SizedBox.square(
-                                    dimension: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Text(
-                                    'send reset request'.tr,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
                           ),
                         ],
                       ),
@@ -185,43 +227,30 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
 
   Widget _buildPhoneField(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(
-        color: scheme.outlineVariant.withValues(alpha: 0.75),
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(30),
       ),
-    );
-    return TextField(
-      controller: _phoneController,
-      autofocus: true,
-      enabled: !_isSubmitting,
-      maxLength: _maxPhoneLength,
-      keyboardType: TextInputType.phone,
-      textInputAction: TextInputAction.done,
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
-        LengthLimitingTextInputFormatter(_maxPhoneLength),
-      ],
-      onSubmitted: (_) => _submit(),
-      decoration: InputDecoration(
-        hintText: 'phone_number_hint'.tr,
-        errorText: _errorText,
-        counterText: '',
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        prefixIcon: Icon(CupertinoIcons.phone, color: IosSemanticColors.green),
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: BorderSide(color: IosSemanticColors.blue, width: 1.5),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: BorderSide(color: IosSemanticColors.red),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: BorderSide(color: IosSemanticColors.red, width: 1.5),
+      child: TextField(
+        controller: _phoneController,
+        autofocus: true,
+        enabled: !_isSubmitting,
+        maxLength: _maxPhoneLength,
+        keyboardType: TextInputType.text,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+        style: theme.textTheme.bodyLarge,
+        decoration: InputDecoration(
+          hintText: 'username_email_phone_hint'.tr,
+          hintStyle: theme.textTheme.bodyLarge?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          errorText: _errorText,
+          counterText: '',
+          prefixIcon: Icon(Icons.person, color: theme.colorScheme.onSurfaceVariant),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );

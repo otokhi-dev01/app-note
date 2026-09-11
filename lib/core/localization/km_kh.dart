@@ -70,10 +70,17 @@ const Map<String, String> kmKH = {
   'welcome_title': 'សូមស្វាគមន៍',
   'login_success_message': 'ចូលដោយជោគជ័យ!',
   'login_failed_title': 'ការចូលបានបរាជ័យ',
+  'username_email_phone_hint': 'ឈ្មោះអ្នកប្រើប្រាស់ អ៊ីមែល ឬលេខទូរស័ព្ទ',
+  'password_label': 'ពាក្យសម្ងាត់',
+  'confirm_password_label': 'បញ្ជាក់ពាក្យសម្ងាត់',
+  'sign_in_button': 'ចូល',
+  'sign_up_button': 'ចុះឈ្មោះ',
+  'welcome_piisiit': 'សូមស្វាគមន៍មកកាន់ PIISIIT',
+  'sign_in_subtitle': 'ចូលទៅកាន់គណនីរបស់អ្នក',
 
   // Register
   'register_title': 'ចុះឈ្មោះ',
-  'register_create_account': 'បង្កើតគណនី',
+  'register_create_account': 'បង្កើតគណនីរបស់អ្នក',
   'register_subtitle': 'ចុះឈ្មោះដើម្បីចាប់ផ្តើម',
   'register_button': 'ចុះឈ្មោះ',
   'register_have_account': 'មានគណនីរួចហើយមែនទេ?',

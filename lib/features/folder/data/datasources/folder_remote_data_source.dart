@@ -28,6 +28,17 @@ class FolderRemoteDataSource extends GetxService {
       );
       final body = response.data;
       if (body is! Map) {
+        if (body is List) {
+          return FolderResponse(
+            folders: (body as List)
+                .whereType<Map>()
+                .map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList(),
+            trash: [],
+            code: 200,
+            message: 'Success',
+          );
+        }
         return const FolderResponse(
           folders: [],
           trash: [],
@@ -37,6 +48,12 @@ class FolderRemoteDataSource extends GetxService {
       }
       return FolderResponse.fromJson(Map<String, dynamic>.from(body));
     } on dio.DioException catch (e) {
+      // TEMP DEBUG — remove once the post-login failure is diagnosed.
+      // ignore: avoid_print
+      print(
+        '❌ GET /api/folder failed: type=${e.type} status=${e.response?.statusCode} '
+        'body=${e.response?.data ?? e.message}',
+      );
       throw ApiErrorParser.toException(e);
     }
   }
@@ -52,8 +69,13 @@ class FolderRemoteDataSource extends GetxService {
         data: folder.toJson(),
       );
       final body = response.data;
+      // TEMP DEBUG — remove once the real envelope shape is confirmed; this
+      // endpoint answers 200 even on failure, so without this the console
+      // shows nothing at all when the app misreads a 200 body as a failure.
+      // ignore: avoid_print
+      print('📤 folder save raw response -> ${response.statusCode}: $body');
       if (body is! Map) {
-        throw const ServerException('Invalid folder save response.');
+        throw ServerException('Invalid folder save response: $body');
       }
       return Map<String, dynamic>.from(body);
     } on dio.DioException catch (e) {

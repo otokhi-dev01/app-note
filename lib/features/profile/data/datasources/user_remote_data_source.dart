@@ -45,4 +45,39 @@ class UserRemoteDataSource extends GetxService {
       throw ApiErrorParser.toException(e);
     }
   }
+
+  Future<String?> uploadProfileImage(String filePath) async {
+    try {
+      final formData = dio.FormData.fromMap({
+        'file': await dio.MultipartFile.fromFile(filePath, filename: 'profile.jpg'),
+      });
+
+      final response = await _api.dio.post(
+        AppConstants.userUploadProfileEndpoint,
+        data: formData,
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data['imageUrl'] as String?;
+      }
+    } on dio.DioException catch (e) {
+      print('❌ Upload failed: ${e.message}');
+    }
+    return null;
+  }
+
+  Future<bool> updateUserProfile(Map<String, dynamic> profileData) async {
+    try {
+      final response = await _api.dio.post(
+        AppConstants.userUpdateProfileEndpoint,
+        data: profileData,
+      );
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } on dio.DioException catch (e) {
+      print('❌ Update failed: ${e.message}');
+    }
+    return false;
+  }
 }
