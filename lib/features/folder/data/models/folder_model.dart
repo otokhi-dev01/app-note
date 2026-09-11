@@ -94,7 +94,7 @@ class FolderResponse {
   });
 
   factory FolderResponse.fromJson(Map<String, dynamic> json) {
-    final dynamic rawData = json['data'];
+    final dynamic rawData = json['data'] ?? json['Data'] ?? json;
     List<FolderModel> activeList = [];
     List<FolderModel> trashList = [];
 
@@ -104,7 +104,10 @@ class FolderResponse {
         .toList();
 
     if (rawData is Map) {
-      final all = [...parse(rawData['folder']), ...parse(rawData['archive'])];
+      final all = [...parse(rawData['folder']), ...parse(rawData['archive']), ...parse(rawData['folders'])];
+      if (all.isEmpty && (rawData.containsKey('id') || rawData.containsKey('FolderId'))) {
+        all.add(FolderModel.fromJson(Map<String, dynamic>.from(rawData)));
+      }
       activeList = all.where((f) => f.deletedAt == null).toList();
       trashList = [
         ...parse(rawData['trash']),
@@ -119,8 +122,8 @@ class FolderResponse {
     return FolderResponse(
       folders: activeList,
       trash: trashList,
-      code: asInt(json['code']),
-      message: asString(json['message']),
+      code: asInt(json['code'] ?? json['Code'] ?? 200),
+      message: asString(json['message'] ?? json['Message'] ?? 'Success'),
     );
   }
 }

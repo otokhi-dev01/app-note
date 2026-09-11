@@ -17,7 +17,7 @@ class ApiClient extends GetxService {
   /// `--dart-define=PIISIIT_NOTE_BASE_URL=https://...`
   static const String baseUrl = String.fromEnvironment(
     'PIISIIT_NOTE_BASE_URL',
-    defaultValue: 'https://chat.piisiit.com',
+    defaultValue: AppConstants.baseUrl,
   );
 
   Dio get dio => _dio;

@@ -90,11 +90,27 @@ class NoteRemoteDataSource extends GetxService {
         final extractedId = asInt(
           data['data']?['NoteId'] ??
               data['data']?['id'] ??
+              data['data']?['Note']?['id'] ??
               data['NoteId'] ??
-              data['id'],
+              data['id'] ??
+              data['Id'] ??
+              data['Note']?['id'] ??
+              data['Note']?['Id'] ??
+              data['NoteId'] ??
+              data['noteId']
         );
         if (extractedId > 0) return extractedId;
       }
+      
+      final topLevelId = asInt(
+        data?['NoteId'] ?? 
+        data?['id'] ?? 
+        data?['Id'] ?? 
+        data?['noteId'] ??
+        data?['Note']?['id'] ??
+        data?['Note']?['Id']
+      );
+      if (topLevelId > 0) return topLevelId;
 
       if (noteId > 0) return noteId;
 
