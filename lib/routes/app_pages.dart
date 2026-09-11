@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:Note/features/daily_note/presentation/daily_note_view.dart';
 import 'package:Note/features/splash/presentation/views/splash_view.dart';
 import 'package:Note/features/splash/presentation/bindings/splash_binding.dart';
 import 'package:Note/features/onboarding/presentation/views/onboarding_view.dart';
@@ -36,6 +37,7 @@ class AppPages {
   static const INITIAL = Routes.SPLASH;
 
   static final routes = [
+    GetPage(name: Routes.DAILY_NOTE, page: () => const DailyNoteView()),
     GetPage(
       name: Routes.SPLASH,
       page: () => const SplashView(),

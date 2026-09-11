@@ -6,6 +6,7 @@ abstract class Routes {
   static const LOGIN = '/login';
   static const REGISTER = '/register';
   static const FOLDER = '/folder';
+  static const DAILY_NOTE = '/daily-note';
   static const NOTE_LIST = '/note-list';
   static const NOTE_DETAIL = '/note-detail';
   static const SEARCH = '/search';
