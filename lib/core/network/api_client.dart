@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 
+import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/storage/session_storage.dart';
 
 /// Owns the configured [Dio] instance: base URL, timeouts, auth header
@@ -30,8 +31,8 @@ class ApiClient extends GetxService {
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Content-Type': AppConstants.contentTypeJson,
+          'Accept': AppConstants.contentTypeJson,
         },
       ),
     );
