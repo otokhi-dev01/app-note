@@ -208,7 +208,35 @@ class LoginView extends GetView<AuthController> {
                       ),
                     ),
 
-                    SizedBox(height: 28),
+                    SizedBox(height: 24),
+                    Obx(
+                      () => SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : controller.continueWithoutAccount,
+                          icon: const Icon(Icons.person_outline_rounded),
+                          label: Text('onboarding_continue_guest'.tr),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.folderPink,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'login_guest_description'.tr,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

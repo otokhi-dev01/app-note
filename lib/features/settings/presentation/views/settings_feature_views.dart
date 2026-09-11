@@ -12,6 +12,7 @@ import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
+import 'package:Note/features/settings/presentation/controllers/device_controller.dart';
 import 'package:Note/features/settings/presentation/widgets/preference_actions.dart';
 import 'package:Note/features/settings/presentation/widgets/settings_app_bar.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -44,7 +45,7 @@ class NotificationSettingsView extends StatelessWidget {
   }
 }
 
-class DeviceSettingsView extends StatelessWidget {
+class DeviceSettingsView extends GetView<DeviceController> {
   const DeviceSettingsView({super.key});
 
   @override
@@ -61,51 +62,140 @@ class DeviceSettingsView extends StatelessWidget {
     return _SettingsFeatureScaffold(
       title: 'device_title'.tr,
       useSurfaceBackButtonColor: true,
-      child: _FeatureCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _FeatureTile(
-            icon: CupertinoIcons.device_phone_portrait,
-            iconColor: IosSemanticColors.gray,
-            title: 'device_current'.tr,
-            subtitle: '$deviceName • $deviceType',
-            trailing: Text(
-              'device_this_device'.tr,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: IosSemanticColors.blue,
-                fontWeight: FontWeight.w700,
+          Obx(() => _accountDevices(context)),
+          const SizedBox(height: 16),
+          _FeatureCard(
+            children: [
+              _FeatureTile(
+                icon: CupertinoIcons.device_phone_portrait,
+                iconColor: IosSemanticColors.gray,
+                title: 'device_current'.tr,
+                subtitle: '$deviceName • $deviceType',
+                trailing: Text(
+                  'device_this_device'.tr,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: IosSemanticColors.blue,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-            ),
-          ),
-          _FeatureTile(
-            icon: isCloudAccount
-                ? CupertinoIcons.cloud_fill
-                : CupertinoIcons.device_phone_portrait,
-            iconColor: isCloudAccount
-                ? IosSemanticColors.blue
-                : IosSemanticColors.gray,
-            title: 'device_storage'.tr,
-            subtitle: isCloudAccount
-                ? 'device_storage_cloud_desc'.tr
-                : 'device_storage_local_desc'.tr,
-            trailing: const Icon(
-              CupertinoIcons.checkmark_circle_fill,
-              color: IosSemanticColors.green,
-            ),
-          ),
-          _FeatureTile(
-            icon: isCloudAccount
-                ? CupertinoIcons.arrow_2_circlepath
-                : Icons.cloud_off_rounded,
-            iconColor: isCloudAccount
-                ? IosSemanticColors.green
-                : IosSemanticColors.gray,
-            title: 'device_account_status'.tr,
-            subtitle: isCloudAccount
-                ? 'device_account_synced'.tr
-                : 'device_account_local'.tr,
+              _FeatureTile(
+                icon: isCloudAccount
+                    ? CupertinoIcons.cloud_fill
+                    : CupertinoIcons.device_phone_portrait,
+                iconColor: isCloudAccount
+                    ? IosSemanticColors.blue
+                    : IosSemanticColors.gray,
+                title: 'device_storage'.tr,
+                subtitle: isCloudAccount
+                    ? 'device_storage_cloud_desc'.tr
+                    : 'device_storage_local_desc'.tr,
+                trailing: const Icon(
+                  CupertinoIcons.checkmark_circle_fill,
+                  color: IosSemanticColors.green,
+                ),
+              ),
+              _FeatureTile(
+                icon: isCloudAccount
+                    ? CupertinoIcons.arrow_2_circlepath
+                    : Icons.cloud_off_rounded,
+                iconColor: isCloudAccount
+                    ? IosSemanticColors.green
+                    : IosSemanticColors.gray,
+                title: 'device_account_status'.tr,
+                subtitle: isCloudAccount
+                    ? 'device_account_synced'.tr
+                    : 'device_account_local'.tr,
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _accountDevices(BuildContext context) {
+    final canLoad = controller.canLoad;
+    final loading = controller.isLoading.value;
+    final error = controller.error.value;
+    final devices = controller.devices.toList();
+    return _FeatureCard(
+      children: [
+        _FeatureTile(
+          icon: CupertinoIcons.desktopcomputer,
+          iconColor: IosSemanticColors.blue,
+          title: 'device_account_devices'.tr,
+          trailing: canLoad
+              ? IconButton(
+                  tooltip: 'device_refresh'.tr,
+                  onPressed: loading ? null : controller.load,
+                  icon: const Icon(CupertinoIcons.refresh),
+                )
+              : null,
+        ),
+        if (!canLoad)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('device_login_required'.tr),
+          )
+        else if (loading)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: CircularProgressIndicator(
+                semanticsLabel: 'device_loading'.tr,
+              ),
+            ),
+          )
+        else if (error != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Text(error),
+                TextButton(
+                  onPressed: controller.load,
+                  child: Text('note_list_retry'.tr),
+                ),
+              ],
+            ),
+          )
+        else if (devices.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('device_empty'.tr),
+          )
+        else
+          for (final device in devices)
+            _FeatureTile(
+              icon: CupertinoIcons.device_phone_portrait,
+              iconColor: IosSemanticColors.gray,
+              title: device.name.isNotEmpty
+                  ? device.name
+                  : device.model.isNotEmpty
+                  ? device.model
+                  : device.platform.isNotEmpty
+                  ? device.platform
+                  : 'device_unnamed'.tr,
+              subtitle: [
+                if (device.platform.isNotEmpty) device.platform,
+                if (device.model.isNotEmpty) device.model,
+                if (device.appVersion.isNotEmpty)
+                  'device_app_version'.trParams({'version': device.appVersion}),
+              ].join(' • '),
+              trailing: controller.isCurrent(device)
+                  ? Text(
+                      'device_this_device'.tr,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: IosSemanticColors.blue,
+                      ),
+                    )
+                  : null,
+            ),
+      ],
     );
   }
 
