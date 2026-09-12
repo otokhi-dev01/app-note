@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
@@ -69,7 +68,6 @@ class InitialBinding extends Bindings {
       ),
       fenix: true,
     );
-
     _authUseCases();
     _folderUseCases();
     _noteUseCases();

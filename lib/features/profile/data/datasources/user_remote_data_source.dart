@@ -16,9 +16,7 @@ import 'package:Note/features/auth/data/models/auth_model.dart';
 /// confirmed.
 class UserRemoteDataSource extends GetxService {
   final ApiClient _api;
-
   UserRemoteDataSource({ApiClient? api}) : _api = api ?? Get.find<ApiClient>();
-
   /// Fetches the signed-in user's profile as the server currently has it.
   ///
   /// Unlike the `/api/auth/*` responses, this endpoint returns the user
@@ -53,17 +51,15 @@ class UserRemoteDataSource extends GetxService {
           filename: 'profile.jpg',
         ),
       });
-
       final response = await _api.dio.post(
         '${AppConstants.baseUrl}${AppConstants.userUploadProfileEndpoint}',
         data: formData,
       );
-
       if (response.statusCode == 200 && response.data != null) {
         return response.data['imageUrl'] as String?;
       }
-    } on dio.DioException catch (e) {
-      print('❌ Upload failed: ${e.message}');
+    } on dio.DioException {
+      // print('❌ Upload failed: ${e.message}');
     }
     return null;
   }
@@ -77,8 +73,8 @@ class UserRemoteDataSource extends GetxService {
       if (response.statusCode == 200) {
         return true;
       }
-    } on dio.DioException catch (e) {
-      print('❌ Update failed: ${e.message}');
+    } on dio.DioException {
+      // print('❌ Update failed: ${e.message}');
     }
     return false;
   }

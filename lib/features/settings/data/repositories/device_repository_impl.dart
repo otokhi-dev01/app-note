@@ -6,7 +6,6 @@ import 'package:Note/features/settings/domain/repositories/device_repository.dar
 
 class DeviceRepositoryImpl implements DeviceRepository {
   final DeviceRemoteDataSource _remote;
-
   const DeviceRepositoryImpl(this._remote);
 
   @override

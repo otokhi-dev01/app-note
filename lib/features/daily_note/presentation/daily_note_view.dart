@@ -65,6 +65,12 @@ class _DailyNoteViewState extends State<DailyNoteView> {
 
   void _selectDate(DateTime date) => setState(() => _date = date);
 
+  /// Swiping the day content (as opposed to the week strip, which jumps a
+  /// whole week) moves one day at a time — the same velocity-threshold
+  /// gesture the week strip already uses, just a smaller step.
+  void _moveDay(int days) =>
+      _selectDate(DateTime(_date.year, _date.month, _date.day + days));
+
   Future<void> _pickDate() async {
     final date = await showDatePicker(
       context: context,
@@ -158,29 +164,42 @@ class _DailyNoteViewState extends State<DailyNoteView> {
               ),
             _weekStrip(context),
             const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      localizations.formatFullDate(_date),
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+            // Swiping anywhere in the date header or the day's content moves
+            // one day at a time — a lighter-weight gesture than a PageView,
+            // matching the velocity-threshold swipe the week strip above
+            // already uses for whole weeks.
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragEnd: (details) {
+                  final velocity = details.primaryVelocity ?? 0;
+                  if (velocity.abs() > 100) _moveDay(velocity < 0 ? 1 : -1);
+                },
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              localizations.formatFullDate(_date),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          _todayPill(theme),
+                        ],
                       ),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        _selectDate(DateUtils.dateOnly(DateTime.now())),
-                    child: Text('daily_today'.tr),
-                  ),
-                ],
+                    const Divider(height: 1),
+                    Expanded(
+                      child: _agenda ? _agendaList(visible) : _timeline(visible),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: _agenda ? _agendaList(visible) : _timeline(visible),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -197,6 +216,25 @@ class _DailyNoteViewState extends State<DailyNoteView> {
       ),
     );
   }
+
+  Widget _todayPill(ThemeData theme) => Material(
+    color: theme.colorScheme.primary.withValues(alpha: 0.14),
+    borderRadius: BorderRadius.circular(20),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () => _selectDate(DateUtils.dateOnly(DateTime.now())),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Text(
+          'daily_today'.tr,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _weekStrip(BuildContext context) {
     final theme = Theme.of(context);
@@ -259,7 +297,7 @@ class _DailyNoteViewState extends State<DailyNoteView> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: selected
-                                    ? theme.colorScheme.onSurface
+                                    ? theme.colorScheme.primary
                                     : Colors.transparent,
                               ),
                               child: Text(
@@ -269,7 +307,7 @@ class _DailyNoteViewState extends State<DailyNoteView> {
                                       ? FontWeight.w700
                                       : FontWeight.w400,
                                   color: selected
-                                      ? theme.colorScheme.surface
+                                      ? theme.colorScheme.onPrimary
                                       : theme.colorScheme.onSurface,
                                 ),
                               ),
@@ -434,35 +472,61 @@ class _DailyNoteViewState extends State<DailyNoteView> {
       child: Material(
         color: Color.alphaBlend(
           color.withValues(
-            alpha: theme.brightness == Brightness.dark ? 0.22 : 0.12,
+            alpha: theme.brightness == Brightness.dark ? 0.32 : 0.16,
           ),
           theme.scaffoldBackgroundColor,
         ),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(12),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => _edit(note: note),
           child: Container(
             decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: color, width: 3)),
+              border: Border(left: BorderSide(color: color, width: 4)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.fromLTRB(8, 2, 6, 2),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final scale = MediaQuery.textScalerOf(context).scale(1);
+                final showTitle = constraints.maxHeight >= 15 * scale;
+                final showBadge = showTitle && constraints.maxWidth >= 84;
                 return ClipRect(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (constraints.maxHeight >= 15 * scale)
-                        Text(
-                          note.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            height: 1.1,
-                          ),
+                      if (showTitle)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                note.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                            if (showBadge) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                width: 14,
+                                height: 14,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: color.withValues(alpha: 0.85),
+                                ),
+                                child: const Icon(
+                                  Icons.event_note,
+                                  size: 8,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       if (constraints.maxHeight >= 34 * scale)
                         Text(
