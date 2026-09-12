@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart' hide Response;
-
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_capabilities.dart';
 import 'package:Note/core/network/api_client.dart';
@@ -8,7 +7,6 @@ import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/features/folder/data/models/folder_model.dart';
 
 /// Raw `/api/folder` transport.
-///
 /// Note the routes and payload casing here are the ones the app has always
 /// actually used. A second, unused `FolderApi` used to exist alongside this
 /// with `FolderName`/`Name` keys and a `/deleted-restore` route; it was dead
@@ -18,7 +16,20 @@ class FolderRemoteDataSource extends GetxService {
 
   /// `parentFolderId: null` fetches the top-level (root) folders; pass a
   /// folder's id to fetch just its immediate children.
-  Future<FolderResponse> getFolders({int? parentFolderId}) async {
+  Future<FolderResponse> getFolders({int? parentFolderId}) =>
+      _getFolders(parentFolderId: parentFolderId);
+
+  /// The post-login failure this was chasing: the very first `/api/folder`
+  /// call right after login can 401 even though the token the client just
+  /// received from the Chat server is provably fresh — `AuthController`
+  /// awaits `saveSession` before navigating here, so this isn't a client-side
+  /// timing bug. That points to the Note server's own session/token check
+  /// lagging behind the Chat server by a beat. One silent retry absorbs that
+  /// race; a 401 that survives the retry is treated as a real auth failure.
+  Future<FolderResponse> _getFolders({
+    int? parentFolderId,
+    bool retriedAfterUnauthorized = false,
+  }) async {
     try {
       final response = await _api.dio.get(
         '/api/folder',
@@ -30,7 +41,7 @@ class FolderRemoteDataSource extends GetxService {
       if (body is! Map) {
         if (body is List) {
           return FolderResponse(
-            folders: (body as List)
+            folders: (body)
                 .whereType<Map>()
                 .map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e)))
                 .toList(),
@@ -52,8 +63,15 @@ class FolderRemoteDataSource extends GetxService {
       // ignore: avoid_print
       print(
         '❌ GET /api/folder failed: type=${e.type} status=${e.response?.statusCode} '
-        'body=${e.response?.data ?? e.message}',
+        'body=${e.response?.data ?? e.message} retried=$retriedAfterUnauthorized',
       );
+      if (!retriedAfterUnauthorized && e.response?.statusCode == 401) {
+        await Future.delayed(const Duration(milliseconds: 700));
+        return _getFolders(
+          parentFolderId: parentFolderId,
+          retriedAfterUnauthorized: true,
+        );
+      }
       throw ApiErrorParser.toException(e);
     }
   }

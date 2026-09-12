@@ -14,8 +14,10 @@ class ApiErrorParser {
   ///
   /// Prefers the first field-level validation message, then the top-level
   /// `message`, then a generic fallback.
-  static String messageFrom(dynamic responseData) {
-    if (responseData is! Map) return 'An unexpected error occurred.';
+  static String messageFrom(dynamic responseData, {String? fallback}) {
+    if (responseData is! Map) {
+      return fallback ?? 'An unexpected error occurred.';
+    }
 
     for (final details in [
       responseData['errors'] ?? responseData['Errors'],
@@ -34,12 +36,16 @@ class ApiErrorParser {
       }
     }
 
-    return (responseData['message'] ??
+    final message =
+        (responseData['message'] ??
                 responseData['Message'] ??
                 responseData['detail'] ??
                 responseData['title'])
-            ?.toString() ??
-        'Something went wrong.';
+            ?.toString()
+            .trim();
+    return message != null && message.isNotEmpty
+        ? message
+        : fallback ?? 'Something went wrong.';
   }
 
   /// Maps a Dio error onto the exception the repository layer expects.
@@ -55,13 +61,29 @@ class ApiErrorParser {
         return const NetworkException('The request was cancelled.');
       default:
         final status = error.response?.statusCode;
+        final path = error.requestOptions.uri.path;
+        final isNoteRequest =
+            path == '/api/folder' ||
+            path.startsWith('/api/folder/') ||
+            path == '/api/note' ||
+            path.startsWith('/api/note/');
+        final fallback = switch (status) {
+          401 when isNoteRequest =>
+            'The notes server could not authorize this request (401).',
+          401 => 'Your session has expired. Please sign in again.',
+          403 => 'You do not have permission to access this item (403).',
+          404 => 'The requested service could not be found (404).',
+          429 => 'Too many requests. Please wait and try again.',
+          final int code when code >= 500 =>
+            'The server could not complete the request ($code). Please try again.',
+          final int code => 'The request failed ($code). Please try again.',
+          _ => 'Could not reach the server. Please try again.',
+        };
+        final message = messageFrom(error.response?.data, fallback: fallback);
         if (status == 401 || status == 403) {
-          return UnauthorizedException(messageFrom(error.response?.data));
+          return UnauthorizedException(message);
         }
-        return ServerException(
-          messageFrom(error.response?.data),
-          statusCode: status,
-        );
+        return ServerException(message, statusCode: status);
     }
   }
 }

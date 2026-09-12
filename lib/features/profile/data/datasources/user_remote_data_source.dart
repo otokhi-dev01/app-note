@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart' hide Response;
-
 import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
@@ -49,11 +48,14 @@ class UserRemoteDataSource extends GetxService {
   Future<String?> uploadProfileImage(String filePath) async {
     try {
       final formData = dio.FormData.fromMap({
-        'file': await dio.MultipartFile.fromFile(filePath, filename: 'profile.jpg'),
+        'file': await dio.MultipartFile.fromFile(
+          filePath,
+          filename: 'profile.jpg',
+        ),
       });
 
       final response = await _api.dio.post(
-        AppConstants.userUploadProfileEndpoint,
+        '${AppConstants.baseUrl}${AppConstants.userUploadProfileEndpoint}',
         data: formData,
       );
 
@@ -69,7 +71,7 @@ class UserRemoteDataSource extends GetxService {
   Future<bool> updateUserProfile(Map<String, dynamic> profileData) async {
     try {
       final response = await _api.dio.post(
-        AppConstants.userUpdateProfileEndpoint,
+        '${AppConstants.baseUrl}${AppConstants.userUpdateProfileEndpoint}',
         data: profileData,
       );
       if (response.statusCode == 200) {

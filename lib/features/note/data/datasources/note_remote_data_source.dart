@@ -1,7 +1,5 @@
 import 'package:dio/dio.dart' as dio;
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
-
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_capabilities.dart';
 import 'package:Note/core/network/api_client.dart';
@@ -40,12 +38,10 @@ class NoteRemoteDataSource extends GetxService {
   Future<NoteModel> getNoteDetail(int id) async {
     try {
       final response = await _api.dio.get('/api/note/$id');
-
       final body = response.data;
       if (body is! Map) {
         throw const ServerException('Invalid note detail response.');
       }
-
       final dynamic rawData = body['data'] ?? body['Data'];
       final dynamic rawNote = switch (rawData) {
         List l when l.isNotEmpty => l.first,
@@ -57,11 +53,9 @@ class NoteRemoteDataSource extends GetxService {
           'Unexpected note detail data type: ${rawData.runtimeType}',
         ),
       };
-
       if (rawNote is! Map) {
         throw const ServerException('Invalid note object format.');
       }
-
       return NoteModel.fromJson(Map<String, dynamic>.from(rawNote));
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);
@@ -85,50 +79,52 @@ class NoteRemoteDataSource extends GetxService {
 
       final response = await _api.dio.post('/api/note/save', data: payload);
       final data = response.data;
-
-      if (data is Map) {
-        final extractedId = asInt(
-          data['data']?['NoteId'] ??
-              data['data']?['id'] ??
-              data['data']?['Note']?['id'] ??
-              data['NoteId'] ??
-              data['id'] ??
-              data['Id'] ??
-              data['Note']?['id'] ??
-              data['Note']?['Id'] ??
-              data['NoteId'] ??
-              data['noteId']
-        );
-        if (extractedId > 0) return extractedId;
-      }
-      
-      final topLevelId = asInt(
-        data?['NoteId'] ?? 
-        data?['id'] ?? 
-        data?['Id'] ?? 
-        data?['noteId'] ??
-        data?['Note']?['id'] ??
-        data?['Note']?['Id']
-      );
-      if (topLevelId > 0) return topLevelId;
+      _throwIfSaveFailed(data);
+      final savedId = _savedNoteId(data);
+      if (savedId > 0) return savedId;
 
       if (noteId > 0) return noteId;
-
-      // Workaround: on create the backend sometimes answers with a null body,
-      // so recover the id by re-reading the folder and taking the newest note.
-      if (kDebugMode) {
-        debugPrint('[NOTE CREATE] null data — resolving NoteId from list');
-      }
-      final list = await getNotes(folderId: folderId);
-      if (list.notes.isNotEmpty) {
-        final sorted = List<NoteModel>.from(list.notes)
-          ..sort((a, b) => b.id.compareTo(a.id));
-        return sorted.first.id;
-      }
-
-      throw const ServerException('Failed to resolve NoteId after save.');
+      // Never guess from the folder list: its newest entry could belong to
+      // another save, and sending content to that ID would overwrite it.
+      throw const ServerException(
+        'The server did not return the new note ID. Your content has not been saved.',
+      );
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);
+    }
+  }
+
+  static int _savedNoteId(Object? value) {
+    if (value is Map) {
+      final id = asInt(
+        value['noteId'] ?? value['NoteId'] ?? value['id'] ?? value['Id'],
+      );
+      if (id > 0) return id;
+      for (final key in ['data', 'Data', 'note', 'Note']) {
+        final nestedId = _savedNoteId(value[key]);
+        if (nestedId > 0) return nestedId;
+      }
+      return 0;
+    }
+    if (value is List) {
+      return value.length == 1 ? _savedNoteId(value.single) : 0;
+    }
+    return value is int || value is String ? asInt(value) : 0;
+  }
+
+  /// Both save endpoints can report validation errors inside HTTP 200.
+  static void _throwIfSaveFailed(Object? body) {
+    if (body is! Map) return;
+    final rawCode =
+        body['code'] ??
+        body['Code'] ??
+        body['statusCode'] ??
+        body['StatusCode'];
+    final code = rawCode == null ? null : asInt(rawCode);
+    final success = body['success'] ?? body['Success'];
+    if ((success != null && !asBool(success)) ||
+        (code != null && (code < 200 || code >= 300))) {
+      throw ServerException(ApiErrorParser.messageFrom(body), statusCode: code);
     }
   }
 
@@ -139,7 +135,7 @@ class NoteRemoteDataSource extends GetxService {
     required List<NoteBlock> content,
   }) async {
     try {
-      await _api.dio.post(
+      final response = await _api.dio.post(
         '/api/note/save-content',
         data: {
           'id': noteId,
@@ -147,6 +143,7 @@ class NoteRemoteDataSource extends GetxService {
           'content': content.map(NoteBlockMapper.toJson).toList(),
         },
       );
+      _throwIfSaveFailed(response.data);
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);
     }
@@ -165,12 +162,10 @@ class NoteRemoteDataSource extends GetxService {
         'BlockId': blockId,
         'DisplayOrder': displayOrder.toString(),
       });
-
       final response = await _api.dio.post(
         '/api/note/attachment',
         data: formData,
       );
-
       final body = response.data;
       if (body is! Map) throw const ServerException('Invalid upload response.');
 
@@ -178,7 +173,6 @@ class NoteRemoteDataSource extends GetxService {
       if (outerData is! Map) {
         throw const ServerException('Invalid upload response data.');
       }
-
       // Preferred shape: data.data is a list of created records.
       final records = outerData['data'];
       if (records is List && records.isNotEmpty) {
@@ -193,7 +187,6 @@ class NoteRemoteDataSource extends GetxService {
           'BlockId': blockId,
         };
       }
-
       // Fallback shape: the record is inlined on data or the root.
       return {
         'AttachmentId': asInt(
@@ -231,7 +224,6 @@ class NoteRemoteDataSource extends GetxService {
       if (isPinned != null) payload['isPinned'] = isPinned;
       if (isArchived != null) payload['isArchived'] = isArchived;
       if (isLocked != null) payload['isLocked'] = isLocked;
-
       await _api.dio.post('/api/note/update-state', data: payload);
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);

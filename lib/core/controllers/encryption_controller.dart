@@ -1,4 +1,4 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+// import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/services/encryption_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
@@ -44,7 +44,7 @@ class EncryptionController extends GetxController {
     final device = await _deviceService.read();
 
     if (user == null || token == null || token.isEmpty) {
-      print('⚠️ Cannot initialize E2EE — missing user or token.');
+      // print('⚠️ Cannot initialize E2EE — missing user or token.');
       return;
     }
 
@@ -57,7 +57,7 @@ class EncryptionController extends GetxController {
       );
       isReady.value = true;
     } catch (e) {
-      print('❌ E2EE initialization failed: $e');
+      // print('❌ E2EE initialization failed: $e');
       isReady.value = false;
     } finally {
       isInitializing.value = false;
