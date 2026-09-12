@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';

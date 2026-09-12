@@ -174,7 +174,8 @@ class LoginView extends GetView<AuthController> {
                                         ? null
                                         : controller.login,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: theme.colorScheme.primary,
+                                      backgroundColor:
+                                          theme.colorScheme.primary,
                                       foregroundColor: Colors.white,
                                       padding: EdgeInsets.symmetric(
                                         vertical: 16,
@@ -288,10 +289,12 @@ class LoginView extends GetView<AuthController> {
     final isDark = theme.brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.15),
+          color: theme.colorScheme.primary.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -305,21 +308,28 @@ class LoginView extends GetView<AuthController> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           ),
           prefixIcon: icon is IconData
-              ? Icon(icon, color: theme.colorScheme.primary.withOpacity(0.7), size: 22)
+              ? Icon(
+                  icon,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.7),
+                  size: 22,
+                )
               : Padding(
                   padding: const EdgeInsets.all(14.0),
                   child: FaIcon(
                     icon,
-                    color: theme.colorScheme.primary.withOpacity(0.7),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.7),
                     size: 18,
                   ),
                 ),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
         ),
       ),
     );

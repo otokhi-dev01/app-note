@@ -8,10 +8,39 @@ import 'package:Note/features/folder/domain/entities/folder.dart';
 import 'package:Note/features/folder/presentation/widgets/folder_breadcrumb.dart';
 import 'package:Note/features/note/presentation/controllers/note_detail_controller.dart';
 
-class NoteEditorHeader extends StatelessWidget {
+class NoteEditorHeader extends StatefulWidget {
   final NoteDetailController controller;
 
   const NoteEditorHeader({super.key, required this.controller});
+
+  @override
+  State<NoteEditorHeader> createState() => _NoteEditorHeaderState();
+}
+
+class _NoteEditorHeaderState extends State<NoteEditorHeader> {
+  // A brand-new, not-yet-saved note has no `updatedAt` yet, so the header
+  // falls back to "now" below. Without this timer that fallback was only
+  // recomputed when something else (title edits, save state) happened to
+  // rebuild the header, so it could sit frozen at the moment the note was
+  // opened for minutes at a time. Ticking once a minute is enough resolution
+  // for the "h:mm a" format this renders with.
+  Timer? _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    _clock = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _clock?.cancel();
+    super.dispose();
+  }
+
+  NoteDetailController get controller => widget.controller;
 
   @override
   Widget build(BuildContext context) {

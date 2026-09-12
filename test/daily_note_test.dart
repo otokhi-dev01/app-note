@@ -173,6 +173,39 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets('swiping the day content moves one day at a time', (
+    tester,
+  ) async {
+    await store.save(entry('Today entry', 540, 570));
+    await store.save(
+      entry('Next day entry', 540, 570, date: DateTime(2026, 2, 4)),
+    );
+    await open(tester);
+    expect(find.text('Today entry'), findsOneWidget);
+    expect(find.text('Next day entry'), findsNothing);
+
+    // A leftward swipe (negative velocity) moves forward one day, the same
+    // sign convention the week strip already uses for whole weeks.
+    await tester.fling(
+      find.byKey(const ValueKey('daily-timeline')),
+      const Offset(-300, 0),
+      800,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Next day entry'), findsOneWidget);
+    expect(find.text('Today entry'), findsNothing);
+
+    await tester.fling(
+      find.byKey(const ValueKey('daily-timeline')),
+      const Offset(300, 0),
+      800,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Today entry'), findsOneWidget);
+    expect(find.text('Next day entry'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'compact dark timeline handles overlapping notes and larger text',
     (tester) async {
