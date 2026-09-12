@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import 'package:Note/shared/widgets/ios_confirmation_dialog.dart';
 
 class AppDialogs {

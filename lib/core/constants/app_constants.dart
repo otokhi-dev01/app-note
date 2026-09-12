@@ -11,8 +11,6 @@ class AppConstants {
   static const String userApiUrl = "$apiBaseUrl/users";
   static const String encryptionBaseUrl = "$apiBaseUrl/encryption";
 
-  /// API Endpoints
-
   /// Auth Endpoints
   static const String googleLoginEndpoint = "/google-login";
   static const String registerEndpoint = "/register";
