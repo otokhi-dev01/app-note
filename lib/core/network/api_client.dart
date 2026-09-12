@@ -17,7 +17,7 @@ class ApiClient extends GetxService {
   /// `--dart-define=PIISIIT_NOTE_BASE_URL=https://...`
   static const String baseUrl = String.fromEnvironment(
     'PIISIIT_NOTE_BASE_URL',
-    defaultValue: AppConstants.baseUrl,
+    defaultValue: AppConstants.noteBaseUrl,
   );
 
   Dio get dio => _dio;
@@ -57,11 +57,21 @@ class ApiClient extends GetxService {
           if (kDebugMode) {
             // Only log error body if not a sensitive endpoint
             if (!_isSensitiveEndpoint(e.requestOptions.path)) {
+              final request = e.requestOptions;
+              debugPrint(
+                '[API] ${request.method} ${request.uri.origin}${request.uri.path} '
+                'status=${e.response?.statusCode} type=${e.type.name} '
+                'authenticated=${request.headers.containsKey('Authorization')}',
+              );
               _printErrorResponse(e.response?.data);
             }
           }
+          // The Chat server owns the account session. A Note server 401
+          // must reach the caller as an error without undoing a Chat login.
           if (e.response?.statusCode == 401 &&
-              e.requestOptions.extra['requiresAuth'] != false) {
+              e.requestOptions.extra['requiresAuth'] != false &&
+              e.requestOptions.uri.origin ==
+                  Uri.parse(AppConstants.baseUrl).origin) {
             Get.find<SessionStorage>().clearSession();
             Get.offAllNamed('/login');
           }

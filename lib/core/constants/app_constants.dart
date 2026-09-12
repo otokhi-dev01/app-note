@@ -1,6 +1,9 @@
 class AppConstants {
-  /// Static property for base URL
+  /// Account, user, and encryption services use the Chat server.
   static const String baseUrl = "https://chat.piisiit.com";
+
+  /// Folders, notes, and attachments use the Note server.
+  static const String noteBaseUrl = "https://note.piisiit.com";
 
   /// API Base URLs
   static const String apiBaseUrl = "$baseUrl/api";
@@ -28,8 +31,10 @@ class AppConstants {
   static const String securityQuestionEndpoint = "/password/security-question";
   static const String securityAnswerEndpoint = "/password/security-answers";
   static const String verifySecurityEndpoint = "/password/verify-security";
-  static const String recoveryPasswordMethodsListEndpoint = "/auth/v1/password-recovery/methods";
-  static const String saveRecoveryPasswordMethodsEndpoint = "/auth/v1/password-recovery/save-methods";
+  static const String recoveryPasswordMethodsListEndpoint =
+      "/auth/v1/password-recovery/methods";
+  static const String saveRecoveryPasswordMethodsEndpoint =
+      "/auth/v1/password-recovery/save-methods";
 
   /// User endpoints
   static const String userProfileEndpoint = "/profile";

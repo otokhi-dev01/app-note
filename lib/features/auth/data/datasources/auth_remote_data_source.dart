@@ -85,7 +85,7 @@ class AuthRemoteDataSource extends GetxService {
   Future<void> deleteAccount(String password) async {
     try {
       await _api.dio.post(
-        '/api/auth/delete-account',
+        '${AppConstants.authBaseUrl}/delete-account',
         data: {'password': password},
       );
     } on dio.DioException catch (e) {
@@ -95,7 +95,10 @@ class AuthRemoteDataSource extends GetxService {
 
   Future<void> forgotPassword(String phone) async {
     try {
-      await _api.dio.post('/api/auth/forgot-password', data: {'phone': phone});
+      await _api.dio.post(
+        '${AppConstants.authBaseUrl}/forgot-password',
+        data: {'phone': phone},
+      );
     } on dio.DioException catch (e) {
       if (e.response?.statusCode == 404) {
         throw const UnsupportedFeatureException(

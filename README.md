@@ -2,6 +2,22 @@
 
 A new Flutter project.
 
+## API servers
+
+Folders, notes, and attachments use `https://note.piisiit.com`. Folder creation
+and updates send `POST /api/folder/save` with the logged-in user's bearer token.
+Login, registration, and other account features use `https://chat.piisiit.com`.
+
+To use a local Note server (the `piisiit_note_local` Postman variable), run:
+
+```sh
+flutter run --dart-define=PIISIIT_NOTE_BASE_URL=http://localhost:5000
+```
+
+Replace the example address with your Note server's address reachable from the
+device. This override only changes the Note server; account requests still use
+the Chat server. Restart the app after changing it.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

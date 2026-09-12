@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +19,10 @@ import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
+import 'package:Note/features/folder/data/datasources/folder_remote_data_source.dart';
+import 'package:Note/features/folder/data/repositories/folder_repository_impl.dart';
+import 'package:Note/features/note/data/datasources/note_remote_data_source.dart';
+import 'package:Note/features/profile/data/datasources/user_remote_data_source.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -141,6 +146,160 @@ void main() {
       );
     },
   );
+
+  test(
+    'folder saves use the Note server and the account login token',
+    () async {
+      final result = await login(
+        const LoginParams(account: 'person@example.com', password: 'password'),
+      );
+      expect(result.isOk, isTrue);
+      expect(adapter.requests.single.uri.host, 'chat.piisiit.com');
+
+      final remote = FolderRemoteDataSource();
+      final folders = FolderRepositoryImpl(remote);
+      for (final folder in [
+        (id: 0, parentId: null, savedId: 42),
+        (id: 0, parentId: 42, savedId: 43),
+        (id: 43, parentId: 42, savedId: 43),
+      ]) {
+        adapter.body = {
+          'code': 200,
+          'data': {'FolderId': folder.savedId},
+        };
+        final saved = await folders.saveFolder(
+          id: folder.id,
+          parentId: folder.parentId,
+          name: 'Work',
+          iconName: 'folder',
+          colorValue: '#007AFF',
+        );
+        expect(saved.valueOrNull, folder.savedId);
+        final request = adapter.requests.last;
+        expect(request.method, 'POST');
+        expect(request.uri.toString(), '${ApiClient.baseUrl}/api/folder/save');
+        expect(request.data, {
+          'id': folder.id,
+          'parentFolderId': folder.parentId,
+          'name': 'Work',
+          'iconName': 'folder',
+          'colorValue': '#007AFF',
+          'sortOrder': 0,
+        });
+      }
+      expect(
+        ApiClient.baseUrl,
+        const String.fromEnvironment(
+          'PIISIIT_NOTE_BASE_URL',
+          defaultValue: 'https://note.piisiit.com',
+        ),
+      );
+
+      adapter.body = {'code': 200, 'data': <String, dynamic>{}};
+      expect((await folders.getFolders()).isOk, isTrue);
+      await NoteRemoteDataSource().getNotes();
+      await remote.deleteRestoreFolder(43, true);
+      expect(
+        adapter.requests[4].uri.toString(),
+        '${ApiClient.baseUrl}/api/folder',
+      );
+      expect(
+        adapter.requests[5].uri.toString(),
+        '${ApiClient.baseUrl}/api/note',
+      );
+      expect(
+        adapter.requests[6].uri.toString(),
+        '${ApiClient.baseUrl}/api/folder/delete-restore',
+      );
+      for (final request in adapter.requests.skip(1)) {
+        expect(request.headers['Authorization'], 'Bearer test-token');
+      }
+    },
+  );
+
+  test(
+    'account operations stay on Chat independently of the Note server',
+    () async {
+      session.token.value = 'test-token';
+      final auth = AuthRemoteDataSource(
+        api: api,
+        deviceService: deviceService(),
+      );
+      await auth.logout();
+      await auth.forgotPassword('+85512345678');
+      await auth.deleteAccount('password');
+      final profile = UserRemoteDataSource(api: api);
+      await profile.fetchProfile();
+      await profile.updateUserProfile({'displayName': 'Test'});
+      expect(adapter.requests.map((request) => request.uri.path), [
+        '/api/auth/logout-current-device',
+        '/api/auth/forgot-password',
+        '/api/auth/delete-account',
+        '/api/users/profile',
+        '/update-profile',
+      ]);
+      for (final request in adapter.requests) {
+        expect(request.uri.host, 'chat.piisiit.com');
+        expect(request.headers['Authorization'], 'Bearer test-token');
+      }
+    },
+  );
+
+  for (final service in ['note', 'chat']) {
+    testWidgets(
+      '$service unauthorized response handles the account session correctly',
+      (tester) async {
+        await tester.pumpWidget(
+          GetMaterialApp(
+            initialRoute: '/folders',
+            getPages: [
+              GetPage(
+                name: '/folders',
+                page: () => const Scaffold(body: Text('Folders')),
+              ),
+              GetPage(
+                name: '/login',
+                page: () => const Scaffold(body: Text('Login')),
+              ),
+            ],
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.runAsync(() async {
+          final result = await login(
+            const LoginParams(
+              account: 'person@example.com',
+              password: 'password',
+            ),
+          );
+          expect(result.isOk, isTrue);
+          adapter.statusCode = 401;
+          adapter.body = {'message': 'Unauthorized'};
+          if (service == 'note') {
+            final folders = FolderRepositoryImpl(FolderRemoteDataSource());
+            final fetched = await folders.getFolders();
+            expect(fetched.failureOrNull, isA<UnauthorizedFailure>());
+            expect(session.token.value, 'test-token');
+            expect(
+              await const FlutterSecureStorage().read(key: 'token'),
+              'test-token',
+            );
+          } else {
+            await expectLater(
+              UserRemoteDataSource(api: api).fetchProfile(),
+              throwsException,
+            );
+            expect(session.token.value, isNull);
+          }
+        });
+        await tester.pumpAndSettle();
+        expect(
+          find.text(service == 'note' ? 'Folders' : 'Login'),
+          findsOneWidget,
+        );
+      },
+    );
+  }
 
   test(
     'device UUID survives a new service instance and session logout',
