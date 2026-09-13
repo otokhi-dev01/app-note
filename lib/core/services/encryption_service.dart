@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart' hide Response;
 import 'package:Note/core/constants/app_constants.dart';
+import 'package:Note/core/network/api_client.dart';
 
 /// Handles E2EE key generation, local secure storage, and uploading the
 /// PUBLIC halves to the server.
@@ -14,21 +16,14 @@ import 'package:Note/core/constants/app_constants.dart';
 /// PRIVATE keys never leave the device — only *Public and the signature
 /// are ever sent over the network.
 class EncryptionService {
-  static final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConstants.apiBaseUrl,
-      connectTimeout: Duration(seconds: AppConstants.connectTimeoutSeconds),
-      receiveTimeout: Duration(seconds: AppConstants.receiveTimeoutSeconds),
-      headers: {'Content-Type': AppConstants.contentTypeJson},
-    ),
-  );
-
+  final ApiClient _api;
   final FlutterSecureStorage _box;
   final Ed25519 _identityAlgo = Ed25519();
   final X25519 _preKeyAlgo = X25519();
 
-  EncryptionService({FlutterSecureStorage? box})
-    : _box = box ?? const FlutterSecureStorage();
+  EncryptionService({ApiClient? api, FlutterSecureStorage? box})
+    : _api = api ?? Get.find<ApiClient>(),
+      _box = box ?? const FlutterSecureStorage();
 
   // ---- secure-storage key names, scoped per device ----
   String _idPrivKey(String deviceId) => 'e2ee_identity_priv_$deviceId';
@@ -101,69 +96,55 @@ class EncryptionService {
   }
 
   /// POST /api/encryption/identity-key
+  ///
+  /// Rethrows on failure (rather than swallowing it into a status map) so a
+  /// failed upload actually surfaces as a failed [initializeEncryption] call
+  /// — callers must not treat E2EE as ready when the server never received
+  /// the key.
   Future<Map<String, dynamic>> _uploadIdentityKey({
     required String accessToken,
     required String deviceId,
     required String publicKeyB64,
   }) async {
-    try {
-      final response = await _dio.post(
-        '${AppConstants.encryptionBaseUrl}${AppConstants.identityKeyEndpoint}',
-        data: {
-          'deviceId': deviceId,
-          'publicKey': publicKeyB64,
-          'keyVersion': 0,
-        },
-        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
-      );
-      // print('📤 identity-key upload -> ${response.statusCode}: ${response.data}');
-      return {'statusCode': response.statusCode, 'body': response.data};
-    } on DioException catch (e) {
-      // print('❌ identity-key upload failed: ${e.response?.data ?? e.message}');
-      return {
-        'statusCode': e.response?.statusCode ?? -1,
-        'body': e.response?.data ?? {'message': e.message},
-      };
-    }
+    final response = await _api.dio.post(
+      '${AppConstants.encryptionBaseUrl}${AppConstants.identityKeyEndpoint}',
+      data: {'deviceId': deviceId, 'publicKey': publicKeyB64, 'keyVersion': 0},
+      options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+    );
+    return {'statusCode': response.statusCode, 'body': response.data};
   }
 
   /// POST /api/encryption/pre-keys
+  ///
+  /// Rethrows on failure — see [_uploadIdentityKey].
   Future<Map<String, dynamic>> _uploadPreKey({
     required String accessToken,
     required String deviceId,
     required int keyId,
     required String publicKeyB64,
   }) async {
-    try {
-      final response = await _dio.post(
-        '${AppConstants.encryptionBaseUrl}${AppConstants.preKeyEndpoint}',
-        data: {
-          'deviceId': deviceId,
-          'keys': [
-            {'keyId': keyId, 'publicKey': publicKeyB64},
-          ],
-        },
-        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
-      );
-      // print('📤 pre-keys upload -> ${response.statusCode}: ${response.data}');
-      return {'statusCode': response.statusCode, 'body': response.data};
-    } on DioException catch (e) {
-      // print('❌ pre-keys upload failed: ${e.response?.data ?? e.message}');
-      return {
-        'statusCode': e.response?.statusCode ?? -1,
-        'body': e.response?.data ?? {'message': e.message},
-      };
-    }
+    final response = await _api.dio.post(
+      '${AppConstants.encryptionBaseUrl}${AppConstants.preKeyEndpoint}',
+      data: {
+        'deviceId': deviceId,
+        'keys': [
+          {'keyId': keyId, 'publicKey': publicKeyB64},
+        ],
+      },
+      options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+    );
+    return {'statusCode': response.statusCode, 'body': response.data};
   }
 
   /// GET /api/encryption/bundle/{deviceId} — fetches a *target* device's
-  /// public bundle, used in diagram "2. START A PRIVATE E2EE CHAT".
+  /// public bundle, used in diagram "2. START A PRIVATE E2EE CHAT". Not
+  /// currently called anywhere in this app (no chat feature here yet).
   Future<Map<String, dynamic>> getPublicBundle({
     required String accessToken,
     required String deviceId,
   }) async {
     try {
-      final response = await _dio.get(
+      final response = await _api.dio.get(
         '${AppConstants.encryptionBaseUrl}/bundle/$deviceId',
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );

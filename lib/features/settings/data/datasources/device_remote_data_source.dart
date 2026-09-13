@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
@@ -13,7 +14,7 @@ class DeviceRemoteDataSource {
   Future<List<AccountDevice>> getDevices() async {
     try {
       final response = await _api.dio.get(
-        'https://chat.piisiit.com/devices',
+        '${AppConstants.baseUrl}/devices',
         options: Options(headers: {'Accept': '*/*'}),
       );
       return parseDevices(response.data);

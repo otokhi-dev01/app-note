@@ -233,7 +233,7 @@ void main() {
       await profile.updateUserProfile({'displayName': 'Test'});
       expect(adapter.requests.map((request) => request.uri.path), [
         '/api/auth/logout-current-device',
-        '/api/auth/forgot-password',
+        '/api/auth/password/forgot',
         '/api/auth/delete-account',
         '/api/users/profile',
         '/update-profile',
@@ -300,6 +300,79 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'a 401 from the account server silently refreshes and retries once',
+    (tester) async {
+      await tester.pumpWidget(
+        GetMaterialApp(
+          initialRoute: '/folders',
+          getPages: [
+            GetPage(
+              name: '/folders',
+              page: () => const Scaffold(body: Text('Folders')),
+            ),
+            GetPage(
+              name: '/login',
+              page: () => const Scaffold(body: Text('Login')),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        final result = await login(
+          const LoginParams(
+            account: 'person@example.com',
+            password: 'password',
+          ),
+        );
+        expect(result.isOk, isTrue);
+
+        var profileCalls = 0;
+        adapter.respond = (options) {
+          final path = options.uri.path;
+          if (path == '/api/auth/refresh-token') {
+            return (200, {
+              'code': 200,
+              'data': {
+                'token': 'refreshed-token',
+                'user': {'id': '123', 'fullName': 'Test'},
+              },
+            });
+          }
+          if (path == '/api/users/profile') {
+            profileCalls++;
+            return profileCalls == 1
+                ? (401, {'message': 'Unauthorized'})
+                : (200, {'userId': '123', 'displayName': 'Test'});
+          }
+          return (200, adapter.body);
+        };
+
+        final profile = await UserRemoteDataSource(api: api).fetchProfile();
+        expect(profile.id, '123');
+        // The interceptor's own refresh updated the session with the new
+        // token, and the caller got its result transparently — no thrown
+        // exception, no forced navigation to /login.
+        expect(session.token.value, 'refreshed-token');
+        expect(
+          adapter.requests
+              .where((r) => r.uri.path == '/api/users/profile')
+              .length,
+          2,
+        );
+        expect(
+          adapter.requests
+              .where((r) => r.uri.path == '/api/auth/refresh-token')
+              .length,
+          1,
+        );
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('Folders'), findsOneWidget);
+    },
+  );
 
   test(
     'device UUID survives a new service instance and session logout',
@@ -571,6 +644,11 @@ class _LoginAdapter implements HttpClientAdapter {
     },
   };
 
+  /// Optional per-request override, checked before [statusCode]/[body] —
+  /// lets a test script different responses for different endpoints (e.g. a
+  /// 401 on the first call to a route and a 200 on a retry).
+  (int, Map<String, dynamic>) Function(RequestOptions options)? respond;
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -578,9 +656,10 @@ class _LoginAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
+    final override = respond?.call(options);
     return ResponseBody.fromString(
-      jsonEncode(body),
-      statusCode,
+      jsonEncode(override?.$2 ?? body),
+      override?.$1 ?? statusCode,
       headers: {
         Headers.contentTypeHeader: ['application/json'],
       },

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
@@ -14,7 +15,7 @@ class UserSearchRemoteDataSource {
   Future<List<SearchUser>> search(String keyword) async {
     try {
       final response = await _api.dio.post(
-        'https://chat.piisiit.com/api/users/search',
+        '${AppConstants.userApiUrl}/search',
         data: {'keyword': keyword},
         options: Options(headers: {'Accept': '*/*'}),
       );
