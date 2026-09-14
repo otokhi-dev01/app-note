@@ -93,10 +93,15 @@ class AuthRemoteDataSource extends GetxService {
     }
   }
 
+  /// Posts to [AppConstants.forgotPasswordEndpoint] (`/password/forgot`) —
+  /// the endpoint the backend's own naming convention documents for this.
+  /// Unverified against the live server (no staging environment to test
+  /// against); if this still 404s, that's confirmation the backend genuinely
+  /// hasn't shipped password recovery yet, not a wrong path here.
   Future<void> forgotPassword(String phone) async {
     try {
       await _api.dio.post(
-        '${AppConstants.authBaseUrl}/forgot-password',
+        '${AppConstants.authBaseUrl}${AppConstants.forgotPasswordEndpoint}',
         data: {'phone': phone},
       );
     } on dio.DioException catch (e) {
