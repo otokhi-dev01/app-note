@@ -217,16 +217,24 @@ void main() {
     },
   );
 
-  test('Note authorization errors preserve the Chat session', () async {
-    adapter.statusCode = 401;
-    adapter.body = {'message': 'Unauthorized'};
-    final result = await repository.saveNoteMetadata(
-      folderId: 7,
-      title: 'Work',
-    );
-    expect(result.failureOrNull, isA<UnauthorizedFailure>());
-    expect(Get.find<SessionStorage>().token.value, 'chat-login-token');
-  });
+  test(
+    'Note authorization errors sign the user out once refresh is also '
+    'rejected',
+    () async {
+      adapter.statusCode = 401;
+      adapter.body = {'message': 'Unauthorized'};
+      final result = await repository.saveNoteMetadata(
+        folderId: 7,
+        title: 'Work',
+      );
+      expect(result.failureOrNull, isA<UnauthorizedFailure>());
+      // Both servers accept the same bearer token, so once the silent
+      // refresh has also been rejected (here, by the same 401-for-
+      // everything adapter), a Note-server 401 means the session really
+      // is gone, the same as a Chat-server one would.
+      expect(Get.find<SessionStorage>().token.value, isNull);
+    },
+  );
 }
 
 class _NoteAdapter implements HttpClientAdapter {

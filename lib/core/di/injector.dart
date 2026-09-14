@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:Note/core/network/api_client.dart';
+import 'package:Note/core/network/offline_sync_service.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/settings_preferences.dart';
 import 'package:Note/core/storage/session_storage.dart';
@@ -11,6 +12,7 @@ import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/folder/data/datasources/folder_remote_data_source.dart';
 import 'package:Note/features/folder/data/repositories/folder_repository_impl.dart';
 import 'package:Note/features/folder/data/repositories/folder_repository_router.dart';
+import 'package:Note/features/folder/data/repositories/folder_sync_repository.dart';
 import 'package:Note/features/folder/data/repositories/local_folder_repository.dart';
 import 'package:Note/features/folder/domain/repositories/folder_repository.dart';
 import 'package:Note/features/folder/domain/usecases/folder_usecases.dart';
@@ -18,6 +20,7 @@ import 'package:Note/features/note/data/datasources/note_remote_data_source.dart
 import 'package:Note/features/note/data/repositories/local_note_repository.dart';
 import 'package:Note/features/note/data/repositories/note_repository_impl.dart';
 import 'package:Note/features/note/data/repositories/note_repository_router.dart';
+import 'package:Note/features/note/data/repositories/note_sync_repository.dart';
 import 'package:Note/features/note/domain/repositories/note_repository.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
 import 'package:Note/features/profile/data/datasources/user_remote_data_source.dart';
@@ -48,9 +51,20 @@ class InitialBinding extends Bindings {
       fenix: true,
     );
     Get.lazyPut(() => LocalFolderRepository(), fenix: true);
+    // Lets a signed-in account keep reading and writing folders while
+    // offline — caches the last server snapshot and queues writes that
+    // couldn't reach it, syncing them the next time it's reachable. See
+    // FolderSyncRepository's doc comment.
+    Get.lazyPut(
+      () => FolderSyncRepository(
+        FolderRepositoryImpl(Get.find<FolderRemoteDataSource>()),
+        Get.find<SessionStorage>(),
+      ),
+      fenix: true,
+    );
     Get.lazyPut<FolderRepository>(
       () => FolderRepositoryRouter(
-        FolderRepositoryImpl(Get.find<FolderRemoteDataSource>()),
+        Get.find<FolderSyncRepository>(),
         Get.find<LocalFolderRepository>(),
         Get.find<GuestModeService>(),
       ),
@@ -60,13 +74,34 @@ class InitialBinding extends Bindings {
       () => LocalNoteRepository(Get.find<LocalFolderRepository>()),
       fenix: true,
     );
+    // Same offline support as folders, for notes — see NoteSyncRepository.
+    Get.lazyPut(
+      () => NoteSyncRepository(
+        NoteRepositoryImpl(Get.find<NoteRemoteDataSource>()),
+        Get.find<SessionStorage>(),
+        Get.find<FolderSyncRepository>(),
+      ),
+      fenix: true,
+    );
     Get.lazyPut<NoteRepository>(
       () => NoteRepositoryRouter(
-        NoteRepositoryImpl(Get.find<NoteRemoteDataSource>()),
+        Get.find<NoteSyncRepository>(),
         Get.find<LocalNoteRepository>(),
         Get.find<GuestModeService>(),
       ),
       fenix: true,
+    );
+    // Retries queued offline writes on a timer and on app resume, so a
+    // signed-in account's edits sync even if the user never triggers
+    // another folder/note call after connectivity returns.
+    Get.put(
+      OfflineSyncService(
+        Get.find<SessionStorage>(),
+        Get.find<GuestModeService>(),
+        Get.find<FolderSyncRepository>(),
+        Get.find<NoteSyncRepository>(),
+      ),
+      permanent: true,
     );
     _authUseCases();
     _folderUseCases();
