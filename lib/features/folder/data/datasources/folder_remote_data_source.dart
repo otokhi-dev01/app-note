@@ -16,20 +16,14 @@ class FolderRemoteDataSource extends GetxService {
 
   /// `parentFolderId: null` fetches the top-level (root) folders; pass a
   /// folder's id to fetch just its immediate children.
-  Future<FolderResponse> getFolders({int? parentFolderId}) =>
-      _getFolders(parentFolderId: parentFolderId);
-
-  /// The post-login failure this was chasing: the very first `/api/folder`
-  /// call right after login can 401 even though the token the client just
-  /// received from the Chat server is provably fresh — `AuthController`
-  /// awaits `saveSession` before navigating here, so this isn't a client-side
-  /// timing bug. That points to the Note server's own session/token check
-  /// lagging behind the Chat server by a beat. One silent retry absorbs that
-  /// race; a 401 that survives the retry is treated as a real auth failure.
-  Future<FolderResponse> _getFolders({
-    int? parentFolderId,
-    bool retriedAfterUnauthorized = false,
-  }) async {
+  ///
+  /// The post-login failure this used to chase — the very first
+  /// `/api/folder` call right after login 401ing because the Note server's
+  /// own session/token check lags the Chat server by a beat — is now
+  /// absorbed centrally by [ApiClient]'s silent refresh-and-retry, which
+  /// covers both servers. A 401 that reaches here survived that retry and
+  /// is a real auth failure.
+  Future<FolderResponse> getFolders({int? parentFolderId}) async {
     try {
       final response = await _api.dio.get(
         '/api/folder',
@@ -59,19 +53,6 @@ class FolderRemoteDataSource extends GetxService {
       }
       return FolderResponse.fromJson(Map<String, dynamic>.from(body));
     } on dio.DioException catch (e) {
-      // TEMP DEBUG — remove once the post-login failure is diagnosed.
-      // ignore: avoid_print
-      print(
-        '❌ GET /api/folder failed: type=${e.type} status=${e.response?.statusCode} '
-        'body=${e.response?.data ?? e.message} retried=$retriedAfterUnauthorized',
-      );
-      if (!retriedAfterUnauthorized && e.response?.statusCode == 401) {
-        await Future.delayed(const Duration(milliseconds: 700));
-        return _getFolders(
-          parentFolderId: parentFolderId,
-          retriedAfterUnauthorized: true,
-        );
-      }
       throw ApiErrorParser.toException(e);
     }
   }

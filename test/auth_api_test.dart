@@ -247,7 +247,8 @@ void main() {
 
   for (final service in ['note', 'chat']) {
     testWidgets(
-      '$service unauthorized response handles the account session correctly',
+      '$service unauthorized response signs the user out once refresh is '
+      'also rejected',
       (tester) async {
         await tester.pumpWidget(
           GetMaterialApp(
@@ -279,24 +280,25 @@ void main() {
             final folders = FolderRepositoryImpl(FolderRemoteDataSource());
             final fetched = await folders.getFolders();
             expect(fetched.failureOrNull, isA<UnauthorizedFailure>());
-            expect(session.token.value, 'test-token');
-            expect(
-              await const FlutterSecureStorage().read(key: 'token'),
-              'test-token',
-            );
           } else {
             await expectLater(
               UserRemoteDataSource(api: api).fetchProfile(),
               throwsException,
             );
-            expect(session.token.value, isNull);
           }
+          // Both servers accept the same bearer token, so once the silent
+          // refresh has also been rejected (here, by the same 401-for-
+          // everything adapter), a 401 from either one means the session
+          // really is gone — there's no such thing as "just the Note
+          // server is having a bad day" once refresh has already failed.
+          expect(session.token.value, isNull);
+          expect(
+            await const FlutterSecureStorage().read(key: 'token'),
+            isNull,
+          );
         });
         await tester.pumpAndSettle();
-        expect(
-          find.text(service == 'note' ? 'Folders' : 'Login'),
-          findsOneWidget,
-        );
+        expect(find.text('Login'), findsOneWidget);
       },
     );
   }
