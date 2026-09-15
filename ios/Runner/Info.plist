@@ -40,7 +40,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to take photos and attach them to your notes.</string>
+	<string>We use your camera to scan payment cards and take photos to attach to your notes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to pick images and attach them to your notes.</string>
 	<key>NSMicrophoneUsageDescription</key>

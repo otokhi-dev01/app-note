@@ -28,4 +28,6 @@ abstract class Routes {
   static const TRASH = '/trash';
   static const ARCHIVE = '/archive';
   static const PINNED = '/pinned';
+  static const MY_CARDS = '/profile/cards';
+  static const CARD_SCAN = '/profile/cards/scan';
 }

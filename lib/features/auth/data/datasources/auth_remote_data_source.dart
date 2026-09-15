@@ -50,64 +50,23 @@ class AuthRemoteDataSource extends GetxService {
       );
       if (kDebugMode) {
         debugPrint('[AUTH] Calling: $url');
-        debugPrint('[AUTH] Payload: ${request.toJson()}');
       }
       final response = await _api.dio.post(
         url,
         data: request.toJson(),
         options: dio.Options(
-          headers: {
-            'Accept': '*/*',
-            'Content-Type': 'application/json',
-          },
+          headers: {'Accept': '*/*', 'Content-Type': 'application/json'},
           extra: {'requiresAuth': false},
         ),
       );
       if (kDebugMode) {
-        debugPrint('[AUTH] Response: status=${response.statusCode} body=${response.data}');
+        debugPrint('[AUTH] Response: status=${response.statusCode}');
       }
       return AuthResponse.fromJson(
         Map<String, dynamic>.from(response.data),
         statusCode: response.statusCode,
       );
     } on dio.DioException catch (e) {
-      if (e.response?.statusCode == 400 && e.requestOptions.data is Map) {
-        final data = Map<String, dynamic>.from(e.requestOptions.data as Map);
-        
-        final attempts = [
-          {'account': data['account'], 'password': data['password']},
-          {'phone': data['phone'] ?? data['account'], 'password': data['password']},
-          {'username': data['username'] ?? data['account'], 'password': data['password']},
-          // Strategy 4: Raw credentials only
-          {'account': data['account'], 'password': data['password']},
-          {'Account': data['account'], 'Password': data['password']},
-        ];
-
-        for (final payload in attempts) {
-          if (kDebugMode) {
-            debugPrint('[AUTH] 400 error. Retrying with alternative payload: $payload');
-          }
-          try {
-            final retryResponse = await _api.dio.post(
-              url,
-              data: payload,
-              options: dio.Options(
-                headers: {
-                  'Accept': '*/*',
-                  'Content-Type': 'application/json',
-                },
-                extra: {'requiresAuth': false},
-              ),
-            );
-            return AuthResponse.fromJson(
-              Map<String, dynamic>.from(retryResponse.data),
-              statusCode: retryResponse.statusCode,
-            );
-          } catch (retryError) {
-            if (kDebugMode) debugPrint('[AUTH] Retry failed: $retryError');
-          }
-        }
-      }
       throw ApiErrorParser.toException(e);
     }
   }

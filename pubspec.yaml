@@ -48,6 +48,7 @@ dependencies:
   audioplayers: ^6.8.1
   video_player: ^2.11.1
   pdfx: ^2.11.0
+  blinkcard_flutter: ^3000.0.0
   device_info_plus: ^12.0.0
   package_info_plus: ^9.0.0
   uuid: ^4.6.0
