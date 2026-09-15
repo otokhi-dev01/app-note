@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/features/profile/presentation/controllers/credit_card_controller.dart';
 import 'package:Note/features/profile/domain/entities/credit_card.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -85,12 +86,16 @@ class MyCardsView extends GetView<CreditCardController> {
   }
 
   Widget _buildCardItem(BuildContext context, CreditCard card) {
+    final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.secondary,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -109,23 +114,23 @@ class MyCardsView extends GetView<CreditCardController> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'VISA', // Dynamic brand logo would be better
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.onAccent(theme.colorScheme.primary),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   fontStyle: FontStyle.italic,
                 ),
               ),
-              const Icon(Icons.more_vert, color: Colors.white),
+              Icon(Icons.more_vert, color: AppColors.onAccent(theme.colorScheme.primary)),
             ],
           ),
           const SizedBox(height: 32),
           Text(
             card.obscuredNumber,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.onAccent(theme.colorScheme.primary),
               fontSize: 22,
               letterSpacing: 2,
             ),
@@ -144,8 +149,8 @@ class MyCardsView extends GetView<CreditCardController> {
                   const SizedBox(height: 4),
                   Text(
                     card.cardholderName,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.onAccent(theme.colorScheme.primary),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -161,8 +166,8 @@ class MyCardsView extends GetView<CreditCardController> {
                   const SizedBox(height: 4),
                   Text(
                     card.expiryDate,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppColors.onAccent(theme.colorScheme.primary),
                       fontWeight: FontWeight.bold,
                     ),
                   ),

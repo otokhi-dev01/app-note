@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Note/core/theme/ios_semantic_colors.dart';
+import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/features/profile/presentation/controllers/credit_card_controller.dart';
 import 'package:Note/features/profile/domain/entities/credit_card.dart';
 
@@ -33,11 +35,12 @@ class CardScanView extends GetView<CreditCardController> {
 
   Widget _buildIntroStep(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = AppColors.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: Colors.black),
+          icon: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
           onPressed: () => Get.back(),
         ),
         backgroundColor: Colors.transparent,
@@ -52,7 +55,7 @@ class CardScanView extends GetView<CreditCardController> {
               height: 180,
               width: 280,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2129),
+                color: colors.primaryText.withValues(alpha: 0.88),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -97,7 +100,6 @@ class CardScanView extends GetView<CreditCardController> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: Colors.black,
               ),
             ),
             const SizedBox(height: 16),
@@ -105,7 +107,7 @@ class CardScanView extends GetView<CreditCardController> {
               'Quickly and securely scan your credit or debit card to automatically fill in the details.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[600],
+                color: theme.colorScheme.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -114,21 +116,24 @@ class CardScanView extends GetView<CreditCardController> {
               CupertinoIcons.bolt_fill,
               'Scan & Review',
               'Check the details before saving',
-              Colors.green,
+              IosSemanticColors.green,
+              context,
             ),
             const SizedBox(height: 24),
             _buildFeatureRow(
               CupertinoIcons.lock_fill,
               'Secure',
               'Your data stays private',
-              Colors.blue,
+              IosSemanticColors.blue,
+              context,
             ),
             const SizedBox(height: 24),
             _buildFeatureRow(
               CupertinoIcons.camera_fill,
               'Scan Both Sides',
               'Capture each side, then tap Save',
-              Colors.purple,
+              IosSemanticColors.purple,
+              context,
             ),
             const Spacer(),
             SizedBox(
@@ -138,8 +143,8 @@ class CardScanView extends GetView<CreditCardController> {
                     ? null
                     : controller.onStartScanningPressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: AppColors.onAccent(theme.colorScheme.primary),
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -168,7 +173,10 @@ class CardScanView extends GetView<CreditCardController> {
               onPressed: controller.isLoading.value
                   ? null
                   : controller.onEnterManually,
-              child: const Text('Enter Card Manually'),
+              child: Text(
+                'Enter Card Manually',
+                style: TextStyle(color: theme.colorScheme.primary),
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -182,7 +190,9 @@ class CardScanView extends GetView<CreditCardController> {
     String title,
     String subtitle,
     Color iconColor,
+    BuildContext context,
   ) {
+    final theme = Theme.of(context);
     return Row(
       children: [
         Container(
@@ -199,12 +209,12 @@ class CardScanView extends GetView<CreditCardController> {
           children: [
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.colorScheme.onSurface),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 13, color: Colors.grey),
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -272,7 +282,7 @@ class CardScanView extends GetView<CreditCardController> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           CupertinoIcons.back,
                           color: Colors.white,
                           size: 28,
@@ -281,7 +291,7 @@ class CardScanView extends GetView<CreditCardController> {
                       ),
                       Text(
                         isFront ? 'Scan Front Side' : 'Scan Back Side',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -303,7 +313,7 @@ class CardScanView extends GetView<CreditCardController> {
                         ? 'Align your card within the frame.\nThe card will be detected automatically.'
                         : 'Turn your card over and align the back side\nwithin the frame.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       height: 1.4,
@@ -340,6 +350,7 @@ class CardScanView extends GetView<CreditCardController> {
                                 cvv: '123',
                                 cardBrand: 'Visa',
                               ),
+                              context,
                             ),
                           ),
                         ),
@@ -350,7 +361,7 @@ class CardScanView extends GetView<CreditCardController> {
 
                 const Spacer(),
 
-                const Text(
+                Text(
                   'Hold steady...',
                   style: TextStyle(
                     color: Colors.white70,
@@ -403,7 +414,7 @@ class CardScanView extends GetView<CreditCardController> {
                 // Mode Label
                 Text(
                   isFront ? 'Front of card' : 'Back of card',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -463,7 +474,7 @@ class CardScanView extends GetView<CreditCardController> {
                             width: 14,
                             height: 14,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF5E7FF1),
+                              color: IosSemanticColors.blue,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -485,7 +496,7 @@ class CardScanView extends GetView<CreditCardController> {
   Widget _buildCornerBracket(Alignment alignment) {
     const double size = 32.0;
     const double thickness = 4.0;
-    const Color color = Color(0xFF5E7FF1);
+    const Color color = IosSemanticColors.blue;
 
     return Align(
       alignment: alignment,
@@ -563,8 +574,11 @@ class CardScanView extends GetView<CreditCardController> {
   }
 
   Widget _buildProcessingStep(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1218),
+      backgroundColor: theme.brightness == Brightness.dark
+          ? Colors.black
+          : theme.scaffoldBackgroundColor,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -581,21 +595,21 @@ class CardScanView extends GetView<CreditCardController> {
                       value: 0.7,
                       strokeWidth: 4,
                       backgroundColor: Colors.white10,
-                      color: Colors.blue,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                   Container(
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
                       child: Icon(
                         CupertinoIcons.creditcard,
                         size: 56,
-                        color: Colors.blue,
+                        color: CupertinoColors.activeBlue,
                       ),
                     ),
                   ),
@@ -621,10 +635,10 @@ class CardScanView extends GetView<CreditCardController> {
                 ),
               ),
               const SizedBox(height: 60),
-              _buildExtractionItem('Reading card number', true),
-              _buildExtractionItem('Detecting cardholder name', true),
-              _buildExtractionItem('Extracting expiry date', true),
-              _buildExtractionItem('Reading security code (CVV)', true),
+              _buildExtractionItem('Reading card number', true, context),
+              _buildExtractionItem('Detecting cardholder name', true, context),
+              _buildExtractionItem('Extracting expiry date', true, context),
+              _buildExtractionItem('Reading security code (CVV)', true, context),
               const Spacer(),
             ],
           ),
@@ -633,7 +647,7 @@ class CardScanView extends GetView<CreditCardController> {
     );
   }
 
-  Widget _buildExtractionItem(String text, bool completed) {
+  Widget _buildExtractionItem(String text, bool completed, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -642,7 +656,7 @@ class CardScanView extends GetView<CreditCardController> {
             completed
                 ? CupertinoIcons.checkmark_circle_fill
                 : CupertinoIcons.circle,
-            color: completed ? const Color(0xFF5E7FF1) : Colors.white24,
+            color: completed ? IosSemanticColors.blue : Colors.white24,
             size: 26,
           ),
           const SizedBox(width: 18),
@@ -661,12 +675,13 @@ class CardScanView extends GetView<CreditCardController> {
 
   Widget _buildResultStep(BuildContext context) {
     final card = controller.scannedCard.value!;
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: Colors.black),
+          icon: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
           onPressed: () => Get.back(),
         ),
         backgroundColor: Colors.transparent,
@@ -687,7 +702,7 @@ class CardScanView extends GetView<CreditCardController> {
               style: TextStyle(color: Colors.grey, height: 1.4),
             ),
             const SizedBox(height: 40),
-            _buildMiniCard(card),
+            _buildMiniCard(card, context),
             const SizedBox(height: 48),
             _buildResultRow(
               CupertinoIcons.creditcard,
@@ -712,8 +727,8 @@ class CardScanView extends GetView<CreditCardController> {
               child: ElevatedButton(
                 onPressed: controller.onContinueToConfirmation,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: AppColors.onAccent(theme.colorScheme.primary),
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -729,10 +744,10 @@ class CardScanView extends GetView<CreditCardController> {
             const SizedBox(height: 12),
             TextButton(
               onPressed: controller.onRetakeScan,
-              child: const Text(
+              child: Text(
                 'Retake',
                 style: TextStyle(
-                  color: Color(0xFF5E7FF1),
+                  color: IosSemanticColors.blue,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -769,16 +784,17 @@ class CardScanView extends GetView<CreditCardController> {
   }
 
   Widget _buildConfirmationStep(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(CupertinoIcons.back, color: Colors.black),
+          icon: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
           onPressed: () => Get.back(),
         ),
-        title: const Text(
+        title: Text(
           'Confirm Details',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -789,18 +805,18 @@ class CardScanView extends GetView<CreditCardController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
+            Center(
               child: Text(
                 'You can edit the information if needed.',
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
               ),
             ),
             const SizedBox(height: 32),
-            _buildFieldLabel('Card Number'),
-            _buildCardTextField(controller.cardNumberController),
+            _buildFieldLabel('Card Number', context),
+            _buildCardTextField(controller.cardNumberController, context: context),
             const SizedBox(height: 20),
-            _buildFieldLabel('Cardholder Name'),
-            _buildCardTextField(controller.cardholderNameController),
+            _buildFieldLabel('Cardholder Name', context),
+            _buildCardTextField(controller.cardholderNameController, context: context),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -808,7 +824,7 @@ class CardScanView extends GetView<CreditCardController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildFieldLabel('Expiry Month'),
+                      _buildFieldLabel('Expiry Month', context),
                       _buildDropdown(controller.expiryMonth, [
                         '01',
                         '02',
@@ -822,7 +838,7 @@ class CardScanView extends GetView<CreditCardController> {
                         '10',
                         '11',
                         '12',
-                      ]),
+                      ], context),
                     ],
                   ),
                 ),
@@ -831,13 +847,14 @@ class CardScanView extends GetView<CreditCardController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildFieldLabel('Expiry Year'),
+                      _buildFieldLabel('Expiry Year', context),
                       _buildDropdown(
                         controller.expiryYear,
                         List.generate(
                           20,
                           (i) => (DateTime.now().year + i).toString(),
                         ),
+                        context,
                       ),
                     ],
                   ),
@@ -845,29 +862,30 @@ class CardScanView extends GetView<CreditCardController> {
               ],
             ),
             const SizedBox(height: 20),
-            _buildFieldLabel('CVV'),
+            _buildFieldLabel('CVV', context),
             _buildCardTextField(
               controller.cvvController,
+              context: context,
               suffix: const Padding(
                 padding: EdgeInsets.only(right: 12),
                 child: Icon(CupertinoIcons.eye, color: Colors.grey, size: 20),
               ),
             ),
             const SizedBox(height: 20),
-            _buildFieldLabel('Card Brand'),
+            _buildFieldLabel('Card Brand', context),
             _buildDropdown(controller.cardBrand, [
               'Visa',
               'Mastercard',
               'AMEX',
-            ]),
+            ], context),
             const SizedBox(height: 48),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: controller.onSaveCardPressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: AppColors.onAccent(theme.colorScheme.primary),
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -884,10 +902,10 @@ class CardScanView extends GetView<CreditCardController> {
             Center(
               child: TextButton(
                 onPressed: controller.onRetakeScan,
-                child: const Text(
+                child: Text(
                   'Retake Scan',
                   style: TextStyle(
-                    color: Color(0xFF5E7FF1),
+                    color: IosSemanticColors.blue,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -900,14 +918,15 @@ class CardScanView extends GetView<CreditCardController> {
     );
   }
 
-  Widget _buildFieldLabel(String label) {
+  Widget _buildFieldLabel(String label, BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10, left: 4),
       child: Text(
         label,
         style: TextStyle(
           fontSize: 13,
-          color: Colors.grey[700],
+          color: theme.colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -917,12 +936,14 @@ class CardScanView extends GetView<CreditCardController> {
   Widget _buildCardTextField(
     TextEditingController controller, {
     Widget? suffix,
+    required BuildContext context,
   }) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: TextField(
         controller: controller,
@@ -943,19 +964,20 @@ class CardScanView extends GetView<CreditCardController> {
     );
   }
 
-  Widget _buildDropdown(RxString value, List<String> items) {
+  Widget _buildDropdown(RxString value, List<String> items, BuildContext context) {
+    final theme = Theme.of(context);
     return Obx(
       () => Container(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: value.value.isEmpty ? null : value.value,
-            hint: const Text('Select'),
+            hint: Text('Select', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
             isExpanded: true,
             icon: const Icon(CupertinoIcons.chevron_down, size: 14),
             style: const TextStyle(
@@ -979,8 +1001,9 @@ class CardScanView extends GetView<CreditCardController> {
   }
 
   Widget _buildSuccessStep(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FFF9),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -991,7 +1014,7 @@ class CardScanView extends GetView<CreditCardController> {
                 width: 84,
                 height: 84,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF34C759),
+                  color: IosSemanticColors.green,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -1012,7 +1035,7 @@ class CardScanView extends GetView<CreditCardController> {
                 style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.4),
               ),
               const SizedBox(height: 48),
-              _buildMiniCard(controller.cards.last),
+              _buildMiniCard(controller.cards.last, context),
               const Spacer(),
               SizedBox(
                 width: double.infinity,
@@ -1039,7 +1062,7 @@ class CardScanView extends GetView<CreditCardController> {
                 child: const Text(
                   'Add Another Card',
                   style: TextStyle(
-                    color: Color(0xFF5E7FF1),
+                    color: IosSemanticColors.blue,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1052,13 +1075,17 @@ class CardScanView extends GetView<CreditCardController> {
     );
   }
 
-  Widget _buildMiniCard(CreditCard card) {
+  Widget _buildMiniCard(CreditCard card, BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       width: 300,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1A237E), Color(0xFF3949AB)],
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primary,
+            theme.colorScheme.secondary,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1078,8 +1105,8 @@ class CardScanView extends GetView<CreditCardController> {
             alignment: Alignment.topRight,
             child: Text(
               card.cardBrand.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: AppColors.onAccent(theme.colorScheme.primary),
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 fontStyle: FontStyle.italic,
@@ -1089,8 +1116,8 @@ class CardScanView extends GetView<CreditCardController> {
           const SizedBox(height: 32),
           Text(
             card.obscuredNumber,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColors.onAccent(theme.colorScheme.primary),
               fontSize: 18,
               letterSpacing: 2.5,
               fontWeight: FontWeight.w600,
@@ -1102,16 +1129,16 @@ class CardScanView extends GetView<CreditCardController> {
             children: [
               Text(
                 card.cardholderName,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: AppColors.onAccent(theme.colorScheme.primary),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 card.expiryDate,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: AppColors.onAccent(theme.colorScheme.primary),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
