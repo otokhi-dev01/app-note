@@ -197,7 +197,7 @@ class LoginView extends GetView<AuthController> {
             borderRadius: BorderRadius.circular(28),
             clipBehavior: Clip.antiAlias,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+              padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -259,33 +259,44 @@ class LoginView extends GetView<AuthController> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Transform.translate(
-                        offset: const Offset(-6, 0),
-                        child: Obx(
-                          () => Checkbox(
-                            value: controller.rememberMe.value,
-                            onChanged: (_) => controller.toggleRememberMe(),
-                            activeColor: theme.colorScheme.primary,
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Transform.translate(
+                              offset: const Offset(-6, 0),
+                              child: Obx(
+                                () => Checkbox(
+                                  value: controller.rememberMe.value,
+                                  onChanged: (_) => controller.toggleRememberMe(),
+                                  activeColor: theme.colorScheme.primary,
+                                  visualDensity: VisualDensity.compact,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            Flexible(
+                              child: GestureDetector(
+                                onTap: controller.toggleRememberMe,
+                                child: Text(
+                                  'remember_me'.tr,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: controller.toggleRememberMe,
-                        child: Text(
-                          'remember_me'.tr,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       TextButton(
                         onPressed: controller.forgotPassword,
                         style: TextButton.styleFrom(
@@ -379,8 +390,9 @@ class LoginView extends GetView<AuthController> {
   Widget _buildRegisterRow(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(
           'login_no_account'.tr,

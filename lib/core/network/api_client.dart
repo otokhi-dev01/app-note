@@ -43,11 +43,13 @@ class ApiClient extends GetxService {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           final session = Get.find<SessionStorage>();
-          if (options.extra['requiresAuth'] == false) {
-            options.headers.removeWhere(
-              (key, _) => key.toLowerCase() == 'authorization',
-            );
-          } else if (session.isLoggedIn) {
+          for (final key
+              in options.headers.keys
+                  .where((key) => key.toLowerCase() == 'authorization')
+                  .toList()) {
+            options.headers.remove(key);
+          }
+          if (options.extra['requiresAuth'] != false && session.isLoggedIn) {
             options.headers['Authorization'] = 'Bearer ${session.token.value}';
           }
           return handler.next(options);
@@ -68,42 +70,56 @@ class ApiClient extends GetxService {
               _printErrorResponse(e.response?.data);
             }
           }
-          // The refresh call itself failing is handled by its own caller
-          // (_tryRefreshSession's try/catch) — don't also run the sign-out
-          // logic below for it, or a failed refresh would fire it twice.
-          if (e.requestOptions.extra['isTokenRefresh'] == true) {
+          // Recovery requests and the one permitted retry must never start
+          // another recovery cycle through this interceptor.
+          if (e.requestOptions.extra['isTokenRefresh'] == true ||
+              e.requestOptions.extra['authRetried'] == true) {
             return handler.next(e);
           }
-          // Both the Chat and Note servers accept the same bearer token
-          // from login, so a 401 from either one is worth one silent
-          // refresh-and-retry — including the Note server 401ing right
-          // after login (see FolderRemoteDataSource): that's a real,
-          // just-issued token the Note server hasn't caught up on yet, the
-          // same class of problem a refresh-and-retry fixes on Chat.
+          final request = e.requestOptions;
+          final isNoteRequest = request.uri.origin == Uri.parse(baseUrl).origin;
+          final isChatRequest =
+              request.uri.origin == Uri.parse(AppConstants.baseUrl).origin;
           final isUnauthorized =
               e.response?.statusCode == 401 &&
-              e.requestOptions.extra['requiresAuth'] != false;
+              request.extra['requiresAuth'] != false &&
+              (isNoteRequest || isChatRequest);
 
           if (isUnauthorized) {
-            final refreshResult = await _tryRefreshSession();
+            final session = Get.find<SessionStorage>();
+            final tokenBeforeRecovery = session.token.value;
+            // A concurrent request may already have refreshed this token.
+            final alreadyRefreshed =
+                tokenBeforeRecovery != null &&
+                request.headers['Authorization'] !=
+                    'Bearer $tokenBeforeRecovery';
+            final refreshResult = alreadyRefreshed
+                ? _RefreshResult.refreshed
+                : await _tryRefreshSession();
             if (refreshResult == _RefreshResult.refreshed) {
+              final retryToken = session.token.value;
               try {
-                final retried = await _dio.fetch(e.requestOptions);
+                final retried = await _dio.fetch(
+                  request.copyWith(
+                    extra: {...request.extra, 'authRetried': true},
+                  ),
+                );
                 return handler.resolve(retried);
-              } on DioException {
-                // The refreshed token still didn't satisfy the original
-                // request — fall through below.
+              } on DioException catch (retryError) {
+                // Preserve the actual retry failure (including timeouts/5xx).
+                e = retryError;
+                if (isChatRequest &&
+                    e.response?.statusCode == 401 &&
+                    session.token.value == retryToken) {
+                  _forceSignOut();
+                }
               }
+            } else if (refreshResult == _RefreshResult.rejected &&
+                session.token.value == tokenBeforeRecovery) {
+              // An explicit rejection by the account server invalidates the
+              // session even when the original request was to the Note server.
+              _forceSignOut();
             }
-            // A definite rejection — either server actively said "no,
-            // this session is done" to the refresh attempt, or a fresh
-            // token still didn't satisfy the retry — means the session
-            // really is over, from either server, since both accept the
-            // same token. `unreachable` must never sign the user out: that
-            // just means the refresh call itself couldn't be completed
-            // (offline, timeout, DNS), which says nothing about whether
-            // the session is still good.
-            if (refreshResult != _RefreshResult.unreachable) _forceSignOut();
           }
           return handler.next(e);
         },
@@ -137,20 +153,9 @@ class ApiClient extends GetxService {
     }
   }
 
-  /// Best-effort silent refresh, attempted once before a 401 hard-signs the
-  /// user out.
-  ///
-  /// UNVERIFIED against the live backend: login/register never hand back a
-  /// separate refresh token today (see [AuthResponse] — only `token` is
-  /// parsed), so this assumes `POST /api/auth/refresh-token` accepts the
-  /// just-expired access token as proof of a recent session and returns a
-  /// fresh one in the same envelope shape as login. As of 2026-09,
-  /// confirmed against the live backend: that assumption is wrong — the
-  /// endpoint answers every attempt with `400 Bad Request`, so this never
-  /// actually succeeds today. It stays in place because it's harmless (one
-  /// extra request before a 401 that was going to fail anyway) and starts
-  /// working for free the moment the backend contract is fixed. See the
-  /// caller in `onError` for what happens when this fails.
+  /// Coalesces concurrent recovery requests. If refresh is unsupported or
+  /// returns an unusable response, verify the existing session with the
+  /// account profile endpoint before deciding to sign out.
   Future<_RefreshResult> _tryRefreshSession() {
     final inFlight = _refreshCompleter;
     if (inFlight != null) return inFlight.future;
@@ -177,28 +182,31 @@ class ApiClient extends GetxService {
           statusCode: response.statusCode,
         );
         if (!auth.isSuccess || auth.token.isEmpty) {
-          if (kDebugMode) {
-            debugPrint('[API] Silent refresh rejected: ${response.data}');
-          }
-          completer.complete(_RefreshResult.rejected);
+          completer.complete(await _verifySession());
+          return;
+        }
+        if (session.token.value != currentToken) {
+          completer.complete(_RefreshResult.unreachable);
           return;
         }
         await session.saveSession(auth.token, session.user.value ?? auth.user);
         completer.complete(_RefreshResult.refreshed);
       } on DioException catch (e) {
-        // A response means the server was reached and it said no — the
-        // session really is done. Anything else (timeout, no connectivity,
-        // DNS failure) means the device just couldn't reach the server this
-        // moment, which is not evidence the session is bad.
-        final result = e.response != null
+        final status = e.response?.statusCode;
+        final result = status == 401 || status == 403
             ? _RefreshResult.rejected
+            : status == 400 || status == 404 || status == 405
+            ? await _verifySession()
             : _RefreshResult.unreachable;
         if (kDebugMode) {
-          debugPrint('[API] Silent refresh call failed (${result.name}): $e');
+          debugPrint(
+            '[API] Session recovery: ${result.name} (status=$status).',
+          );
         }
         completer.complete(result);
       } catch (e) {
-        if (kDebugMode) debugPrint('[API] Silent refresh call failed: $e');
+        if (kDebugMode)
+          debugPrint('[API] Session recovery failed: ${e.runtimeType}');
         completer.complete(_RefreshResult.unreachable);
       } finally {
         _refreshCompleter = null;
@@ -206,6 +214,23 @@ class ApiClient extends GetxService {
     });
 
     return completer.future;
+  }
+
+  Future<_RefreshResult> _verifySession() async {
+    try {
+      await _dio.get(
+        '${AppConstants.userApiUrl}${AppConstants.userProfileEndpoint}',
+        options: Options(extra: {'isTokenRefresh': true}),
+      );
+      // A valid Chat session does not make a Note-only rejection recoverable.
+      return _RefreshResult.unreachable;
+    } on DioException catch (e) {
+      return e.response?.statusCode == 401 || e.response?.statusCode == 403
+          ? _RefreshResult.rejected
+          : _RefreshResult.unreachable;
+    } catch (_) {
+      return _RefreshResult.unreachable;
+    }
   }
 
   bool _isSensitiveEndpoint(String path) => path.contains('/api/auth/');
@@ -226,12 +251,9 @@ enum _RefreshResult {
   /// Got a fresh token; the caller should retry the original request.
   refreshed,
 
-  /// The server was reached and it said this session is no good — a 401 on
-  /// the refresh call itself, a malformed-request rejection, or a response
-  /// the app doesn't recognize as success.
+  /// The account server explicitly rejected the session (401 or 403).
   rejected,
 
-  /// The refresh call itself never got a response — no connectivity,
-  /// timeout, DNS failure. Says nothing about whether the session is good.
+  /// Recovery could not produce a token; the session was not rejected.
   unreachable,
 }

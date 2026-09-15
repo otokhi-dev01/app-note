@@ -378,6 +378,7 @@ class ProfileView extends GetView<ProfileController> {
                 : controller.userPhone.value,
             onTap: isGuest ? null : controller.viewPhone,
           ),
+
           _buildJobBioRow(context, isGuest: isGuest),
           _buildDetailRow(
             context,
@@ -453,6 +454,14 @@ class ProfileView extends GetView<ProfileController> {
       return _buildSurfaceCard(
         context,
         children: [
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.creditcard_fill,
+            iconColor: _iosIndigo,
+            label: 'My Cards',
+            value: '',
+            onTap: () => Get.toNamed(Routes.MY_CARDS),
+          ),
           _buildDetailRow(
             context,
             icon: Icons.badge_outlined,

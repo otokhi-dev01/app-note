@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -84,11 +85,20 @@ class AuthController extends GetxController {
 
       switch (result) {
         case Ok():
+          if (kDebugMode) debugPrint('[AUTH] Login logic successful. Disable guest mode and persisting.');
           _guestMode.disable();
           _persistRememberMe(account);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
+          
+          // Setup E2EE. Shared unawaited handles the background task.
           unawaited(Get.find<EncryptionController>().setupForCurrentUser());
-          unawaited(Get.offAllNamed(Routes.FOLDER));
+          
+          if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
+          // Use a slight delay or next-tick to ensure the snackbar and state 
+          // updates settle before clearing the entire navigation stack.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Get.offAllNamed(Routes.FOLDER);
+          });
         case Err(:final failure):
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }

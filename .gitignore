@@ -1,4 +1,5 @@
 # Miscellaneous
+/config/blinkcard.local.json
 *.class
 *.log
 *.pyc

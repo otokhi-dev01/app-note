@@ -27,6 +27,9 @@ import 'package:Note/features/settings/presentation/views/account_view.dart';
 import 'package:Note/features/settings/presentation/views/delete_account_view.dart';
 import 'package:Note/features/settings/presentation/bindings/account_binding.dart';
 import 'package:Note/features/settings/presentation/bindings/device_binding.dart';
+import 'package:Note/features/profile/presentation/views/my_cards_view.dart';
+import 'package:Note/features/profile/presentation/views/card_scan_view.dart';
+import 'package:Note/features/profile/presentation/bindings/credit_card_binding.dart';
 import 'package:Note/features/trash/presentation/views/recently_deleted_view.dart';
 import 'package:Note/features/trash/presentation/bindings/recently_deleted_binding.dart';
 import 'package:Note/features/archive/presentation/views/archive_view.dart';
@@ -89,7 +92,20 @@ class AppPages {
       page: () => const SearchView(),
       binding: SearchBinding(),
     ),
-    GetPage(name: Routes.PROFILE, page: () => const ProfileView()),
+    GetPage(
+      name: Routes.PROFILE,
+      page: () => const ProfileView(),
+    ),
+    GetPage(
+      name: Routes.MY_CARDS,
+      page: () => const MyCardsView(),
+      binding: CreditCardBinding(),
+    ),
+    GetPage(
+      name: Routes.CARD_SCAN,
+      page: () => const CardScanView(),
+      binding: CreditCardBinding(),
+    ),
     GetPage(
       name: Routes.APPEARANCE,
       page: () => const AppearanceView(),

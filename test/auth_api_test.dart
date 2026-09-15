@@ -292,10 +292,7 @@ void main() {
           // really is gone — there's no such thing as "just the Note
           // server is having a bad day" once refresh has already failed.
           expect(session.token.value, isNull);
-          expect(
-            await const FlutterSecureStorage().read(key: 'token'),
-            isNull,
-          );
+          expect(await const FlutterSecureStorage().read(key: 'token'), isNull);
         });
         await tester.pumpAndSettle();
         expect(find.text('Login'), findsOneWidget);
@@ -335,13 +332,16 @@ void main() {
         adapter.respond = (options) {
           final path = options.uri.path;
           if (path == '/api/auth/refresh-token') {
-            return (200, {
-              'code': 200,
-              'data': {
-                'token': 'refreshed-token',
-                'user': {'id': '123', 'fullName': 'Test'},
+            return (
+              200,
+              {
+                'code': 200,
+                'data': {
+                  'token': 'refreshed-token',
+                  'user': {'id': '123', 'fullName': 'Test'},
+                },
               },
-            });
+            );
           }
           if (path == '/api/users/profile') {
             profileCalls++;
@@ -375,6 +375,76 @@ void main() {
       expect(find.text('Folders'), findsOneWidget);
     },
   );
+
+  test('a refreshed token rejected by Note is retried only once', () async {
+    session.token.value = 'old-token';
+    adapter.respond = (options) => options.uri.path == '/api/auth/refresh-token'
+        ? (
+            200,
+            {
+              'code': 200,
+              'data': {'token': 'new-token'},
+            },
+          )
+        : (401, {'message': 'Unauthorized'});
+
+    await expectLater(
+      api.dio.get('/api/folder/get').timeout(const Duration(seconds: 2)),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          401,
+        ),
+      ),
+    );
+    expect(
+      adapter.requests.where((r) => r.uri.path == '/api/auth/refresh-token'),
+      hasLength(1),
+    );
+    expect(
+      adapter.requests.where((r) => r.uri.path == '/api/folder/get'),
+      hasLength(2),
+    );
+    expect(adapter.requests.last.headers['Authorization'], 'Bearer new-token');
+    expect(session.token.value, 'new-token');
+  });
+
+  for (final profileStatus in [200, 401]) {
+    test(
+      'unsupported refresh verifies Chat before handling a Note 401 ($profileStatus)',
+      () async {
+        session.token.value = 'old-token';
+        adapter.respond = (options) => switch (options.uri.path) {
+          '/api/auth/refresh-token' => (400, {'message': 'Bad request'}),
+          '/api/users/profile' => (profileStatus, {'id': '123'}),
+          _ => (401, {'message': 'Unauthorized'}),
+        };
+        await expectLater(
+          api.dio.get('/api/folder/get'),
+          throwsA(isA<DioException>()),
+        );
+        expect(
+          session.token.value,
+          profileStatus == 401 ? isNull : 'old-token',
+        );
+        expect(adapter.requests, hasLength(3));
+      },
+    );
+  }
+
+  test('refresh server failure preserves the session', () async {
+    session.token.value = 'old-token';
+    adapter.respond = (options) => options.uri.path == '/api/auth/refresh-token'
+        ? (503, {'message': 'Unavailable'})
+        : (401, {'message': 'Unauthorized'});
+    await expectLater(
+      api.dio.get('/api/folder/get'),
+      throwsA(isA<DioException>()),
+    );
+    expect(session.token.value, 'old-token');
+    expect(adapter.requests, hasLength(2));
+  });
 
   test(
     'device UUID survives a new service instance and session logout',

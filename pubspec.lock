@@ -97,6 +97,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.13"
+  blinkcard_flutter:
+    dependency: "direct main"
+    description:
+      name: blinkcard_flutter
+      sha256: "37155c8eeed9940600ec9db3c0a8cee01f82184d74b21b2c544f2f6c74aff0ef"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3000.0.0"
   boolean_selector:
     dependency: transitive
     description:

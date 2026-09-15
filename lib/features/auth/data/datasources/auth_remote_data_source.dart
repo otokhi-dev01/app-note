@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart' as dio;
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
 
 import 'package:Note/core/constants/app_constants.dart';
@@ -47,14 +48,20 @@ class AuthRemoteDataSource extends GetxService {
         platform: device.platform,
         deviceModel: device.deviceModel,
       );
+      if (kDebugMode) {
+        debugPrint('[AUTH] Calling: $url');
+      }
       final response = await _api.dio.post(
         url,
         data: request.toJson(),
         options: dio.Options(
-          headers: {'Accept': '*/*'},
+          headers: {'Accept': '*/*', 'Content-Type': 'application/json'},
           extra: {'requiresAuth': false},
         ),
       );
+      if (kDebugMode) {
+        debugPrint('[AUTH] Response: status=${response.statusCode}');
+      }
       return AuthResponse.fromJson(
         Map<String, dynamic>.from(response.data),
         statusCode: response.statusCode,

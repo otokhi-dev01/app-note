@@ -1,5 +1,4 @@
 import 'package:get_storage/get_storage.dart';
-
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
