@@ -23,10 +23,27 @@ class AuthCredentialsRequest {
 
   Map<String, dynamic> toJson() => {
     'account': account,
+    'Account': account,
+    'phone': account,
+    'Phone': account,
+    'phoneNumber': account,
+    'PhoneNumber': account,
+    'username': account,
+    'Username': account,
+    'userName': account,
+    'UserName': account,
+    'email': account,
+    'Email': account,
+    'name': account,
+    'Name': account,
+    'fullName': account,
+    'FullName': account,
     'password': password,
+    'Password': password,
     'clientDeviceId': clientDeviceId,
     'appVersion': appVersion,
     'deviceName': deviceName,
+    'deviceType': platform, // Use original casing
     'platform': platform,
     'deviceModel': deviceModel,
   };
@@ -48,47 +65,65 @@ class AuthResponse {
     this.success,
   });
 
-  bool get isSuccess => success != false && (code == 200 || code == 201);
+  bool get isSuccess => success == true || (success != false && (code == 200 || code == 201 || code == 0 || code == 1));
 
   factory AuthResponse.fromJson(Map<String, dynamic> json, {int? statusCode}) {
-    final dynamic dataRaw = json['data'] ?? json['Data'];
+    final dynamic dataRaw = json['data'] ?? json['Data'] ?? json['payload'] ?? json['result'];
     final Map<String, dynamic> data = dataRaw is Map
         ? Map<String, dynamic>.from(dataRaw)
-        : {};
+        : (Map<String, dynamic>.from(json)..removeWhere((k, _) => k == 'code' || k == 'message' || k == 'success' || k == 'status'));
+    
+    // Some backends return the token directly in 'data' if it's a string
+    final String? dataToken = dataRaw is String ? dataRaw : null;
+
     final dynamic userRaw =
         data['user'] ??
         data['userData'] ??
         data['profile'] ??
         data['User'] ??
         json['user'] ??
-        json['User'];
+        json['User'] ??
+        json['profile'];
     final Map<String, dynamic> user = userRaw is Map
         ? Map<String, dynamic>.from(userRaw)
         : data;
-    final int code = asInt(json['code'] ?? json['Code'] ?? statusCode);
-    final successRaw = json['success'] ?? json['Success'];
-    final success = successRaw == null ? null : asBool(successRaw);
+    
+    final int code = asInt(json['code'] ?? json['Code'] ?? json['status'] ?? statusCode);
+    final successRaw = json['success'] ?? json['Success'] ?? json['status'];
+    
+    // Handle 'status': 'success' string
+    bool? success;
+    if (successRaw is String) {
+      final s = successRaw.toLowerCase();
+      if (s == 'success' || s == 'ok' || s == '200' || s == '201') success = true;
+      else if (s == 'error' || s == 'fail' || s == '400' || s == '401') success = false;
+      else success = asBool(successRaw);
+    } else if (successRaw != null) {
+      success = asBool(successRaw);
+    }
 
     return AuthResponse(
-      token: asString(
+      token: dataToken ?? asString(
         data['token'] ??
             data['accessToken'] ??
             data['Token'] ??
             data['AccessToken'] ??
             data['access_token'] ??
+            data['jwt'] ??
             json['token'] ??
             json['accessToken'] ??
             json['Token'] ??
             json['AccessToken'] ??
-            json['access_token'],
+            json['access_token'] ??
+            json['jwt'],
       ),
       // Only parse user data on success codes; an error body's `data` holds
       // validation details, not a user.
-      user: success != false && (code == 200 || code == 201)
+      user: success != false && (code == 200 || code == 201 || code == 0)
           ? UserData.fromJson(user)
           : const UserData(),
       code: code,
-      message: asString(json['message'] ?? json['Message']),
+      message: asString(json['message'] ?? json['Message'] ?? json['error'] ?? json['detail']),
       success: success,
     );
   }

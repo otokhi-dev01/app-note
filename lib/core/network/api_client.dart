@@ -85,6 +85,28 @@ class ApiClient extends GetxService {
               e.requestOptions.extra['requiresAuth'] != false;
 
           if (isUnauthorized) {
+            final isNoteRequest = e.requestOptions.uri.origin ==
+                Uri.parse(baseUrl).origin;
+            
+            // If it's a Note server 401, it might be a temporary sync lag right
+            // after login. Try one immediate retry before doing anything more 
+            // drastic.
+            final retryCount = e.requestOptions.extra['retryCount'] ?? 0;
+            if (isNoteRequest && retryCount < 1) {
+              e.requestOptions.extra['retryCount'] = retryCount + 1;
+              if (kDebugMode) {
+                debugPrint('[API] Note server 401 (lag?). Retrying in 1s...');
+              }
+              await Future.delayed(const Duration(milliseconds: 1000));
+              try {
+                final retried = await _dio.fetch(e.requestOptions);
+                return handler.resolve(retried);
+              } on DioException catch (retryError) {
+                // Still 401, proceed to refresh attempt.
+                e = retryError; 
+              }
+            }
+
             final refreshResult = await _tryRefreshSession();
             if (refreshResult == _RefreshResult.refreshed) {
               try {
@@ -95,15 +117,26 @@ class ApiClient extends GetxService {
                 // request — fall through below.
               }
             }
-            // A definite rejection — either server actively said "no,
-            // this session is done" to the refresh attempt, or a fresh
-            // token still didn't satisfy the retry — means the session
-            // really is over, from either server, since both accept the
-            // same token. `unreachable` must never sign the user out: that
-            // just means the refresh call itself couldn't be completed
-            // (offline, timeout, DNS), which says nothing about whether
-            // the session is still good.
-            if (refreshResult != _RefreshResult.unreachable) _forceSignOut();
+            
+            // A rejection on a Chat server request (authentication/profile) 
+            // after failed refresh means the session is definitely dead.
+            final isChatRequest = e.requestOptions.uri.origin ==
+                Uri.parse(AppConstants.baseUrl).origin;
+            
+            if (refreshResult == _RefreshResult.rejected && isChatRequest) {
+              if (kDebugMode) {
+                debugPrint('[API] Chat session rejected. Forcing sign-out.');
+              }
+              _forceSignOut();
+            } else {
+              // Rejection on a Note server request after failed refresh (or 
+              // unreachable state) just reaches the caller as an error. 
+              // We do NOT sign out, because the Chat server might still hold
+              // a valid session and the Note server is just lagging.
+              if (kDebugMode) {
+                debugPrint('[API] Authorization failure on ${isNoteRequest ? "Note" : "Other"} server. Letting error through.');
+              }
+            }
           }
           return handler.next(e);
         },

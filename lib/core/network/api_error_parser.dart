@@ -39,6 +39,8 @@ class ApiErrorParser {
     final message =
         (responseData['message'] ??
                 responseData['Message'] ??
+                responseData['error'] ??
+                responseData['Error'] ??
                 responseData['detail'] ??
                 responseData['title'])
             ?.toString()
@@ -67,7 +69,10 @@ class ApiErrorParser {
             path.startsWith('/api/folder/') ||
             path == '/api/note' ||
             path.startsWith('/api/note/');
+        final requiresAuth = error.requestOptions.extra['requiresAuth'] != false;
         final fallback = switch (status) {
+          400 => 'The server rejected the request (400). Please check your input or contact support.',
+          401 when !requiresAuth => 'Invalid account or password.',
           401 when isNoteRequest =>
             'The notes server could not authorize this request (401).',
           401 => 'Your session has expired. Please sign in again.',

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/error/guard.dart';
 import 'package:Note/core/error/result.dart';
@@ -72,6 +73,9 @@ class AuthRepositoryImpl implements AuthRepository {
   /// The API answers 200 with an error code in the body, so success is decided
   /// here rather than by the HTTP status.
   Future<AuthSession> _persist(AuthResponse response) async {
+    if (kDebugMode) {
+      debugPrint('[AUTH] Persisting response: isSuccess=${response.isSuccess} token.isEmpty=${response.token.isEmpty}');
+    }
     if (!response.isSuccess || response.token.isEmpty) {
       throw ServerException(
         response.message.isEmpty

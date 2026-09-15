@@ -58,11 +58,15 @@ class NoteListBottomBar extends StatelessWidget {
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(
-                                  'note_list_search'.tr,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontSize: 17,
-                                    color: theme.colorScheme.onSurfaceVariant,
+                                Flexible(
+                                  child: Text(
+                                    'note_list_search'.tr,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontSize: 17,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
                               ],
