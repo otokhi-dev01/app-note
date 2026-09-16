@@ -23,10 +23,27 @@ class AuthCredentialsRequest {
 
   Map<String, dynamic> toJson() => {
     'account': account,
+    'Account': account,
+    'phone': account,
+    'Phone': account,
+    'phoneNumber': account,
+    'PhoneNumber': account,
+    'username': account,
+    'Username': account,
+    'userName': account,
+    'UserName': account,
+    'email': account,
+    'Email': account,
+    'name': account,
+    'Name': account,
+    'fullName': account,
+    'FullName': account,
     'password': password,
+    'Password': password,
     'clientDeviceId': clientDeviceId,
     'appVersion': appVersion,
     'deviceName': deviceName,
+    'deviceType': platform, // Use original casing
     'platform': platform,
     'deviceModel': deviceModel,
   };
@@ -94,9 +111,11 @@ class AuthResponse {
         success = true;
         // ignore: curly_braces_in_flow_control_structures
       } else if (s == 'error' || s == 'fail' || s == '400' || s == '401')
+        // ignore: curly_braces_in_flow_control_structures
         success = false;
       // ignore: curly_braces_in_flow_control_structures
       else
+        // ignore: curly_braces_in_flow_control_structures
         success = asBool(successRaw);
     } else if (successRaw != null) {
       success = asBool(successRaw);

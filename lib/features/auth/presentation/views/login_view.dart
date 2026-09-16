@@ -368,16 +368,19 @@ class LoginView extends GetView<AuthController> {
           borderRadius: 26,
           foregroundColor: AppTheme.folderPink,
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.person_outline_rounded, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'onboarding_continue_guest'.tr,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+              Flexible(
+                child: Text(
+                  'onboarding_continue_guest'.tr,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
