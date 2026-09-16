@@ -93,24 +93,21 @@ class ProfileView extends GetView<ProfileController> {
         child: const Icon(CupertinoIcons.chevron_left, size: 23),
       ),
       actions: [
-        Obx(() {
-          final isGuest = controller.isGuestMode.value;
-
-          if (isGuest) return const SizedBox.square(dimension: 44);
-
-          return CustomGlassButton(
-            semanticLabel: 'edit_name_title'.tr,
-            onPressed: controller.updateUserName,
-            width: 44,
-            height: 44,
-            shape: GlassShape.circle,
-            blur: 10,
-            opacity: 0.15,
-            thickness: 8,
-            padding: EdgeInsets.zero,
-            child: const Icon(CupertinoIcons.pencil, size: 19),
-          );
-        }),
+        // A guest's name is saved on-device the same way a signed-in
+        // account's is (see ProfileController._saveUserName) — no reason
+        // to hide the edit action just because there's no server account.
+        CustomGlassButton(
+          semanticLabel: 'edit_name_title'.tr,
+          onPressed: controller.updateUserName,
+          width: 44,
+          height: 44,
+          shape: GlassShape.circle,
+          blur: 10,
+          opacity: 0.15,
+          thickness: 8,
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.pencil, size: 19),
+        ),
       ],
       title: 'profile_title'.tr,
     );
@@ -205,8 +202,7 @@ class ProfileView extends GetView<ProfileController> {
                                   ),
                           ),
                         ),
-                        if (!isGuest)
-                          Positioned(
+                        Positioned(
                             right: -2,
                             bottom: -2,
                             child: CustomGlassButton(
@@ -244,7 +240,7 @@ class ProfileView extends GetView<ProfileController> {
                         letterSpacing: -0.3,
                       ),
                     ),
-                    if (!isGuest && username.isNotEmpty) ...[
+                    if (username.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
                         '@$username',
@@ -336,7 +332,7 @@ class ProfileView extends GetView<ProfileController> {
             iconColor: _iosBlue,
             label: 'full_name_label'.tr,
             value: controller.userName.value,
-            onTap: isGuest ? null : controller.updateUserName,
+            onTap: controller.updateUserName,
           ),
           _buildDetailRow(
             context,
@@ -346,7 +342,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userUsername.value.isEmpty
                 ? 'not_set'.tr
                 : '@${controller.userUsername.value}',
-            onTap: isGuest ? null : controller.updateUsername,
+            onTap: controller.updateUsername,
           ),
           _buildDetailRow(
             context,
@@ -356,7 +352,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userAccount.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userAccount.value,
-            onTap: isGuest ? null : controller.updateAccount,
+            onTap: controller.updateAccount,
           ),
           _buildDetailRow(
             context,
@@ -366,8 +362,10 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userEmail.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userEmail.value,
-            onTap: isGuest ? null : controller.updateEmail,
+            onTap: controller.updateEmail,
           ),
+          // Phone stays read-only and unset for a guest — it comes from
+          // signing in, which is the one thing a guest hasn't done.
           _buildDetailRow(
             context,
             icon: CupertinoIcons.phone_fill,
@@ -379,7 +377,7 @@ class ProfileView extends GetView<ProfileController> {
             onTap: isGuest ? null : controller.viewPhone,
           ),
 
-          _buildJobBioRow(context, isGuest: isGuest),
+          _buildJobBioRow(context),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.paintbrush_fill,
@@ -389,7 +387,7 @@ class ProfileView extends GetView<ProfileController> {
               color: controller.userColor,
               label: colorHex,
             ),
-            onTap: isGuest ? null : controller.updateColor,
+            onTap: controller.updateColor,
           ),
           _buildThemeModeRow(
             context,
@@ -448,8 +446,9 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildIdInformationCard(BuildContext context) {
     return Obx(() {
-      final isGuest = controller.isGuestMode.value;
-      final edit = isGuest ? null : controller.updateIdInformation;
+      // Saved keyed by 'guest' on-device for a guest (see
+      // ProfileController._idOwnerKey) — no reason to block editing.
+      final edit = controller.updateIdInformation;
 
       return _buildSurfaceCard(
         context,
@@ -597,7 +596,7 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  Widget _buildJobBioRow(BuildContext context, {required bool isGuest}) {
+  Widget _buildJobBioRow(BuildContext context) {
     final theme = Theme.of(context);
     final hasJob = controller.userJob.value.isNotEmpty;
     final hasBio = controller.userBio.value.isNotEmpty;
@@ -605,12 +604,10 @@ class ProfileView extends GetView<ProfileController> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isGuest
-            ? null
-            : () {
-                HapticFeedback.selectionClick();
-                controller.updateJobAndBio();
-              },
+        onTap: () {
+          HapticFeedback.selectionClick();
+          controller.updateJobAndBio();
+        },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Column(
@@ -641,16 +638,14 @@ class ProfileView extends GetView<ProfileController> {
                       ),
                     ),
                   ),
-                  if (!isGuest) ...[
-                    const SizedBox(width: 7),
-                    Icon(
-                      CupertinoIcons.chevron_forward,
-                      size: 14,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.48,
-                      ),
+                  const SizedBox(width: 7),
+                  Icon(
+                    CupertinoIcons.chevron_forward,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.48,
                     ),
-                  ],
+                  ),
                 ],
               ),
               if (hasBio) ...[
