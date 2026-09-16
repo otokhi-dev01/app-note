@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:Note/core/error/exceptions.dart';
 
@@ -30,7 +31,8 @@ class ApiErrorParser {
           if (entry.key.toString().startsWith(r'$')) continue;
           final value = entry.value;
           if (value is List && value.isNotEmpty) {
-            return value.first.toString();
+            final candidate = value.first.toString();
+            if (!_looksLikeInternalError(candidate)) return candidate;
           }
         }
       }
@@ -45,9 +47,49 @@ class ApiErrorParser {
                 responseData['title'])
             ?.toString()
             .trim();
-    return message != null && message.isNotEmpty
-        ? message
-        : fallback ?? 'Something went wrong.';
+    if (message != null && message.isNotEmpty) {
+      if (!_looksLikeInternalError(message)) return message;
+      // The backend leaked a raw server-side exception (a stack trace, a
+      // database/ORM error, ...) instead of a message meant for an end user.
+      // Never show that verbatim; log it for debugging and fall back to a
+      // generic message instead.
+      if (kDebugMode) {
+        debugPrint('[API] Suppressed internal-looking error message: $message');
+      }
+    }
+    return fallback ?? 'Something went wrong.';
+  }
+
+  /// Heuristic for "this reads like a raw exception/stack trace, not
+  /// something a backend meant to show an end user" — e.g. an ASP.NET/EF
+  /// Core error such as "The relationship from 'UserSession' to
+  /// 'UserDevice' ... cannot target the primary key ... because it is not
+  /// compatible." Real validation messages are short, plain sentences;
+  /// framework/database exceptions are long, technical, and named-entity-heavy.
+  static bool _looksLikeInternalError(String message) {
+    final lower = message.toLowerCase();
+    const markers = [
+      'exception',
+      'stack trace',
+      'stacktrace',
+      'at system.',
+      'entityframework',
+      'sqlexception',
+      'nullreferenceexception',
+      'foreign key',
+      'primary key',
+      'cannot target',
+      'microsoft.',
+      'system.data.',
+      'inner exception',
+    ];
+    if (markers.any(lower.contains)) return true;
+    // Long messages naming several quoted identifiers read like an internal
+    // diagnostic dump rather than user-facing copy.
+    if (message.length > 220 && "'".allMatches(message).length >= 4) {
+      return true;
+    }
+    return false;
   }
 
   /// Maps a Dio error onto the exception the repository layer expects.

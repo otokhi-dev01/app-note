@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
@@ -82,9 +83,10 @@ class ProfileController extends GetxController {
     final user = _session.user.value;
     final isGuest = isGuestMode.value && user == null;
     final apiName = user?.fullName?.trim() ?? '';
+    final guestName = _extras.guestName.trim();
 
     userName.value = isGuest
-        ? 'guest_label'.tr
+        ? (guestName.isNotEmpty ? guestName : 'guest_label'.tr)
         : (apiName.isNotEmpty ? apiName : 'default_user_name'.tr);
     userPhone.value = isGuest
         ? 'not_signed_in'.tr
@@ -93,7 +95,7 @@ class ProfileController extends GetxController {
     // The avatar is stored as a path relative to the documents directory
     // so it survives app container UUID changes on iOS. Resolve it to a real
     // absolute path for the File widget.
-    final savedPath = user?.profileImage ?? '';
+    final savedPath = isGuest ? _extras.guestImagePath : (user?.profileImage ?? '');
     final resolvedPath = await AppMediaStorage.resolve(savedPath);
     userImagePath.value =
         resolvedPath != null && File(resolvedPath).existsSync()
@@ -112,7 +114,9 @@ class ProfileController extends GetxController {
   }
 
   String get _idOwnerKey {
-    if (isGuestMode.value) return '';
+    // One on-device identity per guest — there's no account to scope by, but
+    // ID information should still save and load like it does for a real one.
+    if (isGuestMode.value) return 'guest';
     final user = _session.user.value;
     final id = user?.id?.trim() ?? '';
     if (id.isNotEmpty) return 'id:$id';
@@ -168,7 +172,24 @@ class ProfileController extends GetxController {
   }
 
   Future<bool> _saveUserName(String name) async {
-    switch (await _updateUserName(name)) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      AppSnackbar.failure(
+        'name_update_failed_title'.tr,
+        const ValidationFailure('Please enter your name.'),
+      );
+      return false;
+    }
+    // A guest has no session to patch (that's what "guest" means) — the name
+    // is saved on-device instead, the same place a signed-in account's name
+    // already lives today (see ProfileRepositoryImpl.updateName).
+    if (isGuestMode.value) {
+      _extras.guestName = trimmed;
+      userName.value = trimmed;
+      AppSnackbar.success('saved_title'.tr, 'name_updated_message'.tr);
+      return true;
+    }
+    switch (await _updateUserName(trimmed)) {
       case Ok(:final value):
         userName.value = value.fullName ?? userName.value;
         AppSnackbar.success('saved_title'.tr, 'name_updated_message'.tr);
@@ -195,19 +216,29 @@ class ProfileController extends GetxController {
       );
       final relativePath = await AppMediaStorage.makeRelative(persistedPath);
 
-      switch (await _updateProfileImage(relativePath)) {
-        case Ok():
-          userImagePath.value = persistedPath;
-          if (previousPath != persistedPath) {
-            await AppMediaStorage.deleteIfManaged(
+      void applyPersisted() {
+        userImagePath.value = persistedPath;
+        if (previousPath != persistedPath) {
+          unawaited(
+            AppMediaStorage.deleteIfManaged(
               path: previousPath,
               folder: 'profile_images',
-            );
-          }
-          AppSnackbar.success(
-            'saved_title'.tr,
-            'profile_image_updated_message'.tr,
+            ),
           );
+        }
+        AppSnackbar.success('saved_title'.tr, 'profile_image_updated_message'.tr);
+      }
+
+      // A guest has no session to patch (see _saveUserName) — the avatar is
+      // saved on-device instead, same as a signed-in account's already is.
+      if (isGuestMode.value) {
+        _extras.guestImagePath = relativePath;
+        applyPersisted();
+        return;
+      }
+      switch (await _updateProfileImage(relativePath)) {
+        case Ok():
+          applyPersisted();
         case Err(:final failure):
           await AppMediaStorage.deleteIfManaged(
             path: persistedPath,

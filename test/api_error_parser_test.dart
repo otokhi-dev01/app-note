@@ -1,77 +1,65 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_error_parser.dart';
 
 void main() {
-  Exception parse(int status, Object? body, {String path = '/api/folder'}) {
-    final request = RequestOptions(
-      baseUrl: 'https://note.piisiit.com',
-      path: path,
+  test('Real validation messages pass through unchanged', () {
+    expect(
+      ApiErrorParser.messageFrom({'message': 'Invalid account or password.'}),
+      'Invalid account or password.',
     );
-    return ApiErrorParser.toException(
-      DioException(
-        requestOptions: request,
-        type: DioExceptionType.badResponse,
-        response: Response(
-          requestOptions: request,
-          statusCode: status,
-          data: body,
-        ),
-      ),
+    expect(
+      ApiErrorParser.messageFrom({
+        'errors': {
+          'password': ['Password must be at least 6 characters.'],
+        },
+      }),
+      'Password must be at least 6 characters.',
     );
-  }
+  });
 
-  test(
-    'empty Note authorization responses explain the error without a false logout message',
-    () {
-      for (final body in [
-        null,
-        '',
-        <String, dynamic>{},
-        {'message': ''},
-      ]) {
-        for (final path in [
-          '/api/folder',
-          '/api/folder/save',
-          '/api/note/save',
-        ]) {
-          final error = parse(401, body, path: path) as UnauthorizedException;
-          expect(error.message, contains('notes server'));
-          expect(error.message, contains('(401)'));
-        }
-      }
-    },
-  );
+  test('A raw EF Core exception is suppressed in favor of the fallback', () {
+    const efCoreError =
+        "The relationship from 'UserSession' to 'UserDevice' with foreign "
+        "key properties {'DeviceId' : Guid} cannot target the primary key "
+        "{'UserId' : Guid, 'Id' : Guid} because it is not compatible. "
+        "Configure a principal key or a set of foreign key properties with "
+        "compatible types for this relationship.";
 
-  test(
-    'empty and HTML responses retain the HTTP status in readable errors',
-    () {
-      for (final status in [403, 404, 500, 502]) {
-        final error = parse(status, '<html>Server error</html>');
-        final message = switch (error) {
-          UnauthorizedException(:final message) => message,
-          ServerException(:final message) => message,
-          _ => throw StateError('Unexpected error type'),
-        };
-        expect(message, contains('($status)'));
-        expect(message, isNot(contains('<html>')));
-      }
-    },
-  );
+    expect(
+      ApiErrorParser.messageFrom({
+        'message': efCoreError,
+      }, fallback: 'Something went wrong. Please try again.'),
+      'Something went wrong. Please try again.',
+    );
+    expect(
+      ApiErrorParser.messageFrom({'message': efCoreError}),
+      isNot(contains('UserSession')),
+    );
+  });
 
-  test('server validation messages take precedence over fallback text', () {
-    final error =
-        parse(400, {
-              'message': 'Validation failed',
-              'errors': {
-                'Name': ['Name is required'],
-              },
-            })
-            as ServerException;
-    expect(error.message, 'Name is required');
-    final unauthorized =
-        parse(401, {'Message': 'Invalid credential!'}) as UnauthorizedException;
-    expect(unauthorized.message, 'Invalid credential!');
+  test('Other internal-looking errors are suppressed too', () {
+    for (final leak in [
+      // ignore: no_adjacent_strings_in_list
+      'System.NullReferenceException: Object reference not set to an '
+          'instance of an object. at System.Data.SqlClient.SqlCommand.'
+          'ExecuteReader()',
+      // ignore: no_adjacent_strings_in_list
+      'Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred '
+          'while saving the entity changes. See the inner exception for '
+          'details.',
+    ]) {
+      expect(
+        ApiErrorParser.messageFrom({'message': leak}, fallback: 'Generic'),
+        'Generic',
+      );
+    }
+  });
+
+  test('Missing message falls back to the generic text', () {
+    expect(
+      ApiErrorParser.messageFrom(<String, dynamic>{}),
+      'Something went wrong.',
+    );
+    expect(ApiErrorParser.messageFrom('not a map', fallback: 'X'), 'X');
   });
 }

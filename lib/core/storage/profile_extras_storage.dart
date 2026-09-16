@@ -5,6 +5,12 @@ import 'package:get_storage/get_storage.dart';
 /// so username/account/email/job/bio/color live on-device only. Real and
 /// persistent (survives restarts), just not synced across devices or to a
 /// signed-in session on another install.
+///
+/// Also holds the guest identity (name + avatar): a signed-in account's
+/// `fullName`/`profileImage` already live only on-device too (see
+/// `ProfileRepositoryImpl` — the real update endpoint 404s), so a "Continue
+/// without account" guest gets the same on-device-only editing rather than
+/// being blocked from setting a name or photo entirely.
 class ProfileExtrasStorage {
   static const _keyUsername = 'profile_extra_username';
   static const _keyAccount = 'profile_extra_account';
@@ -12,6 +18,8 @@ class ProfileExtrasStorage {
   static const _keyJob = 'profile_extra_job';
   static const _keyBio = 'profile_extra_bio';
   static const _keyColorHex = 'profile_extra_color_hex';
+  static const _keyGuestName = 'profile_extra_guest_name';
+  static const _keyGuestImage = 'profile_extra_guest_image';
 
   final _storage = GetStorage();
 
@@ -38,4 +46,12 @@ class ProfileExtrasStorage {
       _storage.write(_keyColorHex, value);
     }
   }
+
+  String get guestName => _storage.read<String>(_keyGuestName) ?? '';
+  set guestName(String value) => _storage.write(_keyGuestName, value);
+
+  /// Relative path under the app documents directory, same convention as a
+  /// signed-in user's `profileImage` — see `AppMediaStorage`.
+  String get guestImagePath => _storage.read<String>(_keyGuestImage) ?? '';
+  set guestImagePath(String value) => _storage.write(_keyGuestImage, value);
 }

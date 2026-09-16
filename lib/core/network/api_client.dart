@@ -205,8 +205,9 @@ class ApiClient extends GetxService {
         }
         completer.complete(result);
       } catch (e) {
-        if (kDebugMode)
+        if (kDebugMode) {
           debugPrint('[API] Session recovery failed: ${e.runtimeType}');
+        }
         completer.complete(_RefreshResult.unreachable);
       } finally {
         _refreshCompleter = null;

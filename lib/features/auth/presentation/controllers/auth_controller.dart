@@ -126,7 +126,12 @@ class AuthController extends GetxController {
             'success_title'.tr,
             'register_success_message'.tr,
           );
-          unawaited(Get.offAllNamed(Routes.LOGIN));
+          // Deferred to the next frame for the same reason as login(): clearing
+          // the navigation stack immediately can tear down the snackbar's
+          // overlay while it's still transitioning in.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Get.offAllNamed(Routes.LOGIN);
+          });
         case Err(:final failure):
           AppSnackbar.failure('register_failed_title'.tr, failure);
       }

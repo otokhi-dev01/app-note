@@ -20,45 +20,36 @@ the Chat server. Restart the app after changing it.
 
 ## Card scanning
 
-On iPhone, card scanning works without a BlinkCard license. When no BlinkCard
-key is configured, the app uses its existing Apple document camera and on-device
-text recognition. This flow does not use the Note server or upload card images.
+Open **Profile → My Cards → Add New Card → Start Scanning**. The app opens a
+custom live camera with a blue card guide, front/back steps, a shutter, torch,
+and photo-library import. Align the front within the guide, then turn the card
+when prompted. Two matching OCR readings capture a side automatically; the
+shutter can also capture each side. Use the back arrow to retake the front.
+Review the detected details before saving, and correct any missing fields.
 
-Open **Profile → My Cards → Add Card → Start Scanning**, capture the card sides
-(up to two), and tap **Save** in the camera. Review the detected number and expiry,
-then fill in any missing fields. A card number must pass its checksum before
-OCR is accepted. Unreadable names or security codes are left empty. Temporary
-camera captures are deleted after recognition, including failed attempts.
-**Enter Card Manually** is also available if the camera cannot read the card.
+The camera uses Flutter's `camera` plugin, with Apple Vision on iOS and Google
+ML Kit on Android for on-device recognition. No card photos are uploaded. Live
+OCR samples are cropped to the guide, processed off the UI isolate, and their
+temporary files are removed after recognition. Camera still captures are also
+removed after OCR. Selecting a gallery image never deletes the original photo.
 
-Stop and restart the app to pick up this change:
+Automatic front capture requires a checksum-valid card number; automatic back
+capture requires a stable security-code reading. Cards with the number on the
+back can be captured using the shutter. Ambiguous or unreadable fields should
+be entered manually. **Enter Card Manually** is available from the intro and
+camera error screens. Camera permission can be enabled in Settings.
+
+This flow uses the custom camera regardless of any old BlinkCard license
+configuration. A full app restart is required after adding the camera plugin:
 
 ```sh
 flutter run
 ```
 
-Apple recognition uses [Vision](https://developer.apple.com/documentation/vision/vnrecognizetextrequest)
-and the existing VisionKit document scanner. Camera accuracy still needs testing
-with physical cards on a device; unit tests use simulated native responses.
-Cards currently remain in memory for the session.
-
-### Optional BlinkCard configuration
-
-Android scanning requires a valid BlinkCard v3000 license. Configuring an iOS
-license also selects BlinkCard on iPhone instead of Apple recognition.
-
-1. Obtain a license from the [Microblink dashboard](https://developer.microblink.com/).
-   The iOS license must cover `com.kimchheang.otokhi-note`; the current Android
-   application ID is `com.example.otokhi001`.
-2. Copy `config/blinkcard.example.json` to `config/blinkcard.local.json` if the
-   local file does not exist, then enter the complete key for the platform.
-   The local file is gitignored.
-3. Run `flutter run --dart-define-from-file=config/blinkcard.local.json`, or use
-   this workspace's **Note (card scanning)** VS Code launch configuration.
-
-Use the same define-file option for builds that should use BlinkCard. Hot reload
-cannot update compile-time keys. For rejected keys, check the platform, app ID,
-SDK version and expiry. See [BlinkCard setup](https://github.com/BlinkCard/blinkcard-ios#readme).
+Widget tests cover the two-side flow, gallery selection, camera lifecycle,
+permission errors, and layouts. Camera focus, torch, rotation, and OCR accuracy
+still need verification with physical cards on iPhone and Android. Cards remain
+in memory for the session.
 
 ## Session recovery
 
