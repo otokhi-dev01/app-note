@@ -1,1171 +1,524 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/theme/ios_semantic_colors.dart';
-import 'package:Note/core/theme/app_colors.dart';
+import 'package:Note/features/profile/presentation/widgets/card_flow_widgets.dart';
 import 'package:Note/features/profile/presentation/controllers/credit_card_controller.dart';
-import 'package:Note/features/profile/domain/entities/credit_card.dart';
+import 'package:Note/features/profile/presentation/views/card_camera_view.dart';
 
 class CardScanView extends GetView<CreditCardController> {
   const CardScanView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      switch (controller.currentStep.value) {
-        case CardScanStep.intro:
-          return _buildIntroStep(context);
-        case CardScanStep.scanningFront:
-          return _buildScanningStep(context, isFront: true);
-        case CardScanStep.scanningBack:
-          return _buildScanningStep(context, isFront: false);
-        case CardScanStep.processing:
-          return _buildProcessingStep(context);
-        case CardScanStep.result:
-          return _buildResultStep(context);
-        case CardScanStep.confirmation:
-          return _buildConfirmationStep(context);
-        case CardScanStep.success:
-          return _buildSuccessStep(context);
-        default:
-          return _buildIntroStep(context);
-      }
-    });
-  }
-
-  Widget _buildIntroStep(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = AppColors.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
-          onPressed: () => Get.back(),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          children: [
-            const Spacer(),
-            Container(
-              height: 180,
-              width: 280,
-              decoration: BoxDecoration(
-                color: colors.primaryText.withValues(alpha: 0.88),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 20,
-                    left: 20,
-                    child: Container(
-                      width: 40,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 20,
-                    right: 20,
-                    child: Container(
-                      width: 60,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+    return Theme(
+      data: cardFlowTheme(context),
+      child: Builder(
+        builder: (context) => Obx(() {
+          return switch (controller.currentStep.value) {
+            CardScanStep.intro || CardScanStep.list => _buildIntroStep(context),
+            CardScanStep.scanningFront ||
+            CardScanStep.scanningBack => CardCameraView(
+              onComplete: controller.onCameraScanComplete,
+              onCancel: controller.onCancelCamera,
+              onEnterManually: controller.onEnterManually,
+              onSideChanged: controller.onCameraSideChanged,
             ),
-            const SizedBox(height: 48),
-            const Text(
-              'Scan Your Card',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Quickly and securely scan your credit or debit card to automatically fill in the details.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 48),
-            _buildFeatureRow(
-              CupertinoIcons.bolt_fill,
-              'Fast & Accurate',
-              'Auto-detects card information',
-              IosSemanticColors.green,
-              context,
-            ),
-            const SizedBox(height: 24),
-            _buildFeatureRow(
-              CupertinoIcons.lock_fill,
-              'Secure',
-              'Your data stays private',
-              IosSemanticColors.blue,
-              context,
-            ),
-            const SizedBox(height: 24),
-            _buildFeatureRow(
-              CupertinoIcons.camera_fill,
-              'Scan Both Sides',
-              'Capture front and back of your card',
-              IosSemanticColors.purple,
-              context,
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: controller.isLoading.value
-                    ? null
-                    : controller.onStartScanningPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: AppColors.onAccent(theme.colorScheme.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: controller.isLoading.value
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Start Scanning',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-            TextButton(
-              onPressed: controller.isLoading.value
-                  ? null
-                  : controller.onEnterManually,
-              child: Text(
-                'Enter Card Manually',
-                style: TextStyle(color: theme.colorScheme.primary),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+            CardScanStep.processing => _buildProcessingStep(context),
+            CardScanStep.result => _buildResultStep(context),
+            CardScanStep.confirmation => _buildConfirmationStep(context),
+            CardScanStep.success => _buildSuccessStep(context),
+          };
+        }),
       ),
     );
   }
+
+  AppBar _appBar({String? title}) => AppBar(
+    leading: IconButton(
+      icon: const Icon(CupertinoIcons.back, size: 23),
+      onPressed: () => Get.back(),
+    ),
+    title: title == null ? null : Text(title),
+  );
+
+  Widget _primaryAction(String label, VoidCallback onPressed) => ElevatedButton(
+    onPressed: controller.isLoading.value ? null : onPressed,
+    child: controller.isLoading.value
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Text(label),
+  );
+
+  Widget _subtitle(String text) => Text(
+    text,
+    textAlign: TextAlign.center,
+    style: const TextStyle(color: cardFlowMuted, fontSize: 14, height: 1.5),
+  );
+
+  Widget _buildIntroStep(BuildContext context) => Scaffold(
+    appBar: _appBar(),
+    body: CardFlowBody(
+      children: [
+        const Spacer(),
+        const CardIntroArtwork(),
+        const SizedBox(height: 26),
+        const Text(
+          'Scan Your Card',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 29,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+          ),
+        ),
+        const SizedBox(height: 10),
+        _subtitle(
+          'Quickly and securely scan your credit or debit card to automatically fill in the details.',
+        ),
+        const SizedBox(height: 30),
+        _buildFeatureRow(
+          CupertinoIcons.bolt_fill,
+          'Fast & Accurate',
+          'Auto-detects card information',
+          const Color(0xFF2EBB83),
+        ),
+        const SizedBox(height: 22),
+        _buildFeatureRow(
+          CupertinoIcons.lock_fill,
+          'Secure',
+          'Your data stays private',
+          cardFlowBlue,
+        ),
+        const SizedBox(height: 22),
+        _buildFeatureRow(
+          CupertinoIcons.camera_fill,
+          'Scan Both Sides',
+          'Capture front and back of your card',
+          const Color(0xFF7554DE),
+        ),
+        const SizedBox(height: 32),
+        const Spacer(),
+        _primaryAction('Start Scanning', controller.onStartScanningPressed),
+        TextButton(
+          onPressed: controller.isLoading.value
+              ? null
+              : controller.onEnterManually,
+          child: const Text('Enter Card Manually'),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildFeatureRow(
     IconData icon,
     String title,
     String subtitle,
-    Color iconColor,
-    BuildContext context,
-  ) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: iconColor, size: 20),
+    Color color,
+  ) => Row(
+    children: [
+      Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          shape: BoxShape.circle,
         ),
-        const SizedBox(width: 16),
-        Column(
+        child: Icon(icon, color: color, size: 23),
+      ),
+      const SizedBox(width: 16),
+      Expanded(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: theme.colorScheme.onSurface),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+              style: const TextStyle(fontSize: 12, color: cardFlowMuted),
             ),
           ],
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 
-  Widget _buildScanningStep(BuildContext context, {required bool isFront}) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera Preview Simulation
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.6,
-              child: Image.network(
-                'https://images.unsplash.com/photo-1613243555988-441166d4d6fd?q=80&w=2070&auto=format&fit=crop',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // Dark overlay with cutout
-          Positioned.fill(
-            child: ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                Colors.black.withValues(alpha: 0.5),
-                BlendMode.srcOut,
-              ),
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                      backgroundBlendMode: BlendMode.dstOut,
-                    ),
-                  ),
-                  Center(
-                    child: Container(
-                      width: 320,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Scanning UI Layer
-          SafeArea(
-            child: Column(
+  Widget _buildProcessingStep(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFF10161E),
+    appBar: AppBar(
+      foregroundColor: Colors.white,
+      leading: IconButton(
+        icon: const Icon(CupertinoIcons.back),
+        onPressed: () => Get.back(),
+      ),
+    ),
+    body: CardFlowBody(
+      children: [
+        const Spacer(),
+        const Center(
+          child: SizedBox(
+            width: 146,
+            height: 146,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                // Top Bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          CupertinoIcons.back,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () => Get.back(),
-                      ),
-                      Text(
-                        isFront ? 'Scan Front Side' : 'Scan Back Side',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
+                Positioned.fill(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 5,
+                    backgroundColor: Color(0xFF273246),
+                    color: cardFlowBlue,
+                    strokeCap: StrokeCap.round,
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                // Instructions
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 48),
-                  child: Text(
-                    isFront
-                        ? 'Align your card within the frame.\nThe card will be detected automatically.'
-                        : 'Turn your card over and align the back side\nwithin the frame.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.4,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Frame Brackets
-                Center(
-                  child: SizedBox(
-                    width: 320,
-                    height: 200,
-                    child: Stack(
-                      children: [
-                        _buildCornerBracket(Alignment.topLeft),
-                        _buildCornerBracket(Alignment.topRight),
-                        _buildCornerBracket(Alignment.bottomLeft),
-                        _buildCornerBracket(Alignment.bottomRight),
-
-                        // Mock card hint inside
-                        Center(
-                          child: Opacity(
-                            opacity: 0.2,
-                            child: _buildMiniCard(
-                              const CreditCard(
-                                id: '',
-                                cardNumber: '4532 3100 9999 1234',
-                                cardholderName: 'VUTHUL VUN',
-                                expiryMonth: '08',
-                                expiryYear: '2030',
-                                cvv: '123',
-                                cardBrand: 'Visa',
-                              ),
-                              context,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                Text(
-                  'Hold steady...',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Controls Row
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const _CircleAction(icon: CupertinoIcons.bolt_fill),
-                      GestureDetector(
-                        onTap: isFront
-                            ? controller.onFrontScanned
-                            : controller.onBackScanned,
-                        child: Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 4),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: 64,
-                              height: 64,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const _CircleAction(
-                        icon: CupertinoIcons.photo_on_rectangle,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 40),
-
-                // Mode Label
-                Text(
-                  isFront ? 'Front of card' : 'Back of card',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Custom Indicator Slider
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 100),
-                  child: SizedBox(
-                    height: 24,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Track
-                        Container(
-                          height: 3,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        // Dots
-                        Positioned(
-                          left: 0,
-                          child: Container(
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: Colors.white54,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 0,
-                          child: Container(
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: Colors.white54,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                        // Active Handle
-                        AnimatedAlign(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          alignment: isFront
-                              ? Alignment.centerLeft
-                              : Alignment.centerRight,
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: const BoxDecoration(
-                              color: IosSemanticColors.blue,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 20),
+                Icon(CupertinoIcons.creditcard, size: 62, color: cardFlowBlue),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCornerBracket(Alignment alignment) {
-    const double size = 32.0;
-    const double thickness = 4.0;
-    const Color color = IosSemanticColors.blue;
-
-    return Align(
-      alignment: alignment,
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          children: [
-            // Vertical line
-            Positioned(
-              top:
-                  alignment == Alignment.topLeft ||
-                      alignment == Alignment.topRight
-                  ? 0
-                  : null,
-              bottom:
-                  alignment == Alignment.bottomLeft ||
-                      alignment == Alignment.bottomRight
-                  ? 0
-                  : null,
-              left:
-                  alignment == Alignment.topLeft ||
-                      alignment == Alignment.bottomLeft
-                  ? 0
-                  : null,
-              right:
-                  alignment == Alignment.topRight ||
-                      alignment == Alignment.bottomRight
-                  ? 0
-                  : null,
-              child: Container(
-                width: thickness,
-                height: size,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(thickness / 2),
-                ),
-              ),
-            ),
-            // Horizontal line
-            Positioned(
-              top:
-                  alignment == Alignment.topLeft ||
-                      alignment == Alignment.topRight
-                  ? 0
-                  : null,
-              bottom:
-                  alignment == Alignment.bottomLeft ||
-                      alignment == Alignment.bottomRight
-                  ? 0
-                  : null,
-              left:
-                  alignment == Alignment.topLeft ||
-                      alignment == Alignment.bottomLeft
-                  ? 0
-                  : null,
-              right:
-                  alignment == Alignment.topRight ||
-                      alignment == Alignment.bottomRight
-                  ? 0
-                  : null,
-              child: Container(
-                width: size,
-                height: thickness,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(thickness / 2),
-                ),
-              ),
-            ),
-          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildProcessingStep(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.brightness == Brightness.dark
-          ? Colors.black
-          : theme.scaffoldBackgroundColor,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+        const SizedBox(height: 34),
+        const Text(
+          'Extracting Card Information',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 21,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _subtitle('Please wait while we process\nyour card details...'),
+        const SizedBox(height: 32),
+        Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1B222D),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+          ),
           child: Column(
             children: [
-              const Spacer(),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 160,
-                    height: 160,
-                    child: CircularProgressIndicator(
-                      value: 0.7,
-                      strokeWidth: 4,
-                      backgroundColor: Colors.white10,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        CupertinoIcons.creditcard,
-                        size: 56,
-                        color: CupertinoColors.activeBlue,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 48),
-              const Text(
-                'Extracting Card Information',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Please wait while we process\nyour card details...',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 60),
-              _buildExtractionItem('Reading card number', true, context),
-              _buildExtractionItem('Detecting cardholder name', true, context),
-              _buildExtractionItem('Extracting expiry date', true, context),
-              _buildExtractionItem('Reading security code (CVV)', true, context),
-              const Spacer(),
+              _buildExtractionItem('Reading card number'),
+              const SizedBox(height: 18),
+              _buildExtractionItem('Detecting cardholder name'),
+              const SizedBox(height: 18),
+              _buildExtractionItem('Extracting expiry date'),
+              const SizedBox(height: 18),
+              _buildExtractionItem('Reading security code (CVV)'),
             ],
           ),
         ),
-      ),
-    );
-  }
+        const Spacer(flex: 2),
+      ],
+    ),
+  );
 
-  Widget _buildExtractionItem(String text, bool completed, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          Icon(
-            completed
-                ? CupertinoIcons.checkmark_circle_fill
-                : CupertinoIcons.circle,
-            color: completed ? IosSemanticColors.blue : Colors.white24,
-            size: 26,
-          ),
-          const SizedBox(width: 18),
-          Text(
-            text,
-            style: TextStyle(
-              color: completed ? Colors.white : Colors.white38,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+  Widget _buildExtractionItem(String text) => Row(
+    children: [
+      const Icon(
+        CupertinoIcons.checkmark_circle_fill,
+        size: 24,
+        color: Color(0xFF7CA4EC),
       ),
-    );
-  }
+      const SizedBox(width: 14),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(color: Color(0xFFACB4C2), fontSize: 13),
+        ),
+      ),
+    ],
+  );
 
   Widget _buildResultStep(BuildContext context) {
-    final card = controller.scannedCard.value!;
-    final theme = Theme.of(context);
-
+    final card = controller.scannedCard.value;
+    if (card == null) return _buildIntroStep(context);
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
-          onPressed: () => Get.back(),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          children: [
-            const Text(
-              'Card Details Found',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "We've successfully scanned your card.\nPlease review the information below.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, height: 1.4),
-            ),
-            const SizedBox(height: 40),
-            _buildMiniCard(card, context),
-            const SizedBox(height: 48),
-            _buildResultRow(
-              CupertinoIcons.creditcard,
-              'Card Number',
-              card.cardNumber,
-            ),
-            _buildResultRow(
-              CupertinoIcons.person,
-              'Cardholder Name',
-              card.cardholderName,
-            ),
-            _buildResultRow(
-              CupertinoIcons.calendar,
-              'Expiry Date',
-              card.expiryDate,
-            ),
-            _buildResultRow(CupertinoIcons.lock, 'CVV', card.cvv),
-            _buildResultRow(Icons.credit_card, 'Card Brand', card.cardBrand),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: controller.onContinueToConfirmation,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: AppColors.onAccent(theme.colorScheme.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Continue',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: controller.onRetakeScan,
-              child: Text(
-                'Retake',
-                style: TextStyle(
-                  color: IosSemanticColors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Row(
+      appBar: _appBar(title: 'Card Details Found'),
+      body: CardFlowBody(
         children: [
-          Icon(icon, size: 20, color: Colors.grey[400]),
-          const SizedBox(width: 16),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
+          _subtitle(
+            "We've successfully scanned your card.\nPlease review the information below.",
           ),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: PaymentCardPreview(card: card, obscureNumber: false),
+          ),
+          const SizedBox(height: 32),
+          _buildResultRow(
+            CupertinoIcons.creditcard,
+            'Card Number',
+            card.cardNumber,
+          ),
+          _buildResultRow(
+            CupertinoIcons.person,
+            'Cardholder Name',
+            card.cardholderName,
+          ),
+          _buildResultRow(
+            CupertinoIcons.calendar,
+            'Expiry Date',
+            '${card.expiryMonth} / ${card.expiryYear}',
+          ),
+          _buildResultRow(CupertinoIcons.creditcard, 'CVV', card.cvv),
+          _buildResultRow(
+            CupertinoIcons.creditcard_fill,
+            'Card Brand',
+            card.cardBrand,
+          ),
+          const SizedBox(height: 24),
           const Spacer(),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          _primaryAction('Continue', controller.onContinueToConfirmation),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: controller.isLoading.value
+                ? null
+                : controller.onRetakeScan,
+            child: const Text('Retake'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildConfirmationStep(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(CupertinoIcons.back, color: theme.colorScheme.onSurface),
-          onPressed: () => Get.back(),
+  Widget _buildResultRow(IconData icon, String label, String value) => Padding(
+    padding: const EdgeInsets.only(bottom: 22),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: cardFlowMuted),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 5,
+          child: Text(
+            label,
+            style: const TextStyle(color: cardFlowMuted, fontSize: 12),
+          ),
         ),
-        title: Text(
-          'Confirm Details',
-          style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.bold),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 6,
+          child: Text(
+            value.isEmpty ? '—' : value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      ],
+    ),
+  );
+
+  Widget _buildConfirmationStep(BuildContext context) => Scaffold(
+    appBar: _appBar(title: 'Confirm Details'),
+    body: CardFlowBody(
+      children: [
+        _subtitle('You can edit the information if needed.'),
+        const SizedBox(height: 28),
+        _buildFieldLabel('Card Number', context),
+        _buildCardTextField(
+          controller.cardNumberController,
+          context: context,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 18),
+        _buildFieldLabel('Cardholder Name', context),
+        _buildCardTextField(
+          controller.cardholderNameController,
+          context: context,
+        ),
+        const SizedBox(height: 22),
+        Row(
           children: [
-            Center(
-              child: Text(
-                'You can edit the information if needed.',
-                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel('Expiry Month', context),
+                  _buildDropdown(
+                    controller.expiryMonth,
+                    List.generate(
+                      12,
+                      (i) => (i + 1).toString().padLeft(2, '0'),
+                    ),
+                    context,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 32),
-            _buildFieldLabel('Card Number', context),
-            _buildCardTextField(controller.cardNumberController, context: context),
-            const SizedBox(height: 20),
-            _buildFieldLabel('Cardholder Name', context),
-            _buildCardTextField(controller.cardholderNameController, context: context),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildFieldLabel('Expiry Month', context),
-                      _buildDropdown(controller.expiryMonth, [
-                        '01',
-                        '02',
-                        '03',
-                        '04',
-                        '05',
-                        '06',
-                        '07',
-                        '08',
-                        '09',
-                        '10',
-                        '11',
-                        '12',
-                      ], context),
-                    ],
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFieldLabel('Expiry Year', context),
+                  _buildDropdown(
+                    controller.expiryYear,
+                    List.generate(
+                      20,
+                      (i) => (DateTime.now().year + i).toString(),
+                    ),
+                    context,
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildFieldLabel('Expiry Year', context),
-                      _buildDropdown(
-                        controller.expiryYear,
-                        List.generate(
-                          20,
-                          (i) => (DateTime.now().year + i).toString(),
-                        ),
-                        context,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildFieldLabel('CVV', context),
-            _buildCardTextField(
-              controller.cvvController,
-              context: context,
-              suffix: const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Icon(CupertinoIcons.eye, color: Colors.grey, size: 20),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            _buildFieldLabel('Card Brand', context),
-            _buildDropdown(controller.cardBrand, [
-              'Visa',
-              'Mastercard',
-              'AMEX',
-            ], context),
-            const SizedBox(height: 48),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: controller.onSaveCardPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: AppColors.onAccent(theme.colorScheme.primary),
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Save Card',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: controller.onRetakeScan,
-                child: Text(
-                  'Retake Scan',
-                  style: TextStyle(
-                    color: IosSemanticColors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildFieldLabel(String label, BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 4),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
+        const SizedBox(height: 22),
+        _buildFieldLabel('CVV', context),
+        _CardSecurityField(controller: controller.cvvController),
+        const SizedBox(height: 18),
+        _buildFieldLabel('Card Brand', context),
+        _buildDropdown(controller.cardBrand, [
+          'Visa',
+          'Mastercard',
+          'AMEX',
+        ], context),
+        const SizedBox(height: 40),
+        const Spacer(),
+        _primaryAction('Save Card', controller.onSaveCardPressed),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: controller.isLoading.value
+              ? null
+              : controller.onRetakeScan,
+          child: const Text('Retake Scan'),
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  );
+
+  Widget _buildFieldLabel(String label, BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      label,
+      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+    ),
+  );
 
   Widget _buildCardTextField(
     TextEditingController controller, {
-    Widget? suffix,
     required BuildContext context,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          suffixIcon: suffix,
-          suffixIconConstraints: const BoxConstraints(
-            minWidth: 0,
-            minHeight: 0,
-          ),
-        ),
-      ),
-    );
-  }
+    TextInputType keyboardType = TextInputType.text,
+  }) => TextField(
+    controller: controller,
+    keyboardType: keyboardType,
+    style: const TextStyle(fontSize: 14),
+    decoration: _cardInputDecoration(context),
+  );
 
-  Widget _buildDropdown(RxString value, List<String> items, BuildContext context) {
-    final theme = Theme.of(context);
-    return Obx(
-      () => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: value.value.isEmpty ? null : value.value,
-            hint: Text('Select', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
-            isExpanded: true,
-            icon: const Icon(CupertinoIcons.chevron_down, size: 14),
-            style: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w500,
-              fontSize: 16,
-            ),
-            items: {...items, if (value.value.isNotEmpty) value.value}
-                .map(
-                  (String item) =>
-                      DropdownMenuItem<String>(value: item, child: Text(item)),
-                )
-                .toList(),
-            onChanged: (v) {
-              if (v != null) value.value = v;
-            },
-          ),
-        ),
+  Widget _buildDropdown(
+    RxString value,
+    List<String> items,
+    BuildContext context,
+  ) => Obx(
+    () => DropdownButtonFormField<String>(
+      // Recreate when scanning replaces a previously edited value.
+      key: ValueKey(value.value),
+      initialValue: value.value.isEmpty ? null : value.value,
+      hint: const Text('Select'),
+      isExpanded: true,
+      icon: const Icon(CupertinoIcons.chevron_down, size: 14),
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontSize: 14,
       ),
-    );
-  }
+      decoration: _cardInputDecoration(context),
+      items: {...items, if (value.value.isNotEmpty) value.value}
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .toList(),
+      onChanged: (selected) {
+        if (selected != null) value.value = selected;
+      },
+    ),
+  );
 
-  Widget _buildSuccessStep(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            children: [
-              const Spacer(),
-              Container(
-                width: 84,
-                height: 84,
-                decoration: const BoxDecoration(
-                  color: IosSemanticColors.green,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  CupertinoIcons.checkmark,
-                  color: Colors.white,
-                  size: 42,
-                ),
-              ),
-              const SizedBox(height: 40),
-              const Text(
-                'Card Added Successfully!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Your card has been added securely.\nYou can now use it for tracking your\nexpenses.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 16, height: 1.4),
-              ),
-              const SizedBox(height: 48),
-              _buildMiniCard(controller.cards.last, context),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: controller.onDonePressed,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: controller.onAddAnotherCard,
-                child: const Text(
-                  'Add Another Card',
-                  style: TextStyle(
-                    color: IosSemanticColors.blue,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-            ],
+  Widget _buildSuccessStep(BuildContext context) => Scaffold(
+    backgroundColor: Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF102A23)
+        : const Color(0xFFEFFFF5),
+    body: CardFlowBody(
+      children: [
+        const Spacer(),
+        const CardSuccessArtwork(),
+        const SizedBox(height: 14),
+        const Text(
+          'Card Added Successfully!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 23,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMiniCard(CreditCard card, BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      width: 300,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        const SizedBox(height: 16),
+        _subtitle(
+          'Your card has been added securely.\nYou can now use it for tracking your\nexpenses.',
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Align(
-            alignment: Alignment.topRight,
-            child: Text(
-              card.cardBrand.toUpperCase(),
-              style: TextStyle(
-                color: AppColors.onAccent(theme.colorScheme.primary),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            card.obscuredNumber,
-            style: TextStyle(
-              color: AppColors.onAccent(theme.colorScheme.primary),
-              fontSize: 18,
-              letterSpacing: 2.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                card.cardholderName,
-                style: TextStyle(
-                  color: AppColors.onAccent(theme.colorScheme.primary),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                card.expiryDate,
-                style: TextStyle(
-                  color: AppColors.onAccent(theme.colorScheme.primary),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+        const SizedBox(height: 28),
+        if (controller.cards.isNotEmpty)
+          PaymentCardPreview(card: controller.cards.last),
+        const SizedBox(height: 36),
+        const Spacer(),
+        _primaryAction('Done', controller.onDonePressed),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: controller.onAddAnotherCard,
+          child: const Text('Add Another Card'),
+        ),
+      ],
+    ),
+  );
 }
 
-class _CircleAction extends StatelessWidget {
-  final IconData icon;
+InputDecoration _cardInputDecoration(BuildContext context) => InputDecoration(
+  isDense: true,
+  contentPadding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+  border: OutlineInputBorder(borderRadius: BorderRadius.circular(7)),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(7),
+    borderSide: BorderSide(
+      color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
+    ),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(7),
+    borderSide: const BorderSide(color: cardFlowBlue),
+  ),
+);
 
-  const _CircleAction({required this.icon});
+class _CardSecurityField extends StatefulWidget {
+  const _CardSecurityField({required this.controller});
+  final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        shape: BoxShape.circle,
+  State<_CardSecurityField> createState() => _CardSecurityFieldState();
+}
+
+class _CardSecurityFieldState extends State<_CardSecurityField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: widget.controller,
+    obscureText: _obscure,
+    keyboardType: TextInputType.number,
+    style: const TextStyle(fontSize: 14),
+    decoration: _cardInputDecoration(context).copyWith(
+      suffixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+      suffixIcon: IconButton(
+        tooltip: _obscure ? 'Show CVV' : 'Hide CVV',
+        onPressed: () => setState(() => _obscure = !_obscure),
+        icon: Icon(
+          _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+          size: 18,
+          color: cardFlowMuted,
+        ),
       ),
-      child: Icon(icon, color: Colors.white, size: 24),
-    );
-  }
+    ),
+  );
 }

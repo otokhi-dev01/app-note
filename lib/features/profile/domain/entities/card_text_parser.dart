@@ -23,13 +23,15 @@ abstract final class CardTextParser {
     );
     RegExpMatch? expiry;
     for (final line in lines) {
-      if (RegExp(r'VALID\s+FROM|ISSUED', caseSensitive: false).hasMatch(line))
+      if (RegExp(r'VALID\s+FROM|ISSUED', caseSensitive: false).hasMatch(line)) {
         continue;
+      }
       final dates = datePattern.allMatches(line).toList();
       if (dates.isNotEmpty) expiry = dates.last;
       if (expiry != null &&
-          RegExp(r'EXP|THRU|UNTIL', caseSensitive: false).hasMatch(line))
+          RegExp(r'EXP|THRU|UNTIL', caseSensitive: false).hasMatch(line)) {
         break;
+      }
     }
 
     var name = '';

@@ -1,222 +1,142 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/theme/app_colors.dart';
 import 'package:Note/features/profile/presentation/controllers/credit_card_controller.dart';
-import 'package:Note/features/profile/domain/entities/credit_card.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/features/profile/presentation/widgets/card_flow_widgets.dart';
 
 class MyCardsView extends GetView<CreditCardController> {
   const MyCardsView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text('My Cards'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(CupertinoIcons.back),
-          onPressed: () => Get.back(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.add),
-            onPressed: controller.startScanning,
+  Widget build(BuildContext context) => Theme(
+    data: cardFlowTheme(context),
+    child: Builder(
+      builder: (context) => Scaffold(
+        appBar: AppBar(
+          title: const Text('My Cards'),
+          leading: IconButton(
+            icon: const Icon(CupertinoIcons.back, size: 23),
+            onPressed: () => Get.back(),
           ),
-        ],
-      ),
-      body: Obx(() {
-        if (controller.cards.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: IconButton(
+                tooltip: 'Add new card',
+                icon: const Icon(CupertinoIcons.add, size: 21),
+                style: IconButton.styleFrom(
+                  backgroundColor: cardFlowBlue.withValues(alpha: 0.08),
+                  foregroundColor: cardFlowBlue,
+                ),
+                onPressed: controller.startScanning,
+              ),
+            ),
+          ],
+        ),
+        body: Obx(
+          () => CardFlowBody(
+            children: [
+              const SizedBox(height: 16),
+              for (final card in controller.cards) ...[
+                PaymentCardPreview(card: card),
+                const SizedBox(height: 24),
+              ],
+              if (controller.cards.isEmpty) ...[
+                const SizedBox(height: 48),
+                const Icon(
                   CupertinoIcons.creditcard,
-                  size: 64,
-                  color: theme.disabledColor,
+                  size: 60,
+                  color: cardFlowMuted,
                 ),
                 const SizedBox(height: 16),
-                const Text('No cards added yet'),
-                const SizedBox(height: 24),
-                CustomGlassButton(
-                  onPressed: controller.startScanning,
-                  child: const Text('Add New Card'),
-                ),
+                const Text('No cards added yet', textAlign: TextAlign.center),
+                const SizedBox(height: 32),
               ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: controller.cards.length + 1,
-          itemBuilder: (context, index) {
-            if (index == controller.cards.length) {
-              return _buildAddCardButton(context);
-            }
-            return _buildCardItem(context, controller.cards[index]);
-          },
-        );
-      }),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.lock, size: 14, color: theme.disabledColor),
-              const SizedBox(width: 4),
-              Text(
-                'Your card information is encrypted and stored securely.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.disabledColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCardItem(BuildContext context, CreditCard card) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'VISA', // Dynamic brand logo would be better
-                style: TextStyle(
-                  color: AppColors.onAccent(theme.colorScheme.primary),
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-              Icon(Icons.more_vert, color: AppColors.onAccent(theme.colorScheme.primary)),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Text(
-            card.obscuredNumber,
-            style: TextStyle(
-              color: AppColors.onAccent(theme.colorScheme.primary),
-              fontSize: 22,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'CARDHOLDER NAME',
-                    style: TextStyle(color: Colors.white70, fontSize: 10),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    card.cardholderName,
-                    style: TextStyle(
-                      color: AppColors.onAccent(theme.colorScheme.primary),
-                      fontWeight: FontWeight.bold,
+              Material(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF242D3A)
+                    : const Color(0xFFF5F6FA),
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: controller.startScanning,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: cardFlowBlue.withValues(alpha: 0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.add,
+                            color: cardFlowBlue,
+                            size: 23,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Add New Card',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                'Scan or enter card details manually',
+                                style: TextStyle(
+                                  color: cardFlowMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'EXPIRY DATE',
-                    style: TextStyle(color: Colors.white70, fontSize: 10),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    card.expiryDate,
-                    style: TextStyle(
-                      color: AppColors.onAccent(theme.colorScheme.primary),
-                      fontWeight: FontWeight.bold,
+              const SizedBox(height: 48),
+              const Spacer(),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 28, vertical: 30),
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.lock_fill,
+                      size: 23,
+                      color: cardFlowMuted,
                     ),
-                  ),
-                ],
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Your card information is private to this session.',
+                        style: TextStyle(
+                          color: cardFlowMuted,
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddCardButton(BuildContext context) {
-    return InkWell(
-      onTap: controller.startScanning,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(CupertinoIcons.add, color: Colors.blue),
-            ),
-            const SizedBox(width: 16),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Add New Card',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Scan or enter card details manually',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
