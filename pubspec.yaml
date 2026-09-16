@@ -64,7 +64,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/piisiit_logo.jpg"
+  image_path: "assets/icons/img.png"
   min_sdk_android: 21
 
 flutter:
@@ -72,5 +72,6 @@ flutter:
     enable-swift-package-manager: true
   uses-material-design: true
   assets:
-    - assets/icons/
+    - assets/icons/img.png
+    - assets/icons/piisiit_logo_mark.png
     - assets/fonts/

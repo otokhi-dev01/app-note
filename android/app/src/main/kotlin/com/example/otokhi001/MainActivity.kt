@@ -1,4 +1,4 @@
-package com.example.otokhi001
+package com.kimchheang.pii_note
 
 import android.net.Uri
 import java.io.File
