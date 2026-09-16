@@ -105,17 +105,11 @@ class CreditCardController extends GetxController {
         licenseKey.toUpperCase().startsWith('YOUR_') ||
         licenseKey.toUpperCase().contains('LICENSE_KEY') ||
         licenseKey.toLowerCase().endsWith('license-key')) {
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        await _performIosScan();
-        return;
-      }
-      debugPrint(
-        '[BLINKCARD] Configure the platform license with --dart-define-from-file; see README.md.',
-      );
-      AppSnackbar.info(
-        'Scan Unavailable',
-        'Card scanning has not been set up yet.',
-      );
+      // No BlinkCard license configured for this platform. Fall back to the
+      // app's own camera + on-device text recognition (Apple Vision on iOS,
+      // ML Kit on Android — both are already implemented natively; see
+      // NativeMediaServices), rather than blocking the feature entirely.
+      await _performOnDeviceScan();
       return;
     }
 
@@ -144,7 +138,7 @@ class CreditCardController extends GetxController {
         cardBrand: _mapIssuer(result.issuingNetwork),
       );
       _syncFormToScannedCard();
-      currentStep.value = CardScanStep.result;
+      await _startExtracting();
     } on PlatformException catch (e) {
       if (isClosed) return;
       final message = e.message?.toLowerCase() ?? '';
@@ -176,14 +170,17 @@ class CreditCardController extends GetxController {
     }
   }
 
-  Future<void> _performIosScan() async {
+  /// Scans using the app's own camera and on-device text recognition
+  /// (Apple Vision on iOS, ML Kit on Android) instead of BlinkCard. Used
+  /// whenever no BlinkCard license is configured for the current platform.
+  Future<void> _performOnDeviceScan() async {
     try {
       isLoading.value = true;
       final card = await _iosScanner.scan();
       if (isClosed || card == null) return;
       scannedCard.value = card;
       _syncFormToScannedCard();
-      currentStep.value = CardScanStep.result;
+      await _startExtracting();
     } on CardTextNotFoundException {
       if (!isClosed)
         AppSnackbar.info(
@@ -242,14 +239,16 @@ class CreditCardController extends GetxController {
 
   void onBackScanned() {
     // This is handled by native BlinkCard UI
-    currentStep.value = CardScanStep.processing;
     _startExtracting();
   }
 
+  /// Shows the "Extracting Card Information" screen briefly after a
+  /// successful scan (BlinkCard's own camera UI, or the on-device OCR
+  /// fallback) before moving on to the reviewable result.
   Future<void> _startExtracting() async {
-    // This is handled by native BlinkCard UI in real scan
-    await Future.delayed(const Duration(seconds: 1));
-    currentStep.value = CardScanStep.result;
+    currentStep.value = CardScanStep.processing;
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (!isClosed) currentStep.value = CardScanStep.result;
   }
 
   void _syncFormToScannedCard() {

@@ -20,9 +20,11 @@ the Chat server. Restart the app after changing it.
 
 ## Card scanning
 
-On iPhone, card scanning works without a BlinkCard license. When no BlinkCard
-key is configured, the app uses its existing Apple document camera and on-device
-text recognition. This flow does not use the Note server or upload card images.
+Card scanning works on iPhone and Android without a BlinkCard license. When no
+BlinkCard key is configured for the current platform, the app uses its own
+document camera and on-device text recognition (Apple Vision on iOS, Google ML
+Kit on Android) instead. This flow does not use the Note server or upload card
+images.
 
 Open **Profile → My Cards → Add Card → Start Scanning**, capture the card sides
 (up to two), and tap **Save** in the camera. Review the detected number and expiry,
@@ -37,15 +39,19 @@ Stop and restart the app to pick up this change:
 flutter run
 ```
 
-Apple recognition uses [Vision](https://developer.apple.com/documentation/vision/vnrecognizetextrequest)
-and the existing VisionKit document scanner. Camera accuracy still needs testing
-with physical cards on a device; unit tests use simulated native responses.
-Cards currently remain in memory for the session.
+Recognition uses [Vision](https://developer.apple.com/documentation/vision/vnrecognizetextrequest)
+on iOS and [ML Kit](https://developers.google.com/ml-kit/vision/text-recognition/v2)
+on Android, both via the existing document scanner. Camera accuracy still needs
+testing with physical cards on a device; unit tests use simulated native
+responses. Cards currently remain in memory for the session.
 
 ### Optional BlinkCard configuration
 
-Android scanning requires a valid BlinkCard v3000 license. Configuring an iOS
-license also selects BlinkCard on iPhone instead of Apple recognition.
+BlinkCard is a paid, more accurate alternative that also reads the CVV from
+the back of the card — something the free on-device OCR flow cannot reliably
+do, since real cards print the CVV without a label to anchor on. Configuring a
+license for a platform selects BlinkCard on that platform instead of the free
+on-device OCR flow; each platform falls back independently if unconfigured.
 
 1. Obtain a license from the [Microblink dashboard](https://developer.microblink.com/).
    The iOS license must cover `com.kimchheang.otokhi-note`; the current Android

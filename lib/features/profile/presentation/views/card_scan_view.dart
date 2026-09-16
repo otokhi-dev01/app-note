@@ -114,8 +114,8 @@ class CardScanView extends GetView<CreditCardController> {
             const SizedBox(height: 48),
             _buildFeatureRow(
               CupertinoIcons.bolt_fill,
-              'Scan & Review',
-              'Check the details before saving',
+              'Fast & Accurate',
+              'Auto-detects card information',
               IosSemanticColors.green,
               context,
             ),
@@ -131,7 +131,7 @@ class CardScanView extends GetView<CreditCardController> {
             _buildFeatureRow(
               CupertinoIcons.camera_fill,
               'Scan Both Sides',
-              'Capture each side, then tap Save',
+              'Capture front and back of your card',
               IosSemanticColors.purple,
               context,
             ),
@@ -697,7 +697,7 @@ class CardScanView extends GetView<CreditCardController> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Review the details and fill in any missing fields on the next screen.',
+              "We've successfully scanned your card.\nPlease review the information below.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, height: 1.4),
             ),
