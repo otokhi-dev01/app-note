@@ -65,6 +65,9 @@ class ProfileController extends GetxController {
   final userIdNumber = ''.obs;
   final userIdName = ''.obs;
   final userDateOfBirth = Rxn<DateTime>();
+  final userPlaceOfBirth = ''.obs;
+  final userCurrentAddress = ''.obs;
+  final userIdExpiryDate = Rxn<DateTime>();
 
   Color get userColor => FolderAppearance.parseHex(
     userColorHex.value ?? FolderAppearance.defaultColorValue,
@@ -105,8 +108,11 @@ class ProfileController extends GetxController {
     unawaited(_loadIdInformation());
   }
 
-  String get formattedDateOfBirth {
-    final date = userDateOfBirth.value;
+  String get formattedDateOfBirth => _formatDate(userDateOfBirth.value);
+
+  String get formattedIdExpiryDate => _formatDate(userIdExpiryDate.value);
+
+  String _formatDate(DateTime? date) {
     if (date == null) return '';
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
@@ -138,6 +144,9 @@ class ProfileController extends GetxController {
       userIdNumber.value = '';
       userIdName.value = '';
       userDateOfBirth.value = null;
+      userPlaceOfBirth.value = '';
+      userCurrentAddress.value = '';
+      userIdExpiryDate.value = null;
       return;
     }
 
@@ -147,6 +156,9 @@ class ProfileController extends GetxController {
       userIdNumber.value = stored.idNumber;
       userIdName.value = stored.name;
       userDateOfBirth.value = stored.dateOfBirth;
+      userPlaceOfBirth.value = stored.placeOfBirth;
+      userCurrentAddress.value = stored.currentAddress;
+      userIdExpiryDate.value = stored.expiryDate;
     } catch (error) {
       debugPrint('[ID INFORMATION LOAD ERROR] $error');
     }
@@ -364,7 +376,18 @@ class ProfileController extends GetxController {
       initialIdNumber: userIdNumber.value,
       initialName: userIdName.value,
       initialDateOfBirth: userDateOfBirth.value,
-      onSave: _saveIdInformation,
+      initialPlaceOfBirth: userPlaceOfBirth.value,
+      initialCurrentAddress: userCurrentAddress.value,
+      initialExpiryDate: userIdExpiryDate.value,
+      onSave: (idNumber, name, dateOfBirth, placeOfBirth, currentAddress, expiryDate) =>
+          _saveIdInformation(
+            idNumber,
+            name,
+            dateOfBirth,
+            placeOfBirth: placeOfBirth,
+            currentAddress: currentAddress,
+            expiryDate: expiryDate,
+          ),
     );
   }
 
@@ -372,6 +395,9 @@ class ProfileController extends GetxController {
     String idNumber,
     String name,
     DateTime dateOfBirth, {
+    String placeOfBirth = '',
+    String currentAddress = '',
+    DateTime? expiryDate,
     bool silent = false,
   }) async {
     final ownerKey = _idOwnerKey;
@@ -383,11 +409,17 @@ class ProfileController extends GetxController {
         idNumber: idNumber,
         name: name,
         dateOfBirth: dateOfBirth,
+        placeOfBirth: placeOfBirth,
+        currentAddress: currentAddress,
+        expiryDate: expiryDate,
       );
       if (ownerKey != _idOwnerKey) return false;
       userIdNumber.value = idNumber;
       userIdName.value = name;
       userDateOfBirth.value = dateOfBirth;
+      userPlaceOfBirth.value = placeOfBirth;
+      userCurrentAddress.value = currentAddress;
+      userIdExpiryDate.value = expiryDate;
       if (!silent) {
         AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
       }
@@ -421,11 +453,21 @@ class ProfileController extends GetxController {
     required String idNumber,
     required String name,
     DateTime? dateOfBirth,
+    String placeOfBirth = '',
+    String currentAddress = '',
+    DateTime? expiryDate,
   }) {
     return _saveIdInformation(
       idNumber,
       name,
       dateOfBirth ?? userDateOfBirth.value ?? DateTime.now(),
+      placeOfBirth: placeOfBirth.isNotEmpty
+          ? placeOfBirth
+          : userPlaceOfBirth.value,
+      currentAddress: currentAddress.isNotEmpty
+          ? currentAddress
+          : userCurrentAddress.value,
+      expiryDate: expiryDate ?? userIdExpiryDate.value,
       silent: true,
     );
   }

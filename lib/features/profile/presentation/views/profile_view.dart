@@ -499,6 +499,36 @@ class ProfileView extends GetView<ProfileController> {
                 : controller.formattedDateOfBirth,
             onTap: edit,
           ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.map_pin_ellipse,
+            iconColor: _iosGreen,
+            label: 'place_of_birth_label'.tr,
+            value: controller.userPlaceOfBirth.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userPlaceOfBirth.value,
+            onTap: edit,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.location_solid,
+            iconColor: _iosBlue,
+            label: 'current_address_label'.tr,
+            value: controller.userCurrentAddress.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userCurrentAddress.value,
+            onTap: edit,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.calendar_badge_minus,
+            iconColor: _iosOrange,
+            label: 'id_expiry_date_label'.tr,
+            value: controller.formattedIdExpiryDate.isEmpty
+                ? 'not_set'.tr
+                : controller.formattedIdExpiryDate,
+            onTap: edit,
+          ),
         ],
       );
     });

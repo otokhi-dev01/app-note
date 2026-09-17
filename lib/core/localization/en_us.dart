@@ -274,18 +274,94 @@ const Map<String, String> enUS = {
   'id_number_label': 'ID Number',
   'id_name_label': 'Name',
   'date_of_birth_label': 'Date of Birth',
+  'place_of_birth_label': 'Place of Birth',
+  'current_address_label': 'Current Address',
+  'id_expiry_date_label': 'Expiry Date',
   'edit_id_information_title': 'Edit ID Information',
   'edit_id_information_subtitle':
       'Your identity details are encrypted and stored only for this account on this device.',
   'id_number_hint': 'Enter your ID number',
   'id_name_hint': 'Enter the name shown on your ID',
   'date_of_birth_hint': 'Select your date of birth',
+  'place_of_birth_hint': 'Enter your place of birth',
+  'current_address_hint': 'Enter your current address',
+  'id_expiry_date_hint': "Select your ID's expiry date",
   'id_number_required': 'Please enter your ID number.',
   'id_name_required': 'Please enter the name shown on your ID.',
   'date_of_birth_required': 'Please select your date of birth.',
+  'place_of_birth_required': 'Please enter your place of birth.',
+  'current_address_required': 'Please enter your current address.',
+  'id_expiry_date_required': "Please select your ID's expiry date.",
   'id_information_saved': 'ID information updated',
   'id_information_save_failed_title': 'Could not save ID information',
   'id_information_save_failed_message': 'Please try again.',
+
+  // Digital Civic ID scan flow
+  'identity_app_title': 'Khmer National Identity Card',
+  'identity_verified_title': 'Successfully Verified',
+  'identity_verified_subtitle': 'Biometric Chip & OCR Pass • 99.7%',
+  'identity_pending_title': 'Awaiting ID Scan',
+  'identity_pending_subtitle': 'Scan both sides to verify your identity',
+  'identity_sealed_badge': 'SEALED',
+  'identity_copy_action': 'Copy',
+  'identity_copied_title': 'Copied',
+  'identity_copied_message': 'ID number copied to clipboard.',
+  'identity_side_front': 'Front',
+  'identity_side_back': 'Back',
+  'identity_mrz_title': 'ICAO 9303 Compliant MRZ',
+  'identity_mrz_signature_comment': '# ENCRYPTED CHIP SIGNATURE',
+  'identity_scanned_previews_title': 'Scanned Previews',
+  'identity_refresh_action': 'Refresh',
+  'identity_photo_hologram_label': 'Photo & Hologram',
+  'identity_mrz_chip_data_label': 'MRZ & Chip Data',
+  'identity_name_khmer_label': 'Name in Khmer',
+  'identity_name_latin_label': 'Name in Latin',
+  'identity_current_residence_label': 'Current Residence',
+  'identity_chip_matched_tag': 'Chip Matched',
+  'identity_valid_years_caption': 'VALID (@years YEARS)',
+  'identity_confirm_action': 'Confirm & Continue',
+  'identity_start_scanning_action': 'Start Scanning',
+  'identity_rescan_action': 'Rescan Card',
+  'identity_footer_protection':
+      'End-to-End Cryptographic Ledger Protection • ISO/IEC 18013-5\n'
+      'Protected under Royal Government of Cambodia Data Privacy & '
+      'Digital Identity Framework.',
+  'identity_processing_title': 'Extracting ID Information',
+  'identity_processing_subtitle':
+      'Validating chip signature and MRZ checksum.',
+  'identity_step_front_label': 'Step 1 • Front ID',
+  'identity_step_back_label': 'Step 2 • Back ID',
+  'identity_place_card_hint': 'Place your ID card in the frame',
+  'identity_auto_detecting': 'Auto-detecting',
+  'identity_upload_document_action': 'Upload Document',
+  'identity_camera_footer_encrypted': 'End-to-End Encrypted',
+  'identity_hint_flat_front': 'Align the card with the frame to scan',
+  'identity_hint_flip_back': 'Turn the card over to scan the MRZ',
+  'identity_capture_front_semantic': 'Capture front of ID',
+  'identity_capture_back_semantic': 'Capture back of ID',
+  'identity_camera_permission_denied':
+      'Allow camera access in Settings to scan your ID.',
+  'identity_camera_unavailable':
+      'The camera could not open. Try again or upload a photo.',
+  'identity_try_again_action': 'Try Again',
+  'identity_open_settings_action': 'Open Settings',
+  'identity_scan_unavailable_title': 'Scan Unavailable',
+  'identity_scan_unavailable_device_message':
+      'ID scanning requires an iPhone or Android device.',
+  'identity_scan_unavailable_license_message':
+      'Identity scanning could not be activated. Please contact support.',
+  'identity_scan_failed_title': 'Scan Failed',
+  'identity_scan_failed_generic_message':
+      'An error occurred while scanning your ID.',
+  'identity_scan_failed_retry_message':
+      "Couldn't read your ID automatically. Please try again with better "
+      'lighting, or enter your details manually.',
+  'identity_save_failed_title': 'Could Not Save',
+  'identity_save_failed_message':
+      'Your ID Information could not be saved. Please try again.',
+  'identity_verified_snackbar_title': 'Identity Verified',
+  'identity_verified_snackbar_message':
+      'Your Digital Civic ID has been confirmed.',
 
   // Settings drawer
   'settings_drawer_view_profile': 'Profile Details',

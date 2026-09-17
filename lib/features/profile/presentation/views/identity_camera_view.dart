@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
@@ -110,8 +111,8 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
         _ready = false;
         _permissionDenied = denied;
         _error = denied
-            ? 'Allow camera access in Settings to scan your ID.'
-            : 'The camera could not open. Try again or upload a photo.';
+            ? 'identity_camera_permission_denied'.tr
+            : 'identity_camera_unavailable'.tr;
       });
     }
   }
@@ -214,14 +215,13 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 _captureControls(),
                 const SizedBox(height: 18),
                 IdentitySecondaryButton(
-                  label: 'ផ្ទុករូបភាពឯកសារ (Upload Document)',
+                  label: 'identity_upload_document_action'.tr,
                   icon: CupertinoIcons.arrow_up_doc,
                   onPressed: _busy ? null : _pickFromGallery,
                 ),
                 const SizedBox(height: 14),
-                const IdentityFooterNote(
-                  text:
-                      'ទិន្នន័យត្រូវបានការពារដោយសុវត្ថិភាព (End-to-End Encrypted)',
+                IdentityFooterNote(
+                  text: 'identity_camera_footer_encrypted'.tr,
                 ),
               ],
             ),
@@ -244,7 +244,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                _front ? 'ជំហាន ១ • FRONT ID' : 'ជំហាន ២ • BACK ID',
+                _front
+                    ? 'identity_step_front_label'.tr
+                    : 'identity_step_back_label'.tr,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -333,7 +335,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                           ? () => unawaited(openAppSettings())
                           : _queueCamera,
                       child: Text(
-                        _permissionDenied ? 'Open Settings' : 'Try Again',
+                        _permissionDenied
+                            ? 'identity_open_settings_action'.tr
+                            : 'identity_try_again_action'.tr,
                         style: const TextStyle(color: idAccent),
                       ),
                     ),
@@ -345,7 +349,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             top: 14,
             left: 16,
             right: 16,
-            child: Center(child: _darkPill('ដាក់អត្តសញ្ញាណប័ណ្ណក្នុងប្រអប់')),
+            child: Center(child: _darkPill('identity_place_card_hint'.tr)),
           ),
           Center(
             child: Padding(
@@ -358,10 +362,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             left: 16,
             right: 16,
             child: Center(
-              child: _darkPill(
-                'ស្កេនដោយស្វ័យប្រវត្តិ • Auto-detecting',
-                muted: true,
-              ),
+              child: _darkPill('identity_auto_detecting'.tr, muted: true),
             ),
           ),
         ],
@@ -440,8 +441,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             child: _segment(
               selected: _front,
               icon: CupertinoIcons.creditcard,
-              khmer: 'ផ្នែកខាងមុខ',
-              english: 'Front',
+              label: 'identity_side_front'.tr,
               onTap: () => _selectSide(true),
             ),
           ),
@@ -449,8 +449,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             child: _segment(
               selected: !_front,
               icon: CupertinoIcons.rectangle_stack,
-              khmer: 'ផ្នែកខាងក្រោយ',
-              english: 'Back',
+              label: 'identity_side_back'.tr,
               onTap: () => _selectSide(false),
             ),
           ),
@@ -462,8 +461,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   Widget _segment({
     required bool selected,
     required IconData icon,
-    required String khmer,
-    required String english,
+    required String label,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -481,27 +479,14 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             Icon(icon, size: 15, color: selected ? idInk : Colors.white60),
             const SizedBox(width: 6),
             Flexible(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: khmer,
-                      style: TextStyle(
-                        color: selected ? idInk : Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextSpan(
-                      text: ' ($english)',
-                      style: TextStyle(
-                        color: selected ? idMuted : Colors.white60,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+              child: Text(
+                label,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12.5),
+                style: TextStyle(
+                  color: selected ? idInk : Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                ),
               ),
             ),
           ],
@@ -519,8 +504,8 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
         Flexible(
           child: Text(
             _front
-                ? 'ដាក់ប័ណ្ណឲ្យស្មើនឹងបន្ទាត់ដើម្បីស្កេន'
-                : 'ត្រឡប់ប័ណ្ណទៅផ្នែកខាងក្រោយ ដើម្បីស្កេន MRZ',
+                ? 'identity_hint_flat_front'.tr
+                : 'identity_hint_flip_back'.tr,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: idMuted,
@@ -544,7 +529,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
           padding: 14,
         ),
         Semantics(
-          label: _front ? 'Capture front of ID' : 'Capture back of ID',
+          label: _front
+              ? 'identity_capture_front_semantic'.tr
+              : 'identity_capture_back_semantic'.tr,
           button: true,
           child: GestureDetector(
             onTap: _ready && !_busy ? _capture : null,
