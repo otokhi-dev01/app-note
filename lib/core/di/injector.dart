@@ -23,6 +23,7 @@ import 'package:Note/features/note/data/repositories/note_repository_router.dart
 import 'package:Note/features/note/data/repositories/note_sync_repository.dart';
 import 'package:Note/features/note/domain/repositories/note_repository.dart';
 import 'package:Note/features/note/domain/usecases/note_usecases.dart';
+import 'package:Note/features/profile/data/datasources/identity_remote_data_source.dart';
 import 'package:Note/features/profile/data/datasources/user_remote_data_source.dart';
 import 'package:Note/features/profile/data/repositories/profile_repository_impl.dart';
 import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
@@ -42,6 +43,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => FolderRemoteDataSource(), fenix: true);
     Get.lazyPut(() => NoteRemoteDataSource(), fenix: true);
     Get.lazyPut(() => UserRemoteDataSource(), fenix: true);
+    Get.lazyPut(() => IdentityRemoteDataSource(), fenix: true);
 
     Get.lazyPut<AuthRepository>(
       () => AuthRepositoryImpl(

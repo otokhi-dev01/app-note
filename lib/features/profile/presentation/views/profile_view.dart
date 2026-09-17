@@ -203,29 +203,29 @@ class ProfileView extends GetView<ProfileController> {
                           ),
                         ),
                         Positioned(
-                            right: -2,
-                            bottom: -2,
-                            child: CustomGlassButton(
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                controller.updateProfileImage();
-                              },
-                              semanticLabel: 'profile_image_updated_message'.tr,
-                              width: 30,
-                              height: 30,
-                              shape: GlassShape.circle,
-                              blur: 8,
-                              opacity: 0.2,
-                              thickness: 5,
-                              glassColor: _iosBlue.withValues(alpha: 0.88),
-                              foregroundColor: Colors.white,
-                              padding: EdgeInsets.zero,
-                              child: const Icon(
-                                CupertinoIcons.camera_fill,
-                                size: 14,
-                              ),
+                          right: -2,
+                          bottom: -2,
+                          child: CustomGlassButton(
+                            onPressed: () {
+                              HapticFeedback.selectionClick();
+                              controller.updateProfileImage();
+                            },
+                            semanticLabel: 'profile_image_updated_message'.tr,
+                            width: 30,
+                            height: 30,
+                            shape: GlassShape.circle,
+                            blur: 8,
+                            opacity: 0.2,
+                            thickness: 5,
+                            glassColor: _iosBlue.withValues(alpha: 0.88),
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            child: const Icon(
+                              CupertinoIcons.camera_fill,
+                              size: 14,
                             ),
                           ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -453,6 +453,14 @@ class ProfileView extends GetView<ProfileController> {
       return _buildSurfaceCard(
         context,
         children: [
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.shield_lefthalf_fill,
+            iconColor: _iosGreen,
+            label: 'My Identity',
+            value: '',
+            onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
+          ),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.creditcard_fill,

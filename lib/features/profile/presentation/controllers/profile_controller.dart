@@ -121,7 +121,15 @@ class ProfileController extends GetxController {
     final id = user?.id?.trim() ?? '';
     if (id.isNotEmpty) return 'id:$id';
     final phone = user?.phone?.trim() ?? '';
-    return phone.isEmpty ? '' : 'phone:$phone';
+    if (phone.isNotEmpty) return 'phone:$phone';
+    // Neither a real session nor explicit guest mode — e.g. a session that
+    // was just force-signed-out after a rejected token refresh (see
+    // ApiClient._forceSignOut), which clears the user without turning guest
+    // mode on. This screen is still reachable in that state, and scanning
+    // an ID here should never silently fail to save just because of that —
+    // fall back to the same on-device bucket a guest uses. A real account
+    // gets its own key back the moment sign-in succeeds.
+    return 'guest';
   }
 
   Future<void> _loadIdInformation() async {
@@ -363,8 +371,9 @@ class ProfileController extends GetxController {
   Future<bool> _saveIdInformation(
     String idNumber,
     String name,
-    DateTime dateOfBirth,
-  ) async {
+    DateTime dateOfBirth, {
+    bool silent = false,
+  }) async {
     final ownerKey = _idOwnerKey;
     if (ownerKey.isEmpty) return false;
 
@@ -379,16 +388,46 @@ class ProfileController extends GetxController {
       userIdNumber.value = idNumber;
       userIdName.value = name;
       userDateOfBirth.value = dateOfBirth;
-      AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
+      if (!silent) {
+        AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
+      }
       return true;
     } catch (error) {
       debugPrint('[ID INFORMATION SAVE ERROR] $error');
-      AppSnackbar.error(
-        'id_information_save_failed_title'.tr,
-        'id_information_save_failed_message'.tr,
-      );
+      if (!silent) {
+        AppSnackbar.error(
+          'id_information_save_failed_title'.tr,
+          'id_information_save_failed_message'.tr,
+        );
+      }
       return false;
     }
+  }
+
+  /// Applies a Digital Civic ID scan result (see `IdentityScanController`)
+  /// to the ID Information shown here — the same local, account-scoped
+  /// storage a manual edit through [updateIdInformation] writes to (see
+  /// that method and [IdInformationStorage] for why this doesn't round-trip
+  /// through a backend yet; the scan itself does, through
+  /// `IdentityRemoteDataSource` — this just takes its result the rest of
+  /// the way to where the ID Information card reads from). Uses the
+  /// Latin-script name since that's the single name this section shows.
+  ///
+  /// `silent`: the scan flow shows its own "Identity Verified" confirmation,
+  /// so this skips the "ID Information Saved" snackbar `updateIdInformation`
+  /// otherwise shows. Returns false if the save itself failed; the caller
+  /// is expected to surface that (the scan flow does, via `AppSnackbar`).
+  Future<bool> applyScannedIdInformation({
+    required String idNumber,
+    required String name,
+    DateTime? dateOfBirth,
+  }) {
+    return _saveIdInformation(
+      idNumber,
+      name,
+      dateOfBirth ?? userDateOfBirth.value ?? DateTime.now(),
+      silent: true,
+    );
   }
 
   /// A swatch picker sheet reusing [FolderAppearance.colors] — the same

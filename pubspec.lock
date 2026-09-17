@@ -97,14 +97,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.13"
-  blinkcard_flutter:
+  blinkid_flutter:
     dependency: "direct main"
     description:
-      name: blinkcard_flutter
-      sha256: "37155c8eeed9940600ec9db3c0a8cee01f82184d74b21b2c544f2f6c74aff0ef"
+      name: blinkid_flutter
+      sha256: "4e5e037698f978f42dac11d38ef75048d64e59c07c517fbf34bbbf3c2406a004"
       url: "https://pub.dev"
     source: hosted
-    version: "3000.0.0"
+    version: "8001.0.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -1489,5 +1489,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.12.0 <4.0.0"
-  flutter: ">=3.44.0"
+  dart: ">=3.12.1 <4.0.0"
+  flutter: ">=3.44.1"
