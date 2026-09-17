@@ -35,6 +35,18 @@ class AppConstants {
   static const String identityKeyEndpoint = "/identity-key";
   static const String preKeyEndpoint = "/pre-keys";
 
+  /// Digital Civic ID (national ID) scan/e-KYC.
+  ///
+  /// PROPOSED — not yet confirmed against a live backend. No such route has
+  /// been verified to exist on the server; `IdentityRemoteDataSource` posts
+  /// the front/back card photos here and expects the JSON shape documented
+  /// on `NationalIdCard.fromJson`. Update this path (and that parser)
+  /// together once the real contract is confirmed with the backend team —
+  /// see `UserRemoteDataSource`'s doc comment for how a wrong guess here
+  /// has played out before (a confirmed 404).
+  static const String identityApiUrl = "$apiBaseUrl/identity";
+  static const String identityScanEndpoint = "/scan";
+
   /// Timeout configurations
   static const int connectTimeoutSeconds = 10;
   static const int receiveTimeoutSeconds = 10;

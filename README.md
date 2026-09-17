@@ -51,6 +51,46 @@ permission errors, and layouts. Camera focus, torch, rotation, and OCR accuracy
 still need verification with physical cards on iPhone and Android. Cards remain
 in memory for the session.
 
+## Identity (Digital Civic ID) scanning
+
+Open **Profile → Digital Civic ID → Camera Scan / New OCR**. Unlike card
+scanning above, this flow uses Microblink's **BlinkID** SDK
+(`blinkid_flutter`) when a license is configured — its native scanning UI
+handles alignment, capture, and OCR/MRZ extraction entirely on-device, and
+the result is applied straight to the Profile screen's ID Information
+(`IdentityScanController.onConfirm` → `ProfileController.applyScannedIdInformation`).
+No backend call happens on this path.
+
+Configure a license (one per platform, tied to this app's bundle id /
+`applicationId`, obtained from the
+[Microblink Developer Hub](https://developer.microblink.com/)):
+
+```sh
+flutter run \
+  --dart-define=BLINKID_IOS_LICENSE_KEY=... \
+  --dart-define=BLINKID_ANDROID_LICENSE_KEY=...
+```
+
+Without a license configured for the current platform, this falls back to
+the app's own camera screen (front/back photo capture, same style as card
+scanning) and submits both photos to a backend endpoint for OCR — see
+`AppConstants.identityApiUrl` for why that endpoint is still an unconfirmed,
+proposed contract rather than a live one.
+
+**Before shipping this**, note two things this integration did not change:
+
+- The card-scanning flow above deliberately moved *away* from a Microblink
+  SDK to the custom camera. Adding `blinkid_flutter` here reintroduces a
+  Microblink dependency for a different feature — worth being a deliberate
+  choice, not just a side effect of copying the card flow's old pattern.
+- BlinkID's own requirements table calls for **AGP 9.1.0+** and **Kotlin
+  2.2.21+** on Android; this project currently pins AGP 8.12.1 and Kotlin
+  2.2.20 (`android/settings.gradle.kts`). iOS already meets BlinkID's
+  requirement (deployment target 16.0). Bumping AGP a major version is a
+  project-wide change with real breaking-change risk, so it wasn't done as
+  part of this integration — do it deliberately, with a full Android build
+  verification, before relying on BlinkID on Android.
+
 ## Session recovery
 
 An authenticated 401 triggers one recovery attempt and at most one retry. If the
