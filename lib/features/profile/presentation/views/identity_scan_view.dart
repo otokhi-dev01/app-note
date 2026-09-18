@@ -313,7 +313,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
         ),
         const SizedBox(height: 12),
         IdentityFieldCard(
-          label: 'identity_current_residence_label'.tr,
+          label: 'current_address_label'.tr,
           leadingIcon: CupertinoIcons.location_solid,
           tag: const Icon(
             CupertinoIcons.checkmark_alt_circle_fill,
@@ -340,6 +340,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
       'identity_name_latin_label'.tr,
       'date_of_birth_label'.tr,
       'place_of_birth_label'.tr,
+      'current_address_label'.tr,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

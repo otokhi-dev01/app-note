@@ -529,16 +529,16 @@ class ProfileView extends GetView<ProfileController> {
                 : controller.formattedIdExpiryDate,
             onTap: edit,
           ),
-          _buildDetailRow(
-            context,
-            icon: CupertinoIcons.calendar_badge_minus,
-            iconColor: _iosOrange,
-            label: 'Passport'.tr,
-            value: controller.formattedIdExpiryDate.isEmpty
-                ? 'not_set'.tr
-                : controller.formattedIdExpiryDate,
-            onTap: edit,
-          ),
+          // _buildDetailRow(
+          //   context,
+          //   icon: CupertinoIcons.doc_on_clipboard_fill,
+          //   iconColor: _iosOrange,
+          //   label: 'Passport'.tr,
+          //   value: controller.formattedIdExpiryDate.isEmpty
+          //       ? 'not_set'.tr
+          //       : controller.formattedIdExpiryDate,
+          //   onTap: edit,
+          // ),
         ],
       );
     });
