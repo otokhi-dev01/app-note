@@ -62,16 +62,34 @@ class SplashView extends GetView<SplashController> {
               child: Center(
                 child: Column(
                   children: [
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppTheme.folderYellow,
+                    Obx(() {
+                      if (controller.restoreFailed.value) {
+                        return Column(
+                          children: [
+                            Text(
+                              'session_restore_failed'.tr,
+                              textAlign: TextAlign.center,
+                            ),
+                            TextButton(
+                              onPressed: controller.isRestoring.value
+                                  ? null
+                                  : controller.retryRestore,
+                              child: Text('session_restore_retry'.tr),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.folderYellow,
+                          ),
                         ),
-                      ),
-                    ).animate().fadeIn(delay: 1200.ms),
+                      ).animate().fadeIn(delay: 1200.ms);
+                    }),
                     const SizedBox(height: 16),
                     CustomGlassContainer(
                       width: 230,

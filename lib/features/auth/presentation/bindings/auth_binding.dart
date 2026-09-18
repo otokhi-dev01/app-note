@@ -12,7 +12,6 @@ class AuthBinding extends Bindings {
       () => AuthController(
         login: Get.find<Login>(),
         register: Get.find<Register>(),
-        forgotPassword: Get.find<ForgotPassword>(),
       ),
       fenix: true,
     );

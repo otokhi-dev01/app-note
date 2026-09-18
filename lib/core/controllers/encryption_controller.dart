@@ -41,8 +41,6 @@ class EncryptionController extends GetxController {
   Future<void> _setup() async {
     final user = _sessionStorage.user.value;
     final token = _sessionStorage.token.value;
-    final device = await _deviceService.read();
-
     if (user == null || token == null || token.isEmpty) {
       // print('⚠️ Cannot initialize E2EE — missing user or token.');
       return;
@@ -50,6 +48,7 @@ class EncryptionController extends GetxController {
 
     isInitializing.value = true;
     try {
+      final device = await _deviceService.read();
       await _encryptionService.initializeEncryption(
         userId: user.id ?? 'unknown',
         deviceId: device.clientDeviceId,

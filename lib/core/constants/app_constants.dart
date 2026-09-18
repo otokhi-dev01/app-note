@@ -16,20 +16,24 @@ class AppConstants {
   static const String loginEndpoint = "/login";
   static const String logoutEndpoint = "/logout-current-device";
 
-  /// Used by [ApiClient]'s best-effort silent-refresh-before-logout on a
-  /// 401. UNVERIFIED against the live backend — no refresh token is ever
-  /// issued by login/register today, so the request assumes the server
-  /// accepts the just-expired access token itself as proof of a recent
-  /// session. See `ApiClient._tryRefreshSession` for the full caveat.
+  /// POST JSON {refreshToken: ...}; confirmed in Chat Swagger.
   static const String refreshTokenEndpoint = "/refresh-token";
+  static const String sessionsEndpoint = "/sessions";
 
   // Recovery Password
   static const String forgotPasswordEndpoint = "/password/forgot";
+  static const String verifyPasswordOtpEndpoint = "/password/verify-otp";
+  static const String resetPasswordEndpoint = "/password/reset";
+  static const String securityQuestionsEndpoint =
+      "/password/security-questions";
+  static const String verifySecurityAnswersEndpoint =
+      "/password/verify-security";
 
   /// User endpoints
   static const String userProfileEndpoint = "/profile";
   static const String userUploadProfileEndpoint = "/upload-profile";
   static const String userUpdateProfileEndpoint = "/update-profile";
+  static const String uploadDocumentEndpoint = "/upload-document";
 
   /// encryption
   static const String identityKeyEndpoint = "/identity-key";

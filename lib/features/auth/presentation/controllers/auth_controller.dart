@@ -8,7 +8,6 @@ import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/controllers/encryption_controller.dart';
@@ -21,15 +20,10 @@ import 'package:Note/core/controllers/encryption_controller.dart';
 class AuthController extends GetxController {
   final Login _login;
   final Register _register;
-  final ForgotPassword _forgotPassword;
 
-  AuthController({
-    required Login login,
-    required Register register,
-    required ForgotPassword forgotPassword,
-  }) : _login = login,
-       _register = register,
-       _forgotPassword = forgotPassword;
+  AuthController({required Login login, required Register register})
+    : _login = login,
+      _register = register;
 
   final _storage = GetStorage();
   final _guestMode = Get.find<GuestModeService>();
@@ -57,10 +51,26 @@ class AuthController extends GetxController {
   void toggleConfirmPasswordVisibility() => isConfirmPasswordVisible.toggle();
   void toggleRememberMe() => rememberMe.toggle();
 
-  void continueWithoutAccount() {
-    if (isLoading.value) return;
-    _guestMode.enable();
-    unawaited(Get.offAllNamed(Routes.FOLDER));
+  Future<void> continueWithoutAccount() async {
+    if (isLoading.value || isClosed) return;
+    isLoading.value = true;
+    try {
+      _guestMode.enable();
+      await _replaceAuthStack(Routes.FOLDER);
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
+  Future<void> _replaceAuthStack(String route) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    // Let the current frame and its queued focus notifications finish while
+    // the old route's focus scope is still alive. Keep submission locked until
+    // navigation has been issued, and ignore responses to closed controllers.
+    await WidgetsBinding.instance.endOfFrame;
+    FocusManager.instance.applyFocusChangesIfNeeded();
+    if (isClosed) return;
+    unawaited(Get.offAllNamed(route));
   }
 
   void _loadRememberMe() {
@@ -74,7 +84,8 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    if (isLoading.value) return;
+    if (isLoading.value || isClosed) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     final account = accountController.text.trim();
 
     isLoading.value = true;
@@ -82,33 +93,35 @@ class AuthController extends GetxController {
       final result = await _login(
         LoginParams(account: account, password: passwordController.text),
       );
+      if (isClosed) return;
 
       switch (result) {
         case Ok():
-          if (kDebugMode) debugPrint('[AUTH] Login logic successful. Disable guest mode and persisting.');
+          if (kDebugMode) {
+            debugPrint(
+              '[AUTH] Login logic successful. Disable guest mode and persisting.',
+            );
+          }
           _guestMode.disable();
           _persistRememberMe(account);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
-          
+
           // Setup E2EE. Shared unawaited handles the background task.
           unawaited(Get.find<EncryptionController>().setupForCurrentUser());
-          
+
           if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
-          // Use a slight delay or next-tick to ensure the snackbar and state 
-          // updates settle before clearing the entire navigation stack.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Get.offAllNamed(Routes.FOLDER);
-          });
+          await _replaceAuthStack(Routes.FOLDER);
         case Err(:final failure):
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) isLoading.value = false;
     }
   }
 
   Future<void> register() async {
-    if (isLoading.value) return;
+    if (isLoading.value || isClosed) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     isLoading.value = true;
     try {
@@ -119,6 +132,7 @@ class AuthController extends GetxController {
           confirmPassword: confirmPasswordController.text,
         ),
       );
+      if (isClosed) return;
 
       switch (result) {
         case Ok():
@@ -126,17 +140,12 @@ class AuthController extends GetxController {
             'success_title'.tr,
             'register_success_message'.tr,
           );
-          // Deferred to the next frame for the same reason as login(): clearing
-          // the navigation stack immediately can tear down the snackbar's
-          // overlay while it's still transitioning in.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Get.offAllNamed(Routes.LOGIN);
-          });
+          await _replaceAuthStack(Routes.LOGIN);
         case Err(:final failure):
           AppSnackbar.failure('register_failed_title'.tr, failure);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) isLoading.value = false;
     }
   }
 
@@ -153,37 +162,11 @@ class AuthController extends GetxController {
   }
 
   Future<void> forgotPassword() async {
+    if (isLoading.value) return;
     await Get.toNamed(
       Routes.FORGOT_PASSWORD,
-      arguments: {
-        'initialPhone': Validators.phone(accountController.text) == null
-            ? accountController.text.trim()
-            : '',
-        'onSubmit': _submitForgotPassword,
-      },
+      arguments: {'initialAccount': accountController.text.trim()},
     );
-  }
-
-  Future<bool> _submitForgotPassword(String phone) async {
-    if (isLoading.value) return false;
-
-    isLoading.value = true;
-    try {
-      final result = await _forgotPassword(phone);
-      switch (result) {
-        case Ok():
-          AppSnackbar.success(
-            'reset_request_sent_title'.tr,
-            'reset_request_sent_message'.trParams({'phone': phone}),
-          );
-          return true;
-        case Err(:final failure):
-          AppSnackbar.failure('forgot_password_title'.tr, failure);
-          return false;
-      }
-    } finally {
-      isLoading.value = false;
-    }
   }
 
   @override

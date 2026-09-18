@@ -3,7 +3,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/utils/validators.dart';
+import 'package:Note/core/error/result.dart';
+import 'package:Note/core/usecase/usecase.dart';
+import 'package:Note/features/auth/domain/entities/security_question.dart';
+import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
+import 'package:Note/features/auth/presentation/widgets/security_answers_form.dart';
+import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -14,55 +19,205 @@ class ForgotPasswordView extends StatefulWidget {
   State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
 }
 
+enum _RecoveryStep { account, code, security, password, complete }
+
 class _ForgotPasswordViewState extends State<ForgotPasswordView> {
-  static const int _maxPhoneLength = 16;
-  late final TextEditingController _phoneController;
-  late final Future<bool> Function(String phone) _onSubmit;
+  late final TextEditingController _accountController;
+  final _otpController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  _RecoveryStep _step = _RecoveryStep.account;
   bool _isSubmitting = false;
   String? _errorText;
-  String get _phone => _phoneController.text.trim();
+  String? _resetToken;
+  String? _notice;
+  List<SecurityQuestion> _questions = [];
+  List<SecurityAnswer> _answers = [];
+  Timer? _resendTimer;
+  int _resendSeconds = 0;
+  String get _account => _accountController.text.trim();
+
   @override
   void initState() {
     super.initState();
     final arguments = Get.arguments;
     final values = arguments is Map ? arguments : {};
-    _onSubmit = values['onSubmit'] is Future<bool> Function(String)
-        ? values['onSubmit'] as Future<bool> Function(String)
-        : (_) async => false;
-    _phoneController = TextEditingController(
-      text: values['initialPhone']?.toString() ?? '',
-    )..addListener(_handleChanged);
+    _accountController = TextEditingController(
+      text: values['initialAccount']?.toString() ?? '',
+    );
   }
 
   @override
   void dispose() {
-    _phoneController
-      ..removeListener(_handleChanged)
-      ..dispose();
+    _resendTimer?.cancel();
+    _resetToken = null;
+    _answers = [];
+    _accountController.dispose();
+    _otpController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  void _handleChanged() {
-    if (mounted) setState(() => _errorText = null);
+  void _startResendCooldown() {
+    _resendTimer?.cancel();
+    _resendSeconds = 60;
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      setState(() => _resendSeconds--);
+      if (_resendSeconds == 0) timer.cancel();
+    });
   }
 
-  Future<void> _submit() async {
+  Future<void> _useSecurityQuestions() async {
     if (_isSubmitting) return;
-    final invalid = Validators.phone(_phone);
-    if (invalid != null) {
-      unawaited(HapticFeedback.mediumImpact());
-      setState(() => _errorText = invalid);
+    FocusScope.of(context).unfocus();
+    if (_account.isEmpty) {
+      setState(() => _errorText = 'recovery_account_required'.tr);
       return;
     }
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+      _notice = null;
+    });
+    try {
+      final result = await Get.find<GetSecurityQuestions>()(const NoParams());
+      if (!mounted) return;
+      switch (result) {
+        case Ok(:final value):
+          _questions = value;
+          _answers = [];
+          _otpController.clear();
+          _resendTimer?.cancel();
+          _step = _RecoveryStep.security;
+        case Err(:final failure):
+          _errorText = failure.message;
+      }
+    } catch (_) {
+      if (mounted) _errorText = 'recovery_unexpected_error'.tr;
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
+  Future<void> _submit({bool resend = false}) async {
+    if (_isSubmitting || (resend && _resendSeconds > 0)) return;
+    if (_step == _RecoveryStep.complete) {
+      unawaited(Get.offAllNamed(Routes.LOGIN));
+      return;
+    }
     FocusScope.of(context).unfocus();
-    setState(() => _isSubmitting = true);
-    final sent = await _onSubmit(_phone);
-    if (!mounted) return;
-    if (sent) {
-      Get.back();
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+      _notice = null;
+    });
+    try {
+      if (_step == _RecoveryStep.account || resend) {
+        final result = await Get.find<ForgotPassword>()(_account);
+        if (!mounted) return;
+        switch (result) {
+          case Ok():
+            _step = _RecoveryStep.code;
+            _otpController.clear();
+            _notice = 'recovery_code_sent'.tr;
+            _startResendCooldown();
+          case Err(:final failure):
+            _errorText = failure.message;
+        }
+      } else if (_step == _RecoveryStep.code) {
+        final result = await Get.find<VerifyPasswordOtp>()(
+          VerifyPasswordOtpParams(account: _account, otp: _otpController.text),
+        );
+        if (!mounted) return;
+        switch (result) {
+          case Ok(:final value):
+            _resetToken = value;
+            _otpController.clear();
+            _resendTimer?.cancel();
+            _step = _RecoveryStep.password;
+          case Err(:final failure):
+            _errorText = failure.message;
+        }
+      } else if (_step == _RecoveryStep.security) {
+        final result = await Get.find<VerifySecurityAnswers>()(
+          VerifySecurityAnswersParams(account: _account, answers: _answers),
+        );
+        if (!mounted) return;
+        switch (result) {
+          case Ok(:final value):
+            _resetToken = value;
+            _answers = [];
+            _step = _RecoveryStep.password;
+          case Err(:final failure):
+            _errorText = failure.message;
+        }
+      } else {
+        final result = await Get.find<ResetPassword>()(
+          ResetPasswordParams(
+            resetToken: _resetToken ?? '',
+            newPassword: _passwordController.text,
+            confirmPassword: _confirmController.text,
+          ),
+        );
+        if (!mounted) return;
+        switch (result) {
+          case Ok():
+            _resetToken = null;
+            _passwordController.clear();
+            _confirmController.clear();
+            _step = _RecoveryStep.complete;
+          case Err(:final failure):
+            _errorText = failure.message;
+        }
+      }
+    } catch (_) {
+      if (mounted) _errorText = 'recovery_unexpected_error'.tr;
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _startOver() {
+    _resendTimer?.cancel();
+    setState(() {
+      _resetToken = null;
+      _answers = [];
+      _questions = [];
+      _otpController.clear();
+      _passwordController.clear();
+      _confirmController.clear();
+      _errorText = null;
+      _notice = null;
+      _resendSeconds = 0;
+      _step = _RecoveryStep.account;
+    });
+  }
+
+  String get _description => switch (_step) {
+    _RecoveryStep.account => 'forgot_password_desc'.tr,
+    _RecoveryStep.code => 'recovery_code_desc'.trParams({'account': _account}),
+    _RecoveryStep.security => 'recovery_security_desc'.trParams({
+      'account': _account,
+    }),
+    _RecoveryStep.password => 'recovery_password_desc'.tr,
+    _RecoveryStep.complete => 'recovery_complete_desc'.tr,
+  };
+
+  String get _buttonLabel => switch (_step) {
+    _RecoveryStep.account => 'send_reset_request'.tr,
+    _RecoveryStep.code => 'recovery_verify_code'.tr,
+    _RecoveryStep.security => 'recovery_verify_answers'.tr,
+    _RecoveryStep.password => 'recovery_reset_password'.tr,
+    _RecoveryStep.complete => 'sign_in_button'.tr,
+  };
+
+  void _back() {
+    if (_step == _RecoveryStep.complete) {
+      unawaited(Get.offAllNamed(Routes.LOGIN));
     } else {
-      setState(() => _isSubmitting = false);
+      Get.back();
     }
   }
 
@@ -71,7 +226,12 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return PopScope(
-      canPop: !_isSubmitting,
+      canPop: !_isSubmitting && _step != _RecoveryStep.complete,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_isSubmitting && _step == _RecoveryStep.complete) {
+          _back();
+        }
+      },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
         child: Scaffold(
@@ -88,7 +248,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   semanticLabel: MaterialLocalizations.of(
                     context,
                   ).backButtonTooltip,
-                  onPressed: _isSubmitting ? null : () => Get.back(),
+                  onPressed: _isSubmitting ? null : _back,
                   width: 44,
                   height: 44,
                   shape: GlassShape.circle,
@@ -140,7 +300,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'forgot_password_desc'.tr,
+                            _description,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
@@ -172,7 +332,28 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                     ),
                                   ),
                                 ),
-                                _buildPhoneField(context),
+                                ..._buildFields(context),
+                                if (_notice != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16),
+                                    child: Text(
+                                      _notice!,
+                                      semanticsLabel: _notice,
+                                    ),
+                                  ),
+                                if (_errorText != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 16),
+                                    child: Semantics(
+                                      liveRegion: true,
+                                      child: Text(
+                                        _errorText!,
+                                        style: TextStyle(
+                                          color: theme.colorScheme.error,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -180,9 +361,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: _isSubmitting || _phone.isEmpty
-                                  ? null
-                                  : _submit,
+                              onPressed: _isSubmitting ? null : () => _submit(),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.colorScheme.primary,
                                 foregroundColor: Colors.white,
@@ -204,7 +383,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                       ),
                                     )
                                   : Text(
-                                      'send_reset_request'.tr,
+                                      _buttonLabel,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 20,
@@ -212,6 +391,34 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                     ),
                             ),
                           ),
+                          if (_step == _RecoveryStep.account ||
+                              _step == _RecoveryStep.code)
+                            TextButton(
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : _useSecurityQuestions,
+                              child: Text('recovery_use_security_questions'.tr),
+                            ),
+                          if (_step == _RecoveryStep.code)
+                            TextButton(
+                              onPressed: _isSubmitting || _resendSeconds > 0
+                                  ? null
+                                  : () => _submit(resend: true),
+                              child: Text(
+                                _resendSeconds > 0
+                                    ? 'recovery_resend_countdown'.trParams({
+                                        'seconds': '$_resendSeconds',
+                                      })
+                                    : 'recovery_resend_code'.tr,
+                              ),
+                            ),
+                          if (_step == _RecoveryStep.code ||
+                              _step == _RecoveryStep.security ||
+                              _step == _RecoveryStep.password)
+                            TextButton(
+                              onPressed: _isSubmitting ? null : _startOver,
+                              child: Text('recovery_start_over'.tr),
+                            ),
                         ],
                       ),
                     ),
@@ -225,32 +432,94 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     );
   }
 
-  Widget _buildPhoneField(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(30),
+  List<Widget> _buildFields(BuildContext context) => switch (_step) {
+    _RecoveryStep.account => [
+      _field(
+        context,
+        controller: _accountController,
+        label: 'username_email_phone_hint'.tr,
+        autofillHints: const [AutofillHints.username],
       ),
-      child: TextField(
-        controller: _phoneController,
-        autofocus: true,
+    ],
+    _RecoveryStep.code => [
+      _field(
+        context,
+        controller: _otpController,
+        label: 'recovery_code_label'.tr,
+        autofillHints: const [AutofillHints.oneTimeCode],
+      ),
+    ],
+    _RecoveryStep.security => [
+      SecurityAnswersForm(
+        questions: _questions,
         enabled: !_isSubmitting,
-        maxLength: _maxPhoneLength,
-        keyboardType: TextInputType.text,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _submit(),
-        style: theme.textTheme.bodyLarge,
-        decoration: InputDecoration(
-          hintText: 'username_email_phone_hint'.tr,
-          hintStyle: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          errorText: _errorText,
-          counterText: '',
-          prefixIcon: Icon(Icons.person, color: theme.colorScheme.onSurfaceVariant),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        onChanged: (answers) {
+          _answers = answers;
+          if (_errorText != null) setState(() => _errorText = null);
+        },
+      ),
+    ],
+    _RecoveryStep.password => [
+      _field(
+        context,
+        controller: _passwordController,
+        label: 'recovery_new_password'.tr,
+        obscure: true,
+        autofillHints: const [AutofillHints.newPassword],
+        action: TextInputAction.next,
+      ),
+      const SizedBox(height: 16),
+      _field(
+        context,
+        controller: _confirmController,
+        label: 'confirm_password_hint'.tr,
+        obscure: true,
+        autofillHints: const [AutofillHints.newPassword],
+      ),
+    ],
+    _RecoveryStep.complete => [
+      const Center(child: Icon(Icons.check_circle_outline, size: 48)),
+    ],
+  };
+
+  Widget _field(
+    BuildContext context, {
+    required TextEditingController controller,
+    required String label,
+    bool obscure = false,
+    List<String>? autofillHints,
+    TextInputAction action = TextInputAction.done,
+  }) {
+    final theme = Theme.of(context);
+    return TextField(
+      key: ValueKey(label),
+      controller: controller,
+      enabled: !_isSubmitting,
+      obscureText: obscure,
+      autocorrect: false,
+      enableSuggestions: false,
+      autofillHints: autofillHints,
+      textInputAction: action,
+      onSubmitted: (_) {
+        if (action == TextInputAction.next) {
+          FocusScope.of(context).nextFocus();
+        } else {
+          _submit();
+        }
+      },
+      onChanged: (_) {
+        if (_errorText != null) setState(() => _errorText = null);
+      },
+      style: theme.textTheme.bodyLarge,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(obscure ? Icons.lock_outline : Icons.person_outline),
+        filled: true,
+        fillColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
         ),
       ),
     );

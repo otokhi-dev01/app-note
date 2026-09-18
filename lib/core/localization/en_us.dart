@@ -1,6 +1,9 @@
 /// English strings — every screen in the app. This is also the fallback
 /// locale (see `AppTranslations`).
 const Map<String, String> enUS = {
+  'session_restore_failed':
+      'Could not restore your saved sign-in. Please retry.',
+  'session_restore_retry': 'Retry',
   // Daily note
   'daily_note_title': 'Daily note',
   'daily_timeline': 'Timeline view',
@@ -94,7 +97,31 @@ const Map<String, String> enUS = {
   // Forgot password sheet
   'forgot_password_title': 'Forgot Password',
   'forgot_password_desc':
-      'Enter the phone number linked to your account. We will send instructions to help you reset your password.',
+      'Enter the username, email, or phone number linked to your account to request a verification code.',
+  'recovery_code_sent':
+      'If the account exists, a verification code has been sent.',
+  'recovery_code_desc': 'Enter the verification code sent for @account.',
+  'recovery_password_desc': 'Choose a new password for your account.',
+  'recovery_complete_desc':
+      'Your password has been reset. Sign in with your new password.',
+  'recovery_verify_code': 'Verify Code',
+  'recovery_reset_password': 'Reset Password',
+  'recovery_code_label': 'Verification Code',
+  'recovery_new_password': 'New Password',
+  'recovery_resend_code': 'Resend Code',
+  'recovery_resend_countdown': 'Resend code in @seconds seconds',
+  'recovery_start_over': 'Start Again',
+  'recovery_unexpected_error':
+      'Could not complete password recovery. Please try again.',
+  'recovery_account_required': 'Please enter your account.',
+  'recovery_use_security_questions': 'Use Security Questions',
+  'recovery_security_desc':
+      'Choose the questions you previously set up for @account and enter your saved answers.',
+  'recovery_verify_answers': 'Verify Answers',
+  'recovery_question_number': 'Question @number',
+  'recovery_security_answer': 'Your Answer',
+  'recovery_add_question': 'Add Question',
+  'recovery_remove_question': 'Remove Question',
   'phone_number_label': 'Phone number',
   'send_reset_request': 'Send Request',
   'reset_request_sent_title': 'Request Sent',
@@ -296,6 +323,31 @@ const Map<String, String> enUS = {
   'id_information_save_failed_title': 'Could not save ID information',
   'id_information_save_failed_message': 'Please try again.',
 
+  'document_upload_title': 'Upload Identity Document',
+  'document_review_upload': 'Review & Upload Document',
+  'document_upload_description':
+      'Review your document details. Upload sends these details and any selected images to your signed-in account. Fields marked * are required.',
+  'document_type': 'Document Type',
+  'document_number': 'Document Number',
+  'document_full_name': 'Full Name',
+  'document_gender': 'Gender',
+  'document_nationality': 'Nationality',
+  'document_issuing_country': 'Issuing Country',
+  'document_issued_date': 'Issue Date',
+  'document_issuing_authority': 'Issuing Authority',
+  'document_required': 'This field is required.',
+  'document_invalid_date': 'Enter a valid date as YYYY-MM-DD.',
+  'document_choose_front': 'Choose Front Image (Optional)',
+  'document_choose_back': 'Choose Back Image (Optional)',
+  'document_remove_image': 'Remove Image',
+  'document_image_failed': 'Could not read the image. Please select it again.',
+  'document_upload_action': 'Upload Document',
+  'document_upload_failed': 'Could not upload the document. Please try again.',
+  'document_uploaded_title': 'Document Uploaded',
+  'document_uploaded_message': 'Your document was uploaded successfully.',
+  'document_uploaded_local_failed':
+      'Your document was uploaded, but the local profile details could not be updated.',
+
   // Digital Civic ID scan flow
   'identity_app_title': 'Khmer National Identity Card',
   'identity_verified_title': 'Successfully Verified',
@@ -327,11 +379,24 @@ const Map<String, String> enUS = {
       'Protected under Royal Government of Cambodia Data Privacy & '
       'Digital Identity Framework.',
   'identity_processing_title': 'Extracting ID Information',
-  'identity_processing_subtitle':
-      'Validating chip signature and MRZ checksum.',
+  'identity_processing_subtitle': 'Validating chip signature and MRZ checksum.',
   'identity_step_front_label': 'Step 1 • Front ID',
   'identity_step_back_label': 'Step 2 • Back ID',
   'identity_place_card_hint': 'Place your ID card in the frame',
+  'identity_manual_capture': 'Tap the shutter to capture',
+  'identity_profile_review_hint':
+      'Review the recognized details in your profile. You can edit any missing or incorrect fields.',
+  'identity_view_profile': 'View Profile Details',
+  'identity_save_profile': 'Save to Profile Details',
+  'identity_edit_details': 'Edit card details',
+  'identity_save_details': 'Save card details',
+  'identity_missing_fields_hint':
+      'Review the scanned details. Enter or correct any text the camera could not read. Changes save to this card and Profile Details.',
+  'identity_not_read': 'Not read — tap Edit card details',
+  'identity_birth_place_khmer': 'Place of birth (Khmer)',
+  'identity_birth_place_english': 'Place of birth (English)',
+  'identity_address_khmer': 'Current address (Khmer)',
+  'identity_address_english': 'Current address (English)',
   'identity_auto_detecting': 'Auto-detecting',
   'identity_upload_document_action': 'Upload Document',
   'identity_camera_footer_encrypted': 'End-to-End Encrypted',

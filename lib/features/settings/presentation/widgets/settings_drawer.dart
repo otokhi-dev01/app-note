@@ -198,8 +198,7 @@ class SettingsDrawer extends GetView<ProfileController> {
                               context,
                               Routes.FORGOT_PASSWORD,
                               arguments: {
-                                'initialPhone': controller.userPhone.value,
-                                'onSubmit': controller.submitForgotPassword,
+                                'initialAccount': controller.userPhone.value,
                               },
                               reopenSettingsOnReturn: true,
                             ),

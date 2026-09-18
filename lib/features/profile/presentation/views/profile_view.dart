@@ -457,18 +457,18 @@ class ProfileView extends GetView<ProfileController> {
             context,
             icon: CupertinoIcons.shield_lefthalf_fill,
             iconColor: _iosGreen,
-            label: 'My Identity',
+            label: 'Khmer Identity Card',
             value: '',
             onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
           ),
-          _buildDetailRow(
-            context,
-            icon: CupertinoIcons.creditcard_fill,
-            iconColor: _iosIndigo,
-            label: 'My Cards',
-            value: '',
-            onTap: () => Get.toNamed(Routes.MY_CARDS),
-          ),
+          // _buildDetailRow(
+          //   context,
+          //   icon: CupertinoIcons.creditcard_fill,
+          //   iconColor: _iosIndigo,
+          //   label: 'My Cards',
+          //   value: '',
+          //   onTap: () => Get.toNamed(Routes.MY_CARDS),
+          // ),
           _buildDetailRow(
             context,
             icon: Icons.badge_outlined,
@@ -524,6 +524,16 @@ class ProfileView extends GetView<ProfileController> {
             icon: CupertinoIcons.calendar_badge_minus,
             iconColor: _iosOrange,
             label: 'id_expiry_date_label'.tr,
+            value: controller.formattedIdExpiryDate.isEmpty
+                ? 'not_set'.tr
+                : controller.formattedIdExpiryDate,
+            onTap: edit,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.calendar_badge_minus,
+            iconColor: _iosOrange,
+            label: 'Passport'.tr,
             value: controller.formattedIdExpiryDate.isEmpty
                 ? 'not_set'.tr
                 : controller.formattedIdExpiryDate,

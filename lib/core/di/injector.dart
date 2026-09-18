@@ -129,7 +129,6 @@ class InitialBinding extends Bindings {
         updateUserName: Get.find<UpdateUserName>(),
         updateProfileImage: Get.find<UpdateProfileImage>(),
         session: Get.find<SessionStorage>(),
-        forgotPassword: Get.find<ForgotPassword>(),
       ),
       permanent: true,
     );
@@ -140,6 +139,10 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => Login(repo()), fenix: true);
     Get.lazyPut(() => Register(repo()), fenix: true);
     Get.lazyPut(() => ForgotPassword(repo()), fenix: true);
+    Get.lazyPut(() => VerifyPasswordOtp(repo()), fenix: true);
+    Get.lazyPut(() => GetSecurityQuestions(repo()), fenix: true);
+    Get.lazyPut(() => VerifySecurityAnswers(repo()), fenix: true);
+    Get.lazyPut(() => ResetPassword(repo()), fenix: true);
     Get.lazyPut(() => Logout(repo()), fenix: true);
     Get.lazyPut(() => DeleteAccount(repo()), fenix: true);
     Get.lazyPut(() => LoadSession(repo()), fenix: true);

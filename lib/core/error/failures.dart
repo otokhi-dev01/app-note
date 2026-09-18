@@ -17,6 +17,10 @@ final class NetworkFailure extends AppFailure {
   const NetworkFailure([super.message = 'No internet connection.']);
 }
 
+final class StorageFailure extends AppFailure {
+  const StorageFailure(super.message);
+}
+
 final class UnauthorizedFailure extends AppFailure {
   const UnauthorizedFailure([super.message = 'Your session has expired.']);
 }

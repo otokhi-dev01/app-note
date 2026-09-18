@@ -8,24 +8,45 @@ import 'package:Note/routes/app_pages.dart';
 class SplashController extends GetxController {
   final _session = Get.find<SessionStorage>();
   final _guestMode = Get.find<GuestModeService>();
+  final isRestoring = true.obs;
+  final restoreFailed = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    _navigateToNext();
+    unawaited(_navigateToNext());
   }
 
-  void _navigateToNext() async {
-    // Elegant delay for the splash animation to finish
-    await Future.delayed(const Duration(milliseconds: 3500));
+  Future<void> _navigateToNext() async {
+    // Animation and secure-storage restoration run together. Never choose a
+    // signed-out route just because a slow Keychain read exceeded the animation.
+    await Future.wait([
+      Future<void>.delayed(const Duration(milliseconds: 3500)),
+      _session.ready,
+    ]);
+    _finishRestore();
+  }
 
-    // A returning signed-in user, or one who already chose "Continue
-    // without account", has already seen onboarding — skip straight to
-    // their notes instead of showing it again on every launch.
-    if (_session.isLoggedIn || _guestMode.isGuestMode.value) {
+  void _finishRestore() {
+    if (isClosed) return;
+    isRestoring.value = false;
+    restoreFailed.value = _session.restoreFailed.value;
+    if (restoreFailed.value) return;
+    if (_session.isLoggedIn) {
+      // A persisted signed-in account takes precedence over stale guest flags.
+      _guestMode.disable();
+      unawaited(Get.offAllNamed(Routes.FOLDER));
+    } else if (_guestMode.isGuestMode.value) {
       unawaited(Get.offAllNamed(Routes.FOLDER));
     } else {
       unawaited(Get.offAllNamed(Routes.ONBOARDING));
     }
+  }
+
+  Future<void> retryRestore() async {
+    if (isClosed || isRestoring.value) return;
+    isRestoring.value = true;
+    await _session.loadSession();
+    _finishRestore();
   }
 }

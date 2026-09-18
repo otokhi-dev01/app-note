@@ -13,6 +13,10 @@ import 'package:Note/core/services/native_media_services.dart';
 
 /// Owns a single camera lifetime. A fresh session is used after app resume.
 class CardCameraSession {
+  CardCameraSession({this.lensIndex = 0});
+
+  final int lensIndex;
+  int cameraCount = 0;
   CameraController? _camera;
   bool _closed = false;
   bool _readingFrame = false;
@@ -22,7 +26,13 @@ class CardCameraSession {
   Rect frame = Rect.zero;
 
   Future<void> initialize() async {
-    final cameras = await availableCameras();
+    final cameras = (await availableCameras()).toList();
+    cameras.sort(
+      (a, b) => (a.lensDirection == CameraLensDirection.back ? 0 : 1).compareTo(
+        b.lensDirection == CameraLensDirection.back ? 0 : 1,
+      ),
+    );
+    cameraCount = cameras.length;
     final rear = cameras.where(
       (camera) => camera.lensDirection == CameraLensDirection.back,
     );
@@ -31,7 +41,7 @@ class CardCameraSession {
     }
     if (_closed) return;
     final camera = CameraController(
-      rear.first,
+      cameras[lensIndex % cameras.length],
       ResolutionPreset.high,
       enableAudio: false,
       imageFormatGroup: Platform.isIOS
@@ -143,9 +153,9 @@ class CardCameraSession {
     try {
       final bytes = await compute(encodeCardCameraFrame, data);
       if (_closed || generation != _streamGeneration) return;
-      temporary = await Directory(
-        '${(await getTemporaryDirectory()).path}/card_frame_',
-      ).createTemp();
+      temporary = await (await getTemporaryDirectory()).createTemp(
+        'card_frame_',
+      );
       final file = await File(
         '${temporary.path}/frame.jpg',
       ).writeAsBytes(bytes);
@@ -167,7 +177,8 @@ class CardCameraSession {
     }
   }
 
-  Future<String> captureText() async {
+  /// Retains the photo for identity review/upload; the caller owns its lifetime.
+  Future<String> capturePhoto() async {
     final camera = _camera;
     if (_closed || camera == null || !camera.value.isInitialized) {
       throw CameraException('CameraUnavailable', 'The camera is not ready.');
@@ -178,11 +189,15 @@ class CardCameraSession {
     if (_closed || camera != _camera || !camera.value.isInitialized) {
       throw CameraException('CameraUnavailable', 'The camera was closed.');
     }
-    final image = await camera.takePicture();
+    return (await camera.takePicture()).path;
+  }
+
+  Future<String> captureText() async {
+    final path = await capturePhoto();
     try {
-      return await NativeMediaServices.recognizeText(image.path);
+      return await NativeMediaServices.recognizeText(path);
     } finally {
-      await _removeTemporary(File(image.path));
+      await _removeTemporary(File(path));
     }
   }
 

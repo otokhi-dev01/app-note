@@ -23,27 +23,10 @@ class AuthCredentialsRequest {
 
   Map<String, dynamic> toJson() => {
     'account': account,
-    'Account': account,
-    'phone': account,
-    'Phone': account,
-    'phoneNumber': account,
-    'PhoneNumber': account,
-    'username': account,
-    'Username': account,
-    'userName': account,
-    'UserName': account,
-    'email': account,
-    'Email': account,
-    'name': account,
-    'Name': account,
-    'fullName': account,
-    'FullName': account,
     'password': password,
-    'Password': password,
     'clientDeviceId': clientDeviceId,
     'appVersion': appVersion,
     'deviceName': deviceName,
-    'deviceType': platform, // Use original casing
     'platform': platform,
     'deviceModel': deviceModel,
   };
@@ -52,6 +35,7 @@ class AuthCredentialsRequest {
 /// The `/api/auth/*` envelope.
 class AuthResponse {
   final String token;
+  final String refreshToken;
   final UserData user;
   final int code;
   final String message;
@@ -62,6 +46,7 @@ class AuthResponse {
     required this.user,
     required this.code,
     required this.message,
+    this.refreshToken = '',
     this.success,
   });
 
@@ -122,6 +107,14 @@ class AuthResponse {
     }
 
     return AuthResponse(
+      refreshToken: asString(
+        data['refreshToken'] ??
+            data['RefreshToken'] ??
+            data['refresh_token'] ??
+            json['refreshToken'] ??
+            json['RefreshToken'] ??
+            json['refresh_token'],
+      ),
       token:
           dataToken ??
           asString(

@@ -1,6 +1,8 @@
 /// Khmer strings — mirrors the key set in `en_us.dart`. Any key missing here
 /// falls back to English via `AppTranslations.fallbackLocale`.
 const Map<String, String> kmKH = {
+  'session_restore_failed': 'មិនអាចស្ដារការចូលគណនីបានទេ។ សូមព្យាយាមម្ដងទៀត។',
+  'session_restore_retry': 'ព្យាយាមម្ដងទៀត',
   // Daily note
   'daily_note_title': 'កំណត់ត្រាប្រចាំថ្ងៃ',
   'daily_timeline': 'មើលតាមពេលវេលា',
@@ -92,7 +94,30 @@ const Map<String, String> kmKH = {
   // Forgot password sheet
   'forgot_password_title': 'ភ្លេចពាក្យសម្ងាត់',
   'forgot_password_desc':
-      'បញ្ចូលលេខទូរស័ព្ទដែលភ្ជាប់ជាមួយគណនីរបស់អ្នក។ យើងនឹងផ្ញើការណែនាំដើម្បីជួយអ្នកកំណត់ពាក្យសម្ងាត់ឡើងវិញ។',
+      'បញ្ចូលឈ្មោះអ្នកប្រើ អ៊ីមែល ឬលេខទូរស័ព្ទដែលភ្ជាប់ជាមួយគណនីរបស់អ្នក ដើម្បីស្នើសុំលេខកូដផ្ទៀងផ្ទាត់។',
+  'recovery_code_sent': 'ប្រសិនបើមានគណនី លេខកូដផ្ទៀងផ្ទាត់ត្រូវបានផ្ញើ។',
+  'recovery_code_desc': 'បញ្ចូលលេខកូដផ្ទៀងផ្ទាត់ដែលបានផ្ញើសម្រាប់ @account។',
+  'recovery_password_desc': 'ជ្រើសរើសពាក្យសម្ងាត់ថ្មីសម្រាប់គណនីរបស់អ្នក។',
+  'recovery_complete_desc':
+      'ពាក្យសម្ងាត់របស់អ្នកត្រូវបានកំណត់ឡើងវិញ។ សូមចូលដោយប្រើពាក្យសម្ងាត់ថ្មី។',
+  'recovery_verify_code': 'ផ្ទៀងផ្ទាត់លេខកូដ',
+  'recovery_reset_password': 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
+  'recovery_code_label': 'លេខកូដផ្ទៀងផ្ទាត់',
+  'recovery_new_password': 'ពាក្យសម្ងាត់ថ្មី',
+  'recovery_resend_code': 'ផ្ញើលេខកូដម្តងទៀត',
+  'recovery_resend_countdown': 'ផ្ញើលេខកូដម្តងទៀតក្នុង @seconds វិនាទី',
+  'recovery_start_over': 'ចាប់ផ្តើមម្តងទៀត',
+  'recovery_unexpected_error':
+      'មិនអាចសង្គ្រោះពាក្យសម្ងាត់បានទេ។ សូមព្យាយាមម្តងទៀត។',
+  'recovery_account_required': 'សូមបញ្ចូលគណនីរបស់អ្នក។',
+  'recovery_use_security_questions': 'ប្រើសំណួរសុវត្ថិភាព',
+  'recovery_security_desc':
+      'ជ្រើសរើសសំណួរដែលអ្នកបានកំណត់ពីមុនសម្រាប់ @account ហើយបញ្ចូលចម្លើយដែលបានរក្សាទុក។',
+  'recovery_verify_answers': 'ផ្ទៀងផ្ទាត់ចម្លើយ',
+  'recovery_question_number': 'សំណួរទី @number',
+  'recovery_security_answer': 'ចម្លើយរបស់អ្នក',
+  'recovery_add_question': 'បន្ថែមសំណួរ',
+  'recovery_remove_question': 'ដកសំណួរចេញ',
   'phone_number_label': 'លេខទូរស័ព្ទ',
   'send_reset_request': 'ផ្ញើសំណើ',
   'reset_request_sent_title': 'បានផ្ញើសំណើ',
@@ -296,6 +321,31 @@ const Map<String, String> kmKH = {
       'មិនអាចរក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណបានទេ',
   'id_information_save_failed_message': 'សូមព្យាយាមម្តងទៀត។',
 
+  'document_upload_title': 'ផ្ទុកឯកសារអត្តសញ្ញាណ',
+  'document_review_upload': 'ពិនិត្យ និងផ្ទុកឯកសារ',
+  'document_upload_description':
+      'ពិនិត្យព័ត៌មានឯកសាររបស់អ្នក។ ការផ្ទុកនឹងផ្ញើព័ត៌មាន និងរូបភាពដែលបានជ្រើសរើសទៅគណនីរបស់អ្នក។ វាលដែលមាន * ត្រូវតែបំពេញ។',
+  'document_type': 'ប្រភេទឯកសារ',
+  'document_number': 'លេខឯកសារ',
+  'document_full_name': 'ឈ្មោះពេញ',
+  'document_gender': 'ភេទ',
+  'document_nationality': 'សញ្ជាតិ',
+  'document_issuing_country': 'ប្រទេសចេញឯកសារ',
+  'document_issued_date': 'កាលបរិច្ឆេទចេញឯកសារ',
+  'document_issuing_authority': 'អាជ្ញាធរចេញឯកសារ',
+  'document_required': 'សូមបំពេញវាលនេះ។',
+  'document_invalid_date': 'បញ្ចូលកាលបរិច្ឆេទត្រឹមត្រូវជា YYYY-MM-DD។',
+  'document_choose_front': 'ជ្រើសរើសរូបភាពខាងមុខ (ជាជម្រើស)',
+  'document_choose_back': 'ជ្រើសរើសរូបភាពខាងក្រោយ (ជាជម្រើស)',
+  'document_remove_image': 'ដករូបភាពចេញ',
+  'document_image_failed': 'មិនអាចអានរូបភាពបានទេ។ សូមជ្រើសរើសម្តងទៀត។',
+  'document_upload_action': 'ផ្ទុកឯកសារ',
+  'document_upload_failed': 'មិនអាចផ្ទុកឯកសារបានទេ។ សូមព្យាយាមម្តងទៀត។',
+  'document_uploaded_title': 'បានផ្ទុកឯកសារ',
+  'document_uploaded_message': 'ឯកសាររបស់អ្នកត្រូវបានផ្ទុកដោយជោគជ័យ។',
+  'document_uploaded_local_failed':
+      'ឯកសារត្រូវបានផ្ទុក ប៉ុន្តែមិនអាចធ្វើបច្ចុប្បន្នភាពព័ត៌មានប្រវត្តិរូបក្នុងឧបករណ៍បានទេ។',
+
   // Digital Civic ID scan flow
   'identity_app_title': 'អត្តសញ្ញាណបណ្ណសញ្ញាតិខ្មែរ',
   'identity_verified_title': 'បានផ្ទៀងផ្ទាត់ជោគជ័យ',
@@ -331,6 +381,20 @@ const Map<String, String> kmKH = {
   'identity_step_front_label': 'ជំហានទី១ • ខាងមុខ',
   'identity_step_back_label': 'ជំហានទី២ • ខាងក្រោយ',
   'identity_place_card_hint': 'ដាក់អត្តសញ្ញាណប័ណ្ណក្នុងប្រអប់',
+  'identity_manual_capture': 'ចុចប៊ូតុងដើម្បីថត',
+  'identity_profile_review_hint':
+      'ពិនិត្យព័ត៌មានដែលបានស្កេនក្នុងប្រវត្តិរូប។ អ្នកអាចកែសម្រួលព័ត៌មានដែលខ្វះ ឬមិនត្រឹមត្រូវ។',
+  'identity_view_profile': 'មើលព័ត៌មានលម្អិតប្រវត្តិរូប',
+  'identity_save_profile': 'រក្សាទុកក្នុងព័ត៌មានលម្អិតប្រវត្តិរូប',
+  'identity_edit_details': 'កែសម្រួលព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
+  'identity_save_details': 'រក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
+  'identity_missing_fields_hint':
+      'ពិនិត្យ និងកែសម្រួលព័ត៌មានដែលស្កេនមិនច្បាស់។ ការផ្លាស់ប្តូរនឹងរក្សាទុកក្នុងអត្តសញ្ញាណប័ណ្ណ និងប្រវត្តិរូប។',
+  'identity_not_read': 'មិនអាចអានបាន — ចុចកែសម្រួលព័ត៌មាន',
+  'identity_birth_place_khmer': 'ទីកន្លែងកំណើត (ខ្មែរ)',
+  'identity_birth_place_english': 'ទីកន្លែងកំណើត (អង់គ្លេស)',
+  'identity_address_khmer': 'អាសយដ្ឋានបច្ចុប្បន្ន (ខ្មែរ)',
+  'identity_address_english': 'អាសយដ្ឋានបច្ចុប្បន្ន (អង់គ្លេស)',
   'identity_auto_detecting': 'កំពុងស្វែងរកដោយស្វ័យប្រវត្តិ',
   'identity_upload_document_action': 'ផ្ទុករូបភាពឯកសារ',
   'identity_camera_footer_encrypted': 'ការពារជាមួយការអ៊ិនគ្រីបពីចុងដល់ចុង',

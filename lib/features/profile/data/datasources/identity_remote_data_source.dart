@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:dio/dio.dart' as dio;
 import 'package:get/get.dart' hide Response;
 import 'package:Note/core/constants/app_constants.dart';
+import 'package:Note/core/error/exceptions.dart';
+import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/features/profile/domain/entities/identity_document.dart';
 
-/// Raw transport for the Digital Civic ID (national ID) scan/e-KYC flow.
+/// Document uploads use the confirmed `/upload-document` contract.
+/// The separate scan/OCR request below still uses a proposed contract.
 ///
 /// PROPOSED CONTRACT — `AppConstants.identityApiUrl` / `identityScanEndpoint`
 /// have not been confirmed against a live backend (no such route has been
@@ -17,7 +22,85 @@ import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 /// endpoint is wired up unconfirmed (a confirmed 404 in production).
 class IdentityRemoteDataSource extends GetxService {
   final ApiClient _api;
-  IdentityRemoteDataSource({ApiClient? api}) : _api = api ?? Get.find<ApiClient>();
+  IdentityRemoteDataSource({ApiClient? api})
+    : _api = api ?? Get.find<ApiClient>();
+
+  /// Authenticated document storage, separate from OCR. Contract confirmed
+  /// against Chat Swagger; a successful upload does not verify identity.
+  Future<void> uploadDocument(IdentityDocument document) async {
+    if (!Get.find<SessionStorage>().isLoggedIn) {
+      throw const UnauthorizedException('Please sign in to upload a document.');
+    }
+    try {
+      final fields = <String, dynamic>{
+        'DocumentType': document.documentType.trim(),
+        'DocumentNumber': document.documentNumber.trim(),
+      };
+      void text(String key, String value) {
+        if (value.trim().isNotEmpty) fields[key] = value.trim();
+      }
+
+      void date(String key, DateTime? value) {
+        if (value != null) {
+          fields[key] = DateTime(
+            value.year,
+            value.month,
+            value.day,
+          ).toIso8601String();
+        }
+      }
+
+      text('FullName', document.fullName);
+      text('Gender', document.gender);
+      text('Nationality', document.nationality);
+      text('IssuingCountry', document.issuingCountry);
+      text('IssuingAuthority', document.issuingAuthority);
+      date('DateOfBirth', document.dateOfBirth);
+      date('IssuedDate', document.issuedDate);
+      date('ExpiryDate', document.expiryDate);
+      for (final entry in {
+        'FrontImage': document.frontImagePath,
+        'BackImage': document.backImagePath,
+      }.entries) {
+        final path = entry.value;
+        if (path == null || path.isEmpty) continue;
+        final filename = Uri.file(path).pathSegments.last;
+        final contentType = switch (filename.split('.').last.toLowerCase()) {
+          'jpg' || 'jpeg' => 'image/jpeg',
+          'png' => 'image/png',
+          'heic' => 'image/heic',
+          'heif' => 'image/heif',
+          'webp' => 'image/webp',
+          _ => 'application/octet-stream',
+        };
+        fields[entry.key] = await dio.MultipartFile.fromFile(
+          path,
+          filename: filename,
+          contentType: dio.DioMediaType.parse(contentType),
+        );
+      }
+      final response = await _api.dio.post(
+        '${AppConstants.baseUrl}${AppConstants.uploadDocumentEndpoint}',
+        data: dio.FormData.fromMap(fields),
+      );
+      final body = response.data;
+      if (body is! Map || (body['success'] ?? body['Success']) != true) {
+        throw ServerException(
+          ApiErrorParser.messageFrom(
+            body,
+            fallback:
+                'The document upload was not confirmed. Please try again.',
+          ),
+        );
+      }
+    } on FileSystemException {
+      throw const ServerException(
+        'A selected image could not be read. Please select it again.',
+      );
+    } on dio.DioException catch (error) {
+      throw ApiErrorParser.toException(error);
+    }
+  }
 
   /// Uploads the front and back photos of the card and returns the server's
   /// parsed OCR/e-KYC result.

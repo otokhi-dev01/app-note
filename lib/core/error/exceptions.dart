@@ -1,5 +1,10 @@
 library;
 
+class StorageException implements Exception {
+  final String message;
+  const StorageException(this.message);
+}
+
 class ServerException implements Exception {
   final String message;
   final int? statusCode;

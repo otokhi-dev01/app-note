@@ -13,6 +13,8 @@ Future<Result<T>> guard<T>(Future<T> Function() body) async {
     return Err(UnauthorizedFailure(e.message));
   } on NetworkException catch (e) {
     return Err(NetworkFailure(e.message));
+  } on StorageException catch (e) {
+    return Err(StorageFailure(e.message));
   } on ServerException catch (e) {
     return Err(ServerFailure(e.message, statusCode: e.statusCode));
   } catch (e, s) {
