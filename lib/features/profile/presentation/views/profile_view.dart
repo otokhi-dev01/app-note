@@ -461,14 +461,14 @@ class ProfileView extends GetView<ProfileController> {
             value: '',
             onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
           ),
-          _buildDetailRow(
-            context,
-            icon: CupertinoIcons.creditcard_fill,
-            iconColor: _iosIndigo,
-            label: 'My Cards',
-            value: '',
-            onTap: () => Get.toNamed(Routes.MY_CARDS),
-          ),
+          // _buildDetailRow(
+          //   context,
+          //   icon: CupertinoIcons.creditcard_fill,
+          //   iconColor: _iosIndigo,
+          //   label: 'My Cards',
+          //   value: '',
+          //   onTap: () => Get.toNamed(Routes.MY_CARDS),
+          // ),
           _buildDetailRow(
             context,
             icon: Icons.badge_outlined,

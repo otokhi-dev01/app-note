@@ -3,6 +3,7 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
+import 'package:Note/features/auth/domain/entities/security_question.dart';
 import 'package:Note/features/auth/domain/repositories/auth_repository.dart';
 
 class Login extends UseCase<AuthSession, LoginParams> {
@@ -76,14 +77,125 @@ class ForgotPassword extends UseCase<void, String> {
   const ForgotPassword(this._repository);
 
   @override
-  Future<Result<void>> call(String phone) {
-    final normalizedPhone = phone.trim();
-    final invalid = Validators.phone(normalizedPhone);
-    if (invalid != null) {
-      return Future.value(Err(ValidationFailure(invalid)));
+  Future<Result<void>> call(String account) {
+    if (account.trim().isEmpty) {
+      return Future.value(
+        const Err(ValidationFailure('Please enter your account.')),
+      );
     }
-    return _repository.forgotPassword(normalizedPhone);
+    return _repository.forgotPassword(account.trim());
   }
+}
+
+class VerifyPasswordOtp extends UseCase<String, VerifyPasswordOtpParams> {
+  final AuthRepository _repository;
+  const VerifyPasswordOtp(this._repository);
+
+  @override
+  Future<Result<String>> call(VerifyPasswordOtpParams params) async {
+    if (params.account.trim().isEmpty || params.otp.trim().isEmpty) {
+      return const Err(
+        ValidationFailure('Please enter your account and verification code.'),
+      );
+    }
+    return _repository.verifyPasswordOtp(
+      params.account.trim(),
+      params.otp.trim(),
+    );
+  }
+}
+
+class VerifyPasswordOtpParams {
+  final String account;
+  final String otp;
+  const VerifyPasswordOtpParams({required this.account, required this.otp});
+}
+
+class ResetPassword extends UseCase<void, ResetPasswordParams> {
+  final AuthRepository _repository;
+  const ResetPassword(this._repository);
+
+  @override
+  Future<Result<void>> call(ResetPasswordParams params) async {
+    if (params.resetToken.trim().isEmpty) {
+      return const Err(
+        ValidationFailure('Please verify your recovery code again.'),
+      );
+    }
+    final weak = Validators.password(params.newPassword);
+    if (weak != null) return Err(ValidationFailure(weak));
+    if (params.newPassword != params.confirmPassword) {
+      return const Err(ValidationFailure('Passwords do not match.'));
+    }
+    return _repository.resetPassword(
+      resetToken: params.resetToken,
+      newPassword: params.newPassword,
+      confirmPassword: params.confirmPassword,
+    );
+  }
+}
+
+class GetSecurityQuestions extends UseCase<List<SecurityQuestion>, NoParams> {
+  final AuthRepository _repository;
+  const GetSecurityQuestions(this._repository);
+
+  @override
+  Future<Result<List<SecurityQuestion>>> call(NoParams params) =>
+      _repository.getSecurityQuestions();
+}
+
+class VerifySecurityAnswers
+    extends UseCase<String, VerifySecurityAnswersParams> {
+  final AuthRepository _repository;
+  const VerifySecurityAnswers(this._repository);
+
+  @override
+  Future<Result<String>> call(VerifySecurityAnswersParams params) async {
+    if (params.account.trim().isEmpty) {
+      return const Err(ValidationFailure('Please enter your account.'));
+    }
+    if (params.answers.isEmpty ||
+        params.answers.any(
+          (answer) =>
+              answer.questionId.trim().isEmpty || answer.answer.trim().isEmpty,
+        )) {
+      return const Err(
+        ValidationFailure(
+          'Select a question and enter its answer for each row.',
+        ),
+      );
+    }
+    if (params.answers.map((answer) => answer.questionId).toSet().length !=
+        params.answers.length) {
+      return const Err(
+        ValidationFailure('Please choose each question only once.'),
+      );
+    }
+    return _repository.verifySecurityAnswers(
+      params.account.trim(),
+      params.answers,
+    );
+  }
+}
+
+class VerifySecurityAnswersParams {
+  final String account;
+  final List<SecurityAnswer> answers;
+  const VerifySecurityAnswersParams({
+    required this.account,
+    required this.answers,
+  });
+}
+
+class ResetPasswordParams {
+  final String resetToken;
+  final String newPassword;
+  final String confirmPassword;
+  const ResetPasswordParams({
+    required this.resetToken,
+    required this.newPassword,
+    required this.confirmPassword,
+  });
 }
 
 class Logout extends UseCase<void, NoParams> {

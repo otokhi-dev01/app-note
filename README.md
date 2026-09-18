@@ -56,10 +56,10 @@ in memory for the session.
 Open **Profile → Digital Civic ID → Camera Scan / New OCR**. Unlike card
 scanning above, this flow uses Microblink's **BlinkID** SDK
 (`blinkid_flutter`) when a license is configured — its native scanning UI
-handles alignment, capture, and OCR/MRZ extraction entirely on-device, and
-the result is applied straight to the Profile screen's ID Information
-(`IdentityScanController.onConfirm` → `ProfileController.applyScannedIdInformation`).
-No backend call happens on this path.
+handles alignment, capture, and OCR/MRZ extraction entirely on-device.
+**Review & Upload Document** opens an editable form with the scan results and
+images. Uploading sends the reviewed document to the account server. Complete
+National ID details are then applied to the local Profile screen's ID Information.
 
 Configure a license (one per platform, tied to this app's bundle id /
 `applicationId`, obtained from the
@@ -91,7 +91,78 @@ proposed contract rather than a live one.
   part of this integration — do it deliberately, with a full Android build
   verification, before relying on BlinkID on Android.
 
+## Identity document upload
+
+Open **Profile → Digital Civic ID → Review & Upload Document**. You can enter
+details manually without scanning, or review the scanned fields first. Document
+type is editable text (the API specifies no enum); scanned IDs start with
+`National ID`. The form accepts optional front/back images from the photo library.
+
+The authenticated `POST https://chat.piisiit.com/upload-document` uses multipart
+form data with required `DocumentType` and `DocumentNumber`. Optional fields are
+`FullName`, `DateOfBirth`, `Gender`, `Nationality`, `IssuingCountry`, `IssuedDate`,
+`ExpiryDate`, `IssuingAuthority`, `FrontImage`, and `BackImage`. Empty optional
+fields are omitted and dates use ISO date-time strings. Only a successful API
+envelope completes the upload; failures preserve the form for retry. Image files
+are not deleted, and multipart retries recreate the form after session refresh.
+An upload stores a document; it does not establish an OCR or identity-verification
+result. Documents other than `National ID` do not overwrite the local ID card.
+
+Swagger defines the request fields. An empty multipart request confirmed the live
+server requires authentication (401). Tests in `test/document_upload_test.dart`
+cover the multipart data/files, session refresh, validation, failures, and form
+submission using simulated responses. A successful live upload and accepted
+document-type values still need checking with a signed-in test account.
+
 ## Session recovery
+
+### Forgot password
+
+Login, Profile, and Settings open the same recovery screen. Enter a username,
+email, or phone number, verify the delivered code, then enter and confirm a new
+password. Resending has a 60-second UI cooldown; server rate limits and expired
+code/token errors are shown with retry and start-again controls. A successful
+reset clears the local session and offers sign-in with the new password.
+
+**Use Security Questions** is available when entering an account or verifying
+an OTP. It loads the current questions from the server. Select the questions
+previously configured for the account, add rows as needed, and enter the saved
+answers. Verified answers unlock the same new-password screen. This recovery
+flow does not enroll or overwrite an account's security answers. Answers are
+masked and stay in memory until the form is closed or verification succeeds.
+
+The request contracts were checked against the
+[Chat API Swagger document](https://chat.piisiit.com/swagger/v1/swagger.json)
+on September 18, 2026:
+
+- `POST /api/auth/password/forgot`: `{account}`
+- `POST /api/auth/password/verify-otp`: `{account, otp}`
+- `POST /api/auth/password/reset`: `{resetToken, newPassword, confirmPassword}`
+- `GET /api/auth/password/security-questions`: reads `data: [{id, question}]`
+- `POST /api/auth/password/verify-security`:
+  `{account, answers: [{questionId, answer}]}`
+
+All recovery requests are public and bypass bearer-token injection/session refresh.
+The client requires a JSON `success: true` envelope; OTP/security verification must also
+return a nonempty `data.resetToken` (or top-level `resetToken`). The reset token
+stays in screen memory and is discarded on restart, completion, or disposal.
+
+Automated tests in `test/password_recovery_test.dart` exercise the real client
+and repository with simulated HTTP responses, plus the full screen flow.
+Empty live requests confirmed the recovery envelope and required request fields.
+Swagger does not describe successful response payloads, so the OTP token payload,
+actual code delivery, and signing in with the changed password still need an
+end-to-end check using a test account and its delivered code.
+The live security-question list was also verified. Successful security recovery
+still needs a test account with existing security answers; empty verification
+requests currently return a 500 error envelope, which the client surfaces as a
+failure without advancing to reset.
+
+`POST /api/auth/password/google/verify` is a separate recovery method requiring
+`{idToken}`. Google sign-in and its OAuth client configuration are not currently
+present in this app, so this method is not exposed in the recovery UI.
+
+### Authenticated session recovery
 
 An authenticated 401 triggers one recovery attempt and at most one retry. If the
 refresh endpoint rejects the request format, the app checks the account profile

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:get/get.dart' hide Response;
+import 'package:get/get.dart' hide Response, FormData;
 import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
@@ -101,6 +101,9 @@ class ApiClient extends GetxService {
               try {
                 final retried = await _dio.fetch(
                   request.copyWith(
+                    data: request.data is FormData
+                        ? (request.data as FormData).clone()
+                        : request.data,
                     extra: {...request.extra, 'authRetried': true},
                   ),
                 );
@@ -234,7 +237,8 @@ class ApiClient extends GetxService {
     }
   }
 
-  bool _isSensitiveEndpoint(String path) => path.contains('/api/auth/');
+  bool _isSensitiveEndpoint(String path) =>
+      path.contains('/api/auth/') || Uri.parse(path).path == '/upload-document';
   void _printErrorResponse(Object? data) {
     if (!kDebugMode || data == null) return;
     final String text = data.toString();

@@ -15,6 +15,7 @@ class IdentityScanBinding extends Bindings {
       () => IdentityRepositoryImpl(Get.find<IdentityRemoteDataSource>()),
     );
     Get.lazyPut(() => ScanNationalId(Get.find<IdentityRepository>()));
+    Get.lazyPut(() => UploadIdentityDocument(Get.find<IdentityRepository>()));
     Get.lazyPut(() => IdentityScanController(Get.find<ScanNationalId>()));
   }
 }

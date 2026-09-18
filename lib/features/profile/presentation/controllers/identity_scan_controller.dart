@@ -12,6 +12,8 @@ import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/services/native_media_services.dart';
 import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/features/profile/domain/entities/identity_document.dart';
+import 'package:Note/features/profile/presentation/views/document_upload_view.dart';
 import 'package:Note/features/profile/domain/usecases/identity_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -33,8 +35,8 @@ enum IdentityScanStep { main, scanning, processing }
 ///    [ScanNationalId] for server-side parsing (see that class's doc
 ///    comment — the backend contract is still unconfirmed).
 ///
-/// Either way, confirming the result applies it to the Profile screen's ID
-/// Information via [ProfileController.applyScannedIdInformation].
+/// Review & Upload submits the document to the account server, then applies
+/// complete national-ID details to the local Profile screen.
 class IdentityScanController extends GetxController {
   IdentityScanController(
     this._scanNationalId, {
@@ -160,9 +162,7 @@ class IdentityScanController extends GetxController {
   /// Khmer-script field and `latin` for the Latin-script one, since BlinkID
   /// has no dedicated "Khmer" alphabet field the way it does for
   /// arabic/cyrillic/greek.
-  Future<NationalIdCard> _mapBlinkIdResult(
-    BlinkIdScanningResult result,
-  ) async {
+  Future<NationalIdCard> _mapBlinkIdResult(BlinkIdScanningResult result) async {
     String local(StringResult? field) =>
         (field?.value ?? field?.latin ?? '').trim();
     String latin(StringResult? field) =>
@@ -177,7 +177,8 @@ class IdentityScanController extends GetxController {
     }
 
     final mrzLines = <String>[
-      for (final side in result.subResults ?? const <SingleSideScanningResult>[])
+      for (final side
+          in result.subResults ?? const <SingleSideScanningResult>[])
         if ((side.mrz?.rawMRZString ?? '').isNotEmpty)
           ...side.mrz!.rawMRZString!.split('\n'),
     ];
@@ -189,9 +190,10 @@ class IdentityScanController extends GetxController {
         ? localFull
         : [localFirst, localLast].where((s) => s.isNotEmpty).join(' ');
 
-    final latinName = [latin(result.firstName), latin(result.lastName)]
-        .where((s) => s.isNotEmpty)
-        .join(' ');
+    final latinName = [
+      latin(result.firstName),
+      latin(result.lastName),
+    ].where((s) => s.isNotEmpty).join(' ');
 
     final idNumber = local(result.personalIdNumber).isNotEmpty
         ? local(result.personalIdNumber)
@@ -331,46 +333,48 @@ class IdentityScanController extends GetxController {
     }
   }
 
+  /// Reviews the fields/images and uploads them before updating local ID data.
   Future<void> onConfirm() async {
-    final result = card.value;
-    if (result == null) {
-      unawaited(onStartScan());
-      return;
-    }
+    if (isLoading.value || isClosed) return;
     isLoading.value = true;
-    final placeOfBirth = [
-      result.placeOfBirthKhmer,
-      result.placeOfBirthEnglish,
-    ].where((part) => part.isNotEmpty).join(' / ');
-    final currentAddress = [
-      result.currentAddressKhmer,
-      result.currentAddressEnglish,
-    ].where((part) => part.isNotEmpty).join('\n');
-    final saved = await Get.find<ProfileController>().applyScannedIdInformation(
-      idNumber: result.idNumber,
-      name: result.nameLatin,
-      dateOfBirth: result.dateOfBirthAsDate,
-      placeOfBirth: placeOfBirth,
-      currentAddress: currentAddress,
-      expiryDate: result.expiryDateAsDate,
-    );
-    if (isClosed) return;
-    isLoading.value = false;
-    if (!saved) {
-      AppSnackbar.error(
-        'identity_save_failed_title'.tr,
-        'identity_save_failed_message'.tr,
+    try {
+      final scanned = card.value;
+      final uploaded = await Get.to<IdentityDocument>(
+        () => DocumentUploadView(initialCard: scanned),
       );
-      return;
+      if (isClosed || uploaded == null) return;
+      var savedLocally = true;
+      // The upload API permits an omitted name/DOB. Do not fabricate values
+      // merely to satisfy the local profile cache's required fields.
+      if (uploaded.documentType.toLowerCase() == 'national id' &&
+          uploaded.dateOfBirth != null && uploaded.fullName.isNotEmpty) {
+        savedLocally = await Get.find<ProfileController>()
+            .applyScannedIdInformation(
+              idNumber: uploaded.documentNumber,
+              name: uploaded.fullName,
+              dateOfBirth: uploaded.dateOfBirth,
+              placeOfBirth: [
+                scanned?.placeOfBirthKhmer ?? '',
+                scanned?.placeOfBirthEnglish ?? '',
+              ].where((part) => part.isNotEmpty).join(' / '),
+              currentAddress: [
+                scanned?.currentAddressKhmer ?? '',
+                scanned?.currentAddressEnglish ?? '',
+              ].where((part) => part.isNotEmpty).join('\n'),
+              expiryDate: uploaded.expiryDate,
+            );
+      }
+      if (isClosed) return;
+      AppSnackbar.success(
+        'document_uploaded_title'.tr,
+        (savedLocally
+                ? 'document_uploaded_message'
+                : 'document_uploaded_local_failed')
+            .tr,
+      );
+      unawaited(Get.offNamed(Routes.PROFILE));
+    } finally {
+      if (!isClosed) isLoading.value = false;
     }
-    AppSnackbar.success(
-      'identity_verified_snackbar_title'.tr,
-      'identity_verified_snackbar_message'.tr,
-    );
-    // Explicitly land on Profile rather than a plain Get.back() — this
-    // clears the scan flow (and, if the fallback camera was used along the
-    // way, its screen too) out of the stack instead of relying on whatever
-    // happens to be directly underneath.
-    unawaited(Get.offNamed(Routes.PROFILE));
   }
 }

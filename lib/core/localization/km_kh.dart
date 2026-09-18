@@ -92,7 +92,30 @@ const Map<String, String> kmKH = {
   // Forgot password sheet
   'forgot_password_title': 'ភ្លេចពាក្យសម្ងាត់',
   'forgot_password_desc':
-      'បញ្ចូលលេខទូរស័ព្ទដែលភ្ជាប់ជាមួយគណនីរបស់អ្នក។ យើងនឹងផ្ញើការណែនាំដើម្បីជួយអ្នកកំណត់ពាក្យសម្ងាត់ឡើងវិញ។',
+      'បញ្ចូលឈ្មោះអ្នកប្រើ អ៊ីមែល ឬលេខទូរស័ព្ទដែលភ្ជាប់ជាមួយគណនីរបស់អ្នក ដើម្បីស្នើសុំលេខកូដផ្ទៀងផ្ទាត់។',
+  'recovery_code_sent': 'ប្រសិនបើមានគណនី លេខកូដផ្ទៀងផ្ទាត់ត្រូវបានផ្ញើ។',
+  'recovery_code_desc': 'បញ្ចូលលេខកូដផ្ទៀងផ្ទាត់ដែលបានផ្ញើសម្រាប់ @account។',
+  'recovery_password_desc': 'ជ្រើសរើសពាក្យសម្ងាត់ថ្មីសម្រាប់គណនីរបស់អ្នក។',
+  'recovery_complete_desc':
+      'ពាក្យសម្ងាត់របស់អ្នកត្រូវបានកំណត់ឡើងវិញ។ សូមចូលដោយប្រើពាក្យសម្ងាត់ថ្មី។',
+  'recovery_verify_code': 'ផ្ទៀងផ្ទាត់លេខកូដ',
+  'recovery_reset_password': 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
+  'recovery_code_label': 'លេខកូដផ្ទៀងផ្ទាត់',
+  'recovery_new_password': 'ពាក្យសម្ងាត់ថ្មី',
+  'recovery_resend_code': 'ផ្ញើលេខកូដម្តងទៀត',
+  'recovery_resend_countdown': 'ផ្ញើលេខកូដម្តងទៀតក្នុង @seconds វិនាទី',
+  'recovery_start_over': 'ចាប់ផ្តើមម្តងទៀត',
+  'recovery_unexpected_error':
+      'មិនអាចសង្គ្រោះពាក្យសម្ងាត់បានទេ។ សូមព្យាយាមម្តងទៀត។',
+  'recovery_account_required': 'សូមបញ្ចូលគណនីរបស់អ្នក។',
+  'recovery_use_security_questions': 'ប្រើសំណួរសុវត្ថិភាព',
+  'recovery_security_desc':
+      'ជ្រើសរើសសំណួរដែលអ្នកបានកំណត់ពីមុនសម្រាប់ @account ហើយបញ្ចូលចម្លើយដែលបានរក្សាទុក។',
+  'recovery_verify_answers': 'ផ្ទៀងផ្ទាត់ចម្លើយ',
+  'recovery_question_number': 'សំណួរទី @number',
+  'recovery_security_answer': 'ចម្លើយរបស់អ្នក',
+  'recovery_add_question': 'បន្ថែមសំណួរ',
+  'recovery_remove_question': 'ដកសំណួរចេញ',
   'phone_number_label': 'លេខទូរស័ព្ទ',
   'send_reset_request': 'ផ្ញើសំណើ',
   'reset_request_sent_title': 'បានផ្ញើសំណើ',
@@ -295,6 +318,31 @@ const Map<String, String> kmKH = {
   'id_information_save_failed_title':
       'មិនអាចរក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណបានទេ',
   'id_information_save_failed_message': 'សូមព្យាយាមម្តងទៀត។',
+
+  'document_upload_title': 'ផ្ទុកឯកសារអត្តសញ្ញាណ',
+  'document_review_upload': 'ពិនិត្យ និងផ្ទុកឯកសារ',
+  'document_upload_description':
+      'ពិនិត្យព័ត៌មានឯកសាររបស់អ្នក។ ការផ្ទុកនឹងផ្ញើព័ត៌មាន និងរូបភាពដែលបានជ្រើសរើសទៅគណនីរបស់អ្នក។ វាលដែលមាន * ត្រូវតែបំពេញ។',
+  'document_type': 'ប្រភេទឯកសារ',
+  'document_number': 'លេខឯកសារ',
+  'document_full_name': 'ឈ្មោះពេញ',
+  'document_gender': 'ភេទ',
+  'document_nationality': 'សញ្ជាតិ',
+  'document_issuing_country': 'ប្រទេសចេញឯកសារ',
+  'document_issued_date': 'កាលបរិច្ឆេទចេញឯកសារ',
+  'document_issuing_authority': 'អាជ្ញាធរចេញឯកសារ',
+  'document_required': 'សូមបំពេញវាលនេះ។',
+  'document_invalid_date': 'បញ្ចូលកាលបរិច្ឆេទត្រឹមត្រូវជា YYYY-MM-DD។',
+  'document_choose_front': 'ជ្រើសរើសរូបភាពខាងមុខ (ជាជម្រើស)',
+  'document_choose_back': 'ជ្រើសរើសរូបភាពខាងក្រោយ (ជាជម្រើស)',
+  'document_remove_image': 'ដករូបភាពចេញ',
+  'document_image_failed': 'មិនអាចអានរូបភាពបានទេ។ សូមជ្រើសរើសម្តងទៀត។',
+  'document_upload_action': 'ផ្ទុកឯកសារ',
+  'document_upload_failed': 'មិនអាចផ្ទុកឯកសារបានទេ។ សូមព្យាយាមម្តងទៀត។',
+  'document_uploaded_title': 'បានផ្ទុកឯកសារ',
+  'document_uploaded_message': 'ឯកសាររបស់អ្នកត្រូវបានផ្ទុកដោយជោគជ័យ។',
+  'document_uploaded_local_failed':
+      'ឯកសារត្រូវបានផ្ទុក ប៉ុន្តែមិនអាចធ្វើបច្ចុប្បន្នភាពព័ត៌មានប្រវត្តិរូបក្នុងឧបករណ៍បានទេ។',
 
   // Digital Civic ID scan flow
   'identity_app_title': 'អត្តសញ្ញាណបណ្ណសញ្ញាតិខ្មែរ',

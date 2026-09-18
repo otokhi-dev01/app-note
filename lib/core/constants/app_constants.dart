@@ -25,11 +25,18 @@ class AppConstants {
 
   // Recovery Password
   static const String forgotPasswordEndpoint = "/password/forgot";
+  static const String verifyPasswordOtpEndpoint = "/password/verify-otp";
+  static const String resetPasswordEndpoint = "/password/reset";
+  static const String securityQuestionsEndpoint =
+      "/password/security-questions";
+  static const String verifySecurityAnswersEndpoint =
+      "/password/verify-security";
 
   /// User endpoints
   static const String userProfileEndpoint = "/profile";
   static const String userUploadProfileEndpoint = "/upload-profile";
   static const String userUpdateProfileEndpoint = "/update-profile";
+  static const String uploadDocumentEndpoint = "/upload-document";
 
   /// encryption
   static const String identityKeyEndpoint = "/identity-key";

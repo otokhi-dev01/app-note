@@ -107,9 +107,11 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           _buildFields(context, card),
                         const SizedBox(height: 26),
                         IdentityPrimaryButton(
-                          label: 'identity_confirm_action'.tr,
+                          label: 'document_review_upload'.tr,
                           loading: controller.isLoading.value,
-                          onPressed: card == null ? null : controller.onConfirm,
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : controller.onConfirm,
                         ),
                         const SizedBox(height: 10),
                         IdentitySecondaryButton(
@@ -237,9 +239,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          'identity_valid_years_caption'
-                              .trParams({'years': '${card.validityYears}'})
-                              .toUpperCase(),
+                          'identity_valid_years_caption'.trParams({
+                            'years': '${card.validityYears}',
+                          }).toUpperCase(),
                           style: const TextStyle(
                             color: idGreen,
                             fontSize: 9.5,

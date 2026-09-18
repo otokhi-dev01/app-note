@@ -8,7 +8,6 @@ import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/controllers/encryption_controller.dart';
@@ -21,15 +20,10 @@ import 'package:Note/core/controllers/encryption_controller.dart';
 class AuthController extends GetxController {
   final Login _login;
   final Register _register;
-  final ForgotPassword _forgotPassword;
 
-  AuthController({
-    required Login login,
-    required Register register,
-    required ForgotPassword forgotPassword,
-  }) : _login = login,
-       _register = register,
-       _forgotPassword = forgotPassword;
+  AuthController({required Login login, required Register register})
+    : _login = login,
+      _register = register;
 
   final _storage = GetStorage();
   final _guestMode = Get.find<GuestModeService>();
@@ -85,16 +79,20 @@ class AuthController extends GetxController {
 
       switch (result) {
         case Ok():
-          if (kDebugMode) debugPrint('[AUTH] Login logic successful. Disable guest mode and persisting.');
+          if (kDebugMode) {
+            debugPrint(
+              '[AUTH] Login logic successful. Disable guest mode and persisting.',
+            );
+          }
           _guestMode.disable();
           _persistRememberMe(account);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
-          
+
           // Setup E2EE. Shared unawaited handles the background task.
           unawaited(Get.find<EncryptionController>().setupForCurrentUser());
-          
+
           if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
-          // Use a slight delay or next-tick to ensure the snackbar and state 
+          // Use a slight delay or next-tick to ensure the snackbar and state
           // updates settle before clearing the entire navigation stack.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Get.offAllNamed(Routes.FOLDER);
@@ -153,37 +151,11 @@ class AuthController extends GetxController {
   }
 
   Future<void> forgotPassword() async {
+    if (isLoading.value) return;
     await Get.toNamed(
       Routes.FORGOT_PASSWORD,
-      arguments: {
-        'initialPhone': Validators.phone(accountController.text) == null
-            ? accountController.text.trim()
-            : '',
-        'onSubmit': _submitForgotPassword,
-      },
+      arguments: {'initialAccount': accountController.text.trim()},
     );
-  }
-
-  Future<bool> _submitForgotPassword(String phone) async {
-    if (isLoading.value) return false;
-
-    isLoading.value = true;
-    try {
-      final result = await _forgotPassword(phone);
-      switch (result) {
-        case Ok():
-          AppSnackbar.success(
-            'reset_request_sent_title'.tr,
-            'reset_request_sent_message'.trParams({'phone': phone}),
-          );
-          return true;
-        case Err(:final failure):
-          AppSnackbar.failure('forgot_password_title'.tr, failure);
-          return false;
-      }
-    } finally {
-      isLoading.value = false;
-    }
   }
 
   @override

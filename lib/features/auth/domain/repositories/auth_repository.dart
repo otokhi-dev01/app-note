@@ -1,5 +1,6 @@
 import 'package:Note/core/error/result.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
+import 'package:Note/features/auth/domain/entities/security_question.dart';
 
 abstract class AuthRepository {
   /// Authenticates and persists the session so later requests are authorized.
@@ -14,8 +15,24 @@ abstract class AuthRepository {
     required String password,
   });
 
-  /// Requests password-recovery instructions for the account phone number.
-  Future<Result<void>> forgotPassword(String phone);
+  /// Sends a recovery code for a username, email, or phone number.
+  Future<Result<void>> forgotPassword(String account);
+
+  /// Exchanges a recovery code for a short-lived password reset token.
+  Future<Result<String>> verifyPasswordOtp(String account, String otp);
+
+  Future<Result<List<SecurityQuestion>>> getSecurityQuestions();
+
+  Future<Result<String>> verifySecurityAnswers(
+    String account,
+    List<SecurityAnswer> answers,
+  );
+
+  Future<Result<void>> resetPassword({
+    required String resetToken,
+    required String newPassword,
+    required String confirmPassword,
+  });
 
   Future<Result<void>> logout();
 

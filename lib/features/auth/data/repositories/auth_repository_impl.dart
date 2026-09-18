@@ -6,6 +6,7 @@ import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
+import 'package:Note/features/auth/domain/entities/security_question.dart';
 import 'package:Note/features/auth/domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -40,8 +41,36 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<Result<void>> forgotPassword(String phone) =>
-      guard(() => _remote.forgotPassword(phone));
+  Future<Result<void>> forgotPassword(String account) =>
+      guard(() => _remote.forgotPassword(account));
+
+  @override
+  Future<Result<String>> verifyPasswordOtp(String account, String otp) =>
+      guard(() => _remote.verifyPasswordOtp(account, otp));
+
+  @override
+  Future<Result<List<SecurityQuestion>>> getSecurityQuestions() =>
+      guard(_remote.getSecurityQuestions);
+
+  @override
+  Future<Result<String>> verifySecurityAnswers(
+    String account,
+    List<SecurityAnswer> answers,
+  ) => guard(() => _remote.verifySecurityAnswers(account, answers));
+
+  @override
+  Future<Result<void>> resetPassword({
+    required String resetToken,
+    required String newPassword,
+    required String confirmPassword,
+  }) => guard(() async {
+    await _remote.resetPassword(
+      resetToken: resetToken,
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
+    await _session.clearSession();
+  });
 
   @override
   Future<Result<void>> logout() => guard(() async {

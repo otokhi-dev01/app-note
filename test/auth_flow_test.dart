@@ -42,12 +42,6 @@ class _FakeRegister extends Register {
   }
 }
 
-class _FakeForgotPassword extends ForgotPassword {
-  _FakeForgotPassword() : super(_NoopRepo());
-  @override
-  Future<Result<void>> call(String phone) async => okVoid;
-}
-
 class _NoopRepo implements AuthRepository {
   const _NoopRepo();
   @override
@@ -81,7 +75,6 @@ void main() {
       AuthController(
         login: _FakeLogin(loginResult),
         register: _FakeRegister(okVoid),
-        forgotPassword: _FakeForgotPassword(),
       ),
     );
     await tester.pumpWidget(
@@ -142,7 +135,6 @@ void main() {
       AuthController(
         login: _FakeLogin(const Err(ValidationFailure('unused'))),
         register: _FakeRegister(okVoid),
-        forgotPassword: _FakeForgotPassword(),
       ),
     );
     await tester.pumpWidget(
@@ -175,7 +167,6 @@ void main() {
         register: _FakeRegister(
           const Err(ValidationFailure('Passwords do not match.')),
         ),
-        forgotPassword: _FakeForgotPassword(),
       ),
     );
     await tester.pumpWidget(

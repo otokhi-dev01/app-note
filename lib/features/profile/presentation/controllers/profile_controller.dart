@@ -29,7 +29,6 @@ class ProfileController extends GetxController {
   final UpdateUserName _updateUserName;
   final UpdateProfileImage _updateProfileImage;
   final SessionStorage _session;
-  final ForgotPassword _forgotPassword;
   Worker? _sessionWorker;
   Worker? _guestModeWorker;
 
@@ -37,11 +36,9 @@ class ProfileController extends GetxController {
     required UpdateUserName updateUserName,
     required UpdateProfileImage updateProfileImage,
     required SessionStorage session,
-    required ForgotPassword forgotPassword,
   }) : _updateUserName = updateUserName,
        _updateProfileImage = updateProfileImage,
-       _session = session,
-       _forgotPassword = forgotPassword;
+       _session = session;
 
   final _picker = ImagePicker();
   final _guestMode = Get.find<GuestModeService>();
@@ -531,26 +528,8 @@ class ProfileController extends GetxController {
 
     await Get.toNamed(
       Routes.FORGOT_PASSWORD,
-      arguments: {
-        'initialPhone': userPhone.value,
-        'onSubmit': submitForgotPassword,
-      },
+      arguments: {'initialAccount': userPhone.value},
     );
-  }
-
-  Future<bool> submitForgotPassword(String phone) async {
-    final result = await _forgotPassword(phone);
-    switch (result) {
-      case Ok():
-        AppSnackbar.success(
-          'reset_request_sent_title'.tr,
-          'reset_request_sent_message'.trParams({'phone': phone}),
-        );
-        return true;
-      case Err(:final failure):
-        AppSnackbar.failure('forgot_password_title'.tr, failure);
-        return false;
-    }
   }
 
   /// Shared single-line text-field sheet for the local-only fields — same
