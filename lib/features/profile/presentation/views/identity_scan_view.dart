@@ -58,15 +58,14 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         const SizedBox(height: 22),
                         IdentitySectionHeader(
                           icon: CupertinoIcons.square_stack_3d_up_fill,
-                          khmerLabel: 'ចំណុចដែលបានស្កេន្',
-                          englishLabel: 'Scanned Previews',
+                          label: 'identity_scanned_previews_title'.tr,
                           trailing: TextButton.icon(
                             onPressed: controller.onRescan,
                             icon: const Icon(
                               CupertinoIcons.arrow_2_circlepath,
                               size: 13,
                             ),
-                            label: const Text('Refresh'),
+                            label: Text('identity_refresh_action'.tr),
                             style: TextButton.styleFrom(
                               foregroundColor: idGreen,
                               padding: EdgeInsets.zero,
@@ -82,16 +81,14 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           children: [
                             Expanded(
                               child: IdentityPreviewCard(
-                                khmerLabel: 'ផ្ទៃខាងមុខ',
-                                englishLabel: 'Photo & Hologram',
+                                label: 'identity_photo_hologram_label'.tr,
                                 imagePath: card?.frontImagePath,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: IdentityPreviewCard(
-                                khmerLabel: 'ផ្ទៃខាងក្រោយ',
-                                englishLabel: 'MRZ & Chip Data',
+                                label: 'identity_mrz_chip_data_label'.tr,
                                 imagePath: card?.backImagePath,
                                 front: false,
                               ),
@@ -99,10 +96,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        const IdentitySectionHeader(
+                        IdentitySectionHeader(
                           icon: CupertinoIcons.doc_person_fill,
-                          khmerLabel: 'ព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
-                          englishLabel: 'ID Information',
+                          label: 'id_information_title'.tr,
                         ),
                         const SizedBox(height: 12),
                         if (card == null)
@@ -111,24 +107,22 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           _buildFields(context, card),
                         const SizedBox(height: 26),
                         IdentityPrimaryButton(
-                          khmerLabel: 'បញ្ជាក់ព័ត៌មាន',
-                          englishLabel: 'Confirm & Continue',
+                          label: 'identity_confirm_action'.tr,
                           loading: controller.isLoading.value,
                           onPressed: card == null ? null : controller.onConfirm,
                         ),
                         const SizedBox(height: 10),
                         IdentitySecondaryButton(
-                          label: card == null ? 'Start Scanning' : 'Rescan Card',
+                          label: card == null
+                              ? 'identity_start_scanning_action'.tr
+                              : 'identity_rescan_action'.tr,
                           onPressed: controller.isLoading.value
                               ? null
                               : controller.onRescan,
                         ),
                         const SizedBox(height: 18),
-                        const IdentityFooterNote(
-                          text:
-                              'End-to-End Cryptographic Ledger Protection • ISO/IEC 18013-5\n'
-                              'Protected under Royal Government of Cambodia Data Privacy & '
-                              'Digital Identity Framework.',
+                        IdentityFooterNote(
+                          text: 'identity_footer_protection'.tr,
                         ),
                       ],
                     ),
@@ -147,10 +141,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         IdentityFieldCard(
-          khmerLabel: 'លេខអត្តសញ្ញាណប័ណ្ណ',
-          englishLabel: 'National ID Number',
-          tag: const IdentityTag(
-            'CHIP MATCHED',
+          label: 'id_number_label'.tr,
+          tag: IdentityTag(
+            'identity_chip_matched_tag'.tr.toUpperCase(),
             color: idGreen,
             icon: CupertinoIcons.checkmark_shield_fill,
           ),
@@ -158,8 +151,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
         ),
         const SizedBox(height: 12),
         IdentityFieldCard(
-          khmerLabel: 'ឈ្មោះជាភាសាខ្មែរ',
-          englishLabel: 'Name in Khmer',
+          label: 'identity_name_khmer_label'.tr,
           tag: const Icon(
             CupertinoIcons.checkmark_alt_circle_fill,
             size: 16,
@@ -176,8 +168,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
         ),
         const SizedBox(height: 12),
         IdentityFieldCard(
-          khmerLabel: 'ឈ្មោះជាអក្សរឡាតាំង',
-          englishLabel: 'Name in Latin',
+          label: 'identity_name_latin_label'.tr,
           tag: const Icon(
             CupertinoIcons.checkmark_alt_circle_fill,
             size: 16,
@@ -199,8 +190,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
           children: [
             Expanded(
               child: IdentityFieldCard(
-                khmerLabel: 'ថ្ងៃខែឆ្នាំកំណើត',
-                englishLabel: 'Date of Birth',
+                label: 'date_of_birth_label'.tr,
                 child: Text(
                   card.dateOfBirth,
                   style: const TextStyle(
@@ -214,8 +204,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
             const SizedBox(width: 12),
             Expanded(
               child: IdentityFieldCard(
-                khmerLabel: 'កាលបរិច្ឆេទផុតកំណត់',
-                englishLabel: 'Expiry Date',
+                label: 'id_expiry_date_label'.tr,
                 tag: Container(
                   width: 6,
                   height: 6,
@@ -248,7 +237,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          'VALID (${card.validityYears} YEARS)',
+                          'identity_valid_years_caption'
+                              .trParams({'years': '${card.validityYears}'})
+                              .toUpperCase(),
                           style: const TextStyle(
                             color: idGreen,
                             fontSize: 9.5,
@@ -266,8 +257,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
         ),
         const SizedBox(height: 12),
         IdentityFieldCard(
-          khmerLabel: 'ទីកន្លែងកំណើត',
-          englishLabel: 'Place of Birth',
+          label: 'place_of_birth_label'.tr,
           leadingIcon: CupertinoIcons.map_pin_ellipse,
           child: Text(
             '${card.placeOfBirthKhmer} / ${card.placeOfBirthEnglish}',
@@ -276,8 +266,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
         ),
         const SizedBox(height: 12),
         IdentityFieldCard(
-          khmerLabel: 'អាសយដ្ឋានបច្ចុប្បន្ន',
-          englishLabel: 'Current Residence',
+          label: 'identity_current_residence_label'.tr,
           leadingIcon: CupertinoIcons.location_solid,
           tag: const Icon(
             CupertinoIcons.checkmark_alt_circle_fill,
@@ -296,20 +285,19 @@ class IdentityScanView extends GetView<IdentityScanController> {
   }
 
   Widget _buildEmptyFields(BuildContext context) {
-    const labels = [
-      ('លេខអត្តសញ្ញាណប័ណ្ណ', 'National ID Number'),
-      ('ឈ្មោះជាភាសាខ្មែរ', 'Name in Khmer'),
-      ('ឈ្មោះជាអក្សរឡាតាំង', 'Name in Latin'),
-      ('ថ្ងៃខែឆ្នាំកំណើត', 'Date of Birth'),
-      ('ទីកន្លែងកំណើត', 'Place of Birth'),
+    final labels = [
+      'id_number_label'.tr,
+      'identity_name_khmer_label'.tr,
+      'identity_name_latin_label'.tr,
+      'date_of_birth_label'.tr,
+      'place_of_birth_label'.tr,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (khmer, english) in labels) ...[
+        for (final label in labels) ...[
           IdentityFieldCard(
-            khmerLabel: khmer,
-            englishLabel: english,
+            label: label,
             child: const Text(
               '—',
               style: TextStyle(
@@ -350,26 +338,20 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const Text(
-                        'កំពុងស្រង់ព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
+                      Text(
+                        'identity_processing_title'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Extracting ID Information…',
+                      Text(
+                        'identity_processing_subtitle'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: idMuted, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Validating chip signature and MRZ checksum.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: idMuted, fontSize: 12),
+                        style: const TextStyle(color: idMuted, fontSize: 13),
                       ),
                     ],
                   ),

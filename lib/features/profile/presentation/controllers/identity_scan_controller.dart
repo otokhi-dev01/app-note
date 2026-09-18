@@ -14,6 +14,7 @@ import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/domain/usecases/identity_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:Note/routes/app_pages.dart';
 
 enum IdentityScanStep { main, scanning, processing }
 
@@ -72,8 +73,8 @@ class IdentityScanController extends GetxController {
           (defaultTargetPlatform != TargetPlatform.iOS &&
               defaultTargetPlatform != TargetPlatform.android)) {
         AppSnackbar.info(
-          'Scan Unavailable',
-          'ID scanning requires an iPhone or Android device.',
+          'identity_scan_unavailable_title'.tr,
+          'identity_scan_unavailable_device_message'.tr,
         );
         return;
       }
@@ -130,22 +131,22 @@ class IdentityScanController extends GetxController {
           'SDK version and expiry in the Microblink dashboard.',
         );
         AppSnackbar.error(
-          'Scan Unavailable',
-          'Identity scanning could not be activated. Please contact support.',
+          'identity_scan_unavailable_title'.tr,
+          'identity_scan_unavailable_license_message'.tr,
         );
       } else {
         debugPrint('[BLINKID ERROR] ${e.code}');
         AppSnackbar.error(
-          'Scan Failed',
-          'An error occurred while scanning your ID.',
+          'identity_scan_failed_title'.tr,
+          'identity_scan_failed_generic_message'.tr,
         );
       }
     } catch (e) {
       if (isClosed) return;
       debugPrint('[BLINKID ERROR] ${e.runtimeType}');
       AppSnackbar.error(
-        'Scan Failed',
-        'An error occurred while scanning your ID.',
+        'identity_scan_failed_title'.tr,
+        'identity_scan_failed_generic_message'.tr,
       );
     } finally {
       if (!isClosed) isLoading.value = false;
@@ -302,9 +303,8 @@ class IdentityScanController extends GetxController {
       // Keep whatever was previously verified rather than wiping it out on
       // a failed rescan attempt — the user can just try again.
       AppSnackbar.error(
-        'Scan Failed',
-        "Couldn't read your ID automatically. Please try again with better "
-            'lighting, or enter your details manually.',
+        'identity_scan_failed_title'.tr,
+        'identity_scan_failed_retry_message'.tr,
       );
     }
     currentStep.value = IdentityScanStep.main;
@@ -338,24 +338,39 @@ class IdentityScanController extends GetxController {
       return;
     }
     isLoading.value = true;
+    final placeOfBirth = [
+      result.placeOfBirthKhmer,
+      result.placeOfBirthEnglish,
+    ].where((part) => part.isNotEmpty).join(' / ');
+    final currentAddress = [
+      result.currentAddressKhmer,
+      result.currentAddressEnglish,
+    ].where((part) => part.isNotEmpty).join('\n');
     final saved = await Get.find<ProfileController>().applyScannedIdInformation(
       idNumber: result.idNumber,
       name: result.nameLatin,
       dateOfBirth: result.dateOfBirthAsDate,
+      placeOfBirth: placeOfBirth,
+      currentAddress: currentAddress,
+      expiryDate: result.expiryDateAsDate,
     );
     if (isClosed) return;
     isLoading.value = false;
     if (!saved) {
       AppSnackbar.error(
-        'Could Not Save',
-        'Your ID Information could not be saved. Please try again.',
+        'identity_save_failed_title'.tr,
+        'identity_save_failed_message'.tr,
       );
       return;
     }
     AppSnackbar.success(
-      'Identity Verified',
-      'Your Digital Civic ID has been confirmed.',
+      'identity_verified_snackbar_title'.tr,
+      'identity_verified_snackbar_message'.tr,
     );
-    Get.back();
+    // Explicitly land on Profile rather than a plain Get.back() — this
+    // clears the scan flow (and, if the fallback camera was used along the
+    // way, its screen too) out of the stack instead of relying on whatever
+    // happens to be directly underneath.
+    unawaited(Get.offNamed(Routes.PROFILE));
   }
 }

@@ -8,16 +8,24 @@ import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 
+typedef SaveIdInformation =
+    Future<bool> Function(
+      String idNumber,
+      String name,
+      DateTime dateOfBirth,
+      String placeOfBirth,
+      String currentAddress,
+      DateTime? expiryDate,
+    );
+
 class EditIdInformationSheet extends StatefulWidget {
   final String initialIdNumber;
   final String initialName;
   final DateTime? initialDateOfBirth;
-  final Future<bool> Function(
-    String idNumber,
-    String name,
-    DateTime dateOfBirth,
-  )
-  onSave;
+  final String initialPlaceOfBirth;
+  final String initialCurrentAddress;
+  final DateTime? initialExpiryDate;
+  final SaveIdInformation onSave;
 
   const EditIdInformationSheet({
     super.key,
@@ -25,6 +33,9 @@ class EditIdInformationSheet extends StatefulWidget {
     required this.initialName,
     required this.initialDateOfBirth,
     required this.onSave,
+    this.initialPlaceOfBirth = '',
+    this.initialCurrentAddress = '',
+    this.initialExpiryDate,
   });
 
   static Future<void> show({
@@ -32,12 +43,10 @@ class EditIdInformationSheet extends StatefulWidget {
     required String initialIdNumber,
     required String initialName,
     required DateTime? initialDateOfBirth,
-    required Future<bool> Function(
-      String idNumber,
-      String name,
-      DateTime dateOfBirth,
-    )
-    onSave,
+    required SaveIdInformation onSave,
+    String initialPlaceOfBirth = '',
+    String initialCurrentAddress = '',
+    DateTime? initialExpiryDate,
   }) {
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -47,6 +56,9 @@ class EditIdInformationSheet extends StatefulWidget {
             initialIdNumber: initialIdNumber,
             initialName: initialName,
             initialDateOfBirth: initialDateOfBirth,
+            initialPlaceOfBirth: initialPlaceOfBirth,
+            initialCurrentAddress: initialCurrentAddress,
+            initialExpiryDate: initialExpiryDate,
             onSave: onSave,
           ),
         ),
@@ -61,22 +73,34 @@ class EditIdInformationSheet extends StatefulWidget {
 class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
   static const _maxIdLength = 40;
   static const _maxNameLength = 80;
+  static const _maxPlaceLength = 120;
+  static const _maxAddressLength = 200;
 
   late final TextEditingController _idController;
   late final TextEditingController _nameController;
+  late final TextEditingController _placeOfBirthController;
+  late final TextEditingController _currentAddressController;
   late final FocusNode _nameFocusNode;
+  late final FocusNode _placeOfBirthFocusNode;
+  late final FocusNode _currentAddressFocusNode;
   DateTime? _dateOfBirth;
+  DateTime? _expiryDate;
   bool _isSaving = false;
   bool _showErrors = false;
 
   String get _idNumber => _idController.text.trim();
   String get _name => _nameController.text.trim();
+  String get _placeOfBirth => _placeOfBirthController.text.trim();
+  String get _currentAddress => _currentAddressController.text.trim();
   bool get _isValid =>
       _idNumber.isNotEmpty && _name.isNotEmpty && _dateOfBirth != null;
   bool get _hasChanged =>
       _idNumber != widget.initialIdNumber.trim() ||
       _name != widget.initialName.trim() ||
-      !_sameDay(_dateOfBirth, widget.initialDateOfBirth);
+      !_sameDay(_dateOfBirth, widget.initialDateOfBirth) ||
+      _placeOfBirth != widget.initialPlaceOfBirth.trim() ||
+      _currentAddress != widget.initialCurrentAddress.trim() ||
+      !_sameDay(_expiryDate, widget.initialExpiryDate);
   bool get _canSave => !_isSaving && _isValid && _hasChanged;
 
   @override
@@ -86,8 +110,17 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
       ..addListener(_handleChanged);
     _nameController = TextEditingController(text: widget.initialName)
       ..addListener(_handleChanged);
+    _placeOfBirthController =
+        TextEditingController(text: widget.initialPlaceOfBirth)
+          ..addListener(_handleChanged);
+    _currentAddressController =
+        TextEditingController(text: widget.initialCurrentAddress)
+          ..addListener(_handleChanged);
     _nameFocusNode = FocusNode();
+    _placeOfBirthFocusNode = FocusNode();
+    _currentAddressFocusNode = FocusNode();
     _dateOfBirth = widget.initialDateOfBirth;
+    _expiryDate = widget.initialExpiryDate;
   }
 
   @override
@@ -98,7 +131,15 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
     _nameController
       ..removeListener(_handleChanged)
       ..dispose();
+    _placeOfBirthController
+      ..removeListener(_handleChanged)
+      ..dispose();
+    _currentAddressController
+      ..removeListener(_handleChanged)
+      ..dispose();
     _nameFocusNode.dispose();
+    _placeOfBirthFocusNode.dispose();
+    _currentAddressFocusNode.dispose();
     super.dispose();
   }
 
@@ -125,6 +166,28 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
     }
   }
 
+  /// Unlike [_pickDate] (a birth date, which must be in the past), an ID's
+  /// expiry date is normally in the future — so this opens on today rather
+  /// than an 18-years-ago default and allows a wide forward range.
+  Future<void> _pickExpiryDate() async {
+    if (_isSaving) return;
+    FocusScope.of(context).unfocus();
+    final now = DateTime.now();
+    final initial = _expiryDate ?? DateTime(now.year + 10, now.month, now.day);
+    final picked = await Navigator.of(context).push<DateTime>(
+      MaterialPageRoute(
+        builder: (_) => ProfileDatePickerScreen(
+          initialDate: initial,
+          firstDate: DateTime(1900),
+          lastDate: DateTime(now.year + 30, now.month, now.day),
+        ),
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() => _expiryDate = picked);
+    }
+  }
+
   Future<void> _submit() async {
     if (_isSaving) return;
     if (!_isValid) {
@@ -140,7 +203,14 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
 
     final dateOfBirth = _dateOfBirth;
     if (dateOfBirth == null) return;
-    final saved = await widget.onSave(_idNumber, _name, dateOfBirth);
+    final saved = await widget.onSave(
+      _idNumber,
+      _name,
+      dateOfBirth,
+      _placeOfBirth,
+      _currentAddress,
+      _expiryDate,
+    );
     if (!mounted) return;
     if (saved) {
       Navigator.of(context).pop();
@@ -221,6 +291,38 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
             _label(theme, scheme, 'date_of_birth_label'.tr),
             const SizedBox(height: 8),
             _dateField(theme, scheme),
+            const SizedBox(height: 14),
+            _label(theme, scheme, 'place_of_birth_label'.tr),
+            const SizedBox(height: 8),
+            _textField(
+              theme,
+              scheme,
+              controller: _placeOfBirthController,
+              focusNode: _placeOfBirthFocusNode,
+              hint: 'place_of_birth_hint'.tr,
+              maxLength: _maxPlaceLength,
+              textCapitalization: TextCapitalization.words,
+              action: TextInputAction.next,
+              onSubmitted: (_) => _currentAddressFocusNode.requestFocus(),
+            ),
+            const SizedBox(height: 14),
+            _label(theme, scheme, 'current_address_label'.tr),
+            const SizedBox(height: 8),
+            _textField(
+              theme,
+              scheme,
+              controller: _currentAddressController,
+              focusNode: _currentAddressFocusNode,
+              hint: 'current_address_hint'.tr,
+              maxLength: _maxAddressLength,
+              textCapitalization: TextCapitalization.sentences,
+              action: TextInputAction.done,
+              onSubmitted: (_) => FocusScope.of(context).unfocus(),
+            ),
+            const SizedBox(height: 14),
+            _label(theme, scheme, 'id_expiry_date_label'.tr),
+            const SizedBox(height: 8),
+            _expiryDateField(theme, scheme),
             const SizedBox(height: 22),
             _actions(scheme),
           ],
@@ -330,6 +432,44 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
               : _formatDate(dateOfBirth),
           style: theme.textTheme.bodyLarge?.copyWith(
             color: dateOfBirth == null
+                ? scheme.onSurfaceVariant
+                : scheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Same shape as [_dateField], but optional — an expiry date has no
+  /// "required" error state since, unlike the identity fields above it,
+  /// this one can be filled in later.
+  Widget _expiryDateField(ThemeData theme, ColorScheme scheme) {
+    final expiryDate = _expiryDate;
+    final border = _border(scheme);
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: _isSaving ? null : _pickExpiryDate,
+      child: InputDecorator(
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 15,
+          ),
+          border: border,
+          enabledBorder: border,
+          suffixIcon: Icon(
+            CupertinoIcons.calendar,
+            size: 20,
+            color: IosSemanticColors.pink,
+          ),
+        ),
+        child: Text(
+          expiryDate == null ? 'id_expiry_date_hint'.tr : _formatDate(expiryDate),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: expiryDate == null
                 ? scheme.onSurfaceVariant
                 : scheme.onSurface,
             fontWeight: FontWeight.w500,

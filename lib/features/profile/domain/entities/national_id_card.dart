@@ -45,8 +45,13 @@ class NationalIdCard {
   /// callers (like syncing into the Profile screen's ID Information) that
   /// need a real [DateTime] rather than the formatted string. `null` when
   /// the value isn't in that shape.
-  DateTime? get dateOfBirthAsDate {
-    final parts = dateOfBirth.split('-');
+  DateTime? get dateOfBirthAsDate => _parseDisplayDate(dateOfBirth);
+
+  /// [expiryDate] parsed the same way — see [dateOfBirthAsDate].
+  DateTime? get expiryDateAsDate => _parseDisplayDate(expiryDate);
+
+  static DateTime? _parseDisplayDate(String value) {
+    final parts = value.split('-');
     if (parts.length != 3) return null;
     final day = int.tryParse(parts[0]);
     final month = int.tryParse(parts[1]);

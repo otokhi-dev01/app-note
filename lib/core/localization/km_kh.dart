@@ -273,19 +273,94 @@ const Map<String, String> kmKH = {
   'id_number_label': 'លេខអត្តសញ្ញាណប័ណ្ណ',
   'id_name_label': 'ឈ្មោះ',
   'date_of_birth_label': 'ថ្ងៃខែឆ្នាំកំណើត',
+  'place_of_birth_label': 'ទីកន្លែងកំណើត',
+  'current_address_label': 'អាសយដ្ឋានបច្ចុប្បន្ន',
+  'id_expiry_date_label': 'កាលបរិច្ឆេទផុតកំណត់',
   'edit_id_information_title': 'កែព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
   'edit_id_information_subtitle':
       'ព័ត៌មានអត្តសញ្ញាណរបស់អ្នកត្រូវបានអ៊ិនគ្រីប និងរក្សាទុកសម្រាប់តែគណនីនេះនៅលើឧបករណ៍នេះ។',
   'id_number_hint': 'បញ្ចូលលេខអត្តសញ្ញាណប័ណ្ណរបស់អ្នក',
   'id_name_hint': 'បញ្ចូលឈ្មោះដែលបង្ហាញលើអត្តសញ្ញាណប័ណ្ណ',
   'date_of_birth_hint': 'ជ្រើសរើសថ្ងៃខែឆ្នាំកំណើត',
+  'place_of_birth_hint': 'បញ្ចូលទីកន្លែងកំណើតរបស់អ្នក',
+  'current_address_hint': 'បញ្ចូលអាសយដ្ឋានបច្ចុប្បន្នរបស់អ្នក',
+  'id_expiry_date_hint': 'ជ្រើសរើសកាលបរិច្ឆេទផុតកំណត់',
   'id_number_required': 'សូមបញ្ចូលលេខអត្តសញ្ញាណប័ណ្ណរបស់អ្នក។',
   'id_name_required': 'សូមបញ្ចូលឈ្មោះដែលបង្ហាញលើអត្តសញ្ញាណប័ណ្ណ។',
   'date_of_birth_required': 'សូមជ្រើសរើសថ្ងៃខែឆ្នាំកំណើត។',
+  'place_of_birth_required': 'សូមបញ្ចូលទីកន្លែងកំណើតរបស់អ្នក។',
+  'current_address_required': 'សូមបញ្ចូលអាសយដ្ឋានបច្ចុប្បន្នរបស់អ្នក។',
+  'id_expiry_date_required': 'សូមជ្រើសរើសកាលបរិច្ឆេទផុតកំណត់។',
   'id_information_saved': 'ព័ត៌មានអត្តសញ្ញាណប័ណ្ណត្រូវបានធ្វើបច្ចុប្បន្នភាព',
   'id_information_save_failed_title':
       'មិនអាចរក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណបានទេ',
   'id_information_save_failed_message': 'សូមព្យាយាមម្តងទៀត។',
+
+  // Digital Civic ID scan flow
+  'identity_app_title': 'អត្តសញ្ញាណបណ្ណសញ្ញាតិខ្មែរ',
+  'identity_verified_title': 'បានផ្ទៀងផ្ទាត់ជោគជ័យ',
+  'identity_verified_subtitle': 'ការផ្ទៀងផ្ទាត់ឈីប និង OCR • ៩៩.៧%',
+  'identity_pending_title': 'រង់ចាំការស្កេនអត្តសញ្ញាណប័ណ្ណ',
+  'identity_pending_subtitle': 'ស្កេនទាំងសងខាងដើម្បីផ្ទៀងផ្ទាត់អត្តសញ្ញាណ',
+  'identity_sealed_badge': 'បានបោះត្រា',
+  'identity_copy_action': 'ចម្លង',
+  'identity_copied_title': 'បានចម្លង',
+  'identity_copied_message': 'លេខអត្តសញ្ញាណប័ណ្ណត្រូវបានចម្លង។',
+  'identity_side_front': 'ខាងមុខ',
+  'identity_side_back': 'ខាងក្រោយ',
+  'identity_mrz_title': 'MRZ អនុលោមតាម ICAO 9303',
+  'identity_mrz_signature_comment': '# ហត្ថលេខាឈីបដែលបានអ៊ិនគ្រីប',
+  'identity_scanned_previews_title': 'រូបភាពដែលបានស្កេន',
+  'identity_refresh_action': 'ផ្ទុកឡើងវិញ',
+  'identity_photo_hologram_label': 'រូបថត និងហូឡូក្រាម',
+  'identity_mrz_chip_data_label': 'MRZ និងទិន្នន័យឈីប',
+  'identity_name_khmer_label': 'ឈ្មោះជាភាសាខ្មែរ',
+  'identity_name_latin_label': 'ឈ្មោះជាអក្សរឡាតាំង',
+  'identity_current_residence_label': 'អាសយដ្ឋានបច្ចុប្បន្ន',
+  'identity_chip_matched_tag': 'ឈីបត្រូវគ្នា',
+  'identity_valid_years_caption': 'មានសុពលភាព (@years ឆ្នាំ)',
+  'identity_confirm_action': 'បញ្ជាក់ព័ត៌មាន',
+  'identity_start_scanning_action': 'ចាប់ផ្តើមស្កេន',
+  'identity_rescan_action': 'ស្កេនម្តងទៀត',
+  'identity_footer_protection':
+      'ការការពារបញ្ជីវិក័យបត្រអ៊ិនគ្រីបពីចុងដល់ចុង • ISO/IEC 18013-5\n'
+      'ត្រូវបានការពារក្រោមក្របខ័ណ្ឌឯកជនភាពទិន្នន័យ '
+      'និងអត្តសញ្ញាណឌីជីថលនៃរាជរដ្ឋាភិបាលកម្ពុជា។',
+  'identity_processing_title': 'កំពុងស្រង់ព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
+  'identity_processing_subtitle': 'កំពុងផ្ទៀងផ្ទាត់ហត្ថលេខាឈីប និង MRZ។',
+  'identity_step_front_label': 'ជំហានទី១ • ខាងមុខ',
+  'identity_step_back_label': 'ជំហានទី២ • ខាងក្រោយ',
+  'identity_place_card_hint': 'ដាក់អត្តសញ្ញាណប័ណ្ណក្នុងប្រអប់',
+  'identity_auto_detecting': 'កំពុងស្វែងរកដោយស្វ័យប្រវត្តិ',
+  'identity_upload_document_action': 'ផ្ទុករូបភាពឯកសារ',
+  'identity_camera_footer_encrypted': 'ការពារជាមួយការអ៊ិនគ្រីបពីចុងដល់ចុង',
+  'identity_hint_flat_front': 'តម្រឹមប័ណ្ណឲ្យចំក្នុងប្រអប់ដើម្បីស្កេន',
+  'identity_hint_flip_back': 'ត្រឡប់ប័ណ្ណទៅផ្នែកខាងក្រោយ ដើម្បីស្កេន MRZ',
+  'identity_capture_front_semantic': 'ថតផ្នែកខាងមុខនៃអត្តសញ្ញាណប័ណ្ណ',
+  'identity_capture_back_semantic': 'ថតផ្នែកខាងក្រោយនៃអត្តសញ្ញាណប័ណ្ណ',
+  'identity_camera_permission_denied':
+      'សូមអនុញ្ញាតការប្រើប្រាស់កាមេរ៉ានៅក្នុងការកំណត់ដើម្បីស្កេនអត្តសញ្ញាណប័ណ្ណ។',
+  'identity_camera_unavailable':
+      'មិនអាចបើកកាមេរ៉ាបានទេ។ សូមព្យាយាមម្តងទៀត ឬផ្ទុករូបភាព។',
+  'identity_try_again_action': 'ព្យាយាមម្តងទៀត',
+  'identity_open_settings_action': 'បើកការកំណត់',
+  'identity_scan_unavailable_title': 'មិនអាចស្កេនបានទេ',
+  'identity_scan_unavailable_device_message':
+      'ការស្កេនអត្តសញ្ញាណប័ណ្ណតម្រូវឱ្យប្រើ iPhone ឬឧបករណ៍ Android។',
+  'identity_scan_unavailable_license_message':
+      'មិនអាចបើកដំណើរការស្កេនអត្តសញ្ញាណបានទេ។ សូមទាក់ទងផ្នែកជំនួយ។',
+  'identity_scan_failed_title': 'ការស្កេនបរាជ័យ',
+  'identity_scan_failed_generic_message':
+      'មានបញ្ហាកើតឡើងខណៈពេលស្កេនអត្តសញ្ញាណប័ណ្ណរបស់អ្នក។',
+  'identity_scan_failed_retry_message':
+      'មិនអាចអានអត្តសញ្ញាណប័ណ្ណរបស់អ្នកដោយស្វ័យប្រវត្តិបានទេ។ '
+      'សូមព្យាយាមម្តងទៀតជាមួយពន្លឺល្អជាងមុន ឬបញ្ចូលព័ត៌មានដោយដៃ។',
+  'identity_save_failed_title': 'មិនអាចរក្សាទុកបានទេ',
+  'identity_save_failed_message':
+      'មិនអាចរក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណរបស់អ្នកបានទេ។ សូមព្យាយាមម្តងទៀត។',
+  'identity_verified_snackbar_title': 'អត្តសញ្ញាណត្រូវបានផ្ទៀងផ្ទាត់',
+  'identity_verified_snackbar_message':
+      'អត្តសញ្ញាណបណ្ណសញ្ញាតិឌីជីថលរបស់អ្នកត្រូវបានបញ្ជាក់។',
 
   // Settings drawer
   'settings_drawer_view_profile': 'ព័ត៌មានប្រវត្តិរូប',

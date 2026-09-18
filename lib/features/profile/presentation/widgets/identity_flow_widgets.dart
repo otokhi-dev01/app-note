@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 
 // Palette for the Digital Civic ID flow. Kept distinct from the credit-card
@@ -55,7 +56,7 @@ class IdentityAppHeader extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        'អត្តសញ្ញាណបណ្ណសញ្ញាតិខ្មែរ',
+                        'identity_app_title'.tr,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -146,8 +147,8 @@ class IdentityStatusBanner extends StatelessWidget {
               children: [
                 Text(
                   verified
-                      ? 'បានផ្ទៀងផ្ទាត់ជោគជ័យ'
-                      : 'រង់ចាំការស្កេនអត្តសញ្ញាណប័ណ្ណ',
+                      ? 'identity_verified_title'.tr
+                      : 'identity_pending_title'.tr,
                   style: const TextStyle(
                     color: idInk,
                     fontSize: 15,
@@ -157,8 +158,8 @@ class IdentityStatusBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   verified
-                      ? 'Biometric Chip & OCR Pass • 99.7%'
-                      : 'Scan both sides to verify your identity',
+                      ? 'identity_verified_subtitle'.tr
+                      : 'identity_pending_subtitle'.tr,
                   style: const TextStyle(color: idMuted, fontSize: 12),
                 ),
               ],
@@ -174,12 +175,12 @@ class IdentityStatusBanner extends StatelessWidget {
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(CupertinoIcons.lock_fill, size: 11, color: idInk),
-                  SizedBox(width: 4),
+                children: [
+                  const Icon(CupertinoIcons.lock_fill, size: 11, color: idInk),
+                  const SizedBox(width: 4),
                   Text(
-                    'SEALED',
-                    style: TextStyle(
+                    'identity_sealed_badge'.tr,
+                    style: const TextStyle(
                       color: idInk,
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -199,14 +200,12 @@ class IdentitySectionHeader extends StatelessWidget {
   const IdentitySectionHeader({
     super.key,
     required this.icon,
-    required this.khmerLabel,
-    required this.englishLabel,
+    required this.label,
     this.trailing,
   });
 
   final IconData icon;
-  final String khmerLabel;
-  final String englishLabel;
+  final String label;
   final Widget? trailing;
 
   @override
@@ -216,25 +215,13 @@ class IdentitySectionHeader extends StatelessWidget {
         Icon(icon, size: 16, color: idInk),
         const SizedBox(width: 8),
         Expanded(
-          child: RichText(
+          child: Text(
+            label,
             overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: const TextStyle(
-                color: idInk,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-              children: [
-                TextSpan(text: khmerLabel),
-                TextSpan(
-                  text: ' ($englishLabel)',
-                  style: const TextStyle(
-                    color: idMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            style: const TextStyle(
+              color: idInk,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
@@ -288,15 +275,13 @@ class IdentityTag extends StatelessWidget {
 class IdentityFieldCard extends StatelessWidget {
   const IdentityFieldCard({
     super.key,
-    required this.khmerLabel,
-    required this.englishLabel,
+    required this.label,
     required this.child,
     this.leadingIcon,
     this.tag,
   });
 
-  final String khmerLabel;
-  final String englishLabel;
+  final String label;
   final Widget child;
   final IconData? leadingIcon;
   final Widget? tag;
@@ -322,28 +307,14 @@ class IdentityFieldCard extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      khmerLabel,
-                      style: const TextStyle(
-                        color: idInk,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      englishLabel.toUpperCase(),
-                      style: const TextStyle(
-                        color: idMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(
+                    color: idMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ),
               ?tag,
@@ -386,18 +357,24 @@ class IdentityCopyableValue extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             onTap: () {
               unawaited(Clipboard.setData(ClipboardData(text: value)));
-              AppSnackbar.success('Copied', 'ID number copied to clipboard.');
+              AppSnackbar.success(
+                'identity_copied_title'.tr,
+                'identity_copied_message'.tr,
+              );
             },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(CupertinoIcons.doc_on_doc, size: 13, color: idInk),
-                  SizedBox(width: 5),
+                  const Icon(CupertinoIcons.doc_on_doc, size: 13, color: idInk),
+                  const SizedBox(width: 5),
                   Text(
-                    'Copy',
-                    style: TextStyle(
+                    'identity_copy_action'.tr,
+                    style: const TextStyle(
                       color: idInk,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
@@ -417,14 +394,12 @@ class IdentityCopyableValue extends StatelessWidget {
 class IdentityPreviewCard extends StatelessWidget {
   const IdentityPreviewCard({
     super.key,
-    required this.khmerLabel,
-    required this.englishLabel,
+    required this.label,
     this.imagePath,
     this.front = true,
   });
 
-  final String khmerLabel;
-  final String englishLabel;
+  final String label;
   final String? imagePath;
 
   /// Which side this preview represents — used only to pick the placeholder
@@ -496,7 +471,7 @@ class IdentityPreviewCard extends StatelessWidget {
           children: [
             Flexible(
               child: Text(
-                khmerLabel,
+                label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -516,17 +491,6 @@ class IdentityPreviewCard extends StatelessWidget {
             ],
           ],
         ),
-        Text(
-          englishLabel.toUpperCase(),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: idMuted,
-            fontSize: 9.5,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
-          ),
-        ),
       ],
     );
   }
@@ -536,7 +500,8 @@ class IdentityPreviewCard extends StatelessWidget {
   /// barcode-style pattern (rear), so the two placeholders read distinctly
   /// even before either side has been scanned.
   Widget _placeholderMock() {
-    final label = front ? 'FRONT' : 'REAR';
+    final label = (front ? 'identity_side_front'.tr : 'identity_side_back'.tr)
+        .toUpperCase();
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Column(
@@ -665,10 +630,10 @@ class IdentityMrzBlock extends StatelessWidget {
                 color: Colors.white,
               ),
               const SizedBox(width: 6),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'ICAO 9303 COMPLIANT MRZ',
-                  style: TextStyle(
+                  'identity_mrz_title'.tr.toUpperCase(),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 10.5,
                     fontWeight: FontWeight.w800,
@@ -681,7 +646,7 @@ class IdentityMrzBlock extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '# ENCRYPTED CHIP SIGNATURE\n${lines.join('\n')}',
+            '${'identity_mrz_signature_comment'.tr}\n${lines.join('\n')}',
             style: const TextStyle(
               color: Color(0xFF7FE0B8),
               fontFamily: 'monospace',
@@ -700,15 +665,13 @@ class IdentityMrzBlock extends StatelessWidget {
 class IdentityPrimaryButton extends StatelessWidget {
   const IdentityPrimaryButton({
     super.key,
-    required this.khmerLabel,
-    required this.englishLabel,
+    required this.label,
     required this.onPressed,
     this.icon = CupertinoIcons.checkmark_alt,
     this.loading = false,
   });
 
-  final String khmerLabel;
-  final String englishLabel;
+  final String label;
   final VoidCallback? onPressed;
   final IconData icon;
   final bool loading;
@@ -743,7 +706,7 @@ class IdentityPrimaryButton extends StatelessWidget {
                   Icon(icon, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    '$khmerLabel  •  $englishLabel',
+                    label,
                     style: const TextStyle(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w700,
