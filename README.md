@@ -57,9 +57,12 @@ Open **Profile → Digital Civic ID → Camera Scan / New OCR**. Unlike card
 scanning above, this flow uses Microblink's **BlinkID** SDK
 (`blinkid_flutter`) when a license is configured — its native scanning UI
 handles alignment, capture, and OCR/MRZ extraction entirely on-device.
-**Review & Upload Document** opens an editable form with the scan results and
-images. Uploading sends the reviewed document to the account server. Complete
-National ID details are then applied to the local Profile screen's ID Information.
+Recognized details automatically save to encrypted, account-scoped storage and
+appear in **Profile Details → ID Information**, including after restarting the app.
+**View Profile Details** opens the saved result; a failed save offers a retry.
+**Review & Upload Document** still opens an editable form to submit the document
+and images to the account server. Profile autosave does not require an upload;
+these local details are not synced across devices.
 
 Configure a license (one per platform, tied to this app's bundle id /
 `applicationId`, obtained from the
@@ -72,10 +75,38 @@ flutter run \
 ```
 
 Without a license configured for the current platform, this falls back to
-the app's own camera screen (front/back photo capture, same style as card
-scanning) and submits both photos to a backend endpoint for OCR — see
-`AppConstants.identityApiUrl` for why that endpoint is still an unconfirmed,
-proposed contract rather than a live one.
+the app's own camera screen. Throttled OCR inside the guide automatically
+captures a side after two matching readings: ID heading/number/date on the front,
+then a readable MRZ with valid document, DOB, and expiry check digits on the back.
+Manual shutter and gallery selection remain available. Local MRZ parsing supplies
+the ID number, Latin name, DOB, and expiry. A separate
+offline Tesseract pass reads both captured photos with bundled Khmer and English
+models and extracts labelled Khmer names, birth place, and current address.
+These fields cannot come from MRZ; they require readable printed text. Unknown
+fields remain explicitly marked as unread, with **Edit card details** available
+for correction. No external OCR service receives images for this printed-text pass.
+
+The full Khmer ID (both name scripts, addresses, dates, MRZ, and photo references)
+and the profile summary are committed together in one encrypted per-account
+snapshot. Camera photos are copied to app-private documents storage so previews
+survive temporary-file cleanup. Reopening the Khmer ID screen restores the saved
+card, and edits from either screen update the shared record. Existing profile-only
+records migrate on the next save. Partial rescans of the same ID preserve previous
+address corrections; a different ID does not inherit them.
+Server OCR is attempted only when local parsing fails; `AppConstants.identityApiUrl`
+is still an unconfirmed endpoint. OCR capture does not verify document authenticity.
+
+`test/identity_scan_test.dart` covers consecutive-frame capture, late camera
+callbacks, local parsing/persistence, missing fields, account changes during OCR,
+Khmer multiline addresses, screen restoration, two-way edits, and photo retention.
+The iOS simulator build with the native OCR library passed. All 25 identity and
+shared-camera tests passed, including Khmer model preparation
+and cleanup. The OCR temporary-directory creation bug was also corrected in both
+the live frame scanner and the full-photo text scanner. Android validation with a
+temporary JDK 17 reaches an existing project blocker: `android/app/build.gradle.kts`
+requires the missing `android/key.properties` even for debug/library builds. The
+new Android native plugin still needs a build after signing configuration is available.
+Real-device testing is still needed for lighting, focus, orientation, and OCR accuracy.
 
 **Before shipping this**, note two things this integration did not change:
 
@@ -115,6 +146,35 @@ submission using simulated responses. A successful live upload and accepted
 document-type values still need checking with a signed-in test account.
 
 ## Session recovery
+
+### Login diagnostics
+
+Login and registration send only the fields defined in the Chat Swagger request:
+`account`, `password`, `clientDeviceId`, `appVersion`, `deviceName`, `platform`, and
+`deviceModel`. Account whitespace is trimmed; passwords are sent unchanged.
+
+On September 18, 2026, a login with a deliberately nonexistent diagnostic account
+returned HTTP 500 with `Success: false` and `Message: "Invalid credential!"`.
+The app recognizes that specific rejection as an account/password error; unrelated
+5xx failures remain server errors. The backend should return HTTP 401 for rejected
+credentials. That server-side status-code issue is not fixed in this Flutter repo.
+
+A successful response must contain a sign-in token. The app reports malformed
+server responses and secure-storage failures separately, and only publishes the
+session after storage succeeds. Late session restores cannot overwrite a new
+login, and queued sign-out clears any pending session writes. Login transport and
+storage regression tests are in `test/login_integration_test.dart`; a successful
+live login still requires checking with a valid test account.
+
+Authentication route replacement now dismisses keyboard focus and drains pending
+focus changes before removing the old screens. Notifications use the app's root
+Flutter `ScaffoldMessenger`, so they are not owned by a separate GetX snackbar
+overlay during navigation. Closed auth controllers ignore late responses.
+Regression cases in `test/auth_flow_test.dart` and `test/snackbar_focus_test.dart`
+cover a focused login field, overlapping notifications, and screen disposal.
+These focus regression tests pass, along with login transport/storage, password
+recovery, and guest-profile tests. The original device-specific login crash still
+needs a confirmation run on the affected device.
 
 ### Forgot password
 

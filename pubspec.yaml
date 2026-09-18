@@ -53,6 +53,8 @@ dependencies:
   package_info_plus: ^9.0.0
   uuid: ^4.6.0
   cryptography: ^2.9.0
+  identity_ocr:
+    path: packages/identity_ocr
   blinkid_flutter: ^8001.0.0
 
 dev_dependencies:
@@ -75,3 +77,4 @@ flutter:
     - assets/icons/img.png
     - assets/icons/piisiit_logo_mark.png
     - assets/fonts/
+    - assets/tessdata/

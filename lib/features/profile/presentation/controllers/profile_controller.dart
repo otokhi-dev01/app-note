@@ -14,6 +14,7 @@ import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/app_media_storage.dart';
 import 'package:Note/core/storage/id_information_storage.dart';
+import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/core/storage/profile_extras_storage.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
@@ -31,19 +32,22 @@ class ProfileController extends GetxController {
   final SessionStorage _session;
   Worker? _sessionWorker;
   Worker? _guestModeWorker;
+  int _idInformationRevision = 0;
 
   ProfileController({
     required UpdateUserName updateUserName,
     required UpdateProfileImage updateProfileImage,
     required SessionStorage session,
+    IdInformationStorage idStorage = const IdInformationStorage(),
   }) : _updateUserName = updateUserName,
        _updateProfileImage = updateProfileImage,
-       _session = session;
+       _session = session,
+       _idStorage = idStorage;
 
   final _picker = ImagePicker();
   final _guestMode = Get.find<GuestModeService>();
   final _extras = ProfileExtrasStorage();
-  final _idStorage = const IdInformationStorage();
+  final IdInformationStorage _idStorage;
 
   RxBool get isGuestMode => _guestMode.isGuestMode;
 
@@ -59,6 +63,8 @@ class ProfileController extends GetxController {
   final userJob = ''.obs;
   final userBio = ''.obs;
   final userColorHex = Rx<String?>(null);
+  final identityCard = Rxn<NationalIdCard>();
+  String? _loadedIdentityOwner;
   final userIdNumber = ''.obs;
   final userIdName = ''.obs;
   final userDateOfBirth = Rxn<DateTime>();
@@ -80,6 +86,16 @@ class ProfileController extends GetxController {
   }
 
   void _syncApiUser() async {
+    if (_loadedIdentityOwner != _idOwnerKey) {
+      _loadedIdentityOwner = _idOwnerKey;
+      identityCard.value = null;
+      userIdNumber.value = '';
+      userIdName.value = '';
+      userDateOfBirth.value = null;
+      userPlaceOfBirth.value = '';
+      userCurrentAddress.value = '';
+      userIdExpiryDate.value = null;
+    }
     final user = _session.user.value;
     final isGuest = isGuestMode.value && user == null;
     final apiName = user?.fullName?.trim() ?? '';
@@ -95,12 +111,14 @@ class ProfileController extends GetxController {
     // The avatar is stored as a path relative to the documents directory
     // so it survives app container UUID changes on iOS. Resolve it to a real
     // absolute path for the File widget.
-    final savedPath = isGuest ? _extras.guestImagePath : (user?.profileImage ?? '');
+    final savedPath = isGuest
+        ? _extras.guestImagePath
+        : (user?.profileImage ?? '');
     final resolvedPath = await AppMediaStorage.resolve(savedPath);
     userImagePath.value =
         resolvedPath != null && File(resolvedPath).existsSync()
-            ? resolvedPath
-            : '';
+        ? resolvedPath
+        : '';
 
     unawaited(_loadIdInformation());
   }
@@ -135,7 +153,10 @@ class ProfileController extends GetxController {
     return 'guest';
   }
 
+  String get identityOwnerKey => _idOwnerKey;
+
   Future<void> _loadIdInformation() async {
+    final revision = ++_idInformationRevision;
     final ownerKey = _idOwnerKey;
     if (ownerKey.isEmpty) {
       userIdNumber.value = '';
@@ -149,7 +170,9 @@ class ProfileController extends GetxController {
 
     try {
       final stored = await _idStorage.read(ownerKey);
-      if (ownerKey != _idOwnerKey) return;
+      final storedCard = await _idStorage.readCard(ownerKey);
+      if (ownerKey != _idOwnerKey || revision != _idInformationRevision) return;
+      identityCard.value = storedCard;
       userIdNumber.value = stored.idNumber;
       userIdName.value = stored.name;
       userDateOfBirth.value = stored.dateOfBirth;
@@ -243,7 +266,10 @@ class ProfileController extends GetxController {
             ),
           );
         }
-        AppSnackbar.success('saved_title'.tr, 'profile_image_updated_message'.tr);
+        AppSnackbar.success(
+          'saved_title'.tr,
+          'profile_image_updated_message'.tr,
+        );
       }
 
       // A guest has no session to patch (see _saveUserName) — the avatar is
@@ -376,8 +402,15 @@ class ProfileController extends GetxController {
       initialPlaceOfBirth: userPlaceOfBirth.value,
       initialCurrentAddress: userCurrentAddress.value,
       initialExpiryDate: userIdExpiryDate.value,
-      onSave: (idNumber, name, dateOfBirth, placeOfBirth, currentAddress, expiryDate) =>
-          _saveIdInformation(
+      onSave:
+          (
+            idNumber,
+            name,
+            dateOfBirth,
+            placeOfBirth,
+            currentAddress,
+            expiryDate,
+          ) => _saveIdInformation(
             idNumber,
             name,
             dateOfBirth,
@@ -391,14 +424,16 @@ class ProfileController extends GetxController {
   Future<bool> _saveIdInformation(
     String idNumber,
     String name,
-    DateTime dateOfBirth, {
+    DateTime? dateOfBirth, {
     String placeOfBirth = '',
     String currentAddress = '',
     DateTime? expiryDate,
     bool silent = false,
+    NationalIdCard? scannedCard,
   }) async {
     final ownerKey = _idOwnerKey;
     if (ownerKey.isEmpty) return false;
+    final revision = ++_idInformationRevision;
 
     try {
       await _idStorage.save(
@@ -409,14 +444,20 @@ class ProfileController extends GetxController {
         placeOfBirth: placeOfBirth,
         currentAddress: currentAddress,
         expiryDate: expiryDate,
+        scannedCard: scannedCard,
       );
-      if (ownerKey != _idOwnerKey) return false;
-      userIdNumber.value = idNumber;
-      userIdName.value = name;
-      userDateOfBirth.value = dateOfBirth;
-      userPlaceOfBirth.value = placeOfBirth;
-      userCurrentAddress.value = currentAddress;
-      userIdExpiryDate.value = expiryDate;
+      final stored = await _idStorage.read(ownerKey);
+      final storedCard = await _idStorage.readCard(ownerKey);
+      if (ownerKey != _idOwnerKey || revision != _idInformationRevision) {
+        return false;
+      }
+      identityCard.value = storedCard;
+      userIdNumber.value = stored.idNumber;
+      userIdName.value = stored.name;
+      userDateOfBirth.value = stored.dateOfBirth;
+      userPlaceOfBirth.value = stored.placeOfBirth;
+      userCurrentAddress.value = stored.currentAddress;
+      userIdExpiryDate.value = stored.expiryDate;
       if (!silent) {
         AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
       }
@@ -433,19 +474,9 @@ class ProfileController extends GetxController {
     }
   }
 
-  /// Applies a Digital Civic ID scan result (see `IdentityScanController`)
-  /// to the ID Information shown here — the same local, account-scoped
-  /// storage a manual edit through [updateIdInformation] writes to (see
-  /// that method and [IdInformationStorage] for why this doesn't round-trip
-  /// through a backend yet; the scan itself does, through
-  /// `IdentityRemoteDataSource` — this just takes its result the rest of
-  /// the way to where the ID Information card reads from). Uses the
-  /// Latin-script name since that's the single name this section shows.
-  ///
-  /// `silent`: the scan flow shows its own "Identity Verified" confirmation,
-  /// so this skips the "ID Information Saved" snackbar `updateIdInformation`
-  /// otherwise shows. Returns false if the save itself failed; the caller
-  /// is expected to surface that (the scan flow does, via `AppSnackbar`).
+  /// Saves recognized fields to the encrypted profile cache. Missing fields
+  /// are preserved only for a rescan of the same document; never invent a DOB
+  /// or mix another card's address into a new scan.
   Future<bool> applyScannedIdInformation({
     required String idNumber,
     required String name,
@@ -453,19 +484,36 @@ class ProfileController extends GetxController {
     String placeOfBirth = '',
     String currentAddress = '',
     DateTime? expiryDate,
+    String? expectedOwnerKey,
+    NationalIdCard? scannedCard,
   }) {
+    if (expectedOwnerKey != null && expectedOwnerKey != _idOwnerKey) {
+      return Future.value(false);
+    }
+    final number = idNumber.trim();
+    if (number.isEmpty) return Future.value(false);
+    final sameDocument = number == userIdNumber.value;
     return _saveIdInformation(
-      idNumber,
-      name,
-      dateOfBirth ?? userDateOfBirth.value ?? DateTime.now(),
+      number,
+      name.trim().isNotEmpty
+          ? name.trim()
+          : sameDocument
+          ? userIdName.value
+          : '',
+      dateOfBirth ?? (sameDocument ? userDateOfBirth.value : null),
       placeOfBirth: placeOfBirth.isNotEmpty
           ? placeOfBirth
-          : userPlaceOfBirth.value,
+          : sameDocument
+          ? userPlaceOfBirth.value
+          : '',
       currentAddress: currentAddress.isNotEmpty
           ? currentAddress
-          : userCurrentAddress.value,
-      expiryDate: expiryDate ?? userIdExpiryDate.value,
+          : sameDocument
+          ? userCurrentAddress.value
+          : '',
+      expiryDate: expiryDate ?? (sameDocument ? userIdExpiryDate.value : null),
       silent: true,
+      scannedCard: scannedCard,
     );
   }
 

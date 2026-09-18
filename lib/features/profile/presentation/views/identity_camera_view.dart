@@ -7,28 +7,40 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
+import 'package:Note/features/profile/data/services/card_camera_session.dart';
+import 'package:Note/features/profile/domain/entities/identity_scan_recognition.dart';
 
 /// Fallback front/back capture screen for the Digital Civic ID scan flow,
 /// used only when no BlinkID license is configured for the current platform
 /// (see `IdentityScanController.onStartScan` — BlinkID's own native UI is
 /// preferred and never routes through this screen).
 ///
-/// This screen only captures the two card photos on-device; the parsing
-/// happens server-side afterwards (see `ScanNationalId`), so the guide frame
-/// and "Auto-detecting" pill drawn over the viewfinder are illustrative
-/// guidance rather than a live detector. Capture is manual: the user aligns
-/// the card and taps the shutter.
+/// Samples OCR inside the guide and captures after two matching readings.
+/// Manual capture and gallery selection remain available on unsupported devices.
 class IdentityCameraView extends StatefulWidget {
   const IdentityCameraView({
     super.key,
     required this.onFrontCaptured,
     required this.onBackCaptured,
     required this.onCancel,
+    this.createSession = _createSession,
+    this.pickPhoto = _pickPhoto,
   });
 
   final ValueChanged<String> onFrontCaptured;
   final ValueChanged<String> onBackCaptured;
   final VoidCallback onCancel;
+  final CardCameraSession Function(int lensIndex) createSession;
+  final Future<String?> Function() pickPhoto;
+
+  static CardCameraSession _createSession(int lensIndex) =>
+      CardCameraSession(lensIndex: lensIndex);
+
+  static Future<String?> _pickPhoto() async => (await ImagePicker().pickImage(
+    source: ImageSource.gallery,
+    maxWidth: 2400,
+    maxHeight: 2400,
+  ))?.path;
 
   @override
   State<IdentityCameraView> createState() => _IdentityCameraViewState();
@@ -36,8 +48,15 @@ class IdentityCameraView extends StatefulWidget {
 
 class _IdentityCameraViewState extends State<IdentityCameraView>
     with WidgetsBindingObserver {
-  CameraController? _controller;
-  List<CameraDescription> _cameras = const [];
+  CardCameraSession? _session;
+  int _cameraCount = 0;
+  bool _picking = false;
+  bool _hasFront = false;
+  bool _automatic = true;
+  String? _candidate;
+  int _matches = 0;
+  int _sideVersion = 0;
+  Timer? _turnTimer;
   int _lensIndex = 0;
   bool _active = true;
   bool _ready = false;
@@ -59,52 +78,55 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _active = state == AppLifecycleState.resumed;
-    _queueCamera();
+    if (!_picking) _queueCamera();
   }
 
   void _queueCamera() {
     _lifecycle = _lifecycle.then((_) async {
       await _closeCamera();
-      if (mounted && _active && !_finished) await _openCamera();
+      if (mounted && _active && !_finished && !_picking) await _openCamera();
     });
   }
 
   Future<void> _closeCamera() async {
-    final controller = _controller;
-    _controller = null;
-    if (mounted) setState(() => _ready = false);
+    final session = _session;
+    _session = null;
+    _candidate = null;
+    _matches = 0;
+    if (mounted) {
+      setState(() {
+        _ready = false;
+        _torch = false;
+      });
+    }
     try {
-      await controller?.dispose();
+      await session?.dispose();
     } catch (_) {
       // A disconnected camera may already have been closed by the OS.
     }
   }
 
   Future<void> _openCamera() async {
+    final session = widget.createSession(_lensIndex);
+    _session = session;
     try {
-      if (_cameras.isEmpty) _cameras = await availableCameras();
-      if (_cameras.isEmpty) {
-        throw CameraException('NoCamera', 'No camera is available.');
-      }
-      if (_lensIndex >= _cameras.length) _lensIndex = 0;
-      final controller = CameraController(
-        _cameras[_lensIndex],
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
-      _controller = controller;
-      await controller.initialize();
-      if (!mounted || !_active || _finished || _controller != controller) {
+      await session.initialize();
+      if (!mounted ||
+          !_active ||
+          _finished ||
+          _picking ||
+          _session != session) {
         return;
       }
-      await controller.setFlashMode(FlashMode.off);
       setState(() {
+        _cameraCount = session.cameraCount;
         _ready = true;
         _error = null;
         _permissionDenied = false;
       });
+      await _startDetection();
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || _session != session) return;
       final denied =
           error is CameraException && error.code.startsWith('CameraAccess');
       setState(() {
@@ -117,9 +139,51 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     }
   }
 
+  Future<void> _startDetection() async {
+    final session = _session;
+    if (!_ready || _busy || !_active || _finished || session == null) return;
+    final version = _sideVersion;
+    try {
+      await session.startDetection((text) {
+        if (!mounted ||
+            _busy ||
+            !_active ||
+            _finished ||
+            session != _session ||
+            version != _sideVersion) {
+          return;
+        }
+        final candidate = IdentityScanRecognition.candidate(
+          text,
+          front: _front,
+        );
+        if (candidate == null) {
+          _candidate = null;
+          _matches = 0;
+          return;
+        }
+        _matches = candidate == _candidate ? _matches + 1 : 1;
+        _candidate = candidate;
+        if (_matches >= 2) unawaited(_capture());
+      });
+      if (mounted && session == _session) setState(() => _automatic = true);
+    } catch (_) {
+      if (mounted && session == _session) setState(() => _automatic = false);
+    }
+  }
+
+  Future<void> _restartDetection() async {
+    try {
+      await _session?.stopDetection();
+      await _startDetection();
+    } catch (_) {
+      if (mounted) setState(() => _automatic = false);
+    }
+  }
+
   Future<void> _switchLens() async {
-    if (!_ready || _busy || _cameras.length < 2) return;
-    _lensIndex = (_lensIndex + 1) % _cameras.length;
+    if (!_ready || _busy || _cameraCount < 2) return;
+    _lensIndex = (_lensIndex + 1) % _cameraCount;
     setState(() => _ready = false);
     _queueCamera();
   }
@@ -127,7 +191,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   Future<void> _toggleTorch() async {
     if (!_ready || _busy) return;
     try {
-      await _controller?.setFlashMode(_torch ? FlashMode.off : FlashMode.torch);
+      await _session?.setTorch(!_torch);
       if (mounted) setState(() => _torch = !_torch);
     } catch (_) {
       // Flash is unavailable on some lenses (e.g. the front camera).
@@ -135,40 +199,75 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   }
 
   Future<void> _capture() async {
-    final controller = _controller;
-    if (!_ready || _busy || controller == null) return;
+    final session = _session;
+    if (!_ready || _busy || session == null || _finished) return;
+    final version = _sideVersion;
     setState(() => _busy = true);
     try {
-      final photo = await controller.takePicture();
-      await _accept(photo.path);
+      final path = await session.capturePhoto();
+      if (!mounted ||
+          !_active ||
+          session != _session ||
+          version != _sideVersion) {
+        return;
+      }
+      await _accept(path);
     } catch (_) {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && session == _session) {
+        setState(() => _busy = false);
+        await _startDetection();
+      }
+    } finally {
+      if (mounted && !_finished && _turnTimer?.isActive != true) {
+        setState(() => _busy = false);
+        await _startDetection();
+      }
     }
   }
 
   Future<void> _pickFromGallery() async {
-    if (_busy) return;
-    setState(() => _busy = true);
+    if (_busy || _picking || _finished) return;
+    setState(() {
+      _busy = true;
+      _picking = true;
+    });
+    await _lifecycle;
+    await _closeCamera();
     try {
-      final image = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 2400,
-        maxHeight: 2400,
-      );
-      if (image != null) await _accept(image.path);
+      final path = await widget.pickPhoto();
+      if (mounted && !_finished && path != null) await _accept(path);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'identity_camera_unavailable'.tr);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      _picking = false;
+      if (mounted && !_finished) {
+        setState(() {
+          if (_turnTimer?.isActive != true) _busy = false;
+        });
+        _queueCamera();
+      }
     }
   }
 
   Future<void> _accept(String path) async {
+    if (!mounted || _finished) return;
     unawaited(HapticFeedback.lightImpact());
+    _candidate = null;
+    _matches = 0;
+    _sideVersion++;
     if (_front) {
+      _hasFront = true;
       widget.onFrontCaptured(path);
       if (!mounted) return;
       setState(() {
         _front = false;
-        _busy = false;
+        _busy = true;
+      });
+      _turnTimer?.cancel();
+      _turnTimer = Timer(const Duration(milliseconds: 1500), () {
+        if (!mounted || _finished) return;
+        setState(() => _busy = false);
+        unawaited(_startDetection());
       });
       return;
     }
@@ -178,13 +277,24 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   }
 
   void _selectSide(bool front) {
-    if (_busy || _finished || front == _front) return;
+    if (_busy || _finished || front == _front || (!front && !_hasFront)) return;
+    _sideVersion++;
+    _candidate = null;
+    _matches = 0;
     setState(() => _front = front);
+    unawaited(_restartDetection());
+  }
+
+  void _cancel() {
+    _finished = true;
+    _turnTimer?.cancel();
+    widget.onCancel();
   }
 
   @override
   void dispose() {
     _finished = true;
+    _turnTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_lifecycle.then((_) => _closeCamera()));
     super.dispose();
@@ -195,7 +305,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) widget.onCancel();
+        if (!didPop) _cancel();
       },
       child: Scaffold(
         backgroundColor: idScreenBg,
@@ -220,9 +330,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                   onPressed: _busy ? null : _pickFromGallery,
                 ),
                 const SizedBox(height: 14),
-                IdentityFooterNote(
-                  text: 'identity_camera_footer_encrypted'.tr,
-                ),
+                IdentityFooterNote(text: 'identity_camera_footer_encrypted'.tr),
               ],
             ),
           ),
@@ -234,7 +342,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   Widget _toolbar() {
     return Row(
       children: [
-        _chromeButton(icon: CupertinoIcons.xmark, onTap: widget.onCancel),
+        _chromeButton(icon: CupertinoIcons.xmark, onTap: _cancel),
         Expanded(
           child: Center(
             child: Container(
@@ -266,8 +374,8 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             ),
             _chromeButton(
               icon: CupertinoIcons.camera_rotate,
-              onTap: _cameras.length > 1 ? _switchLens : null,
-              enabled: _cameras.length > 1,
+              onTap: _cameraCount > 1 ? _switchLens : null,
+              enabled: _cameraCount > 1,
             ),
           ],
         ),
@@ -303,72 +411,90 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     );
   }
 
-  Widget _viewfinder() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const ColoredBox(color: idInk),
-          if (_ready && _controller != null)
-            CameraPreview(_controller!)
-          else if (_error == null)
-            const Center(child: CircularProgressIndicator(color: idAccent)),
-          if (_error != null)
+  Widget _viewfinder() => LayoutBuilder(
+    builder: (context, constraints) {
+      final size = constraints.biggest;
+      final guideWidth = size.width - 52;
+      _session?.viewport = size;
+      _session?.frame = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: guideWidth,
+        height: guideWidth / 1.55,
+      );
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const ColoredBox(color: idInk),
+            if (_ready && _session != null)
+              _session!.buildPreview()
+            else if (_error == null)
+              const Center(child: CircularProgressIndicator(color: idAccent)),
+            if (_error != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _permissionDenied
+                            ? () => unawaited(openAppSettings())
+                            : _queueCamera,
+                        child: Text(
+                          _permissionDenied
+                              ? 'identity_open_settings_action'.tr
+                              : 'identity_try_again_action'.tr,
+                          style: const TextStyle(color: idAccent),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Positioned(
+              top: 14,
+              left: 16,
+              right: 16,
+              child: Center(child: _darkPill('identity_place_card_hint'.tr)),
+            ),
             Center(
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _permissionDenied
-                          ? () => unawaited(openAppSettings())
-                          : _queueCamera,
-                      child: Text(
-                        _permissionDenied
-                            ? 'identity_open_settings_action'.tr
-                            : 'identity_try_again_action'.tr,
-                        style: const TextStyle(color: idAccent),
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(horizontal: 26),
+                child: AspectRatio(aspectRatio: 1.55, child: _guideFrame()),
+              ),
+            ),
+            Positioned(
+              bottom: 14,
+              left: 16,
+              right: 16,
+              child: Center(
+                child: _darkPill(
+                  (_busy
+                          ? 'identity_hint_flip_back'
+                          : _ready && _automatic
+                          ? 'identity_auto_detecting'
+                          : 'identity_manual_capture')
+                      .tr,
+                  muted: true,
                 ),
               ),
             ),
-          Positioned(
-            top: 14,
-            left: 16,
-            right: 16,
-            child: Center(child: _darkPill('identity_place_card_hint'.tr)),
-          ),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: AspectRatio(aspectRatio: 1.55, child: _guideFrame()),
-            ),
-          ),
-          Positioned(
-            bottom: 14,
-            left: 16,
-            right: 16,
-            child: Center(
-              child: _darkPill('identity_auto_detecting'.tr, muted: true),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
+    },
+  );
 
   /// The inset card outline drawn over the live preview: a faint bordered
   /// box with rounded teal corner brackets (see [_CornerGuidePainter]) and a

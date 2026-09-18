@@ -103,14 +103,21 @@ class AuthRepositoryImpl implements AuthRepository {
   /// here rather than by the HTTP status.
   Future<AuthSession> _persist(AuthResponse response) async {
     if (kDebugMode) {
-      debugPrint('[AUTH] Persisting response: isSuccess=${response.isSuccess} token.isEmpty=${response.token.isEmpty}');
+      debugPrint(
+        '[AUTH] Persisting response: isSuccess=${response.isSuccess} token.isEmpty=${response.token.isEmpty}',
+      );
     }
-    if (!response.isSuccess || response.token.isEmpty) {
+    if (!response.isSuccess) {
       throw ServerException(
         response.message.isEmpty
             ? 'Could not sign you in. Please try again.'
             : response.message,
         statusCode: response.code,
+      );
+    }
+    if (response.token.trim().isEmpty) {
+      throw const ServerException(
+        'The account server did not return a sign-in token. Please try again.',
       );
     }
     await _session.saveSession(response.token, response.user);

@@ -51,10 +51,26 @@ class AuthController extends GetxController {
   void toggleConfirmPasswordVisibility() => isConfirmPasswordVisible.toggle();
   void toggleRememberMe() => rememberMe.toggle();
 
-  void continueWithoutAccount() {
-    if (isLoading.value) return;
-    _guestMode.enable();
-    unawaited(Get.offAllNamed(Routes.FOLDER));
+  Future<void> continueWithoutAccount() async {
+    if (isLoading.value || isClosed) return;
+    isLoading.value = true;
+    try {
+      _guestMode.enable();
+      await _replaceAuthStack(Routes.FOLDER);
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
+  Future<void> _replaceAuthStack(String route) async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    // Let the current frame and its queued focus notifications finish while
+    // the old route's focus scope is still alive. Keep submission locked until
+    // navigation has been issued, and ignore responses to closed controllers.
+    await WidgetsBinding.instance.endOfFrame;
+    FocusManager.instance.applyFocusChangesIfNeeded();
+    if (isClosed) return;
+    unawaited(Get.offAllNamed(route));
   }
 
   void _loadRememberMe() {
@@ -68,7 +84,8 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    if (isLoading.value) return;
+    if (isLoading.value || isClosed) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     final account = accountController.text.trim();
 
     isLoading.value = true;
@@ -76,6 +93,7 @@ class AuthController extends GetxController {
       final result = await _login(
         LoginParams(account: account, password: passwordController.text),
       );
+      if (isClosed) return;
 
       switch (result) {
         case Ok():
@@ -92,21 +110,18 @@ class AuthController extends GetxController {
           unawaited(Get.find<EncryptionController>().setupForCurrentUser());
 
           if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
-          // Use a slight delay or next-tick to ensure the snackbar and state
-          // updates settle before clearing the entire navigation stack.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Get.offAllNamed(Routes.FOLDER);
-          });
+          await _replaceAuthStack(Routes.FOLDER);
         case Err(:final failure):
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) isLoading.value = false;
     }
   }
 
   Future<void> register() async {
-    if (isLoading.value) return;
+    if (isLoading.value || isClosed) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     isLoading.value = true;
     try {
@@ -117,6 +132,7 @@ class AuthController extends GetxController {
           confirmPassword: confirmPasswordController.text,
         ),
       );
+      if (isClosed) return;
 
       switch (result) {
         case Ok():
@@ -124,17 +140,12 @@ class AuthController extends GetxController {
             'success_title'.tr,
             'register_success_message'.tr,
           );
-          // Deferred to the next frame for the same reason as login(): clearing
-          // the navigation stack immediately can tear down the snackbar's
-          // overlay while it's still transitioning in.
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Get.offAllNamed(Routes.LOGIN);
-          });
+          await _replaceAuthStack(Routes.LOGIN);
         case Err(:final failure):
           AppSnackbar.failure('register_failed_title'.tr, failure);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) isLoading.value = false;
     }
   }
 

@@ -63,12 +63,43 @@ class AuthRemoteDataSource extends GetxService {
       if (kDebugMode) {
         debugPrint('[AUTH] Response: status=${response.statusCode}');
       }
+      if (response.data is! Map) {
+        throw const ServerException(
+          'The account server returned an invalid response. Please try again.',
+        );
+      }
+      if (url.endsWith(AppConstants.loginEndpoint)) {
+        _checkCredentialRejection(response.data, response.statusCode);
+      }
       return AuthResponse.fromJson(
         Map<String, dynamic>.from(response.data),
         statusCode: response.statusCode,
       );
     } on dio.DioException catch (e) {
+      if (url.endsWith(AppConstants.loginEndpoint)) {
+        _checkCredentialRejection(e.response?.data, e.response?.statusCode);
+      }
       throw ApiErrorParser.toException(e);
+    }
+  }
+
+  /// The live server currently labels invalid credentials as HTTP 500.
+  /// Match only its explicit credential rejection, never arbitrary 5xx errors.
+  void _checkCredentialRejection(dynamic body, int? statusCode) {
+    if (body is! Map || (body['success'] ?? body['Success']) == true) return;
+    final message = (body['message'] ?? body['Message'])
+        ?.toString()
+        .trim()
+        .toLowerCase();
+    if (message == 'invalid credential!' ||
+        message == 'invalid credentials!' ||
+        message == 'invalid account or password.') {
+      if (kDebugMode) {
+        debugPrint('[AUTH] Credential rejection: status=$statusCode');
+      }
+      throw const UnauthorizedException(
+        'Invalid account or password. Please check your details and try again.',
+      );
     }
   }
 

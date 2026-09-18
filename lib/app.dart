@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/di/injector.dart';
+import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/localization/app_translations.dart';
 import 'package:Note/core/services/share_intent_service.dart';
 import 'package:Note/core/storage/language_preferences.dart';
@@ -37,6 +38,7 @@ class _NoteAppState extends State<NoteApp> {
 
     return GetMaterialApp(
       title: 'Pii Note',
+      scaffoldMessengerKey: AppSnackbar.messengerKey,
       debugShowCheckedModeBanner: false,
       enableLog: kDebugMode,
       initialBinding: InitialBinding(),

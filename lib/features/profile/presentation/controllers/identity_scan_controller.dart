@@ -11,6 +11,8 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/services/native_media_services.dart';
 import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
+import 'package:Note/features/profile/domain/entities/identity_printed_text_reader.dart';
+import 'package:Note/features/profile/data/services/identity_printed_text_service.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
 import 'package:Note/features/profile/presentation/views/document_upload_view.dart';
@@ -30,17 +32,19 @@ enum IdentityScanStep { main, scanning, processing }
 ///    trip needed. Requires a license key (see `README`/`--dart-define`)
 ///    tied to this app's bundle/package id; falls through to (2) when one
 ///    isn't configured.
-/// 2. **Custom camera + backend OCR** (fallback): the app's own camera
-///    screen captures the front/back photos, which are then sent to
-///    [ScanNationalId] for server-side parsing (see that class's doc
-///    comment — the backend contract is still unconfirmed).
+/// 2. **Custom camera + OCR**: live detection captures front/back photos;
+///    local MRZ parsing runs first, with server OCR as a fallback.
 ///
-/// Review & Upload submits the document to the account server, then applies
-/// complete national-ID details to the local Profile screen.
+/// Recognized details save automatically to the local, account-scoped Profile.
+/// Review & Upload remains available to submit the document to the server.
 class IdentityScanController extends GetxController {
   IdentityScanController(
     this._scanNationalId, {
     BlinkIdFlutter? scanner,
+    Future<String> Function(String) recognizePrintedText =
+        IdentityPrintedTextService.recognize,
+    Future<String> Function(String) recognizeText =
+        NativeMediaServices.recognizeText,
     String iosLicenseKey = const String.fromEnvironment(
       'BLINKID_IOS_LICENSE_KEY',
     ),
@@ -48,10 +52,14 @@ class IdentityScanController extends GetxController {
       'BLINKID_ANDROID_LICENSE_KEY',
     ),
   }) : _scanner = scanner ?? BlinkIdFlutter(),
+       _recognizeText = recognizeText,
+       _recognizePrintedText = recognizePrintedText,
        _iosLicenseKey = iosLicenseKey.trim(),
        _androidLicenseKey = androidLicenseKey.trim();
 
   final ScanNationalId _scanNationalId;
+  final Future<String> Function(String) _recognizeText;
+  final Future<String> Function(String) _recognizePrintedText;
   final BlinkIdFlutter _scanner;
   final String _iosLicenseKey;
   final String _androidLicenseKey;
@@ -59,8 +67,50 @@ class IdentityScanController extends GetxController {
   final currentStep = IdentityScanStep.main.obs;
   final card = Rxn<NationalIdCard>();
   final isLoading = false.obs;
+  final savedToProfile = false.obs;
+  String? _scanOwnerKey;
+  String? _cardOwnerKey;
 
   String? _pendingFrontPath;
+
+  Worker? _profileCardWorker;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final profile = Get.find<ProfileController>();
+    void sync(NationalIdCard? saved) {
+      card.value = saved;
+      _cardOwnerKey = saved == null ? null : profile.identityOwnerKey;
+      savedToProfile.value = saved != null;
+    }
+
+    sync(profile.identityCard.value);
+    _profileCardWorker = ever(profile.identityCard, sync);
+  }
+
+  @override
+  void onClose() {
+    _profileCardWorker?.dispose();
+    super.onClose();
+  }
+
+  Future<bool> saveCorrections(NationalIdCard edited) async {
+    if (isClosed ||
+        isLoading.value ||
+        edited.idNumber != card.value?.idNumber ||
+        _cardOwnerKey != Get.find<ProfileController>().identityOwnerKey) {
+      return false;
+    }
+    isLoading.value = true;
+    try {
+      card.value = edited;
+      savedToProfile.value = false;
+      return await _saveCardToProfile();
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
 
   /// Starts a scan. Tries the licensed BlinkID SDK first; when no license is
   /// configured for this platform, falls back to the app's own camera
@@ -68,6 +118,7 @@ class IdentityScanController extends GetxController {
   Future<void> onStartScan() async {
     if (isLoading.value || isClosed) return;
     _pendingFrontPath = null;
+    _scanOwnerKey = Get.find<ProfileController>().identityOwnerKey;
 
     final licenseKey = _resolveLicenseKey();
     if (licenseKey == null) {
@@ -82,7 +133,7 @@ class IdentityScanController extends GetxController {
       }
       debugPrint(
         '[BLINKID] No license configured for this platform — falling back '
-        'to the manual camera + backend OCR flow. Configure '
+        'to the camera + on-device OCR flow. Configure '
         'BLINKID_IOS_LICENSE_KEY / BLINKID_ANDROID_LICENSE_KEY via '
         '--dart-define-from-file to use the BlinkID SDK instead.',
       );
@@ -121,8 +172,10 @@ class IdentityScanController extends GetxController {
         blinkIdSessionSettings: BlinkIdSessionSettings(),
       );
       if (isClosed || result == null) return; // null == user cancelled.
-      card.value = await _mapBlinkIdResult(result);
-      currentStep.value = IdentityScanStep.main;
+      final scanned = await _mapBlinkIdResult(result);
+      if (isClosed) return;
+      await _completeScan(scanned);
+      if (!isClosed) currentStep.value = IdentityScanStep.main;
     } on PlatformException catch (e) {
       if (isClosed) return;
       final message = e.message?.toLowerCase() ?? '';
@@ -251,65 +304,128 @@ class IdentityScanController extends GetxController {
     _pendingFrontPath = path;
   }
 
-  /// Fallback path: called once the back photo is captured, which submits
-  /// both photos to the backend for OCR (see [ScanNationalId]).
-  void onBackCaptured(String path) {
-    unawaited(_processScan(_pendingFrontPath, path));
-  }
+  /// Parses the captured back locally first, then tries server OCR if needed.
+  Future<void> onBackCaptured(String path) =>
+      _processScan(_pendingFrontPath, path);
 
   Future<void> _processScan(String? frontPath, String backPath) async {
+    if (isClosed || isLoading.value) return;
     if (frontPath == null) {
-      // Nothing sensible to submit without a front photo — bail back to the
-      // result screen rather than calling the backend with a gap.
       currentStep.value = IdentityScanStep.main;
       return;
     }
     currentStep.value = IdentityScanStep.processing;
     isLoading.value = true;
-    final result = await _scanNationalId(
-      ScanNationalIdParams(frontImagePath: frontPath, backImagePath: backPath),
-    );
-    if (isClosed) return;
-
-    NationalIdCard? scanned;
-    Object? backendFailure;
-    switch (result) {
-      case Ok(:final value):
-        scanned = value;
-      case Err(:final failure):
-        backendFailure = failure;
+    try {
+      var scanned = await _scanMrzLocally(frontPath, backPath);
+      if (isClosed) return;
+      if (scanned == null) {
+        final result = await _scanNationalId(
+          ScanNationalIdParams(
+            frontImagePath: frontPath,
+            backImagePath: backPath,
+          ),
+        );
+        if (isClosed) return;
+        if (result case Ok(:final value)) scanned = value;
+      }
+      if (scanned == null || scanned.idNumber.trim().isEmpty) {
+        AppSnackbar.error(
+          'identity_scan_failed_title'.tr,
+          'identity_scan_failed_retry_message'.tr,
+        );
+      } else {
+        await _completeScan(scanned);
+      }
+    } catch (_) {
+      if (!isClosed) {
+        AppSnackbar.error(
+          'identity_scan_failed_title'.tr,
+          'identity_scan_failed_retry_message'.tr,
+        );
+      }
+    } finally {
+      if (!isClosed) {
+        isLoading.value = false;
+        currentStep.value = IdentityScanStep.main;
+      }
     }
+  }
 
-    // `AppConstants.identityApiUrl` is still an unconfirmed, proposed
-    // backend contract (see that constant's doc comment) — it 404s today.
-    // Rather than dead-end there, read the MRZ printed on the back of the
-    // card on-device: no license and no server round trip needed. This
-    // only ever fills what the MRZ carries (ID number, DOB, expiry, the
-    // Latin name) — the Khmer-script fields still need manual entry, same
-    // as before, since the on-device recognizer is Latin-script only (see
-    // MrzReader's doc comment).
-    if (scanned == null) {
-      scanned = await _scanMrzLocally(frontPath, backPath);
-      if (scanned != null) {
+  Future<void> _completeScan(NationalIdCard scanned) async {
+    final profile = Get.find<ProfileController>();
+    for (final path in [scanned.frontImagePath, scanned.backImagePath]) {
+      if (isClosed || _scanOwnerKey != profile.identityOwnerKey) return;
+      if (path == null) continue;
+      try {
+        final text = await _recognizePrintedText(path);
+        scanned = IdentityPrintedTextReader.enrich(scanned, text);
+      } catch (_) {
+        // Keep valid MRZ/BlinkID fields and offer correction for unreadable text.
         debugPrint(
-          '[IDENTITY SCAN] Backend unavailable ($backendFailure) — read '
-          'the MRZ on-device instead.',
+          '[IDENTITY SCAN] Printed text unavailable for a captured side.',
         );
       }
     }
+    if (isClosed || _scanOwnerKey != profile.identityOwnerKey) return;
+    card.value = scanned.fillMissingFrom(profile.identityCard.value);
+    _cardOwnerKey = _scanOwnerKey;
+    savedToProfile.value = false;
+    await _saveCardToProfile();
+  }
 
-    isLoading.value = false;
-    if (scanned != null) {
-      card.value = scanned;
-    } else if (backendFailure != null) {
-      // Keep whatever was previously verified rather than wiping it out on
-      // a failed rescan attempt — the user can just try again.
+  Future<bool> _saveCardToProfile() async {
+    final scanned = card.value;
+    if (scanned == null || isClosed || _cardOwnerKey == null) return false;
+    final saved = await Get.find<ProfileController>().applyScannedIdInformation(
+      idNumber: scanned.idNumber,
+      name: scanned.nameLatin.isNotEmpty
+          ? scanned.nameLatin
+          : scanned.nameKhmer,
+      dateOfBirth: scanned.dateOfBirthAsDate,
+      placeOfBirth: [
+        scanned.placeOfBirthKhmer,
+        scanned.placeOfBirthEnglish,
+      ].where((part) => part.isNotEmpty).join(' / '),
+      currentAddress: [
+        scanned.currentAddressKhmer,
+        scanned.currentAddressEnglish,
+      ].where((part) => part.isNotEmpty).join('\n'),
+      expiryDate: scanned.expiryDateAsDate,
+      expectedOwnerKey: _cardOwnerKey,
+      scannedCard: scanned,
+    );
+    if (isClosed) return false;
+    savedToProfile.value = saved;
+    if (saved) card.value = Get.find<ProfileController>().identityCard.value;
+    if (saved) {
+      AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
+    } else {
       AppSnackbar.error(
-        'identity_scan_failed_title'.tr,
-        'identity_scan_failed_retry_message'.tr,
+        'id_information_save_failed_title'.tr,
+        'id_information_save_failed_message'.tr,
       );
     }
-    currentStep.value = IdentityScanStep.main;
+    return saved;
+  }
+
+  /// Opens the saved details, retrying a failed local save first.
+  Future<void> onViewProfile() async {
+    if (isClosed || isLoading.value || card.value == null) return;
+    isLoading.value = true;
+    try {
+      if (_cardOwnerKey != Get.find<ProfileController>().identityOwnerKey) {
+        AppSnackbar.error(
+          'id_information_save_failed_title'.tr,
+          'id_information_save_failed_message'.tr,
+        );
+        return;
+      }
+      final saved = savedToProfile.value || await _saveCardToProfile();
+      if (saved && !isClosed) unawaited(Get.offNamed(Routes.PROFILE));
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
   }
 
   /// Reads the back photo's Machine Readable Zone on-device (see
@@ -321,7 +437,7 @@ class IdentityScanController extends GetxController {
     String backPath,
   ) async {
     try {
-      final text = await NativeMediaServices.recognizeText(backPath);
+      final text = await _recognizeText(backPath);
       return MrzReader.parse(
         text,
         frontImagePath: frontPath,
@@ -339,6 +455,7 @@ class IdentityScanController extends GetxController {
     isLoading.value = true;
     try {
       final scanned = card.value;
+      final uploadOwnerKey = Get.find<ProfileController>().identityOwnerKey;
       final uploaded = await Get.to<IdentityDocument>(
         () => DocumentUploadView(initialCard: scanned),
       );
@@ -347,7 +464,8 @@ class IdentityScanController extends GetxController {
       // The upload API permits an omitted name/DOB. Do not fabricate values
       // merely to satisfy the local profile cache's required fields.
       if (uploaded.documentType.toLowerCase() == 'national id' &&
-          uploaded.dateOfBirth != null && uploaded.fullName.isNotEmpty) {
+          uploaded.dateOfBirth != null &&
+          uploaded.fullName.isNotEmpty) {
         savedLocally = await Get.find<ProfileController>()
             .applyScannedIdInformation(
               idNumber: uploaded.documentNumber,
@@ -362,6 +480,7 @@ class IdentityScanController extends GetxController {
                 scanned?.currentAddressEnglish ?? '',
               ].where((part) => part.isNotEmpty).join('\n'),
               expiryDate: uploaded.expiryDate,
+              expectedOwnerKey: uploadOwnerKey,
             );
       }
       if (isClosed) return;

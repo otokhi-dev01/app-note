@@ -41,6 +41,60 @@ class NationalIdCard {
   final String? frontImagePath;
   final String? backImagePath;
 
+  String get displayPlaceOfBirth => [
+    placeOfBirthKhmer,
+    placeOfBirthEnglish,
+  ].where((value) => value.trim().isNotEmpty).toSet().join(' / ');
+  String get displayCurrentAddress => [
+    currentAddressKhmer,
+    currentAddressEnglish,
+  ].where((value) => value.trim().isNotEmpty).toSet().join('\n');
+
+  Map<String, dynamic> toJson() => {
+    'idNumber': idNumber,
+    'nameKhmer': nameKhmer,
+    'nameLatin': nameLatin,
+    'dateOfBirth': dateOfBirth,
+    'placeOfBirthKhmer': placeOfBirthKhmer,
+    'placeOfBirthEnglish': placeOfBirthEnglish,
+    'currentAddressKhmer': currentAddressKhmer,
+    'currentAddressEnglish': currentAddressEnglish,
+    'expiryDate': expiryDate,
+    'mrzLines': mrzLines,
+    'frontImagePath': frontImagePath,
+    'backImagePath': backImagePath,
+  };
+
+  /// A partial rescan must not erase previously recognized or edited fields.
+  NationalIdCard fillMissingFrom(NationalIdCard? previous) {
+    if (previous == null || previous.idNumber != idNumber) return this;
+    String fill(String value, String old) => value.trim().isEmpty ? old : value;
+    return copyWith(
+      nameKhmer: fill(nameKhmer, previous.nameKhmer),
+      nameLatin: fill(nameLatin, previous.nameLatin),
+      dateOfBirth: fill(dateOfBirth, previous.dateOfBirth),
+      placeOfBirthKhmer: fill(placeOfBirthKhmer, previous.placeOfBirthKhmer),
+      placeOfBirthEnglish: fill(
+        placeOfBirthEnglish,
+        previous.placeOfBirthEnglish,
+      ),
+      currentAddressKhmer: fill(
+        currentAddressKhmer,
+        previous.currentAddressKhmer,
+      ),
+      currentAddressEnglish: fill(
+        currentAddressEnglish,
+        previous.currentAddressEnglish,
+      ),
+      expiryDate: fill(expiryDate, previous.expiryDate),
+      mrzLines: mrzLines.any((line) => line.isNotEmpty)
+          ? mrzLines
+          : previous.mrzLines,
+      frontImagePath: frontImagePath ?? previous.frontImagePath,
+      backImagePath: backImagePath ?? previous.backImagePath,
+    );
+  }
+
   /// [dateOfBirth] parsed back out of its `DD-MM-YYYY` display form, for
   /// callers (like syncing into the Profile screen's ID Information) that
   /// need a real [DateTime] rather than the formatted string. `null` when
@@ -57,7 +111,10 @@ class NationalIdCard {
     final month = int.tryParse(parts[1]);
     final year = int.tryParse(parts[2]);
     if (day == null || month == null || year == null) return null;
-    return DateTime(year, month, day);
+    final date = DateTime(year, month, day);
+    return date.year == year && date.month == month && date.day == day
+        ? date
+        : null;
   }
 
   /// Parses a scan/e-KYC backend response into a [NationalIdCard].
@@ -93,9 +150,7 @@ class NationalIdCard {
       idNumber: pick(['idNumber', 'id_number', 'nationalIdNumber']),
       nameKhmer: pick(['nameKhmer', 'name_kh', 'nameKh']),
       nameLatin: pick(['nameLatin', 'name_en', 'nameEn', 'nameLatn']),
-      dateOfBirth: _formatDate(
-        pick(['dateOfBirth', 'date_of_birth', 'dob']),
-      ),
+      dateOfBirth: _formatDate(pick(['dateOfBirth', 'date_of_birth', 'dob'])),
       placeOfBirthKhmer: pick([
         'placeOfBirthKhmer',
         'place_of_birth_kh',

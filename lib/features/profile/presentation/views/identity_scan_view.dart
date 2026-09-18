@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
 import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
+import 'package:Note/features/profile/presentation/views/identity_details_edit_view.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
 
 /// Digital Civic ID (national ID) scan-and-verify screen.
@@ -54,7 +55,22 @@ class IdentityScanView extends GetView<IdentityScanController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        IdentityStatusBanner(verified: card != null),
+                        if (card == null)
+                          const IdentityStatusBanner(verified: false)
+                        else
+                          IdentityFieldCard(
+                            label:
+                                (controller.savedToProfile.value
+                                        ? 'id_information_saved'
+                                        : 'id_information_save_failed_title')
+                                    .tr,
+                            child: Text(
+                              (controller.savedToProfile.value
+                                      ? 'identity_profile_review_hint'
+                                      : 'id_information_save_failed_message')
+                                  .tr,
+                            ),
+                          ),
                         const SizedBox(height: 22),
                         IdentitySectionHeader(
                           icon: CupertinoIcons.square_stack_3d_up_fill,
@@ -99,6 +115,19 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         IdentitySectionHeader(
                           icon: CupertinoIcons.doc_person_fill,
                           label: 'id_information_title'.tr,
+                          trailing: card == null
+                              ? null
+                              : TextButton(
+                                  onPressed: controller.isLoading.value
+                                      ? null
+                                      : () => Get.to<void>(
+                                          () => IdentityDetailsEditView(
+                                            card: card,
+                                            onSave: controller.saveCorrections,
+                                          ),
+                                        ),
+                                  child: Text('identity_edit_details'.tr),
+                                ),
                         ),
                         const SizedBox(height: 12),
                         if (card == null)
@@ -106,6 +135,20 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         else
                           _buildFields(context, card),
                         const SizedBox(height: 26),
+                        if (card != null) ...[
+                          IdentityPrimaryButton(
+                            label:
+                                (controller.savedToProfile.value
+                                        ? 'identity_view_profile'
+                                        : 'identity_save_profile')
+                                    .tr,
+                            loading: controller.isLoading.value,
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : controller.onViewProfile,
+                          ),
+                          const SizedBox(height: 10),
+                        ],
                         IdentityPrimaryButton(
                           label: 'document_review_upload'.tr,
                           loading: controller.isLoading.value,
@@ -262,7 +305,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
           label: 'place_of_birth_label'.tr,
           leadingIcon: CupertinoIcons.map_pin_ellipse,
           child: Text(
-            '${card.placeOfBirthKhmer} / ${card.placeOfBirthEnglish}',
+            card.displayPlaceOfBirth.isEmpty
+                ? 'identity_not_read'.tr
+                : card.displayPlaceOfBirth,
             style: const TextStyle(color: idInk, fontSize: 13.5, height: 1.4),
           ),
         ),
@@ -276,7 +321,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
             color: idGreen,
           ),
           child: Text(
-            '${card.currentAddressKhmer}\n${card.currentAddressEnglish}',
+            card.displayCurrentAddress.isEmpty
+                ? 'identity_not_read'.tr
+                : card.displayCurrentAddress,
             style: const TextStyle(color: idInk, fontSize: 13, height: 1.5),
           ),
         ),

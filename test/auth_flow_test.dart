@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -8,6 +10,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/di/injector.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
+import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
@@ -40,6 +43,14 @@ class _FakeRegister extends Register {
     received = params;
     return result;
   }
+}
+
+class _PendingLogin extends Login {
+  _PendingLogin() : super(_NoopRepo());
+  final result = Completer<Result<AuthSession>>();
+
+  @override
+  Future<Result<AuthSession>> call(LoginParams params) => result.future;
 }
 
 class _NoopRepo implements AuthRepository {
@@ -78,7 +89,11 @@ void main() {
       ),
     );
     await tester.pumpWidget(
-      GetMaterialApp(initialRoute: Routes.LOGIN, getPages: AppPages.routes),
+      GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
+        initialRoute: Routes.LOGIN,
+        getPages: AppPages.routes,
+      ),
     );
     await tester.pumpAndSettle();
     return controller;
@@ -97,6 +112,15 @@ void main() {
     controller.accountController.text = 'someone@example.com';
     controller.passwordController.text = 'hunter2';
 
+    // Reproduce signing in with the keyboard active while an earlier error
+    // notification is still opening. Removing the login route must not leave
+    // pending notifications targeting its disposed focus scope.
+    final passwordField = find.byType(EditableText).last;
+    await tester.showKeyboard(passwordField);
+    expect(tester.widget<EditableText>(passwordField).focusNode.hasFocus, isTrue);
+    AppSnackbar.error('Previous login error', 'Please try again.');
+    await tester.pump(const Duration(milliseconds: 60));
+
     await tester.tap(find.text('sign_in_button'.tr));
     await tester.pumpAndSettle();
     // Let the success snackbar's auto-dismiss timer finish before the test
@@ -105,6 +129,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(guest.isGuestMode.value, isFalse);
+    expect(Get.currentRoute, Routes.FOLDER);
     expect(controller.isLoading.value, isFalse);
     expect(tester.takeException(), isNull);
   });
@@ -139,6 +164,7 @@ void main() {
     );
     await tester.pumpWidget(
       GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
         initialRoute: Routes.REGISTER,
         getPages: AppPages.routes,
       ),
@@ -171,6 +197,7 @@ void main() {
     );
     await tester.pumpWidget(
       GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
         initialRoute: Routes.REGISTER,
         getPages: AppPages.routes,
       ),
@@ -188,6 +215,29 @@ void main() {
 
     expect(find.byType(RegisterView), findsOneWidget);
     expect(controller.accountController.text, 'new@example.com');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('A login response after the screen closes does not navigate or publish feedback', (tester) async {
+    final pending = _PendingLogin();
+    final guest = Get.find<GuestModeService>()..enable();
+    final controller = Get.put(AuthController(login: pending, register: _FakeRegister(okVoid)));
+    await tester.pumpWidget(GetMaterialApp(
+      scaffoldMessengerKey: AppSnackbar.messengerKey,
+      initialRoute: Routes.LOGIN,
+      getPages: AppPages.routes,
+    ));
+    await tester.pumpAndSettle();
+    await tester.showKeyboard(find.byType(EditableText).last);
+    final loggingIn = controller.login();
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    controller.onDelete();
+    pending.result.complete(const Ok(AuthSession(token: 't', user: UserData())));
+    await loggingIn;
+    await tester.pump();
+    expect(guest.isGuestMode.value, isTrue);
     expect(tester.takeException(), isNull);
   });
 }
