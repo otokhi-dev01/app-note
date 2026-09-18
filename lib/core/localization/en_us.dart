@@ -1,6 +1,9 @@
 /// English strings — every screen in the app. This is also the fallback
 /// locale (see `AppTranslations`).
 const Map<String, String> enUS = {
+  'session_restore_failed':
+      'Could not restore your saved sign-in. Please retry.',
+  'session_restore_retry': 'Retry',
   // Daily note
   'daily_note_title': 'Daily note',
   'daily_timeline': 'Timeline view',

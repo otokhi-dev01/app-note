@@ -32,6 +32,7 @@ class _Adapter implements dio.HttpClientAdapter {
     'Message': 'Login successful',
     'Data': {
       'Token': 'test-session',
+      'RefreshToken': 'test-refresh',
       'User': {'Id': 'test-user', 'FullName': 'Test User'},
     },
   });
@@ -134,6 +135,7 @@ void main() {
       expect(result.isOk, isTrue);
       expect(session.isLoggedIn, isTrue);
       expect(stored['token'], 'test-session');
+      expect(stored['refresh_token'], 'test-refresh');
       expect(userSeenAtToken, 'test-user');
       final request = adapter.requests.single;
       expect(request.uri.toString(), 'https://chat.piisiit.com/api/auth/login');
@@ -258,6 +260,47 @@ void main() {
       await signingOut;
       expect(session.isLoggedIn, isFalse);
       expect(stored, isEmpty);
+    },
+  );
+  test(
+    'Successful login restores with a fresh session instance after restart',
+    () async {
+      expect((await login(params)).isOk, isTrue);
+      final restarted = SessionStorage();
+      expect(restarted.isLoggedIn, isFalse);
+      await restarted.ready;
+      expect(restarted.isLoggedIn, isTrue);
+      expect(restarted.token.value, 'test-session');
+      expect(restarted.refreshToken.value, 'test-refresh');
+      expect(restarted.user.value?.id, 'test-user');
+    },
+  );
+
+  test(
+    'Storage that silently ignores writes cannot report a successful login',
+    () async {
+      overrideStorage = (call) async =>
+          call.method == 'write' ? null : storage(call);
+      expect((await login(params)).failureOrNull, isA<StorageFailure>());
+      expect(session.isLoggedIn, isFalse);
+      expect(stored, isEmpty);
+    },
+  );
+
+  test(
+    'Sign-out removes credentials but preserves ID records and encryption keys',
+    () async {
+      expect((await login(params)).isOk, isTrue);
+      stored['profile_id_test_snapshot'] = 'saved identity';
+      stored['private_key_test'] = 'saved key';
+      await session.clearSession();
+      expect(stored, {
+        'profile_id_test_snapshot': 'saved identity',
+        'private_key_test': 'saved key',
+      });
+      final restarted = SessionStorage();
+      await restarted.ready;
+      expect(restarted.isLoggedIn, isFalse);
     },
   );
 }

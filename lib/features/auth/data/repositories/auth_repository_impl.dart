@@ -120,7 +120,11 @@ class AuthRepositoryImpl implements AuthRepository {
         'The account server did not return a sign-in token. Please try again.',
       );
     }
-    await _session.saveSession(response.token, response.user);
+    await _session.saveSession(
+      response.token,
+      response.user,
+      refreshToken: response.refreshToken,
+    );
     return AuthSession(token: response.token, user: response.user);
   }
 }

@@ -166,6 +166,16 @@ login, and queued sign-out clears any pending session writes. Login transport an
 storage regression tests are in `test/login_integration_test.dart`; a successful
 live login still requires checking with a valid test account.
 
+On launch, Splash and authenticated API requests await the same secure-storage
+restore before choosing a route or attaching the bearer token. A temporary
+Keychain read failure offers Retry without erasing saved credentials. A saved
+account takes precedence over a stale guest flag. Login verifies that both token
+and user can be read back before reporting success, and sign-out removes only
+those credentials, preserving identity records and encryption keys. The iOS
+entitlements explicitly include the app's private Keychain access group. Restart,
+slow-read, unavailable-storage, and early-request cases are covered by
+`test/session_restore_test.dart` and `test/login_integration_test.dart`.
+
 Authentication route replacement now dismisses keyboard focus and drains pending
 focus changes before removing the old screens. Notifications use the app's root
 Flutter `ScaffoldMessenger`, so they are not owned by a separate GetX snackbar
@@ -224,13 +234,24 @@ present in this app, so this method is not exposed in the recovery UI.
 
 ### Authenticated session recovery
 
-An authenticated 401 triggers one recovery attempt and at most one retry. If the
-refresh endpoint rejects the request format, the app checks the account profile
-endpoint before signing out. An explicit account-server rejection returns to
-login; timeouts, server failures, and Note-only rejections with a valid account
-session preserve the session. Persistent Note-only authorization errors require
-checking the Note server's token validation; repeated client retries do not fix
-that server-side condition.
+An authenticated 401 triggers one shared recovery attempt and at most one retry.
+Chat Swagger requires `POST /api/auth/refresh-token` with JSON
+`{"refreshToken":"..."}`. Login now parses and securely persists the refresh
+token alongside the access token, and renewal saves rotated tokens before
+retrying. Profile edits retain it; sign-out removes both tokens. The previous
+empty POST caused HTTP 400 and could never renew a session.
+
+Older saved sessions without a refresh token skip that POST and check the
+documented authenticated `GET /api/auth/sessions` endpoint. If the account
+rejects the session, the app returns to login; one new sign-in is needed to
+obtain any refresh token issued by the backend. Timeouts and server failures
+preserve credentials. Failed recovery and Note-only rejections of newly issued
+tokens back off for 30 seconds instead of repeatedly refreshing. A valid Chat
+session rejected by Note still requires checking the Note server's token
+validation. `test/session_recovery_test.dart` covers renewal, rotation, restart,
+concurrent 401s, legacy sessions, failures, and sign-out during refresh. Successful
+live renewal still needs verification with an authenticated test account; Swagger
+does not specify the successful login/refresh response bodies.
 
 ## Getting Started
 

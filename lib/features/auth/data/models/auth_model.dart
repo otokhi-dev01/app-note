@@ -35,6 +35,7 @@ class AuthCredentialsRequest {
 /// The `/api/auth/*` envelope.
 class AuthResponse {
   final String token;
+  final String refreshToken;
   final UserData user;
   final int code;
   final String message;
@@ -45,6 +46,7 @@ class AuthResponse {
     required this.user,
     required this.code,
     required this.message,
+    this.refreshToken = '',
     this.success,
   });
 
@@ -105,6 +107,14 @@ class AuthResponse {
     }
 
     return AuthResponse(
+      refreshToken: asString(
+        data['refreshToken'] ??
+            data['RefreshToken'] ??
+            data['refresh_token'] ??
+            json['refreshToken'] ??
+            json['RefreshToken'] ??
+            json['refresh_token'],
+      ),
       token:
           dataToken ??
           asString(

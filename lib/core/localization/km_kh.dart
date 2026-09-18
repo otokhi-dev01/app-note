@@ -1,6 +1,8 @@
 /// Khmer strings — mirrors the key set in `en_us.dart`. Any key missing here
 /// falls back to English via `AppTranslations.fallbackLocale`.
 const Map<String, String> kmKH = {
+  'session_restore_failed': 'មិនអាចស្ដារការចូលគណនីបានទេ។ សូមព្យាយាមម្ដងទៀត។',
+  'session_restore_retry': 'ព្យាយាមម្ដងទៀត',
   // Daily note
   'daily_note_title': 'កំណត់ត្រាប្រចាំថ្ងៃ',
   'daily_timeline': 'មើលតាមពេលវេលា',

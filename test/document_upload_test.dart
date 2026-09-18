@@ -23,8 +23,13 @@ class _Session extends SessionStorage {
   @override
   Future<void> loadSession() async {}
   @override
-  Future<void> saveSession(String newToken, UserData userData) async {
+  Future<void> saveSession(
+    String newToken,
+    UserData userData, {
+    String? refreshToken,
+  }) async {
     token.value = newToken;
+    this.refreshToken.value = refreshToken;
     user.value = userData;
   }
 }
@@ -83,11 +88,13 @@ void main() {
   });
   tearDownAll(() => directory.delete(recursive: true));
 
-  setUp(() {
+  Future<void> initialize() async {
     Get.testMode = true;
     session = _Session();
     Get.put<SessionStorage>(session);
+    await session.ready;
     session.token.value = 'signed-in-token';
+    session.refreshToken.value = 'saved-refresh-token';
     final api = Get.put(ApiClient());
     adapter = _Adapter();
     api.dio.httpClientAdapter = adapter;
@@ -96,7 +103,9 @@ void main() {
         IdentityRepositoryImpl(IdentityRemoteDataSource(api: api)),
       ),
     );
-  });
+  }
+
+  setUp(initialize);
   tearDown(() => Get.reset());
 
   test(
@@ -275,6 +284,9 @@ void main() {
   testWidgets(
     'Upload form validates input, retains server failures, and returns only on success',
     (tester) async {
+      // Create startup Futures in the widget test's simulated clock.
+      Get.reset();
+      await initialize();
       IdentityDocument? uploaded;
       await tester.pumpWidget(
         GetMaterialApp(

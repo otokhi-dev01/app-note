@@ -16,7 +16,10 @@ class ApiClient extends GetxService {
 
   /// In-flight silent-refresh attempt, shared by every request that 401s
   /// around the same moment so they don't each fire their own refresh call.
-  Completer<_RefreshResult>? _refreshCompleter;
+  Future<_RefreshResult>? _refreshFuture;
+  String? _recoveryToken;
+  _RefreshResult? _lastRecovery;
+  DateTime? _retryRecoveryAfter;
 
   /// Base URL for the Note API. Override with
   /// `--dart-define=PIISIIT_NOTE_BASE_URL=https://...`
@@ -41,8 +44,9 @@ class ApiClient extends GetxService {
     );
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (options, handler) async {
           final session = Get.find<SessionStorage>();
+          if (options.extra['requiresAuth'] != false) await session.ready;
           for (final key
               in options.headers.keys
                   .where((key) => key.toLowerCase() == 'authorization')
@@ -88,14 +92,20 @@ class ApiClient extends GetxService {
           if (isUnauthorized) {
             final session = Get.find<SessionStorage>();
             final tokenBeforeRecovery = session.token.value;
+            // A public/early request has no session to revoke. In particular,
+            // never erase persisted credentials because it ran before restore.
+            if (request.headers['Authorization'] == null ||
+                tokenBeforeRecovery == null ||
+                tokenBeforeRecovery.isEmpty) {
+              return handler.next(e);
+            }
             // A concurrent request may already have refreshed this token.
             final alreadyRefreshed =
-                tokenBeforeRecovery != null &&
                 request.headers['Authorization'] !=
-                    'Bearer $tokenBeforeRecovery';
+                'Bearer $tokenBeforeRecovery';
             final refreshResult = alreadyRefreshed
                 ? _RefreshResult.refreshed
-                : await _tryRefreshSession();
+                : await _tryRefreshSession(tokenBeforeRecovery);
             if (refreshResult == _RefreshResult.refreshed) {
               final retryToken = session.token.value;
               try {
@@ -115,6 +125,16 @@ class ApiClient extends GetxService {
                     e.response?.statusCode == 401 &&
                     session.token.value == retryToken) {
                   _forceSignOut();
+                } else if (isNoteRequest &&
+                    e.response?.statusCode == 401 &&
+                    session.token.value == retryToken) {
+                  // The account server just issued this token. Refreshing it
+                  // repeatedly cannot repair a Note-side authorization failure.
+                  _recoveryToken = retryToken;
+                  _lastRecovery = _RefreshResult.accountValid;
+                  _retryRecoveryAfter = DateTime.now().add(
+                    const Duration(seconds: 30),
+                  );
                 }
               }
             } else if (refreshResult == _RefreshResult.rejected &&
@@ -156,78 +176,118 @@ class ApiClient extends GetxService {
     }
   }
 
-  /// Coalesces concurrent recovery requests. If refresh is unsupported or
-  /// returns an unusable response, verify the existing session with the
-  /// account profile endpoint before deciding to sign out.
-  Future<_RefreshResult> _tryRefreshSession() {
-    final inFlight = _refreshCompleter;
-    if (inFlight != null) return inFlight.future;
-
-    final completer = Completer<_RefreshResult>();
-    _refreshCompleter = completer;
-
-    Future(() async {
-      try {
-        final session = Get.find<SessionStorage>();
-        final currentToken = session.token.value;
-        if (currentToken == null || currentToken.isEmpty) {
-          completer.complete(_RefreshResult.rejected);
-          return;
-        }
-        final response = await _dio.post(
-          '${AppConstants.authBaseUrl}${AppConstants.refreshTokenEndpoint}',
-          options: Options(extra: {'isTokenRefresh': true}),
-        );
-        final auth = AuthResponse.fromJson(
-          Map<String, dynamic>.from(
-            response.data is Map ? response.data as Map : {},
-          ),
-          statusCode: response.statusCode,
-        );
-        if (!auth.isSuccess || auth.token.isEmpty) {
-          completer.complete(await _verifySession());
-          return;
-        }
-        if (session.token.value != currentToken) {
-          completer.complete(_RefreshResult.unreachable);
-          return;
-        }
-        await session.saveSession(auth.token, session.user.value ?? auth.user);
-        completer.complete(_RefreshResult.refreshed);
-      } on DioException catch (e) {
-        final status = e.response?.statusCode;
-        final result = status == 401 || status == 403
-            ? _RefreshResult.rejected
-            : status == 400 || status == 404 || status == 405
-            ? await _verifySession()
-            : _RefreshResult.unreachable;
-        if (kDebugMode) {
-          debugPrint(
-            '[API] Session recovery: ${result.name} (status=$status).',
-          );
-        }
-        completer.complete(result);
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('[API] Session recovery failed: ${e.runtimeType}');
-        }
-        completer.complete(_RefreshResult.unreachable);
-      } finally {
-        _refreshCompleter = null;
+  /// Share recovery for a token and briefly back off after a failed attempt.
+  /// A newly signed-in account must never consume an older account's recovery.
+  Future<_RefreshResult> _tryRefreshSession(String token) {
+    if (_recoveryToken == token) {
+      if (_refreshFuture != null) return _refreshFuture!;
+      if (_retryRecoveryAfter?.isAfter(DateTime.now()) == true) {
+        return Future.value(_lastRecovery!);
       }
+    }
+    _recoveryToken = token;
+    _lastRecovery = null;
+    _retryRecoveryAfter = null;
+    final session = Get.find<SessionStorage>();
+    final future = _recoverSession(session, token).then((result) {
+      if (_recoveryToken == token) _refreshFuture = null;
+      if (session.token.value != token && result != _RefreshResult.refreshed) {
+        return _RefreshResult.unreachable;
+      }
+      if (_recoveryToken == token) {
+        if (result != _RefreshResult.refreshed) {
+          _lastRecovery = result;
+          _retryRecoveryAfter = DateTime.now().add(const Duration(seconds: 30));
+        }
+      }
+      return result;
     });
-
-    return completer.future;
+    _refreshFuture = future;
+    return future;
   }
 
-  Future<_RefreshResult> _verifySession() async {
+  Future<_RefreshResult> _recoverSession(
+    SessionStorage session,
+    String currentToken,
+  ) async {
+    final refreshToken = session.refreshToken.value;
+    if (refreshToken == null || refreshToken.isEmpty) {
+      // Older app versions saved only the access token. Never send an empty
+      // refresh request or substitute the access token for a refresh token.
+      return _verifySession(currentToken);
+    }
     try {
-      await _dio.get(
-        '${AppConstants.userApiUrl}${AppConstants.userProfileEndpoint}',
+      final response = await _dio.post(
+        '${AppConstants.authBaseUrl}${AppConstants.refreshTokenEndpoint}',
+        data: {'refreshToken': refreshToken},
+        options: Options(
+          extra: {'isTokenRefresh': true, 'requiresAuth': false},
+        ),
+      );
+      final auth = AuthResponse.fromJson(
+        Map<String, dynamic>.from(
+          response.data is Map ? response.data as Map : {},
+        ),
+        statusCode: response.statusCode,
+      );
+      if (session.token.value != currentToken ||
+          session.refreshToken.value != refreshToken) {
+        return _RefreshResult.unreachable;
+      }
+      if (!auth.isSuccess || auth.token.trim().isEmpty) {
+        return await _verifySession(currentToken);
+      }
+      await session.saveSession(
+        auth.token,
+        session.user.value ?? auth.user,
+        // Some servers rotate refresh tokens; others return only access tokens.
+        refreshToken: auth.refreshToken.isEmpty
+            ? refreshToken
+            : auth.refreshToken,
+      );
+      return _RefreshResult.refreshed;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (session.token.value != currentToken) {
+        return _RefreshResult.unreachable;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[API] Token refresh failed (status=$status, type=${e.type.name}).',
+        );
+      }
+      if (status == 401 || status == 403) return _RefreshResult.rejected;
+      if (status == 400 || status == 404 || status == 405) {
+        return _verifySession(currentToken);
+      }
+      return _RefreshResult.unreachable;
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[API] Could not save renewed session: ${e.runtimeType}');
+      }
+      return _RefreshResult.unreachable;
+    }
+  }
+
+  Future<_RefreshResult> _verifySession(String expectedToken) async {
+    try {
+      final response = await _dio.get(
+        '${AppConstants.authBaseUrl}${AppConstants.sessionsEndpoint}',
         options: Options(extra: {'isTokenRefresh': true}),
       );
-      // A valid Chat session does not make a Note-only rejection recoverable.
-      return _RefreshResult.unreachable;
+      if (Get.find<SessionStorage>().token.value != expectedToken) {
+        return _RefreshResult.unreachable;
+      }
+      final body = response.data;
+      if (body is! Map || (body['success'] ?? body['Success']) == false) {
+        return _RefreshResult.unreachable;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[API] Account session is valid; the requesting service rejected access.',
+        );
+      }
+      return _RefreshResult.accountValid;
     } on DioException catch (e) {
       return e.response?.statusCode == 401 || e.response?.statusCode == 403
           ? _RefreshResult.rejected
@@ -258,6 +318,9 @@ enum _RefreshResult {
 
   /// The account server explicitly rejected the session (401 or 403).
   rejected,
+
+  /// Chat accepts the account, but another service rejected the request.
+  accountValid,
 
   /// Recovery could not produce a token; the session was not rejected.
   unreachable,

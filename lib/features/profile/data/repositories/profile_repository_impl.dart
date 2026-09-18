@@ -36,7 +36,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
       guard(() async {
         final current = _session.user.value ?? const UserData();
         final updated = change(current);
-        await _session.saveSession(_session.token.value ?? '', updated);
+        await _session.saveSession(
+          _session.token.value ?? '',
+          updated,
+          refreshToken: _session.refreshToken.value,
+        );
         return updated;
       });
 }
