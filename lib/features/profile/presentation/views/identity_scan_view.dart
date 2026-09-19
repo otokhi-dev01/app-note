@@ -9,7 +9,6 @@ import 'package:Note/features/profile/presentation/views/identity_image_view.dar
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
 
 /// Digital Civic ID (national ID) scan-and-verify screen.
-///
 /// Shows the bilingual (Khmer/English) OCR result once both sides of the ID
 /// have been scanned, and doubles as the entry point ("Camera Scan / New
 /// OCR") before any scan has happened. The scan itself is driven by

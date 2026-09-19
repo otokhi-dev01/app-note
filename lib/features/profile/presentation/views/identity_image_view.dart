@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
