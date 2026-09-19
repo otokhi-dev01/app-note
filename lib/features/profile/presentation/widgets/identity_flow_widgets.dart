@@ -225,7 +225,7 @@ class IdentitySectionHeader extends StatelessWidget {
             ),
           ),
         ),
-        ?trailing,
+        if (trailing != null) Flexible(child: trailing!),
       ],
     );
   }
@@ -363,10 +363,7 @@ class IdentityCopyableValue extends StatelessWidget {
               );
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -397,15 +394,17 @@ class IdentityPreviewCard extends StatelessWidget {
     required this.label,
     this.imagePath,
     this.front = true,
+    this.onScan,
+    this.onView,
+    this.onDownload,
   });
 
   final String label;
   final String? imagePath;
-
-  /// Which side this preview represents — used only to pick the placeholder
-  /// mockup's look (a light "FRONT" photo mock vs. a dark "REAR" barcode
-  /// mock) when there's no captured [imagePath] yet.
   final bool front;
+  final VoidCallback? onScan;
+  final VoidCallback? onView;
+  final VoidCallback? onDownload;
 
   bool get _hasImage =>
       imagePath != null &&
@@ -414,66 +413,72 @@ class IdentityPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final side = front ? 'front' : 'back';
+    final scanLabel = (front ? 'identity_scan_front' : 'identity_scan_back').tr;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AspectRatio(
-          aspectRatio: 1.52,
+          aspectRatio: 1.586,
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: _hasImage
-                        ? const Color(0xFFF0F3F7)
-                        : (front ? idGreen.withValues(alpha: 0.1) : idInk),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: _hasImage
-                          ? idBorder
-                          : (front ? idGreen.withValues(alpha: 0.25) : idInk),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Material(
+                  color: _hasImage
+                      ? const Color(0xFFF0F3F7)
+                      : (front ? idGreen.withValues(alpha: 0.1) : idInk),
+                  child: Ink(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: idBorder),
+                      borderRadius: BorderRadius.circular(14),
+                      image: _hasImage
+                          ? DecorationImage(
+                              image: FileImage(File(imagePath!)),
+                              fit: BoxFit.contain,
+                            )
+                          : null,
                     ),
-                    image: _hasImage
-                        ? DecorationImage(
-                            image: FileImage(File(imagePath!)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    child: Tooltip(
+                      message: scanLabel,
+                      child: InkWell(
+                        key: ValueKey('identity_scan_$side'),
+                        onTap: onScan,
+                        child: Semantics(
+                          button: true,
+                          label: scanLabel,
+                          child: _hasImage
+                              ? const SizedBox.expand()
+                              : _placeholderMock(),
+                        ),
+                      ),
+                    ),
                   ),
-                  child: _hasImage ? null : _placeholderMock(),
                 ),
               ),
               if (_hasImage)
                 Positioned(
-                  top: 6,
-                  right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: idGreen,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.checkmark_alt,
-                      size: 11,
-                      color: Colors.white,
+                  top: 4,
+                  right: 4,
+                  child: IconButton.filledTonal(
+                    key: ValueKey('identity_view_$side'),
+                    tooltip: 'identity_view_full_image'.tr,
+                    onPressed: onView,
+                    iconSize: 18,
+                    icon: const Icon(
+                      CupertinoIcons.arrow_up_left_arrow_down_right,
                     ),
                   ),
                 ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
         Row(
           children: [
-            Flexible(
+            Expanded(
               child: Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: idInk,
                   fontSize: 12,
@@ -481,15 +486,25 @@ class IdentityPreviewCard extends StatelessWidget {
                 ),
               ),
             ),
-            if (_hasImage) ...[
-              const SizedBox(width: 4),
-              const Icon(
-                CupertinoIcons.checkmark_alt_circle_fill,
-                size: 13,
-                color: idGreen,
+            IconButton(
+              key: ValueKey('identity_camera_$side'),
+              tooltip: scanLabel,
+              onPressed: onScan,
+              icon: const Icon(CupertinoIcons.camera_fill, size: 20),
+              color: idAccent,
+            ),
+            if (_hasImage)
+              IconButton(
+                key: ValueKey('identity_download_$side'),
+                tooltip: 'identity_download_image'.tr,
+                onPressed: onDownload,
+                icon: const Icon(CupertinoIcons.arrow_down_to_line, size: 18),
               ),
-            ],
           ],
+        ),
+        Text(
+          'identity_tap_to_scan'.tr,
+          style: const TextStyle(color: idMuted, fontSize: 11),
         ),
       ],
     );
@@ -705,11 +720,14 @@ class IdentityPrimaryButton extends StatelessWidget {
                 children: [
                   Icon(icon, size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -720,12 +738,50 @@ class IdentityPrimaryButton extends StatelessWidget {
 }
 
 /// Bordered secondary action ("Rescan Card").
-class IdentitySecondaryButton extends StatelessWidget {
-  const IdentitySecondaryButton({
+// class IdentitySecondaryButton extends StatelessWidget {
+//   const IdentitySecondaryButton({
+//     super.key,
+//     required this.label,
+//     required this.onPressed,
+//     this.icon = CupertinoIcons.arrow_2_circlepath,
+//   });
+//
+//   final String label;
+//   final VoidCallback? onPressed;
+//   final IconData icon;
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return SizedBox(
+//       width: double.infinity,
+//       height: 48,
+//       child: OutlinedButton.icon(
+//         onPressed: onPressed,
+//         icon: Icon(icon, size: 16),
+//         label: Text(label),
+//         style: OutlinedButton.styleFrom(
+//           foregroundColor: idInk,
+//           side: const BorderSide(color: idBorder),
+//           shape: RoundedRectangleBorder(
+//             borderRadius: BorderRadius.circular(16),
+//           ),
+//           textStyle: const TextStyle(
+//             fontSize: 13.5,
+//             fontWeight: FontWeight.w600,
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+/// Destructive secondary action ("Delete all information to new card").
+class IdentityDestructiveButton extends StatelessWidget {
+  const IdentityDestructiveButton({
     super.key,
     required this.label,
     required this.onPressed,
-    this.icon = CupertinoIcons.arrow_2_circlepath,
+    this.icon = CupertinoIcons.trash,
   });
 
   final String label;
@@ -742,8 +798,8 @@ class IdentitySecondaryButton extends StatelessWidget {
         icon: Icon(icon, size: 16),
         label: Text(label),
         style: OutlinedButton.styleFrom(
-          foregroundColor: idInk,
-          side: const BorderSide(color: idBorder),
+          foregroundColor: const Color(0xFFFF3B30),
+          side: const BorderSide(color: Color(0xFFFF3B30)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

@@ -20,6 +20,10 @@ class ProfileExtrasStorage {
   static const _keyColorHex = 'profile_extra_color_hex';
   static const _keyGuestName = 'profile_extra_guest_name';
   static const _keyGuestImage = 'profile_extra_guest_image';
+  static const _keyHighSchool = 'profile_extra_high_school';
+  static const _keyFirstChildName = 'profile_extra_first_child_name';
+  static const _keyFatherName = 'profile_extra_father_name';
+  static const _keyMotherName = 'profile_extra_mother_name';
 
   final _storage = GetStorage();
 
@@ -54,4 +58,18 @@ class ProfileExtrasStorage {
   /// signed-in user's `profileImage` — see `AppMediaStorage`.
   String get guestImagePath => _storage.read<String>(_keyGuestImage) ?? '';
   set guestImagePath(String value) => _storage.write(_keyGuestImage, value);
+
+  String get highSchool => _storage.read<String>(_keyHighSchool) ?? '';
+  set highSchool(String value) => _storage.write(_keyHighSchool, value);
+
+  String get firstChildName =>
+      _storage.read<String>(_keyFirstChildName) ?? '';
+  set firstChildName(String value) =>
+      _storage.write(_keyFirstChildName, value);
+
+  String get fatherName => _storage.read<String>(_keyFatherName) ?? '';
+  set fatherName(String value) => _storage.write(_keyFatherName, value);
+
+  String get motherName => _storage.read<String>(_keyMotherName) ?? '';
+  set motherName(String value) => _storage.write(_keyMotherName, value);
 }

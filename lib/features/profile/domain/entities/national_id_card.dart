@@ -61,6 +61,8 @@ class NationalIdCard {
     'currentAddressEnglish': currentAddressEnglish,
     'expiryDate': expiryDate,
     'mrzLines': mrzLines,
+    'validityYears': validityYears,
+    'chipIntegrityPercent': chipIntegrityPercent,
     'frontImagePath': frontImagePath,
     'backImagePath': backImagePath,
   };

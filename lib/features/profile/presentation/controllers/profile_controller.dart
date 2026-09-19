@@ -61,9 +61,14 @@ class ProfileController extends GetxController {
   final userAccount = ''.obs;
   final userEmail = ''.obs;
   final userJob = ''.obs;
+  final userHighSchool = ''.obs;
+  final userFirstChildName = ''.obs;
+  final userFatherName = ''.obs;
+  final userMotherName = ''.obs;
   final userBio = ''.obs;
   final userColorHex = Rx<String?>(null);
   final identityCard = Rxn<NationalIdCard>();
+  final identityCards = <NationalIdCard>[].obs;
   String? _loadedIdentityOwner;
   final userIdNumber = ''.obs;
   final userIdName = ''.obs;
@@ -88,6 +93,7 @@ class ProfileController extends GetxController {
   void _syncApiUser() async {
     if (_loadedIdentityOwner != _idOwnerKey) {
       _loadedIdentityOwner = _idOwnerKey;
+      identityCards.clear();
       identityCard.value = null;
       userIdNumber.value = '';
       userIdName.value = '';
@@ -135,7 +141,7 @@ class ProfileController extends GetxController {
   }
 
   String get _idOwnerKey {
-    // One on-device identity per guest — there's no account to scope by, but
+    // One on-device collection per guest — there's no account to scope by, but
     // ID information should still save and load like it does for a real one.
     if (isGuestMode.value) return 'guest';
     final user = _session.user.value;
@@ -171,16 +177,63 @@ class ProfileController extends GetxController {
     try {
       final stored = await _idStorage.read(ownerKey);
       final storedCard = await _idStorage.readCard(ownerKey);
+      final storedCards = await _idStorage.readCards(ownerKey);
       if (ownerKey != _idOwnerKey || revision != _idInformationRevision) return;
-      identityCard.value = storedCard;
-      userIdNumber.value = stored.idNumber;
-      userIdName.value = stored.name;
-      userDateOfBirth.value = stored.dateOfBirth;
-      userPlaceOfBirth.value = stored.placeOfBirth;
-      userCurrentAddress.value = stored.currentAddress;
-      userIdExpiryDate.value = stored.expiryDate;
+      _showIdInformation(stored, storedCard, storedCards);
     } catch (error) {
       debugPrint('[ID INFORMATION LOAD ERROR] $error');
+    }
+  }
+
+  /// Publish the selected card after every profile field has been updated.
+  /// Both screens observe the same card, including its photos and both scripts.
+  void _showIdInformation(
+    StoredIdInformation stored,
+    NationalIdCard? storedCard,
+    List<NationalIdCard> storedCards,
+  ) {
+    userIdNumber.value = stored.idNumber;
+    userIdName.value = stored.name;
+    userDateOfBirth.value = stored.dateOfBirth;
+    userPlaceOfBirth.value = stored.placeOfBirth;
+    userCurrentAddress.value = stored.currentAddress;
+    userIdExpiryDate.value = stored.expiryDate;
+    identityCards.assignAll(storedCards);
+    identityCard.value = storedCard;
+  }
+
+  Future<void> clearIdInformation() async {
+    final ownerKey = _idOwnerKey;
+    if (ownerKey.isEmpty) return;
+    try {
+      final number = identityCard.value?.idNumber;
+      if (number == null) return;
+      ++_idInformationRevision;
+      await _idStorage.deleteCard(ownerKey, number);
+      if (ownerKey != _idOwnerKey) return;
+      await _loadIdInformation();
+      AppSnackbar.success('saved_title'.tr, 'id_information_deleted'.tr);
+    } catch (error) {
+      debugPrint('[ID INFORMATION DELETE ERROR] $error');
+      AppSnackbar.error('delete_failed_title'.tr, 'delete_failed_message'.tr);
+    }
+  }
+
+  Future<bool> selectIdentityCard(String idNumber) async {
+    final ownerKey = _idOwnerKey;
+    try {
+      ++_idInformationRevision;
+      await _idStorage.selectCard(ownerKey, idNumber);
+      if (ownerKey != _idOwnerKey) return false;
+      await _loadIdInformation();
+      return ownerKey == _idOwnerKey &&
+          identityCard.value?.idNumber == idNumber;
+    } catch (_) {
+      AppSnackbar.error(
+        'id_information_save_failed_title'.tr,
+        'id_information_save_failed_message'.tr,
+      );
+      return false;
     }
   }
 
@@ -189,6 +242,10 @@ class ProfileController extends GetxController {
     userAccount.value = _extras.account;
     userEmail.value = _extras.email;
     userJob.value = _extras.job;
+    userHighSchool.value = _extras.highSchool;
+    userFirstChildName.value = _extras.firstChildName;
+    userFatherName.value = _extras.fatherName;
+    userMotherName.value = _extras.motherName;
     userBio.value = _extras.bio;
     userColorHex.value = _extras.colorHex;
   }
@@ -329,6 +386,46 @@ class ProfileController extends GetxController {
     },
   );
 
+  Future<void> updateHighSchool() => _editTextField(
+    title: 'high_school_label'.tr,
+    hint: 'high_school_hint'.tr,
+    initialValue: userHighSchool.value,
+    onSave: (value) {
+      _extras.highSchool = value;
+      userHighSchool.value = value;
+    },
+  );
+
+  Future<void> updateFirstChildName() => _editTextField(
+    title: 'first_child_name_label'.tr,
+    hint: 'first_child_name_hint'.tr,
+    initialValue: userFirstChildName.value,
+    onSave: (value) {
+      _extras.firstChildName = value;
+      userFirstChildName.value = value;
+    },
+  );
+
+  Future<void> updateFatherName() => _editTextField(
+    title: 'father_name_label'.tr,
+    hint: 'father_name_hint'.tr,
+    initialValue: userFatherName.value,
+    onSave: (value) {
+      _extras.fatherName = value;
+      userFatherName.value = value;
+    },
+  );
+
+  Future<void> updateMotherName() => _editTextField(
+    title: 'mother_name_label'.tr,
+    hint: 'mother_name_hint'.tr,
+    initialValue: userMotherName.value,
+    onSave: (value) {
+      _extras.motherName = value;
+      userMotherName.value = value;
+    },
+  );
+
   /// The account phone is owned by authentication and cannot currently be
   /// changed by the profile API. It still gets a dedicated detail screen so
   /// the Profile row follows the same navigation model as every other field.
@@ -448,16 +545,11 @@ class ProfileController extends GetxController {
       );
       final stored = await _idStorage.read(ownerKey);
       final storedCard = await _idStorage.readCard(ownerKey);
+      final storedCards = await _idStorage.readCards(ownerKey);
       if (ownerKey != _idOwnerKey || revision != _idInformationRevision) {
         return false;
       }
-      identityCard.value = storedCard;
-      userIdNumber.value = stored.idNumber;
-      userIdName.value = stored.name;
-      userDateOfBirth.value = stored.dateOfBirth;
-      userPlaceOfBirth.value = stored.placeOfBirth;
-      userCurrentAddress.value = stored.currentAddress;
-      userIdExpiryDate.value = stored.expiryDate;
+      _showIdInformation(stored, storedCard, storedCards);
       if (!silent) {
         AppSnackbar.success('saved_title'.tr, 'id_information_saved'.tr);
       }

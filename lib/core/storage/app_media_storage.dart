@@ -54,6 +54,14 @@ class AppMediaStorage {
     }
   }
 
+  static Future<void> deleteFolderIfManaged({required String folder}) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final directory = Directory('${documents.path}/$folder');
+    if (directory.existsSync()) {
+      await directory.delete(recursive: true);
+    }
+  }
+
   /// Resolves [path] into an absolute path.
   ///
   /// If [path] is already absolute, it's returned as-is. If it's a relative

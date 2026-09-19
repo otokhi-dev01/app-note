@@ -5,7 +5,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -58,9 +57,17 @@ class ProfileView extends GetView<ProfileController> {
                         const SizedBox(height: 8),
                         _buildDetailsCard(context),
                         const SizedBox(height: 22),
+                        _buildSectionLabel(context, 'forget_password_label'.tr),
+                        const SizedBox(height: 8),
+                        _buildForgetPasswordCard(context),
+                        const SizedBox(height: 22),
                         _buildSectionLabel(context, 'id_information_title'.tr),
                         const SizedBox(height: 8),
                         _buildIdInformationCard(context),
+                        const SizedBox(height: 22),
+                        _buildSectionLabel(context, 'section_support'.tr),
+                        const SizedBox(height: 8),
+                        _buildSupportCard(context),
                         const SizedBox(height: 28),
                         _buildSectionLabel(context, 'account_label'.tr),
                         const SizedBox(height: 8),
@@ -389,58 +396,130 @@ class ProfileView extends GetView<ProfileController> {
             ),
             onTap: controller.updateColor,
           ),
-          _buildThemeModeRow(
+        ],
+      );
+    });
+  }
+
+  Widget _buildForgetPasswordCard(BuildContext context) {
+    return Obx(() {
+      final isGuest = controller.isGuestMode.value;
+
+      return _buildSurfaceCard(
+        context,
+        children: [
+          _buildDetailRow(
             context,
-            icon: CupertinoIcons.sun_max_fill,
-            iconColor: _iosOrange,
-            label: 'appearance_light_mode'.tr,
-            mode: ThemeMode.light,
+            icon: CupertinoIcons.person_fill,
+            iconColor: _iosBlue,
+            label: 'full_name_label'.tr,
+            value: controller.userName.value,
+            onTap: controller.updateUserName,
           ),
-          _buildThemeModeRow(
+          _buildDetailRow(
             context,
-            icon: CupertinoIcons.moon_fill,
+            icon: CupertinoIcons.phone_fill,
+            iconColor: _iosGreen,
+            label: 'phone_label'.tr,
+            value: controller.userPhone.value.isEmpty
+                ? 'not_available'.tr
+                : controller.userPhone.value,
+            onTap: isGuest ? null : controller.viewPhone,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.mail_solid,
+            iconColor: _iosOrange,
+            label: 'email_label'.tr,
+            value: controller.userEmail.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userEmail.value,
+            onTap: controller.updateEmail,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.briefcase_fill,
             iconColor: _iosIndigo,
-            label: 'dark_mode'.tr,
-            mode: ThemeMode.dark,
+            label: 'job_bio_label'.tr,
+            value: controller.userJob.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userJob.value,
+            onTap: controller.updateJobAndBio,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.book_fill,
+            iconColor: _iosPurple,
+            label: 'high_school_label'.tr,
+            value: controller.userHighSchool.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userHighSchool.value,
+            onTap: controller.updateHighSchool,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_2_fill,
+            iconColor: _iosPink,
+            label: 'first_child_name_label'.tr,
+            value: controller.userFirstChildName.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userFirstChildName.value,
+            onTap: controller.updateFirstChildName,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_crop_square_fill,
+            iconColor: _iosBlue,
+            label: 'father_name_label'.tr,
+            value: controller.userFatherName.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userFatherName.value,
+            onTap: controller.updateFatherName,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_crop_square_fill,
+            iconColor: _iosOrange,
+            label: 'mother_name_label'.tr,
+            value: controller.userMotherName.value.isEmpty
+                ? 'not_set'.tr
+                : controller.userMotherName.value,
+            onTap: controller.updateMotherName,
           ),
         ],
       );
     });
   }
 
-  Widget _buildThemeModeRow(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required ThemeMode mode,
-  }) {
-    final storedMode = ThemeStorage().theme;
-    final resolvedMode = Theme.of(context).brightness == Brightness.dark
-        ? ThemeMode.dark
-        : ThemeMode.light;
-    final isSelected =
-        storedMode == mode ||
-        (storedMode == ThemeMode.system && resolvedMode == mode);
-
-    return _buildDetailRow(
+  Widget _buildSupportCard(BuildContext context) {
+    return _buildSurfaceCard(
       context,
-      icon: icon,
-      iconColor: iconColor,
-      label: label,
-      trailing: Icon(
-        isSelected
-            ? Icons.radio_button_checked_rounded
-            : Icons.radio_button_off_rounded,
-        size: 21,
-        color: isSelected
-            ? _iosBlue
-            : Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.48),
-      ),
-      showChevron: false,
-      onTap: () => ThemeStorage().switchTheme(mode),
+      children: [
+        _buildDetailRow(
+          context,
+          icon: CupertinoIcons.question_circle_fill,
+          iconColor: _iosBlue,
+          label: 'help_center_title'.tr,
+          value: '',
+          onTap: () => Get.toNamed(Routes.HELP_CENTER),
+        ),
+        _buildDetailRow(
+          context,
+          icon: CupertinoIcons.lock_shield_fill,
+          iconColor: _iosGreen,
+          label: 'privacy_security_title'.tr,
+          value: '',
+          onTap: () => Get.toNamed(Routes.PRIVACY_SECURITY),
+        ),
+        _buildDetailRow(
+          context,
+          icon: CupertinoIcons.chat_bubble_2_fill,
+          iconColor: _iosIndigo,
+          label: 'contact_us_title'.tr,
+          value: '',
+          onTap: () => Get.toNamed(Routes.CONTACT_US),
+        ),
+      ],
     );
   }
 
@@ -449,26 +528,53 @@ class ProfileView extends GetView<ProfileController> {
       // Saved keyed by 'guest' on-device for a guest (see
       // ProfileController._idOwnerKey) — no reason to block editing.
       final edit = controller.updateIdInformation;
+      final card = controller.identityCard.value;
+      final cardIndex = controller.identityCards.indexWhere(
+        (saved) => saved.idNumber == card?.idNumber,
+      );
 
       return _buildSurfaceCard(
         context,
+        key: const ValueKey('profile_identity_information'),
         children: [
           _buildDetailRow(
             context,
             icon: CupertinoIcons.shield_lefthalf_fill,
             iconColor: _iosGreen,
-            label: 'Khmer Identity Card',
-            value: '',
+            label: 'identity_app_title'.tr,
+            value: cardIndex < 0
+                ? ''
+                : 'identity_card_number'.trParams({
+                    'number': '${cardIndex + 1}',
+                  }),
+            wrapValue: true,
             onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
           ),
-          // _buildDetailRow(
-          //   context,
-          //   icon: CupertinoIcons.creditcard_fill,
-          //   iconColor: _iosIndigo,
-          //   label: 'My Cards',
-          //   value: '',
-          //   onTap: () => Get.toNamed(Routes.MY_CARDS),
-          // ),
+          if (card != null &&
+              (card.frontImagePath != null || card.backImagePath != null))
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildIdPhoto(
+                      context,
+                      card.frontImagePath,
+                      front: true,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildIdPhoto(
+                      context,
+                      card.backImagePath,
+                      front: false,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _buildDetailRow(
             context,
             icon: Icons.badge_outlined,
@@ -477,18 +583,32 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userIdNumber.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userIdNumber.value,
+            wrapValue: true,
             onTap: edit,
           ),
           _buildDetailRow(
             context,
             icon: Icons.person_outline_rounded,
             iconColor: _iosIndigo,
-            label: 'id_name_label'.tr,
+            label: card?.nameLatin.isNotEmpty == true
+                ? 'identity_name_latin_label'.tr
+                : 'id_name_label'.tr,
             value: controller.userIdName.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userIdName.value,
+            wrapValue: true,
             onTap: edit,
           ),
+          if (card != null)
+            _buildDetailRow(
+              context,
+              icon: Icons.person_outline_rounded,
+              iconColor: _iosIndigo,
+              label: 'identity_name_khmer_label'.tr,
+              value: card.nameKhmer.isEmpty ? 'not_set'.tr : card.nameKhmer,
+              wrapValue: true,
+              onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
+            ),
           _buildDetailRow(
             context,
             icon: Icons.cake_outlined,
@@ -497,6 +617,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.formattedDateOfBirth.isEmpty
                 ? 'not_set'.tr
                 : controller.formattedDateOfBirth,
+            wrapValue: true,
             onTap: edit,
           ),
           _buildDetailRow(
@@ -507,6 +628,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userPlaceOfBirth.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userPlaceOfBirth.value,
+            wrapValue: true,
             onTap: edit,
           ),
           _buildDetailRow(
@@ -517,6 +639,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userCurrentAddress.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userCurrentAddress.value,
+            wrapValue: true,
             onTap: edit,
           ),
           _buildDetailRow(
@@ -527,25 +650,57 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.formattedIdExpiryDate.isEmpty
                 ? 'not_set'.tr
                 : controller.formattedIdExpiryDate,
+            wrapValue: true,
             onTap: edit,
           ),
-          // _buildDetailRow(
-          //   context,
-          //   icon: CupertinoIcons.doc_on_clipboard_fill,
-          //   iconColor: _iosOrange,
-          //   label: 'Passport'.tr,
-          //   value: controller.formattedIdExpiryDate.isEmpty
-          //       ? 'not_set'.tr
-          //       : controller.formattedIdExpiryDate,
-          //   onTap: edit,
-          // ),
+          if (card != null &&
+              card.mrzLines.any((line) => line.trim().isNotEmpty))
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.barcode,
+              iconColor: _iosGray,
+              label: 'identity_mrz_title'.tr,
+              value: card.mrzLines.join('\n'),
+              wrapValue: true,
+              showChevron: false,
+            ),
         ],
       );
     });
   }
 
+  Widget _buildIdPhoto(
+    BuildContext context,
+    String? path, {
+    required bool front,
+  }) {
+    final available = path != null && File(path).existsSync();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          (front ? 'identity_side_front' : 'identity_side_back').tr,
+          style: Theme.of(context).textTheme.labelMedium,
+        ),
+        const SizedBox(height: 8),
+        AspectRatio(
+          aspectRatio: 1.586,
+          child: available
+              ? Image.file(
+                  File(path),
+                  key: ValueKey('profile_identity_${front ? 'front' : 'back'}'),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Center(child: Text('not_set'.tr)),
+                )
+              : Center(child: Text('not_set'.tr)),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSurfaceCard(
     BuildContext context, {
+    Key? key,
     required List<Widget> children,
   }) {
     final theme = Theme.of(context);
@@ -565,6 +720,7 @@ class ProfileView extends GetView<ProfileController> {
     }
 
     return CustomGlassContainer(
+      key: key,
       borderRadius: 20,
       blur: 20,
       opacity: 0.12,
@@ -583,6 +739,7 @@ class ProfileView extends GetView<ProfileController> {
     Widget? trailing,
     VoidCallback? onTap,
     bool showChevron = true,
+    bool wrapValue = false,
   }) {
     final theme = Theme.of(context);
 
@@ -618,8 +775,10 @@ class ProfileView extends GetView<ProfileController> {
                       trailing ??
                       Text(
                         value ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: wrapValue ? null : 1,
+                        overflow: wrapValue
+                            ? TextOverflow.visible
+                            : TextOverflow.ellipsis,
                         textAlign: TextAlign.right,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,

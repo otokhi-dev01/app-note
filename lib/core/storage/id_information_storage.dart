@@ -71,6 +71,119 @@ class IdInformationStorage {
     );
   }
 
+  /// Includes the original single-card snapshot without requiring migration.
+  Future<List<Map<String, dynamic>>> _entries(String ownerKey) async {
+    final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
+    if (raw != null) {
+      final snapshot = Map<String, dynamic>.from(jsonDecode(raw));
+      if (snapshot['cards'] is List) {
+        return (snapshot['cards'] as List)
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList();
+      }
+      return [snapshot];
+    }
+    final legacy = await readCard(ownerKey);
+    if (legacy == null) return [];
+    final profile = await read(ownerKey);
+    return [
+      {
+        'profile': {
+          'idNumber': profile.idNumber,
+          'name': profile.name,
+          'dateOfBirth': profile.dateOfBirth?.toIso8601String(),
+          'placeOfBirth': profile.placeOfBirth,
+          'currentAddress': profile.currentAddress,
+          'expiryDate': profile.expiryDate?.toIso8601String(),
+        },
+        'card': legacy.toJson(),
+      },
+    ];
+  }
+
+  Future<List<NationalIdCard>> readCards(String ownerKey) async {
+    final entries = await _entries(ownerKey);
+    return Future.wait(
+      entries.map((entry) async {
+        final data = Map<String, dynamic>.from(entry['card']);
+        return NationalIdCard.fromJson(
+          data,
+          frontImagePath: await AppMediaStorage.resolve(data['frontImagePath']),
+          backImagePath: await AppMediaStorage.resolve(data['backImagePath']),
+        );
+      }),
+    );
+  }
+
+  Future<void> _writeEntries(
+    String ownerKey,
+    List<Map<String, dynamic>> entries,
+    Map<String, dynamic> selected,
+  ) => _storage.write(
+    key: '${_prefix(ownerKey)}snapshot',
+    value: jsonEncode({...selected, 'cards': entries}),
+  );
+
+  Future<void> selectCard(String ownerKey, String idNumber) async {
+    final entries = await _entries(ownerKey);
+    final selected = entries.firstWhere(
+      (entry) => entry['card']['idNumber'] == idNumber,
+    );
+    await _writeEntries(ownerKey, entries, selected);
+  }
+
+  Future<void> deleteCard(String ownerKey, String idNumber) async {
+    final entries = await _entries(ownerKey);
+    final removed = entries
+        .where((entry) => entry['card']['idNumber'] == idNumber)
+        .toList();
+    entries.removeWhere((entry) => entry['card']['idNumber'] == idNumber);
+    if (removed.isEmpty) return;
+    if (entries.isEmpty) {
+      await delete(ownerKey);
+      return;
+    }
+    final active = await readCard(ownerKey);
+    final selected = entries.firstWhere(
+      (entry) => entry['card']['idNumber'] == active?.idNumber,
+      orElse: () => entries.last,
+    );
+    await _writeEntries(ownerKey, entries, selected);
+    // Only remove images that no remaining card references.
+    for (final entry in removed) {
+      for (final side in ['frontImagePath', 'backImagePath']) {
+        final path = entry['card'][side] as String?;
+        if (entries.any(
+          (item) =>
+              item['card']['frontImagePath'] == path ||
+              item['card']['backImagePath'] == path,
+        )) {
+          continue;
+        }
+        await AppMediaStorage.deleteIfManaged(
+          path: path,
+          folder: 'identity_cards/${_prefix(ownerKey)}',
+        );
+      }
+    }
+  }
+
+  Future<void> delete(String ownerKey) async {
+    final prefix = _prefix(ownerKey);
+    await _storage.delete(key: '${prefix}snapshot');
+    // Also clean up any legacy pre-snapshot keys if they exist.
+    await _storage.delete(key: '${prefix}number');
+    await _storage.delete(key: '${prefix}name');
+    await _storage.delete(key: '${prefix}date_of_birth');
+    await _storage.delete(key: '${prefix}place_of_birth');
+    await _storage.delete(key: '${prefix}current_address');
+    await _storage.delete(key: '${prefix}expiry_date');
+
+    // Delete managed images.
+    final folder = 'identity_cards/$prefix';
+    await AppMediaStorage.deleteFolderIfManaged(folder: folder);
+  }
+
   Future<void> save({
     required String ownerKey,
     required String idNumber,
@@ -81,8 +194,11 @@ class IdInformationStorage {
     DateTime? expiryDate,
     NationalIdCard? scannedCard,
   }) async {
-    final previous = await readCard(ownerKey);
-    final sameCard = previous?.idNumber == idNumber ? previous : null;
+    final entries = await _entries(ownerKey);
+    final cards = await readCards(ownerKey);
+    final sameCard = cards
+        .where((card) => card.idNumber == idNumber)
+        .firstOrNull;
     var card =
         scannedCard ??
         _fromProfile(
@@ -96,7 +212,14 @@ class IdInformationStorage {
     if (scannedCard == null && sameCard != null) {
       // Preserve the separate scripts when a profile edit leaves a field alone.
       card = card.copyWith(
-        nameKhmer: sameCard.nameKhmer,
+        nameKhmer: name == sameCard.nameLatin || name == sameCard.nameKhmer
+            ? sameCard.nameKhmer
+            : card.nameKhmer,
+        nameLatin: name == sameCard.nameLatin || name == sameCard.nameKhmer
+            ? sameCard.nameLatin
+            : card.nameLatin,
+        validityYears: sameCard.validityYears,
+        chipIntegrityPercent: sameCard.chipIntegrityPercent,
         placeOfBirthKhmer: placeOfBirth == sameCard.displayPlaceOfBirth
             ? sameCard.placeOfBirthKhmer
             : card.placeOfBirthKhmer,
@@ -128,21 +251,27 @@ class IdInformationStorage {
     final data = card.toJson();
     data['frontImagePath'] = await persist(card.frontImagePath, 'front');
     data['backImagePath'] = await persist(card.backImagePath, 'back');
-    // A single encrypted write commits both screens together.
-    await _storage.write(
-      key: '${_prefix(ownerKey)}snapshot',
-      value: jsonEncode({
-        'profile': {
-          'idNumber': idNumber,
-          'name': name,
-          'dateOfBirth': dateOfBirth == null ? null : _dateOnly(dateOfBirth),
-          'placeOfBirth': card.displayPlaceOfBirth,
-          'currentAddress': card.displayCurrentAddress,
-          'expiryDate': expiryDate == null ? null : _dateOnly(expiryDate),
-        },
-        'card': data,
-      }),
+    final entry = <String, dynamic>{
+      'profile': {
+        'idNumber': idNumber,
+        'name': name,
+        'dateOfBirth': dateOfBirth == null ? null : _dateOnly(dateOfBirth),
+        'placeOfBirth': card.displayPlaceOfBirth,
+        'currentAddress': card.displayCurrentAddress,
+        'expiryDate': expiryDate == null ? null : _dateOnly(expiryDate),
+      },
+      'card': data,
+    };
+    final index = entries.indexWhere(
+      (entry) => entry['card']['idNumber'] == idNumber,
     );
+    if (index < 0) {
+      entries.add(entry);
+    } else {
+      entries[index] = entry;
+    }
+    // Commit the collection and selected profile together, preserving old cards.
+    await _writeEntries(ownerKey, entries, entry);
   }
 
   NationalIdCard _fromProfile(
