@@ -324,11 +324,11 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 const SizedBox(height: 22),
                 _captureControls(),
                 const SizedBox(height: 18),
-                IdentitySecondaryButton(
-                  label: 'identity_upload_document_action'.tr,
-                  icon: CupertinoIcons.arrow_up_doc,
-                  onPressed: _busy ? null : _pickFromGallery,
-                ),
+                // IdentitySecondaryButton(
+                //   label: 'identity_upload_document_action'.tr,
+                //   icon: CupertinoIcons.arrow_up_doc,
+                //   onPressed: _busy ? null : _pickFromGallery,
+                // ),
                 const SizedBox(height: 14),
                 IdentityFooterNote(text: 'identity_camera_footer_encrypted'.tr),
               ],

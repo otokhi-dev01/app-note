@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/language_preferences.dart';
+import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
@@ -133,6 +134,17 @@ class SettingsDrawer extends GetView<ProfileController> {
                       ),
                       _buildRow(
                         context,
+                        icon: CupertinoIcons.sun_max_fill,
+                        iconColor: _iosOrange,
+                        title: 'appearance_title'.tr,
+                        onTap: () => _closeThenGo(
+                          context,
+                          Routes.APPEARANCE,
+                          reopenSettingsOnReturn: true,
+                        ),
+                      ),
+                      _buildRow(
+                        context,
                         icon: CupertinoIcons.share,
                         iconColor: _iosBlue,
                         title: 'share_title'.tr,
@@ -211,6 +223,17 @@ class SettingsDrawer extends GetView<ProfileController> {
                           onTap: () => _closeThenGo(
                             context,
                             Routes.HELP_CENTER,
+                            reopenSettingsOnReturn: true,
+                          ),
+                        ),
+                        _buildRow(
+                          context,
+                          icon: CupertinoIcons.sun_max_fill,
+                          iconColor: _iosOrange,
+                          title: 'appearance_title'.tr,
+                          onTap: () => _closeThenGo(
+                            context,
+                            Routes.APPEARANCE,
                             reopenSettingsOnReturn: true,
                           ),
                         ),

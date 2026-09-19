@@ -5,6 +5,7 @@ import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
 import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
 import 'package:Note/features/profile/presentation/views/identity_details_edit_view.dart';
+import 'package:Note/features/profile/presentation/views/identity_image_view.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
 
 /// Digital Civic ID (national ID) scan-and-verify screen.
@@ -42,7 +43,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
         children: [
           IdentityAppHeader(
             onBackTap: () => Get.back(),
-            onCameraTap: controller.onRescan,
+            onCameraTap: controller.isLoading.value
+                ? null
+                : controller.onRescan,
           ),
           Expanded(
             child: SafeArea(
@@ -55,62 +58,108 @@ class IdentityScanView extends GetView<IdentityScanController> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (card == null)
-                          const IdentityStatusBanner(verified: false)
-                        else
-                          IdentityFieldCard(
-                            label:
-                                (controller.savedToProfile.value
-                                        ? 'id_information_saved'
-                                        : 'id_information_save_failed_title')
-                                    .tr,
-                            child: Text(
-                              (controller.savedToProfile.value
-                                      ? 'identity_profile_review_hint'
-                                      : 'id_information_save_failed_message')
-                                  .tr,
-                            ),
-                          ),
+                        _buildCardTabs(card),
+                        // if (card == null)
+                        //   const IdentityStatusBanner(verified: false)
+                        // else
+                        //   IdentityFieldCard(
+                        //     label:
+                        //         (controller.savedToProfile.value
+                        //                 ? 'id_information_saved'
+                        //                 : 'id_information_save_failed_title')
+                        //             .tr,
+                        //     child: Text(
+                        //       (controller.savedToProfile.value
+                        //               ? 'identity_profile_review_hint'
+                        //               : 'id_information_save_failed_message')
+                        //           .tr,
+                        //     ),
+                        //   ),
                         const SizedBox(height: 22),
-                        IdentitySectionHeader(
-                          icon: CupertinoIcons.square_stack_3d_up_fill,
-                          label: 'identity_scanned_previews_title'.tr,
-                          trailing: TextButton.icon(
-                            onPressed: controller.onRescan,
-                            icon: const Icon(
-                              CupertinoIcons.arrow_2_circlepath,
-                              size: 13,
-                            ),
-                            label: Text('identity_refresh_action'.tr),
-                            style: TextButton.styleFrom(
-                              foregroundColor: idGreen,
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              textStyle: const TextStyle(fontSize: 11.5),
-                            ),
-                          ),
-                        ),
+                        // IdentitySectionHeader(
+                        //   icon: CupertinoIcons.square_stack_3d_up_fill,
+                        //   label: 'identity_scanned_previews_title'.tr,
+                        //   trailing: TextButton.icon(
+                        //     onPressed: controller.onRescan,
+                        //     icon: const Icon(
+                        //       CupertinoIcons.arrow_2_circlepath,
+                        //       size: 13,
+                        //     ),
+                        //     label: Text('identity_refresh_action'.tr),
+                        //     style: TextButton.styleFrom(
+                        //       foregroundColor: idGreen,
+                        //       padding: EdgeInsets.zero,
+                        //       minimumSize: Size.zero,
+                        //       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        //       textStyle: const TextStyle(fontSize: 11.5),
+                        //     ),
+                        //   ),
+                        // ),
                         const SizedBox(height: 10),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
                               child: IdentityPreviewCard(
-                                label: 'identity_photo_hologram_label'.tr,
+                                label: 'identity_side_front'.tr,
                                 imagePath: card?.frontImagePath,
+                                onScan: controller.isLoading.value
+                                    ? null
+                                    : () => controller.onScanImage(front: true),
+                                onView: () => Get.to<void>(
+                                  () => const IdentityImageView(front: true),
+                                ),
+                                onDownload: controller.isLoading.value
+                                    ? null
+                                    : () => controller.onDownloadCard(
+                                        front: true,
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: IdentityPreviewCard(
-                                label: 'identity_mrz_chip_data_label'.tr,
+                                label: 'identity_side_back'.tr,
                                 imagePath: card?.backImagePath,
                                 front: false,
+                                onScan: controller.isLoading.value
+                                    ? null
+                                    : () =>
+                                          controller.onScanImage(front: false),
+                                onView: () => Get.to<void>(
+                                  () => const IdentityImageView(front: false),
+                                ),
+                                onDownload: controller.isLoading.value
+                                    ? null
+                                    : () => controller.onDownloadCard(
+                                        front: false,
+                                      ),
                               ),
                             ),
                           ],
                         ),
+                        if (card != null) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            key: const ValueKey('identity_download_card'),
+                            onPressed:
+                                controller.isLoading.value ||
+                                    !controller.hasImage(front: true) ||
+                                    !controller.hasImage(front: false)
+                                ? null
+                                : controller.onDownloadCard,
+                            icon: const Icon(CupertinoIcons.arrow_down_to_line),
+                            label: Text('identity_download_card'.tr),
+                          ),
+                          if (!controller.savedToProfile.value)
+                            FilledButton.icon(
+                              onPressed: controller.isLoading.value
+                                  ? null
+                                  : controller.onSaveCard,
+                              icon: const Icon(Icons.save_outlined),
+                              label: Text('identity_save_card'.tr),
+                            ),
+                        ],
                         const SizedBox(height: 24),
                         IdentitySectionHeader(
                           icon: CupertinoIcons.doc_person_fill,
@@ -135,20 +184,6 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         else
                           _buildFields(context, card),
                         const SizedBox(height: 26),
-                        if (card != null) ...[
-                          IdentityPrimaryButton(
-                            label:
-                                (controller.savedToProfile.value
-                                        ? 'identity_view_profile'
-                                        : 'identity_save_profile')
-                                    .tr,
-                            loading: controller.isLoading.value,
-                            onPressed: controller.isLoading.value
-                                ? null
-                                : controller.onViewProfile,
-                          ),
-                          const SizedBox(height: 10),
-                        ],
                         IdentityPrimaryButton(
                           label: 'document_review_upload'.tr,
                           loading: controller.isLoading.value,
@@ -157,14 +192,23 @@ class IdentityScanView extends GetView<IdentityScanController> {
                               : controller.onConfirm,
                         ),
                         const SizedBox(height: 10),
-                        IdentitySecondaryButton(
-                          label: card == null
-                              ? 'identity_start_scanning_action'.tr
-                              : 'identity_rescan_action'.tr,
-                          onPressed: controller.isLoading.value
-                              ? null
-                              : controller.onRescan,
-                        ),
+                        // IdentitySecondaryButton(
+                        //   label: card == null
+                        //       ? 'identity_start_scanning_action'.tr
+                        //       : 'identity_rescan_action'.tr,
+                        //   onPressed: controller.isLoading.value
+                        //       ? null
+                        //       : controller.onRescan,
+                        // ),
+                        if (card != null) ...[
+                          const SizedBox(height: 10),
+                          IdentityDestructiveButton(
+                            label: 'identity_delete_info_action'.tr,
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : controller.onDeleteInfo,
+                          ),
+                        ],
                         const SizedBox(height: 18),
                         IdentityFooterNote(
                           text: 'identity_footer_protection'.tr,
@@ -178,6 +222,81 @@ class IdentityScanView extends GetView<IdentityScanController> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCardTabs(NationalIdCard? activeCard) {
+    final savedCards = controller.savedCards;
+    final cards = <NationalIdCard?>[...savedCards];
+    if (activeCard != null &&
+        !cards.any((card) => card?.idNumber == activeCard.idNumber)) {
+      // Keep a newly scanned card visible while a failed save is retried.
+      cards.add(activeCard);
+    }
+    if (cards.isEmpty) cards.add(null);
+    final busy = controller.isLoading.value;
+    return Row(
+      key: const ValueKey('identity_card_tabs'),
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final (index, card) in cards.indexed)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Tooltip(
+                      message: card == null
+                          ? 'identity_add_new_action'.tr
+                          : [
+                              card.nameKhmer,
+                              card.nameLatin,
+                              card.idNumber,
+                            ].where((value) => value.isNotEmpty).join(' • '),
+                      child: ChoiceChip(
+                        key: ValueKey(
+                          'identity_card_tab_${card?.idNumber ?? 'empty'}',
+                        ),
+                        label: Text(
+                          'identity_card_number'.trParams({
+                            'number': '${index + 1}',
+                          }),
+                        ),
+                        selected: card?.idNumber == activeCard?.idNumber,
+                        showCheckmark: false,
+                        selectedColor: idAccent.withValues(alpha: 0.15),
+                        onSelected:
+                            busy ||
+                                card == null ||
+                                !savedCards.any(
+                                  (saved) => saved.idNumber == card.idNumber,
+                                )
+                            ? null
+                            : (selected) {
+                                if (selected) {
+                                  controller.onSelectIdentity(card.idNumber);
+                                }
+                              },
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Tooltip(
+          message: 'identity_add_new_action'.tr,
+          child: TextButton.icon(
+            key: const ValueKey('identity_add_button'),
+            onPressed: busy ? null : controller.onAddIdentity,
+            icon: const Icon(CupertinoIcons.plus, size: 18),
+            label: Text('identity_add_action'.tr),
+            style: TextButton.styleFrom(foregroundColor: idAccent),
+          ),
+        ),
+      ],
     );
   }
 
@@ -281,15 +400,17 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           ),
                         ),
                         const SizedBox(width: 5),
-                        Text(
-                          'identity_valid_years_caption'.trParams({
-                            'years': '${card.validityYears}',
-                          }).toUpperCase(),
-                          style: const TextStyle(
-                            color: idGreen,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
+                        Flexible(
+                          child: Text(
+                            'identity_valid_years_caption'.trParams({
+                              'years': '${card.validityYears}',
+                            }).toUpperCase(),
+                            style: const TextStyle(
+                              color: idGreen,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ),
                       ],

@@ -13,6 +13,7 @@ import 'package:Note/core/services/native_media_services.dart';
 import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
 import 'package:Note/features/profile/domain/entities/identity_printed_text_reader.dart';
 import 'package:Note/features/profile/data/services/identity_printed_text_service.dart';
+import 'package:Note/features/profile/data/services/identity_image_service.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
 import 'package:Note/features/profile/presentation/views/document_upload_view.dart';
@@ -41,6 +42,9 @@ class IdentityScanController extends GetxController {
   IdentityScanController(
     this._scanNationalId, {
     BlinkIdFlutter? scanner,
+    Future<String?> Function() scanCardImage = IdentityImageService.scan,
+    Future<String?> Function(IdentityCardExport) saveExport =
+        IdentityImageService.save,
     Future<String> Function(String) recognizePrintedText =
         IdentityPrintedTextService.recognize,
     Future<String> Function(String) recognizeText =
@@ -52,12 +56,16 @@ class IdentityScanController extends GetxController {
       'BLINKID_ANDROID_LICENSE_KEY',
     ),
   }) : _scanner = scanner ?? BlinkIdFlutter(),
+       _scanCardImage = scanCardImage,
+       _saveExport = saveExport,
        _recognizeText = recognizeText,
        _recognizePrintedText = recognizePrintedText,
        _iosLicenseKey = iosLicenseKey.trim(),
        _androidLicenseKey = androidLicenseKey.trim();
 
   final ScanNationalId _scanNationalId;
+  final Future<String?> Function() _scanCardImage;
+  final Future<String?> Function(IdentityCardExport) _saveExport;
   final Future<String> Function(String) _recognizeText;
   final Future<String> Function(String) _recognizePrintedText;
   final BlinkIdFlutter _scanner;
@@ -68,6 +76,122 @@ class IdentityScanController extends GetxController {
   final card = Rxn<NationalIdCard>();
   final isLoading = false.obs;
   final savedToProfile = false.obs;
+  List<NationalIdCard> get savedCards =>
+      Get.find<ProfileController>().identityCards;
+
+  bool hasImage({required bool front}) {
+    final path = front ? card.value?.frontImagePath : card.value?.backImagePath;
+    return path != null && File(path).existsSync();
+  }
+
+  /// Replaces one photo, leaving the other side and all edited fields intact.
+  Future<void> onScanImage({required bool front}) async {
+    if (isLoading.value || isClosed) return;
+    final original = card.value;
+    if (original == null) {
+      await onStartScan();
+      return;
+    }
+    final owner = _cardOwnerKey;
+    isLoading.value = true;
+    try {
+      final path = await _scanCardImage();
+      if (path == null ||
+          isClosed ||
+          card.value != original ||
+          owner != Get.find<ProfileController>().identityOwnerKey) {
+        return;
+      }
+      if (!File(path).existsSync()) {
+        throw const FileSystemException('Captured image is unavailable');
+      }
+      card.value = front
+          ? original.copyWith(frontImagePath: path)
+          : original.copyWith(backImagePath: path);
+      savedToProfile.value = false;
+      await _saveCardToProfile();
+    } catch (_) {
+      if (!isClosed) {
+        AppSnackbar.error(
+          'identity_scan_failed_title'.tr,
+          'identity_scan_failed_generic_message'.tr,
+        );
+      }
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
+  Future<void> onSaveCard() async {
+    if (isLoading.value || isClosed || card.value == null) return;
+    isLoading.value = true;
+    try {
+      await _saveCardToProfile();
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
+  /// A null side exports both images as a PDF; otherwise exports the original.
+  Future<void> onDownloadCard({bool? front}) async {
+    final original = card.value;
+    if (isLoading.value || isClosed || original == null) return;
+    final owner = _cardOwnerKey;
+    isLoading.value = true;
+    try {
+      final export = front == null
+          ? await IdentityImageService.card(original)
+          : await IdentityImageService.image(original, front: front);
+      if (isClosed ||
+          card.value != original ||
+          owner != Get.find<ProfileController>().identityOwnerKey) {
+        return;
+      }
+      final destination = await _saveExport(export);
+      if (!isClosed && destination != null) {
+        AppSnackbar.success('saved_title'.tr, 'identity_download_saved'.tr);
+      }
+    } catch (_) {
+      if (!isClosed) {
+        AppSnackbar.error(
+          'identity_save_failed_title'.tr,
+          'identity_download_failed'.tr,
+        );
+      }
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
+  Future<void> onAddIdentity() async {
+    if (isLoading.value || isClosed) return;
+    // Keep a failed save retryable before opening another scan.
+    if (card.value != null && !savedToProfile.value) {
+      isLoading.value = true;
+      try {
+        if (!await _saveCardToProfile()) return;
+      } finally {
+        if (!isClosed) isLoading.value = false;
+      }
+    }
+    await onStartScan();
+  }
+
+  Future<void> onSelectIdentity(String? idNumber) async {
+    if (idNumber == null || isLoading.value || isClosed) return;
+    isLoading.value = true;
+    try {
+      if (card.value != null &&
+          !savedToProfile.value &&
+          !await _saveCardToProfile()) {
+        return;
+      }
+      await Get.find<ProfileController>().selectIdentityCard(idNumber);
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
   String? _scanOwnerKey;
   String? _cardOwnerKey;
 
@@ -131,12 +255,6 @@ class IdentityScanController extends GetxController {
         );
         return;
       }
-      debugPrint(
-        '[BLINKID] No license configured for this platform — falling back '
-        'to the camera + on-device OCR flow. Configure '
-        'BLINKID_IOS_LICENSE_KEY / BLINKID_ANDROID_LICENSE_KEY via '
-        '--dart-define-from-file to use the BlinkID SDK instead.',
-      );
       currentStep.value = IdentityScanStep.scanning;
       return;
     }
@@ -147,6 +265,24 @@ class IdentityScanController extends GetxController {
   /// back to the manual camera flow (e.g. after a license was fixed).
   void onRescan() {
     unawaited(onStartScan());
+  }
+
+  Future<void> onDeleteInfo() async {
+    if (isLoading.value || isClosed) return;
+    isLoading.value = true;
+    try {
+      final profile = Get.find<ProfileController>();
+      if (savedToProfile.value) {
+        await profile.clearIdInformation();
+      } else {
+        // Discard an unsaved draft without deleting the previously saved card.
+        card.value = profile.identityCard.value;
+        savedToProfile.value = card.value != null;
+        _cardOwnerKey = card.value == null ? null : profile.identityOwnerKey;
+      }
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
   }
 
   String? _resolveLicenseKey() {
@@ -368,7 +504,10 @@ class IdentityScanController extends GetxController {
       }
     }
     if (isClosed || _scanOwnerKey != profile.identityOwnerKey) return;
-    card.value = scanned.fillMissingFrom(profile.identityCard.value);
+    final previous = profile.identityCards
+        .where((card) => card.idNumber == scanned.idNumber)
+        .firstOrNull;
+    card.value = scanned.fillMissingFrom(previous);
     _cardOwnerKey = _scanOwnerKey;
     savedToProfile.value = false;
     await _saveCardToProfile();

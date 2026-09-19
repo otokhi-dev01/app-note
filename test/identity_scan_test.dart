@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -9,12 +10,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/failures.dart';
+import 'package:Note/core/localization/app_translations.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/id_information_storage.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/profile/data/services/card_camera_session.dart';
+import 'package:Note/features/profile/data/services/identity_image_service.dart';
+import 'package:Note/features/profile/presentation/views/identity_image_view.dart';
+import 'package:Note/features/profile/presentation/views/profile_view.dart';
+import 'package:Note/routes/app_pages.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
 import 'package:Note/features/profile/domain/entities/identity_scan_recognition.dart';
 import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
@@ -31,6 +37,7 @@ import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
+import 'package:Note/features/profile/presentation/views/identity_scan_view.dart';
 
 const _front = 'KINGDOM OF CAMBODIA\nIDENTITY CARD\n123456789\n12.08.1974';
 const _mrz =
@@ -504,6 +511,564 @@ void main() {
     expect(await File(restored.frontImagePath!).readAsBytes(), [1, 2, 3]);
     expect(restored.currentAddressKhmer, 'ភ្នំពេញ');
     expect((await storage.readCard('id:other')), isNull);
+  });
+
+  test('Adding identities preserves full old snapshots and photos', () async {
+    const storage = IdInformationStorage();
+    final dir = await Directory.systemTemp.createTemp('id_collection_');
+    final photo = await File('${dir.path}/front.jpg').writeAsBytes([4, 5, 6]);
+    final original = MrzReader.parse(_mrz)!.copyWith(
+      nameKhmer: 'សុខ សុភា',
+      placeOfBirthKhmer: 'កណ្ដាល',
+      currentAddressEnglish: 'Phnom Penh',
+      frontImagePath: photo.path,
+      backImagePath: photo.path,
+      validityYears: 7,
+      chipIntegrityPercent: 98,
+    );
+    await storage.save(
+      ownerKey: 'id:one',
+      idNumber: original.idNumber,
+      name: original.nameLatin,
+      dateOfBirth: original.dateOfBirthAsDate,
+      expiryDate: original.expiryDateAsDate,
+      scannedCard: original,
+    );
+    // Simulate the exact single-card format used before collections existed.
+    final key =
+        'profile_id_${base64Url.encode(utf8.encode('id:one')).replaceAll('=', '')}_snapshot';
+    const secure = FlutterSecureStorage();
+    final oldSnapshot =
+        jsonDecode((await secure.read(key: key))!) as Map<String, dynamic>;
+    oldSnapshot.remove('cards');
+    await secure.write(key: key, value: jsonEncode(oldSnapshot));
+    final expectedCard = (await storage.readCard('id:one'))!.toJson();
+    final expectedProfile = await storage.read('id:one');
+    await storage.save(
+      ownerKey: 'id:one',
+      idNumber: 'second',
+      name: 'SECOND',
+      dateOfBirth: DateTime(2000),
+    );
+    await dir.delete(recursive: true);
+    final cards = await const IdInformationStorage().readCards('id:one');
+    expect(cards.map((card) => card.idNumber), [original.idNumber, 'second']);
+    expect(cards.first.toJson(), expectedCard);
+    expect(await File(cards.first.frontImagePath!).readAsBytes(), [4, 5, 6]);
+    expect(await File(cards.first.backImagePath!).readAsBytes(), [4, 5, 6]);
+    expect(await storage.readCards('id:other'), isEmpty);
+    await storage.selectCard('id:one', original.idNumber);
+    expect(await storage.read('id:one'), expectedProfile);
+    await storage.deleteCard('id:one', 'second');
+    expect((await storage.readCards('id:one')).single.toJson(), expectedCard);
+    expect(File(cards.first.frontImagePath!).existsSync(), isTrue);
+    await storage.deleteCard('id:one', original.idNumber);
+    expect(await storage.readCards('id:one'), isEmpty);
+    expect(await storage.readCard('id:one'), isNull);
+  });
+
+  test('Legacy profile remains selectable after adding another card', () async {
+    final prefix =
+        'profile_id_${base64Url.encode(utf8.encode('guest')).replaceAll('=', '')}_';
+    FlutterSecureStorage.setMockInitialValues({
+      '${prefix}number': 'legacy',
+      '${prefix}name': 'OLD NAME',
+      '${prefix}date_of_birth': '1990-01-02',
+      '${prefix}place_of_birth': 'Kandal',
+      '${prefix}current_address': 'Phnom Penh',
+      '${prefix}expiry_date': '2030-01-02',
+    });
+    const storage = IdInformationStorage();
+    final old = await storage.read('guest');
+    await storage.save(
+      ownerKey: 'guest',
+      idNumber: 'new',
+      name: 'NEW NAME',
+      dateOfBirth: null,
+    );
+    expect((await storage.readCards('guest')).length, 2);
+    await storage.selectCard('guest', 'legacy');
+    expect(await storage.read('guest'), old);
+  });
+
+  test(
+    'Rescanning an older identity preserves its fields without duplicates',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      final original = MrzReader.parse(_mrz)!.copyWith(
+        nameKhmer: 'សុខ សុភា',
+        placeOfBirthKhmer: 'កណ្ដាល',
+        currentAddressEnglish: 'Old address',
+      );
+      await details.applyScannedIdInformation(
+        idNumber: original.idNumber,
+        name: original.nameLatin,
+        scannedCard: original,
+      );
+      await details.applyScannedIdInformation(
+        idNumber: 'second',
+        name: 'SECOND',
+      );
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          recognizeText: (_) async => _mrz,
+          recognizePrintedText: (_) async => '',
+          iosLicenseKey: '',
+          androidLicenseKey: '',
+        ),
+      );
+      await scan.onAddIdentity();
+      scan.onFrontCaptured('front.jpg');
+      await scan.onBackCaptured('back.jpg');
+      expect(details.identityCards.length, 2);
+      expect(scan.card.value?.currentAddressEnglish, 'Old address');
+      expect(scan.card.value?.nameKhmer, original.nameKhmer);
+      await scan.onSelectIdentity('second');
+      expect(scan.card.value?.nameLatin, 'SECOND');
+      await scan.onDeleteInfo();
+      expect(details.identityCards.single.idNumber, original.idNumber);
+      expect(scan.card.value?.idNumber, original.idNumber);
+      session.user.value = const UserData(id: 'two');
+      expect(details.identityCards, isEmpty);
+      expect(scan.card.value, isNull);
+    },
+  );
+
+  Future<NationalIdCard> seedImageCard(ProfileController details) async {
+    final front = await File(
+      '${fixtureDirectory.path}/front.png',
+    ).writeAsBytes(img.encodePng(img.Image(width: 160, height: 100)));
+    final back = await File(
+      '${fixtureDirectory.path}/back.png',
+    ).writeAsBytes(img.encodePng(img.Image(width: 200, height: 125)));
+    final card = MrzReader.parse(_mrz)!.copyWith(
+      nameKhmer: 'សុខ សុភា',
+      placeOfBirthKhmer: 'កណ្ដាល',
+      currentAddressEnglish: 'Saved address',
+      frontImagePath: front.path,
+      backImagePath: back.path,
+    );
+    await details.applyScannedIdInformation(
+      idNumber: card.idNumber,
+      name: card.nameLatin,
+      dateOfBirth: card.dateOfBirthAsDate,
+      expiryDate: card.expiryDateAsDate,
+      scannedCard: card,
+    );
+    return details.identityCard.value!;
+  }
+
+  test(
+    'Replacing each image preserves other images, fields, and identities',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      await details.applyScannedIdInformation(idNumber: 'other', name: 'OTHER');
+      final original = await seedImageCard(details);
+      final replacement = await File(
+        '${fixtureDirectory.path}/replacement.png',
+      ).writeAsBytes(img.encodePng(img.Image(width: 320, height: 200)));
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          scanCardImage: () async => replacement.path,
+        ),
+      );
+      await scan.onScanImage(front: true);
+      final updatedFront = details.identityCard.value!;
+      expect(updatedFront.frontImagePath, isNot(original.frontImagePath));
+      expect(
+        updatedFront.toJson(),
+        original.copyWith(frontImagePath: updatedFront.frontImagePath).toJson(),
+      );
+      expect(
+        await File(updatedFront.frontImagePath!).readAsBytes(),
+        await replacement.readAsBytes(),
+      );
+      await scan.onScanImage(front: false);
+      final updatedBack = details.identityCard.value!;
+      expect(updatedBack.backImagePath, isNot(original.backImagePath));
+      expect(
+        updatedBack.toJson(),
+        updatedFront
+            .copyWith(backImagePath: updatedBack.backImagePath)
+            .toJson(),
+      );
+      expect(details.identityCards.length, 2);
+      expect(details.identityCards.first.nameLatin, 'OTHER');
+      await replacement.delete();
+      final restored = (await const IdInformationStorage().readCard('id:one'))!;
+      expect(restored.toJson(), updatedBack.toJson());
+      expect(File(restored.frontImagePath!).existsSync(), isTrue);
+      expect(File(restored.backImagePath!).existsSync(), isTrue);
+      expect(scan.savedToProfile.value, isTrue);
+    },
+  );
+
+  test(
+    'Cancelled and late photo scans cannot overwrite a saved identity',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      final original = await seedImageCard(details);
+      Completer<String?>? result;
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          scanCardImage: () async => result?.future,
+        ),
+      );
+      await scan.onScanImage(front: true);
+      expect(scan.card.value?.toJson(), original.toJson());
+      expect(scan.savedToProfile.value, isTrue);
+      result = Completer<String?>();
+      final pending = scan.onScanImage(front: false);
+      session.user.value = const UserData(id: 'two');
+      result.complete(original.frontImagePath);
+      await pending;
+      expect(scan.card.value, isNull);
+      expect(
+        (await const IdInformationStorage().readCard('id:one'))!.toJson(),
+        original.toJson(),
+      );
+      expect(await const IdInformationStorage().readCard('id:two'), isNull);
+      expect(scan.isLoading.value, isFalse);
+    },
+  );
+
+  test(
+    'Failed image save preserves stored photos and can be retried',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final storage = _FailingStorage()..fail = false;
+      final details = profile(session, idStorage: storage);
+      final original = await seedImageCard(details);
+      final replacement = await File(
+        '${fixtureDirectory.path}/retry.png',
+      ).writeAsBytes(img.encodePng(img.Image(width: 300, height: 190)));
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          scanCardImage: () async => replacement.path,
+        ),
+      );
+      storage.fail = true;
+      await scan.onScanImage(front: false);
+      expect(scan.savedToProfile.value, isFalse);
+      expect(scan.card.value?.backImagePath, replacement.path);
+      expect((await storage.readCard('id:one'))!.toJson(), original.toJson());
+      storage.fail = false;
+      await scan.onSaveCard();
+      expect(scan.savedToProfile.value, isTrue);
+      final restored = (await storage.readCard('id:one'))!;
+      expect(restored.frontImagePath, original.frontImagePath);
+      expect(
+        await File(restored.backImagePath!).readAsBytes(),
+        await replacement.readAsBytes(),
+      );
+    },
+  );
+
+  test(
+    'Downloads preserve original image bytes and put both sides in a PDF',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      final original = await seedImageCard(details);
+      final exports = <IdentityCardExport>[];
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          saveExport: (export) async {
+            exports.add(export);
+            return null; // Cancelling the destination must not change saved data.
+          },
+        ),
+      );
+      await scan.onDownloadCard(front: true);
+      await scan.onDownloadCard(front: false);
+      await scan.onDownloadCard();
+      expect(exports.map((item) => item.fileName), [
+        'identity_front.png',
+        'identity_back.png',
+        'identity_card.pdf',
+      ]);
+      expect(
+        exports[0].bytes,
+        await File(original.frontImagePath!).readAsBytes(),
+      );
+      expect(
+        exports[1].bytes,
+        await File(original.backImagePath!).readAsBytes(),
+      );
+      final pdf = latin1.decode(exports[2].bytes);
+      expect(pdf, startsWith('%PDF-'));
+      // Both images retain their source pixel dimensions in the exported PDF.
+      expect(pdf, contains('/Width 160'));
+      expect(pdf, contains('/Height 100'));
+      expect(pdf, contains('/Width 200'));
+      expect(pdf, contains('/Height 125'));
+      expect(
+        (await const IdInformationStorage().readCard('id:one'))!.toJson(),
+        original.toJson(),
+      );
+      expect(scan.isLoading.value, isFalse);
+    },
+  );
+
+  testWidgets('Image taps scan a side and expand opens the full-image viewer', (
+    tester,
+  ) async {
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final details = profile(session);
+    await tester.runAsync(() => seedImageCard(details));
+    var captures = 0;
+    final scan = Get.put(
+      IdentityScanController(
+        ScanNationalId(_IdentityRepo()),
+        scanCardImage: () async {
+          captures++;
+          return null;
+        },
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: const IdentityScanView(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('identity_scan_front')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('identity_scan_back')));
+    await tester.pumpAndSettle();
+    expect(captures, 2);
+    expect(scan.savedToProfile.value, isTrue);
+    await tester.tap(find.byKey(const ValueKey('identity_view_back')));
+    await tester.pumpAndSettle();
+    expect(find.byType(IdentityImageView), findsOneWidget);
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    final fullImage = tester.widget<Image>(find.byType(Image));
+    expect(fullImage.fit, BoxFit.contain);
+    expect(
+      (fullImage.image as FileImage).file.path,
+      scan.card.value?.backImagePath,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'Card tabs publish all selected information on the profile screen',
+    (tester) async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      late NationalIdCard first;
+      late NationalIdCard second;
+      await tester.runAsync(() async {
+        first = await seedImageCard(details);
+        final other = first.copyWith(
+          idNumber: 'SECOND-ID',
+          nameLatin: 'SECOND PERSON',
+          nameKhmer: 'ចាន់ ដារ៉ា',
+          dateOfBirth: '03-04-1995',
+          expiryDate: '04-05-2035',
+          placeOfBirthKhmer: 'សៀមរាប',
+          placeOfBirthEnglish: 'Siem Reap',
+          currentAddressKhmer: 'ភ្នំពេញ',
+          currentAddressEnglish:
+              'A long second address with the full village, commune, district and province',
+          mrzLines: ['SECOND CARD MRZ'],
+          frontImagePath: first.backImagePath,
+          backImagePath: first.frontImagePath,
+        );
+        await details.applyScannedIdInformation(
+          idNumber: other.idNumber,
+          name: other.nameLatin,
+          dateOfBirth: other.dateOfBirthAsDate,
+          expiryDate: other.expiryDateAsDate,
+          scannedCard: other,
+        );
+        second = details.identityCard.value!;
+      });
+      // Observers must never receive a selected card with stale profile fields.
+      final profileWorker = ever(details.identityCard, (card) {
+        if (card == null) return;
+        expect(details.userIdNumber.value, card.idNumber);
+        expect(details.userIdName.value, card.nameLatin);
+        expect(details.userDateOfBirth.value, card.dateOfBirthAsDate);
+        expect(details.userPlaceOfBirth.value, card.displayPlaceOfBirth);
+        expect(details.userCurrentAddress.value, card.displayCurrentAddress);
+        expect(details.userIdExpiryDate.value, card.expiryDateAsDate);
+      });
+      addTearDown(profileWorker.dispose);
+      await tester.binding.setSurfaceSize(const Size(390, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          home: const ProfileView(),
+          getPages: [
+            GetPage(
+              name: Routes.IDENTITY_SCAN,
+              page: () => const IdentityScanView(),
+              binding: BindingsBuilder(() {
+                Get.put(
+                  IdentityScanController(ScanNationalId(_IdentityRepo())),
+                );
+              }),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final (index, expected) in [first, second].indexed) {
+        final link = find.text('Khmer National Identity Card');
+        await tester.ensureVisible(link);
+        await tester.pumpAndSettle();
+        await tester.tap(link);
+        await tester.pumpAndSettle();
+        final scan = Get.find<IdentityScanController>();
+        await tester.runAsync(() async {
+          final selected = Completer<void>();
+          final worker = ever(scan.isLoading, (busy) {
+            if (!busy && !selected.isCompleted) selected.complete();
+          });
+          await tester.tap(
+            find.byKey(ValueKey('identity_card_tab_${expected.idNumber}')),
+          );
+          await selected.future;
+          worker.dispose();
+        });
+        await tester.pumpAndSettle();
+        Get.back<void>();
+        await tester.pumpAndSettle();
+        final section = find.byKey(
+          const ValueKey('profile_identity_information'),
+        );
+        for (final value in [
+          'Card ${index + 1}',
+          expected.idNumber,
+          expected.nameLatin,
+          expected.nameKhmer,
+          expected.displayPlaceOfBirth,
+          expected.displayCurrentAddress,
+          expected.mrzLines.join('\n'),
+          details.formattedDateOfBirth,
+          details.formattedIdExpiryDate,
+        ]) {
+          expect(
+            find.descendant(of: section, matching: find.text(value)),
+            findsOneWidget,
+          );
+        }
+        final address = tester.widget<Text>(
+          find.descendant(
+            of: section,
+            matching: find.text(expected.displayCurrentAddress),
+          ),
+        );
+        expect(address.maxLines, isNull);
+        for (final front in [true, false]) {
+          final image = tester.widget<Image>(
+            find.byKey(
+              ValueKey('profile_identity_${front ? 'front' : 'back'}'),
+            ),
+          );
+          expect(
+            (image.image as FileImage).file.path,
+            front ? expected.frontImagePath : expected.backImagePath,
+          );
+        }
+        await tester.runAsync(() async {
+          final restored = await const IdInformationStorage().readCard(
+            'id:one',
+          );
+          expect(restored?.toJson(), expected.toJson());
+          final stored = await const IdInformationStorage().read('id:one');
+          expect(stored.idNumber, expected.idNumber);
+          expect(stored.currentAddress, expected.displayCurrentAddress);
+        });
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Add starts a scan and cancellation keeps saved cards', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final details = profile(session);
+    await tester.runAsync(() async {
+      await details.applyScannedIdInformation(idNumber: 'first', name: 'FIRST');
+      await details.applyScannedIdInformation(
+        idNumber: 'second',
+        name: 'SECOND',
+      );
+    });
+    final scan = Get.put(
+      IdentityScanController(
+        ScanNationalId(_IdentityRepo()),
+        iosLicenseKey: '',
+        androidLicenseKey: '',
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: const IdentityScanView(),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('identity_add_button')));
+    expect(scan.currentStep.value, IdentityScanStep.scanning);
+    // Cancel before pumping the native camera widget.
+    scan.onCancelCamera();
+    await tester.pumpAndSettle();
+    expect(scan.card.value?.idNumber, 'second');
+    expect(details.identityCards.length, 2);
+    expect(find.text('Card 1'), findsOneWidget);
+    expect(find.text('Card 2'), findsOneWidget);
+    final firstTab = find.byKey(const ValueKey('identity_card_tab_first'));
+    final secondTab = find.byKey(const ValueKey('identity_card_tab_second'));
+    expect(tester.widget<ChoiceChip>(secondTab).selected, isTrue);
+    await tester.runAsync(() async {
+      final selected = Completer<void>();
+      final worker = ever(scan.isLoading, (busy) {
+        if (!busy && !selected.isCompleted) selected.complete();
+      });
+      await tester.tap(firstTab);
+      await selected.future;
+      worker.dispose();
+    });
+    await tester.pumpAndSettle();
+    expect(scan.card.value?.idNumber, 'first');
+    expect(tester.widget<ChoiceChip>(firstTab).selected, isTrue);
+    expect(find.text('FIRST'), findsOneWidget);
+    await tester.runAsync(() async {
+      final selected = Completer<void>();
+      final worker = ever(scan.isLoading, (busy) {
+        if (!busy && !selected.isCompleted) selected.complete();
+      });
+      await tester.tap(secondTab);
+      await selected.future;
+      worker.dispose();
+    });
+    await tester.pumpAndSettle();
+    expect(scan.card.value?.idNumber, 'second');
+    expect(find.text('SECOND'), findsOneWidget);
+    debugDefaultTargetPlatformOverride = null;
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
