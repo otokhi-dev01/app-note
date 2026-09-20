@@ -28,4 +28,17 @@ abstract final class IdentityScanRecognition {
     final date = RegExp(r'\b\d{2}[./-]\d{2}[./-]\d{4}\b').firstMatch(text);
     return number == null || date == null ? null : '$number:${date.group(0)}';
   }
+
+  static String? passportCandidate(String text) {
+    final passport = MrzReader.parsePassport(text);
+    if (passport == null ||
+        passport.passportNumber.isEmpty ||
+        passport.fullName.isEmpty ||
+        passport.dateOfBirthAsDate == null ||
+        passport.expiryDateAsDate == null) {
+      return null;
+    }
+    return passport.mrzLines.join('\n');
+  }
 }
+

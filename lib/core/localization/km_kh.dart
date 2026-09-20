@@ -321,6 +321,22 @@ const Map<String, String> kmKH = {
       'មិនអាចរក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណបានទេ',
   'id_information_save_failed_message': 'សូមព្យាយាមម្តងទៀត។',
 
+  // Profile — Passport Information
+  'passport_information_title': 'ព័ត៌មានលិខិតឆ្លងដែន',
+  'passport_card_number': 'លិខិតឆ្លងដែន @number',
+  'passport_number_label': 'លេខលិខិតឆ្លងដែន',
+  'passport_information_saved': 'ព័ត៌មានលិខិតឆ្លងដែនត្រូវបានរក្សាទុក។',
+  'passport_information_deleted': 'ព័ត៌មានលិខិតឆ្លងដែនត្រូវបានលុប។',
+  'gender_label': 'ភេទ',
+  'nationality_label': 'សញ្ជាតិ',
+  'edit_passport_information_title': 'កែព័ត៌មានលិខិតឆ្លងដែន',
+  'passport_number_hint': 'បញ្ចូលលេខលិខិតឆ្លងដែន',
+  'issuing_country_label': 'ប្រទេសចេញលិខិត',
+  'issuing_country_hint': 'បញ្ចូលឈ្មោះប្រទេស',
+  'select_dob_hint': 'ជ្រើសរើសថ្ងៃខែឆ្នាំកំណើត',
+  'select_expiry_hint': 'ជ្រើសរើសកាលបរិច្ឆេទផុតកំណត់',
+  'field_required': 'ចាំបាច់',
+
   'document_upload_title': 'ផ្ទុកឯកសារអត្តសញ្ញាណ',
   'document_review_upload': 'ពិនិត្យ និងផ្ទុកឯកសារ',
   'document_upload_description':

@@ -1,13 +1,10 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-
 export 'package:Note/shared/widgets/glass_inputs.dart';
 export 'package:Note/shared/widgets/glass_surfaces.dart';
 
 enum GlassShape { roundedRectangle, oval, circle }
-
 class CustomGlassContainer extends StatelessWidget {
   final Widget? child;
   final double blur;

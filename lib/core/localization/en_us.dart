@@ -323,6 +323,22 @@ const Map<String, String> enUS = {
   'id_information_save_failed_title': 'Could not save ID information',
   'id_information_save_failed_message': 'Please try again.',
 
+  // Profile — Passport Information
+  'passport_information_title': 'Passport Information',
+  'passport_card_number': 'Passport @number',
+  'passport_number_label': 'Passport Number',
+  'passport_information_saved': 'Passport information saved.',
+  'passport_information_deleted': 'Passport information deleted.',
+  'gender_label': 'Gender',
+  'nationality_label': 'Nationality',
+  'edit_passport_information_title': 'Edit Passport Information',
+  'passport_number_hint': 'Enter passport number',
+  'issuing_country_label': 'Issuing Country',
+  'issuing_country_hint': 'Enter country',
+  'select_dob_hint': 'Select date of birth',
+  'select_expiry_hint': 'Select expiry date',
+  'field_required': 'Required',
+
   'document_upload_title': 'Upload Identity Document',
   'document_review_upload': 'Review & Upload Document',
   'document_upload_description':

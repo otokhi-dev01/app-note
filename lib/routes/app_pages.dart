@@ -32,6 +32,8 @@ import 'package:Note/features/profile/presentation/views/my_cards_view.dart';
 import 'package:Note/features/profile/presentation/bindings/credit_card_binding.dart';
 import 'package:Note/features/profile/presentation/views/identity_scan_view.dart';
 import 'package:Note/features/profile/presentation/bindings/identity_scan_binding.dart';
+import 'package:Note/features/profile/presentation/views/passport_scan_view.dart';
+import 'package:Note/features/profile/presentation/bindings/passport_scan_binding.dart';
 import 'package:Note/features/trash/presentation/views/recently_deleted_view.dart';
 import 'package:Note/features/trash/presentation/bindings/recently_deleted_binding.dart';
 import 'package:Note/features/archive/presentation/views/archive_view.dart';
@@ -109,6 +111,11 @@ class AppPages {
       name: Routes.IDENTITY_SCAN,
       page: () => const IdentityScanView(),
       binding: IdentityScanBinding(),
+    ),
+    GetPage(
+      name: Routes.PASSPORT_SCAN,
+      page: () => const PassportScanView(),
+      binding: PassportScanBinding(),
     ),
     GetPage(
       name: Routes.APPEARANCE,

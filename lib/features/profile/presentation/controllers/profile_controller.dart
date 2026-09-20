@@ -15,6 +15,7 @@ import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/app_media_storage.dart';
 import 'package:Note/core/storage/id_information_storage.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/features/profile/domain/entities/passport_card.dart';
 import 'package:Note/core/storage/profile_extras_storage.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
@@ -23,6 +24,7 @@ import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_id_information_sheet.dart';
+import 'package:Note/features/profile/presentation/widgets/edit_passport_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -77,6 +79,17 @@ class ProfileController extends GetxController {
   final userCurrentAddress = ''.obs;
   final userIdExpiryDate = Rxn<DateTime>();
 
+  final passportCard = Rxn<PassportCard>();
+  final passportCards = <PassportCard>[].obs;
+  final passportNumber = ''.obs;
+  final passportName = ''.obs;
+  final passportDob = Rxn<DateTime>();
+  final passportGender = ''.obs;
+  final passportNationality = ''.obs;
+  final passportExpiryDate = Rxn<DateTime>();
+  final passportIssuedDate = Rxn<DateTime>();
+  final passportIssuingCountry = ''.obs;
+
   Color get userColor => FolderAppearance.parseHex(
     userColorHex.value ?? FolderAppearance.defaultColorValue,
   );
@@ -101,6 +114,17 @@ class ProfileController extends GetxController {
       userPlaceOfBirth.value = '';
       userCurrentAddress.value = '';
       userIdExpiryDate.value = null;
+
+      passportCards.clear();
+      passportCard.value = null;
+      passportNumber.value = '';
+      passportName.value = '';
+      passportDob.value = null;
+      passportGender.value = '';
+      passportNationality.value = '';
+      passportExpiryDate.value = null;
+      passportIssuedDate.value = null;
+      passportIssuingCountry.value = '';
     }
     final user = _session.user.value;
     final isGuest = isGuestMode.value && user == null;
@@ -127,11 +151,18 @@ class ProfileController extends GetxController {
         : '';
 
     unawaited(_loadIdInformation());
+    unawaited(_loadPassportInformation());
   }
 
   String get formattedDateOfBirth => _formatDate(userDateOfBirth.value);
 
   String get formattedIdExpiryDate => _formatDate(userIdExpiryDate.value);
+
+  String get formattedPassportDob => _formatDate(passportDob.value);
+
+  String get formattedPassportExpiryDate => _formatDate(passportExpiryDate.value);
+
+  String get formattedPassportIssuedDate => _formatDate(passportIssuedDate.value);
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
@@ -200,6 +231,64 @@ class ProfileController extends GetxController {
     userIdExpiryDate.value = stored.expiryDate;
     identityCards.assignAll(storedCards);
     identityCard.value = storedCard;
+  }
+
+  Future<void> _loadPassportInformation() async {
+    final ownerKey = _idOwnerKey;
+    if (ownerKey.isEmpty) return;
+
+    try {
+      final stored = await _idStorage.readPassport(ownerKey);
+      final storedPassports = await _idStorage.readPassports(ownerKey);
+      if (ownerKey != _idOwnerKey) return;
+
+      passportCard.value = stored;
+      passportCards.assignAll(storedPassports);
+
+      if (stored != null) {
+        passportNumber.value = stored.passportNumber;
+        passportName.value = stored.fullName;
+        passportDob.value = stored.dateOfBirthAsDate;
+        passportGender.value = stored.gender;
+        passportNationality.value = stored.nationality;
+        passportExpiryDate.value = stored.expiryDateAsDate;
+        passportIssuedDate.value = stored.issuedDateAsDate;
+        passportIssuingCountry.value = stored.issuingCountry;
+      }
+    } catch (error) {
+      debugPrint('[PASSPORT INFORMATION LOAD ERROR] $error');
+    }
+  }
+
+  Future<void> savePassportInformation(PassportCard passport) async {
+    final ownerKey = _idOwnerKey;
+    if (ownerKey.isEmpty) return;
+
+    try {
+      await _idStorage.savePassport(ownerKey: ownerKey, passport: passport);
+      await _loadPassportInformation();
+      AppSnackbar.success('saved_title'.tr, 'passport_information_saved'.tr);
+    } catch (error) {
+      debugPrint('[PASSPORT INFORMATION SAVE ERROR] $error');
+      AppSnackbar.error(
+        'id_information_save_failed_title'.tr,
+        'id_information_save_failed_message'.tr,
+      );
+    }
+  }
+
+  Future<void> deletePassportInformation(String number) async {
+    final ownerKey = _idOwnerKey;
+    if (ownerKey.isEmpty) return;
+
+    try {
+      await _idStorage.deletePassport(ownerKey, number);
+      await _loadPassportInformation();
+      AppSnackbar.success('saved_title'.tr, 'passport_information_deleted'.tr);
+    } catch (error) {
+      debugPrint('[PASSPORT INFORMATION DELETE ERROR] $error');
+      AppSnackbar.error('delete_failed_title'.tr, 'delete_failed_message'.tr);
+    }
   }
 
   Future<void> clearIdInformation() async {
@@ -515,6 +604,17 @@ class ProfileController extends GetxController {
             currentAddress: currentAddress,
             expiryDate: expiryDate,
           ),
+    );
+  }
+
+  Future<void> updatePassportInformation() async {
+    final context = Get.context;
+    if (context == null || _idOwnerKey.isEmpty) return;
+
+    await EditPassportInformationSheet.show(
+      context: context,
+      initialCard: passportCard.value,
+      onSave: savePassportInformation,
     );
   }
 
