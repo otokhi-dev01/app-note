@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
@@ -26,214 +28,69 @@ class RegisterView extends GetView<AuthController> {
             ),
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: CustomScrollView(
-          physics: BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: LanguageToggleButton(),
-                  ),
-                ),
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    AppLogo(height: 78)
-                        .animate()
-                        .scale(
-                          duration: 600.ms,
-                          curve: Curves.easeOutBack,
-                          begin: Offset(0.9, 0.9),
-                          end: Offset(1, 1),
-                        )
-                        .fadeIn(duration: 400.ms),
-                    SizedBox(height: 20),
-                    Text(
-                          "register_create_account".tr,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 30,
-                            color: theme.colorScheme.primary,
-                          ),
-                        )
-                        .animate()
-                        .scale(
-                          duration: 600.ms,
-                          curve: Curves.easeOutBack,
-                          begin: const Offset(0.9, 0.9),
-                          end: const Offset(1, 1),
-                        )
-                        .fadeIn(duration: 400.ms),
-                    SizedBox(height: 8),
-                    Text(
-                      "register_subtitle".tr,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontSize: 18),
-                    ).animate().fadeIn(delay: 100.ms),
-                    SizedBox(height: 15),
-                    // Register Card
-                    CustomGlassContainer(
-                      borderRadius: 30,
-                      blur: 35,
-                      opacity: 0.1,
-                      thickness: 15,
-                      showGlow: true,
-                      child: Material(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(30),
-                        clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Center(
-                                child: Container(
-                                  width: 40,
-                                  height: 4,
-                                  margin: EdgeInsets.only(bottom: 24),
-                                  decoration: BoxDecoration(
-                                    color: theme.dividerColor.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                              ),
-                              _buildTextField(
-                                context,
-                                controller: controller.accountController,
-                                hint: "username_email_phone_hint".tr,
-                                icon: Icons.person,
-                              ),
-                              SizedBox(height: 16),
-                              Obx(
-                                () => _buildTextField(
-                                  context,
-                                  controller: controller.passwordController,
-                                  hint: "password_label".tr,
-                                  icon: Icons.lock,
-                                  isPassword:
-                                      !controller.isPasswordVisible.value,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      controller.isPasswordVisible.value
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      size: 20,
-                                    ),
-                                    onPressed:
-                                        controller.togglePasswordVisibility,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              Obx(
-                                () => _buildTextField(
-                                  context,
-                                  controller:
-                                      controller.confirmPasswordController,
-                                  hint: "confirm_password_label".tr,
-                                  icon: Icons.lock,
-                                  isPassword: !controller
-                                      .isConfirmPasswordVisible
-                                      .value,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      controller.isConfirmPasswordVisible.value
-                                          ? Icons.visibility
-                                          : Icons.visibility_off,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                      size: 20,
-                                    ),
-                                    onPressed: controller
-                                        .toggleConfirmPasswordVisibility,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 32),
-                              Obx(
-                                () => SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: controller.isLoading.value
-                                        ? null
-                                        : controller.register,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: theme.colorScheme.primary,
-                                      foregroundColor: Colors.white,
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(30),
-                                      ),
-                                    ),
-                                    child: controller.isLoading.value
-                                        ? SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          )
-                                        : Text(
-                                            "sign_up_button".tr,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 20,
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+        body: Stack(
+          children: [
+            _buildBackdrop(context),
+            SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
                     ),
-                    SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          "register_have_account".tr,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                          ),
-                        ),
-                        TextButton(
+                        IconButton(
                           onPressed: () => Get.back(),
-                          style: TextButton.styleFrom(
-                            foregroundColor: theme.colorScheme.primary,
-                            padding: EdgeInsets.symmetric(horizontal: 5),
-                          ),
-                          child: Text(
-                            "login_link".tr,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
+                          icon: const Icon(CupertinoIcons.back),
+                          color: theme.colorScheme.onSurface,
                         ),
+                        const LanguageToggleButton(),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 460,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    0,
+                                    24,
+                                    24,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _buildHeader(context),
+                                      const SizedBox(height: 28),
+                                      _buildFormCard(context),
+                                      const SizedBox(height: 22),
+                                      _buildLoginRow(context),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -242,48 +99,261 @@ class RegisterView extends GetView<AuthController> {
     );
   }
 
-  Widget _buildTextField(
-    BuildContext context, {
-    required TextEditingController controller,
-    required String hint,
-    required dynamic icon,
-    bool isPassword = false,
-    Widget? suffixIcon,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildBackdrop(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        keyboardType: keyboardType,
-        autocorrect: false,
-        enableSuggestions: false,
-        style: theme.textTheme.bodyLarge,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = theme.colorScheme.primary;
+
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -130,
+            right: -100,
+            child: _glow(accent, 320, isDark ? 0.30 : 0.20),
           ),
-          prefixIcon: icon is IconData
-              ? Icon(icon, color: theme.colorScheme.onSurfaceVariant)
-              : Padding(
-                  padding: EdgeInsets.all(14.0),
-                  child: FaIcon(
-                    icon,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    size: 18,
-                  ),
-                ),
-          suffixIcon: suffixIcon,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          Positioned(
+            bottom: -150,
+            left: -120,
+            child: _glow(accent, 340, isDark ? 0.22 : 0.14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glow(Color color, double size, double alpha) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
         ),
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        const AppLogo(height: 84, showGlow: true)
+            .animate()
+            .scale(
+              duration: 600.ms,
+              curve: Curves.easeOutBack,
+              begin: const Offset(0.9, 0.9),
+              end: const Offset(1, 1),
+            )
+            .fadeIn(duration: 400.ms),
+        const SizedBox(height: 22),
+        Text(
+              'register_create_account'.tr,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                fontSize: 29,
+                letterSpacing: -0.5,
+                color: theme.colorScheme.primary,
+              ),
+            )
+            .animate()
+            .fadeIn(delay: 200.ms)
+            .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
+        const SizedBox(height: 8),
+        Text(
+          'register_subtitle'.tr,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ).animate().fadeIn(delay: 300.ms),
+      ],
+    );
+  }
+
+  Widget _buildFormCard(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return CustomGlassContainer(
+      borderRadius: 28,
+      blur: 35,
+      opacity: 0.12,
+      thickness: 16,
+      showGlow: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(28),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              CustomGlassTextField(
+                controller: controller.accountController,
+                placeholder: 'username_email_phone_hint'.tr,
+                height: 56,
+                borderRadius: 18,
+                textInputAction: TextInputAction.next,
+                prefixIcon: Icon(
+                  CupertinoIcons.person_fill,
+                  size: 20,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                ),
+                textStyle: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+                placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Obx(
+                () => CustomGlassTextField(
+                  controller: controller.passwordController,
+                  placeholder: 'password_label'.tr,
+                  obscureText: !controller.isPasswordVisible.value,
+                  height: 56,
+                  borderRadius: 18,
+                  textInputAction: TextInputAction.next,
+                  prefixIcon: Icon(
+                    CupertinoIcons.lock_fill,
+                    size: 20,
+                    color: theme.colorScheme.primary.withValues(
+                      alpha: 0.8,
+                    ),
+                  ),
+                  suffixIcon: Icon(
+                    controller.isPasswordVisible.value
+                        ? CupertinoIcons.eye_slash_fill
+                        : CupertinoIcons.eye_fill,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  onSuffixTap: controller.togglePasswordVisibility,
+                  textStyle: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Obx(
+                () => CustomGlassTextField(
+                  controller: controller.confirmPasswordController,
+                  placeholder: 'confirm_password_label'.tr,
+                  obscureText: !controller.isConfirmPasswordVisible.value,
+                  height: 56,
+                  borderRadius: 18,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => controller.register(),
+                  prefixIcon: Icon(
+                    CupertinoIcons.lock_fill,
+                    size: 20,
+                    color: theme.colorScheme.primary.withValues(
+                      alpha: 0.8,
+                    ),
+                  ),
+                  suffixIcon: Icon(
+                    controller.isConfirmPasswordVisible.value
+                        ? CupertinoIcons.eye_slash_fill
+                        : CupertinoIcons.eye_fill,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  onSuffixTap: controller.toggleConfirmPasswordVisibility,
+                  textStyle: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Obx(
+                () => CustomGlassButton(
+                  semanticLabel: 'sign_up_button'.tr,
+                  onPressed: controller.isLoading.value
+                      ? null
+                      : controller.register,
+                  minHeight: 56,
+                  borderRadius: 26,
+                  style: lg.GlassButtonStyle.prominent,
+                  glassColor: theme.colorScheme.primary,
+                  glowColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  child: controller.isLoading.value
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          "sign_up_button".tr,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    )
+    .animate()
+    .fadeIn(delay: 380.ms, duration: 450.ms)
+    .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic);
+  }
+
+  Widget _buildLoginRow(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          "register_have_account".tr,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            fontSize: 15,
+          ),
+        ),
+        TextButton(
+          onPressed: () => Get.back(),
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.primary,
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+          ),
+          child: Text(
+            "login_link".tr,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+        ),
+      ],
+    ).animate().fadeIn(delay: 550.ms);
+  }
 }
+

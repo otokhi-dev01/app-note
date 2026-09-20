@@ -237,196 +237,241 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
         child: Scaffold(
           backgroundColor: theme.scaffoldBackgroundColor,
           extendBodyBehindAppBar: true,
-          body: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            physics: BouncingScrollPhysics(),
-            slivers: [
-              AppScreenSliverAppBar(
-                title: 'forgot_password_title'.tr,
-                centerTitle: true,
-                leading: CustomGlassButton(
-                  semanticLabel: MaterialLocalizations.of(
-                    context,
-                  ).backButtonTooltip,
-                  onPressed: _isSubmitting ? null : _back,
-                  width: 44,
-                  height: 44,
-                  shape: GlassShape.circle,
-                  blur: 10,
-                  opacity: 0.15,
-                  thickness: 8,
-                  glassColor: null,
-                  foregroundColor: theme.colorScheme.onSurface,
-                  padding: EdgeInsets.zero,
-                  child: Icon(CupertinoIcons.back, size: 23),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 620),
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        18,
-                        20,
-                        MediaQuery.viewInsetsOf(context).bottom + 40,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Center(
-                            child: AppLogo(height: 78)
-                                .animate()
-                                .scale(
-                                  duration: 600.ms,
-                                  curve: Curves.easeOutBack,
-                                  begin: const Offset(0.9, 0.9),
-                                  end: const Offset(1, 1),
-                                )
-                                .fadeIn(duration: 400.ms),
+          body: Stack(
+            children: [
+              _buildBackdrop(context),
+              CustomScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                physics: const BouncingScrollPhysics(),
+                slivers: [
+                  AppScreenSliverAppBar(
+                    title: 'forgot_password_title'.tr,
+                    centerTitle: true,
+                    leading: CustomGlassButton(
+                      semanticLabel: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: _isSubmitting ? null : _back,
+                      width: 44,
+                      height: 44,
+                      shape: GlassShape.circle,
+                      blur: 10,
+                      opacity: 0.15,
+                      thickness: 8,
+                      glassColor: null,
+                      foregroundColor: theme.colorScheme.onSurface,
+                      padding: EdgeInsets.zero,
+                      child: const Icon(CupertinoIcons.back, size: 23),
+                    ),
+                  ),
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            24,
+                            18,
+                            24,
+                            MediaQuery.viewInsetsOf(context).bottom + 40,
                           ),
-                          const SizedBox(height: 24),
-                          Center(
-                            child: Text(
-                              "forgot_password_title".tr,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 30,
-                                color: theme.colorScheme.primary,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Center(
+                                child: AppLogo(height: 78)
+                                    .animate()
+                                    .scale(
+                                      duration: 600.ms,
+                                      curve: Curves.easeOutBack,
+                                      begin: const Offset(0.9, 0.9),
+                                      end: const Offset(1, 1),
+                                    )
+                                    .fadeIn(duration: 400.ms),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _description,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              height: 1.45,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          CustomGlassContainer(
-                            borderRadius: 30,
-                            blur: 35,
-                            opacity: 0.1,
-                            thickness: 15,
-                            showGlow: true,
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Center(
-                                  child: Container(
-                                    width: 40,
-                                    height: 4,
-                                    margin: const EdgeInsets.only(bottom: 24),
-                                    decoration: BoxDecoration(
-                                      color: theme.dividerColor.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
+                              const SizedBox(height: 24),
+                              Center(
+                                child: Text(
+                                  "forgot_password_title".tr,
+                                  style: theme.textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 30,
+                                    color: theme.colorScheme.primary,
                                   ),
                                 ),
-                                ..._buildFields(context),
-                                if (_notice != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 16),
-                                    child: Text(
-                                      _notice!,
-                                      semanticsLabel: _notice,
-                                    ),
-                                  ),
-                                if (_errorText != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 16),
-                                    child: Semantics(
-                                      liveRegion: true,
-                                      child: Text(
-                                        _errorText!,
-                                        style: TextStyle(
-                                          color: theme.colorScheme.error,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _description,
+                                textAlign: TextAlign.center,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                  height: 1.45,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              CustomGlassContainer(
+                                borderRadius: 30,
+                                blur: 35,
+                                opacity: 0.1,
+                                thickness: 15,
+                                showGlow: true,
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Center(
+                                      child: Container(
+                                        width: 40,
+                                        height: 4,
+                                        margin: const EdgeInsets.only(bottom: 24),
+                                        decoration: BoxDecoration(
+                                          color: theme.dividerColor.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          borderRadius: BorderRadius.circular(2),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : () => _submit(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                                    ..._buildFields(context),
+                                    if (_notice != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 16),
+                                        child: Text(
+                                          _notice!,
+                                          semanticsLabel: _notice,
+                                        ),
+                                      ),
+                                    if (_errorText != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 16),
+                                        child: Semantics(
+                                          liveRegion: true,
+                                          child: Text(
+                                            _errorText!,
+                                            style: TextStyle(
+                                              color: theme.colorScheme.error,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : Text(
-                                      _buttonLabel,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                      ),
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isSubmitting ? null : () => _submit(),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: theme.colorScheme.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
                                     ),
-                            ),
-                          ),
-                          if (_step == _RecoveryStep.account ||
-                              _step == _RecoveryStep.code)
-                            TextButton(
-                              onPressed: _isSubmitting
-                                  ? null
-                                  : _useSecurityQuestions,
-                              child: Text('recovery_use_security_questions'.tr),
-                            ),
-                          if (_step == _RecoveryStep.code)
-                            TextButton(
-                              onPressed: _isSubmitting || _resendSeconds > 0
-                                  ? null
-                                  : () => _submit(resend: true),
-                              child: Text(
-                                _resendSeconds > 0
-                                    ? 'recovery_resend_countdown'.trParams({
-                                        'seconds': '$_resendSeconds',
-                                      })
-                                    : 'recovery_resend_code'.tr,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: _isSubmitting
+                                      ? const SizedBox.square(
+                                          dimension: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(
+                                          _buttonLabel,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                          ),
+                                        ),
+                                ),
                               ),
-                            ),
-                          if (_step == _RecoveryStep.code ||
-                              _step == _RecoveryStep.security ||
-                              _step == _RecoveryStep.password)
-                            TextButton(
-                              onPressed: _isSubmitting ? null : _startOver,
-                              child: Text('recovery_start_over'.tr),
-                            ),
-                        ],
+                              const SizedBox(height: 12),
+                              if (_step == _RecoveryStep.account ||
+                                  _step == _RecoveryStep.code)
+                                TextButton(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _useSecurityQuestions,
+                                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+                                  child: Text('recovery_use_security_questions'.tr),
+                                ),
+                              if (_step == _RecoveryStep.code)
+                                TextButton(
+                                  onPressed: _isSubmitting || _resendSeconds > 0
+                                      ? null
+                                      : () => _submit(resend: true),
+                                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+                                  child: Text(
+                                    _resendSeconds > 0
+                                        ? 'recovery_resend_countdown'.trParams({
+                                            'seconds': '$_resendSeconds',
+                                          })
+                                        : 'recovery_resend_code'.tr,
+                                  ),
+                                ),
+                              if (_step == _RecoveryStep.code ||
+                                  _step == _RecoveryStep.security ||
+                                  _step == _RecoveryStep.password)
+                                TextButton(
+                                  onPressed: _isSubmitting ? null : _startOver,
+                                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+                                  child: Text('recovery_start_over'.tr),
+                                ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBackdrop(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = theme.colorScheme.primary;
+
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -130,
+            right: -100,
+            child: _glow(accent, 320, isDark ? 0.30 : 0.20),
+          ),
+          Positioned(
+            bottom: -150,
+            left: -120,
+            child: _glow(accent, 340, isDark ? 0.22 : 0.14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glow(Color color, double size, double alpha) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
         ),
       ),
     );
@@ -491,14 +536,11 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     TextInputAction action = TextInputAction.done,
   }) {
     final theme = Theme.of(context);
-    return TextField(
+    return CustomGlassTextField(
       key: ValueKey(label),
       controller: controller,
       enabled: !_isSubmitting,
       obscureText: obscure,
-      autocorrect: false,
-      enableSuggestions: false,
-      autofillHints: autofillHints,
       textInputAction: action,
       onSubmitted: (_) {
         if (action == TextInputAction.next) {
@@ -510,18 +552,18 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       onChanged: (_) {
         if (_errorText != null) setState(() => _errorText = null);
       },
-      style: theme.textTheme.bodyLarge,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(obscure ? Icons.lock_outline : Icons.person_outline),
-        filled: true,
-        fillColor: theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
+      placeholder: label,
+      prefixIcon: Icon(
+        obscure ? CupertinoIcons.lock_fill : CupertinoIcons.person_fill,
+        size: 20,
+        color: theme.colorScheme.primary.withValues(alpha: 0.8),
       ),
+      textStyle: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
+      borderRadius: 18,
+      height: 56,
     );
   }
 }

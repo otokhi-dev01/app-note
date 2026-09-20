@@ -23,6 +23,7 @@ class IdentityCameraView extends StatefulWidget {
     required this.onFrontCaptured,
     required this.onBackCaptured,
     required this.onCancel,
+    this.passportMode = false,
     this.createSession = _createSession,
     this.pickPhoto = _pickPhoto,
   });
@@ -30,6 +31,7 @@ class IdentityCameraView extends StatefulWidget {
   final ValueChanged<String> onFrontCaptured;
   final ValueChanged<String> onBackCaptured;
   final VoidCallback onCancel;
+  final bool passportMode;
   final CardCameraSession Function(int lensIndex) createSession;
   final Future<String?> Function() pickPhoto;
 
@@ -153,10 +155,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             version != _sideVersion) {
           return;
         }
-        final candidate = IdentityScanRecognition.candidate(
-          text,
-          front: _front,
-        );
+        final candidate = widget.passportMode
+            ? IdentityScanRecognition.passportCandidate(text)
+            : IdentityScanRecognition.candidate(text, front: _front);
         if (candidate == null) {
           _candidate = null;
           _matches = 0;
@@ -255,6 +256,14 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     _candidate = null;
     _matches = 0;
     _sideVersion++;
+
+    if (widget.passportMode) {
+      _finished = true;
+      await _closeCamera();
+      if (mounted) widget.onFrontCaptured(path);
+      return;
+    }
+
     if (_front) {
       _hasFront = true;
       widget.onFrontCaptured(path);
@@ -318,8 +327,10 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 const SizedBox(height: 14),
                 AspectRatio(aspectRatio: 0.85, child: _viewfinder()),
                 const SizedBox(height: 16),
-                _sideTabs(),
-                const SizedBox(height: 14),
+                if (!widget.passportMode) ...[
+                  _sideTabs(),
+                  const SizedBox(height: 14),
+                ],
                 _hintBar(),
                 const SizedBox(height: 22),
                 _captureControls(),
@@ -352,9 +363,11 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                _front
-                    ? 'identity_step_front_label'.tr
-                    : 'identity_step_back_label'.tr,
+                widget.passportMode
+                    ? 'passport_information_title'.tr
+                    : _front
+                        ? 'identity_step_front_label'.tr
+                        : 'identity_step_back_label'.tr,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -415,11 +428,12 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     builder: (context, constraints) {
       final size = constraints.biggest;
       final guideWidth = size.width - 52;
+      final ratio = widget.passportMode ? 1.4 : 1.55;
       _session?.viewport = size;
       _session?.frame = Rect.fromCenter(
         center: Offset(size.width / 2, size.height / 2),
         width: guideWidth,
-        height: guideWidth / 1.55,
+        height: guideWidth / ratio,
       );
       return ClipRRect(
         borderRadius: BorderRadius.circular(20),
@@ -471,7 +485,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 26),
-                child: AspectRatio(aspectRatio: 1.55, child: _guideFrame()),
+                child: AspectRatio(aspectRatio: ratio, child: _guideFrame()),
               ),
             ),
             Positioned(
@@ -516,7 +530,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                CupertinoIcons.person_crop_rectangle,
+                widget.passportMode
+                    ? CupertinoIcons.doc_text_fill
+                    : CupertinoIcons.person_crop_rectangle,
                 color: Colors.white.withValues(alpha: 0.35),
                 size: 28,
               ),
@@ -526,6 +542,14 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 height: 1.4,
                 color: Colors.white.withValues(alpha: 0.16),
               ),
+              if (widget.passportMode) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: 90,
+                  height: 1.4,
+                  color: Colors.white.withValues(alpha: 0.16),
+                ),
+              ],
             ],
           ),
         ),
@@ -629,9 +653,11 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            _front
-                ? 'identity_hint_flat_front'.tr
-                : 'identity_hint_flip_back'.tr,
+            widget.passportMode
+                ? 'passport_number_hint'.tr
+                : _front
+                    ? 'identity_hint_flat_front'.tr
+                    : 'identity_hint_flip_back'.tr,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: idMuted,

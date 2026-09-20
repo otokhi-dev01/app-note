@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:Note/core/storage/app_media_storage.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/features/profile/domain/entities/passport_card.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 typedef StoredIdInformation = ({
@@ -46,6 +47,127 @@ class IdInformationStorage {
           await _storage.read(key: '${prefix}current_address') ?? '',
       expiryDate: expiryRaw == null ? null : DateTime.tryParse(expiryRaw),
     );
+  }
+
+  Future<PassportCard?> readPassport(String ownerKey) async {
+    final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
+    if (raw != null) {
+      final snapshot = Map<String, dynamic>.from(jsonDecode(raw));
+      final data = snapshot['passport'] != null
+          ? Map<String, dynamic>.from(snapshot['passport'])
+          : null;
+      if (data == null) return null;
+      return PassportCard.fromJson(
+        data,
+        imagePath: await AppMediaStorage.resolve(data['imagePath']),
+      );
+    }
+    return null;
+  }
+
+  Future<List<PassportCard>> readPassports(String ownerKey) async {
+    final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
+    if (raw != null) {
+      final snapshot = Map<String, dynamic>.from(jsonDecode(raw));
+      if (snapshot['passports'] is List) {
+        return Future.wait(
+          (snapshot['passports'] as List).map((entry) async {
+            final data = Map<String, dynamic>.from(entry);
+            return PassportCard.fromJson(
+              data,
+              imagePath: await AppMediaStorage.resolve(data['imagePath']),
+            );
+          }),
+        );
+      }
+    }
+    return [];
+  }
+
+  Future<void> savePassport({
+    required String ownerKey,
+    required PassportCard passport,
+  }) async {
+    final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
+    final Map<String, dynamic> snapshot =
+        raw != null ? Map<String, dynamic>.from(jsonDecode(raw)) : {};
+
+    final passports = snapshot['passports'] is List
+        ? List<Map<String, dynamic>>.from(snapshot['passports'])
+        : <Map<String, dynamic>>[];
+
+    final folder = 'identity_cards/${_prefix(ownerKey)}';
+    String? relativePath;
+    if (passport.imagePath != null && File(passport.imagePath!).existsSync()) {
+      final saved = await AppMediaStorage.persist(
+        sourcePath: passport.imagePath!,
+        folder: folder,
+        fileName: 'passport_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      relativePath = await AppMediaStorage.makeRelative(saved);
+    } else {
+      relativePath = passport.imagePath;
+    }
+
+    final data = passport.copyWith(imagePath: relativePath).toJson();
+    final index = passports.indexWhere(
+      (p) => p['passportNumber'] == passport.passportNumber,
+    );
+    if (index < 0) {
+      passports.add(data);
+    } else {
+      passports[index] = data;
+    }
+
+    snapshot['passports'] = passports;
+    snapshot['passport'] = data;
+
+    await _storage.write(
+      key: '${_prefix(ownerKey)}snapshot',
+      value: jsonEncode(snapshot),
+    );
+  }
+
+  Future<void> deletePassport(String ownerKey, String passportNumber) async {
+    final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
+    if (raw == null) return;
+
+    final Map<String, dynamic> snapshot =
+        Map<String, dynamic>.from(jsonDecode(raw));
+    if (snapshot['passports'] is! List) return;
+
+    final passports = List<Map<String, dynamic>>.from(snapshot['passports']);
+    final removed = passports
+        .where((p) => p['passportNumber'] == passportNumber)
+        .toList();
+    passports.removeWhere((p) => p['passportNumber'] == passportNumber);
+
+    if (snapshot['passport']?['passportNumber'] == passportNumber) {
+      snapshot['passport'] = passports.isNotEmpty ? passports.last : null;
+    }
+    snapshot['passports'] = passports;
+
+    await _storage.write(
+      key: '${_prefix(ownerKey)}snapshot',
+      value: jsonEncode(snapshot),
+    );
+
+    // Delete image if not referenced anymore
+    for (final entry in removed) {
+      final path = entry['imagePath'] as String?;
+      if (path != null &&
+          !passports.any((p) => p['imagePath'] == path) &&
+          !(snapshot['cards'] as List? ?? []).any(
+            (c) =>
+                c['card']?['frontImagePath'] == path ||
+                c['card']?['backImagePath'] == path,
+          )) {
+        await AppMediaStorage.deleteIfManaged(
+          path: path,
+          folder: 'identity_cards/${_prefix(ownerKey)}',
+        );
+      }
+    }
   }
 
   Future<NationalIdCard?> readCard(String ownerKey) async {

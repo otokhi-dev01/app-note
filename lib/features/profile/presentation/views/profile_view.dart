@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-
+import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -64,6 +64,10 @@ class ProfileView extends GetView<ProfileController> {
                         _buildSectionLabel(context, 'id_information_title'.tr),
                         const SizedBox(height: 8),
                         _buildIdInformationCard(context),
+                        const SizedBox(height: 22),
+                        _buildSectionLabel(context, 'passport_information_title'.tr),
+                        const SizedBox(height: 8),
+                        _buildPassportInformationCard(context),
                         const SizedBox(height: 22),
                         _buildSectionLabel(context, 'section_support'.tr),
                         const SizedBox(height: 8),
@@ -664,6 +668,110 @@ class ProfileView extends GetView<ProfileController> {
               wrapValue: true,
               showChevron: false,
             ),
+        ],
+      );
+    });
+  }
+
+  Widget _buildPassportInformationCard(BuildContext context) {
+    return Obx(() {
+      final card = controller.passportCard.value;
+      final cardIndex = controller.passportCards.indexWhere(
+        (saved) => saved.passportNumber == card?.passportNumber,
+      );
+
+      return _buildSurfaceCard(
+        context,
+        key: const ValueKey('profile_passport_information'),
+        children: [
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.doc_text_fill,
+            iconColor: _iosIndigo,
+            label: 'passport_information_title'.tr,
+            value: cardIndex < 0
+                ? ''
+                : 'passport_card_number'.trParams({
+                    'number': '${cardIndex + 1}',
+                  }),
+            wrapValue: true,
+            onTap: () => Get.toNamed(Routes.PASSPORT_SCAN),
+          ),
+          if (card != null && card.imagePath != null)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: AspectRatio(
+                aspectRatio: 1.5,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(card.imagePath!),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Center(child: Text('not_set'.tr)),
+                  ),
+                ),
+              ),
+            ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.number,
+            iconColor: _iosGray,
+            label: 'passport_number_label'.tr,
+            value: controller.passportNumber.value.isEmpty
+                ? 'not_set'.tr
+                : controller.passportNumber.value,
+            wrapValue: true,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_fill,
+            iconColor: _iosBlue,
+            label: 'full_name_label'.tr,
+            value: controller.passportName.value.isEmpty
+                ? 'not_set'.tr
+                : controller.passportName.value,
+            wrapValue: true,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.calendar,
+            iconColor: _iosPink,
+            label: 'date_of_birth_label'.tr,
+            value: controller.passportDob.value == null
+                ? 'not_set'.tr
+                : controller.formattedPassportDob,
+            wrapValue: true,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.person_2_fill,
+            iconColor: _iosPurple,
+            label: 'gender_label'.tr,
+            value: controller.passportGender.value.isEmpty
+                ? 'not_set'.tr
+                : controller.passportGender.value,
+            wrapValue: true,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.flag_fill,
+            iconColor: _iosOrange,
+            label: 'nationality_label'.tr,
+            value: controller.passportNationality.value.isEmpty
+                ? 'not_set'.tr
+                : controller.passportNationality.value,
+            wrapValue: true,
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.calendar_badge_minus,
+            iconColor: _iosRed,
+            label: 'expiry_date_label'.tr,
+            value: controller.passportExpiryDate.value == null
+                ? 'not_set'.tr
+                : controller.formattedPassportExpiryDate,
+            wrapValue: true,
+          ),
         ],
       );
     });

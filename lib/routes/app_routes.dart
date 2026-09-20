@@ -31,4 +31,5 @@ abstract class Routes {
   static const MY_CARDS = '/profile/cards';
   static const CARD_SCAN = '/profile/cards/scan';
   static const IDENTITY_SCAN = '/profile/identity/scan';
+  static const PASSPORT_SCAN = '/profile/passport/scan';
 }

@@ -1,56 +1,29 @@
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/features/profile/domain/entities/passport_card.dart';
 
-/// Reads a Cambodian national ID's Machine Readable Zone (the 3-line ICAO
-/// 9303 "TD1" block printed on the back of the card) out of raw OCR text,
-/// entirely on-device — no BlinkID license and no backend call required.
-///
-/// This exists because the on-device text recognizer this app already uses
-/// for card scanning (`NativeMediaServices.recognizeText` — Apple Vision on
-/// iOS, Google ML Kit's *Latin* recognizer on Android; see
-/// `MainActivity.kt` / `AppDelegate.swift`) only reads Latin/numeric script.
-/// The MRZ is exactly that: fixed-width, all-caps A-Z/0-9/`<` text, by
-/// design readable by any OCR engine — unlike the Khmer-script name/address
-/// fields printed on the front, which this recognizer cannot read at all.
-/// So this only ever fills what the MRZ actually carries (ID number, date of
-/// birth, expiry date, the Latin name) and leaves the Khmer-script fields
-/// for manual entry, same as a normal manual edit does today.
-///
-/// Each numeric field is only trusted when its own ICAO check digit
-/// validates — see [_checkDigit]. A field that doesn't check out is left
-/// blank rather than shown with unverified (possibly wrong) data.
+/// Reads a Cambodian national ID's Machine Readable Zone (TD1) or a
+/// Passport's MRZ (TD3) out of raw OCR text entirely on-device.
 abstract final class MrzReader {
-  /// Attempts to find and parse a TD1 MRZ inside [ocrText]. Returns `null`
-  /// when no plausible 3-line MRZ block — specifically, one whose document
-  /// number check digit validates — can be found, so callers can fall back
-  /// to manual entry rather than show a guess.
+  /// Attempts to find and parse an MRZ inside [ocrText]. Returns `null`
+  /// when no plausible MRZ block can be found.
   static NationalIdCard? parse(
     String ocrText, {
     String? frontImagePath,
     String? backImagePath,
   }) {
-    final lines = _candidateLines(ocrText);
+    final lines = _candidateTd1Lines(ocrText);
     if (lines == null) return null;
     final line1 = lines.$1;
     final line2 = lines.$2;
     final line3 = lines.$3;
 
-    // --- Line 1: document code (2) + issuing state (3) + doc number (9) +
-    // its check digit (1) + optional data (15). ---
     final docNumberRaw = line1.substring(5, 14);
     final docNumberCheck = line1[14];
     if (_checkDigit(docNumberRaw) != int.tryParse(docNumberCheck)) {
-      // No validated document number means this almost certainly isn't a
-      // real MRZ (or the OCR was too noisy to trust) — bail out entirely
-      // rather than hand back a partially-invented card.
       return null;
     }
     final idNumber = docNumberRaw.replaceAll('<', '').trim();
 
-    // --- Line 2: DOB (6) + check (1) + sex (1) + expiry (6) + check (1) +
-    // nationality (3) + optional (11) + composite check (1). The composite
-    // check is intentionally not validated — its exact field span is easy
-    // to get subtly wrong from memory, and skipping it costs nothing since
-    // it gates no data this parser extracts. ---
     final dobRaw = line2.substring(0, 6);
     final dobCheck = line2[6];
     final expiryRaw = line2.substring(8, 14);
@@ -63,8 +36,6 @@ abstract final class MrzReader {
         ? _expandDate(expiryRaw, preferPast: false)
         : null;
 
-    // --- Line 3: SURNAME<<GIVEN<NAMES<<<... — no check digit exists for
-    // this field in TD1, so it's taken best-effort. ---
     final nameLatin = line3
         .split('<<')
         .map((part) => part.replaceAll('<', ' ').trim())
@@ -89,39 +60,91 @@ abstract final class MrzReader {
     );
   }
 
-  /// Cleans OCR'd text into lines and picks the 3 most MRZ-like ones — rows
-  /// that, once whitespace and stray punctuation are stripped, are close to
-  /// the fixed 30-character TD1 width and contain the `<` fill character
-  /// (a strong signal, since normal printed text essentially never OCRs
-  /// with `<`). Each candidate is right-padded/truncated to exactly 30
-  /// characters so a dropped or extra character from noisy OCR doesn't
-  /// shift every field after it.
-  static (String, String, String)? _candidateLines(String ocrText) {
-    final cleaned = ocrText
-        .split('\n')
-        .map(
-          (line) => line
-              .toUpperCase()
-              .replaceAll(RegExp(r'[^A-Z0-9<]'), ''),
-        )
-        .where((line) => line.length >= 20 && line.contains('<'))
-        .map((line) {
-          if (line.length >= 30) return line.substring(0, 30);
-          return line.padRight(30, '<');
-        })
-        .toList();
+  /// Attempts to find and parse a TD3 Passport MRZ inside [ocrText].
+  static PassportCard? parsePassport(String ocrText, {String? imagePath}) {
+    final lines = _candidateTd3Lines(ocrText);
+    if (lines == null) return null;
+    final line1 = lines.$1;
+    final line2 = lines.$2;
+
+    // --- Line 2: Passport Number (9) + Check (1) + Nationality (3) +
+    // DOB (6) + Check (1) + Sex (1) + Expiry (6) + Check (1) + Optional (14) +
+    // Composite Check (1). ---
+    final passportNumRaw = line2.substring(0, 9);
+    final passportNumCheck = line2[9];
+    if (_checkDigit(passportNumRaw) != int.tryParse(passportNumCheck)) {
+      return null;
+    }
+    final passportNumber = passportNumRaw.replaceAll('<', '').trim();
+
+    final nationality = line2.substring(10, 13).replaceAll('<', '').trim();
+
+    final dobRaw = line2.substring(13, 19);
+    final dobCheck = line2[19];
+    final dob = _checkDigit(dobRaw) == int.tryParse(dobCheck)
+        ? _expandDate(dobRaw, preferPast: true)
+        : null;
+
+    final genderRaw = line2[20];
+    final gender = genderRaw == 'F' ? 'Female' : (genderRaw == 'M' ? 'Male' : '');
+
+    final expiryRaw = line2.substring(21, 27);
+    final expiryCheck = line2[27];
+    final expiry = _checkDigit(expiryRaw) == int.tryParse(expiryCheck)
+        ? _expandDate(expiryRaw, preferPast: false)
+        : null;
+
+    // --- Line 1: Surname << Given Name ---
+    // Format: P<IssuingStateCode Surname << Given Name
+    final nameSection = line1.substring(5);
+    final names = nameSection.split('<<');
+    final surname = names.isNotEmpty ? names[0].replaceAll('<', ' ').trim() : '';
+    final givenNames = names.length > 1 ? names[1].replaceAll('<', ' ').trim() : '';
+    final fullName = [givenNames, surname].where((s) => s.isNotEmpty).join(' ');
+
+    final issuingCountry = line1.substring(2, 5).replaceAll('<', '').trim();
+
+    return PassportCard(
+      passportNumber: passportNumber,
+      fullName: fullName,
+      dateOfBirth: dob ?? '',
+      gender: gender,
+      nationality: nationality,
+      expiryDate: expiry ?? '',
+      issuingCountry: issuingCountry,
+      mrzLines: [line1, line2],
+      imagePath: imagePath,
+    );
+  }
+
+  static (String, String, String)? _candidateTd1Lines(String ocrText) {
+    final cleaned = _clean(ocrText, length: 30);
     if (cleaned.length < 3) return null;
-    // The MRZ block is contiguous; the last 3 qualifying lines are the most
-    // likely real MRZ rows when other printed text also happens to match.
     final last3 = cleaned.sublist(cleaned.length - 3);
     return (last3[0], last3[1], last3[2]);
   }
 
-  /// The ICAO 9303 check digit: each character's value (`0`-`9` as-is,
-  /// `A`-`Z` as 10-35, `<` as 0) weighted by a repeating 7/3/1 cycle,
-  /// summed and taken mod 10. Returns `null` when [field] contains a
-  /// character outside `A-Z0-9<`, which should never happen after
-  /// [_candidateLines]'s cleaning but is guarded defensively.
+  static (String, String)? _candidateTd3Lines(String ocrText) {
+    final cleaned = _clean(ocrText, length: 44);
+    if (cleaned.length < 2) return null;
+    // Look for lines starting with 'P<' or having many '<'
+    final candidates = cleaned.where((l) => l.startsWith('P') || l.contains('<<<<')).toList();
+    if (candidates.length < 2) return null;
+    return (candidates[candidates.length - 2], candidates.last);
+  }
+
+  static List<String> _clean(String ocrText, {required int length}) {
+    return ocrText
+        .split('\n')
+        .map((line) => line.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9<]'), ''))
+        .where((line) => line.length >= length * 0.7 && line.contains('<'))
+        .map((line) {
+          if (line.length >= length) return line.substring(0, length);
+          return line.padRight(length, '<');
+        })
+        .toList();
+  }
+
   static int? _checkDigit(String field) {
     const weights = [7, 3, 1];
     var sum = 0;
@@ -142,13 +165,6 @@ abstract final class MrzReader {
     return sum % 10;
   }
 
-  /// Expands an MRZ `YYMMDD` field to this app's `DD-MM-YYYY` display form
-  /// (see `NationalIdCard._formatDate`), resolving the 2-digit year's
-  /// century. A birth date must be in the past, so when the current-century
-  /// reading would land in the future, the previous century is used
-  /// instead; an expiry date on a card being scanned today is assumed to
-  /// fall within the current century outright. Returns `null` when the
-  /// digits don't form a real calendar date.
   static String? _expandDate(String yymmdd, {required bool preferPast}) {
     final yy = int.tryParse(yymmdd.substring(0, 2));
     final mm = int.tryParse(yymmdd.substring(2, 4));
