@@ -1,13 +1,11 @@
+import 'package:Note/features/profile/presentation/views/identity_image_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
 import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
-import 'package:Note/features/profile/presentation/views/identity_details_edit_view.dart';
-import 'package:Note/features/profile/presentation/views/identity_image_view.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Digital Civic ID (national ID) scan-and-verify screen.
 /// Shows the bilingual (Khmer/English) OCR result once both sides of the ID
@@ -101,27 +99,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         IdentitySectionHeader(
                           icon: CupertinoIcons.doc_person_fill,
                           label: 'id_information_title'.tr,
-                          trailing: card == null
-                              ? null
-                              : CustomGlassButton(
-                                  onPressed: controller.isLoading.value
-                                      ? null
-                                      : () => Get.to<void>(
-                                            () => IdentityDetailsEditView(
-                                              card: card,
-                                              onSave: controller.saveCorrections,
-                                            ),
-                                          ),
-                                  width: 100,
-                                  height: 32,
-                                  borderRadius: 10,
-                                  opacity: 0.1,
-                                  padding: EdgeInsets.zero,
-                                  child: Text(
-                                    'identity_edit_details'.tr,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
+                          trailing: null,
                         ),
                         const SizedBox(height: 16),
                         if (card == null)
@@ -135,6 +113,15 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           onPressed: controller.isLoading.value ? null : controller.onConfirm,
                         ),
                         if (card != null) ...[
+                          const SizedBox(height: 12),
+                          IdentityPrimaryButton(
+                            label: 'identity_download_card'.tr,
+                            icon: CupertinoIcons.arrow_down_doc_fill,
+                            loading: controller.isLoading.value,
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : () => controller.onDownloadCard(),
+                          ),
                           const SizedBox(height: 12),
                           IdentityDestructiveButton(
                             label: 'identity_delete_info_action'.tr,

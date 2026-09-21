@@ -65,38 +65,12 @@ class IdentityAppHeader extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'identity_app_title'.tr,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: idGreen,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'identity_verified_title'.tr,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: idGreen,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                child: Text(
+                  'identity_app_title'.tr,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
                 ),
               ),
               if (onCameraTap != null)
@@ -165,18 +139,14 @@ class IdentityStatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  verified
-                      ? 'identity_verified_title'.tr
-                      : 'identity_pending_title'.tr,
+                  'identity_pending_title'.tr,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  verified
-                      ? 'identity_verified_subtitle'.tr
-                      : 'identity_pending_subtitle'.tr,
+                  'identity_pending_subtitle'.tr,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -438,28 +408,31 @@ class IdentityPreviewCard extends StatelessWidget {
                       ? theme.colorScheme.surface
                       : (isDark ? idNavy : idScreenBg),
                   child: InkWell(
-                    onTap: onScan,
+                    onTap: _hasImage ? onView : onScan,
                     child: _hasImage
                         ? Image.file(File(imagePath!), fit: BoxFit.cover)
                         : _placeholderMock(context),
                   ),
                 ),
-                if (_hasImage)
+                if (_hasImage && (onView != null || onDownload != null))
                   Positioned(
                     top: 8,
                     right: 8,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _smallActionButton(
-                          icon: CupertinoIcons.arrow_up_left_arrow_down_right,
-                          onTap: onView,
-                        ),
-                        const SizedBox(width: 6),
-                        _smallActionButton(
-                          icon: CupertinoIcons.arrow_down_to_line,
-                          onTap: onDownload,
-                        ),
+                        if (onView != null)
+                          _smallActionButton(
+                            icon: CupertinoIcons.arrow_up_left_arrow_down_right,
+                            onTap: onView,
+                          ),
+                        if (onView != null && onDownload != null)
+                          const SizedBox(width: 6),
+                        if (onDownload != null)
+                          _smallActionButton(
+                            icon: CupertinoIcons.arrow_down_to_line,
+                            onTap: onDownload,
+                          ),
                       ],
                     ),
                   ),
