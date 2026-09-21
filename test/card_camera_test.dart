@@ -111,6 +111,75 @@ void main() {
     );
   });
 
+  test(
+    'Saved photo crops away background and retains card color and resolution',
+    () {
+      final photo = img.Image(width: 600, height: 800);
+      img.fill(photo, color: img.ColorRgb8(220, 20, 20));
+      img.fillRect(
+        photo,
+        x1: 100,
+        y1: 250,
+        x2: 499,
+        y2: 499,
+        color: img.ColorRgb8(20, 80, 220),
+      );
+      final cropped = img.decodeJpg(
+        cropCardCameraPhoto((
+          bytes: img.encodePng(photo),
+          viewport: const Size(300, 400),
+          frame: const Rect.fromLTWH(50, 125, 200, 125),
+        )),
+      )!;
+      expect(cropped.width, 400);
+      expect(cropped.height, 250);
+      for (final point in [
+        const Offset(0, 0),
+        const Offset(399, 249),
+        const Offset(200, 125),
+      ]) {
+        final pixel = cropped.getPixel(point.dx.toInt(), point.dy.toInt());
+        expect(pixel.r, closeTo(20, 4));
+        expect(pixel.b, closeTo(220, 4));
+      }
+    },
+  );
+
+  test('Photo crop honors EXIF rotation and preview cover scaling', () {
+    final photo = img.Image(width: 800, height: 600);
+    img.fill(photo, color: img.ColorRgb8(20, 80, 220));
+    photo.exif.imageIfd.orientation = 6;
+    final cropped = img.decodeJpg(
+      cropCardCameraPhoto((
+        bytes: img.encodeJpg(photo),
+        viewport: const Size(300, 500),
+        frame: const Rect.fromLTWH(25, 170, 250, 150),
+      )),
+    )!;
+    expect(cropped.width, 400);
+    expect(cropped.height, 240);
+    expect(cropped.exif.imageIfd.orientation, anyOf(isNull, 1));
+  });
+
+  test('Photo crop rejects missing guide and invalid images', () {
+    expect(
+      () => cropCardCameraPhoto((
+        bytes: Uint8List(0),
+        viewport: Size.zero,
+        frame: Rect.zero,
+      )),
+      throwsFormatException,
+    );
+    expect(
+      () => cropCardCameraPhoto((
+        bytes: Uint8List(0),
+        viewport: const Size(300, 400),
+        frame: const Rect.fromLTWH(10, 10, 200, 100),
+      )),
+      throwsFormatException,
+    );
+  });
+
   test('OCR frame conversion handles padded Y and BGRA rows and rotation', () {
     final yBytes = Uint8List.fromList([
       80,

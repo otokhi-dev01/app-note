@@ -157,6 +157,14 @@ void main() {
       ),
       isNull,
     );
+    expect(
+      IdentityScanRecognition.candidate('PASSPORT\n$_front', front: true),
+      isNull,
+    );
+    expect(
+      IdentityScanRecognition.candidate('$_front\nBROKEN<<MRZ', front: true),
+      isNull,
+    );
     expect(IdentityScanRecognition.candidate(_mrz, front: true), isNull);
     expect(IdentityScanRecognition.candidate(_front, front: false), isNull);
     expect(IdentityScanRecognition.candidate(_mrz, front: false), isNotNull);
@@ -217,6 +225,78 @@ void main() {
     await tester.pump();
     expect(back, ['photo-2.jpg']);
     expect(camera.captures, 2);
+    expect(camera.closed, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Front-only identity camera retries and never switches to back', (
+    tester,
+  ) async {
+    final camera = _Camera();
+    final front = <String>[], back = <String>[];
+    var validations = 0;
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: IdentityCameraView(
+          singleSideFront: true,
+          createSession: (_) => camera,
+          validateCapture: (_) async => ++validations > 1,
+          onFrontCaptured: front.add,
+          onBackCaptured: back.add,
+          onCancel: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    camera.onText!(_mrz);
+    camera.onText!(_mrz);
+    await tester.pump();
+    expect(camera.captures, 0);
+    camera.onText!(_front);
+    camera.onText!(_front);
+    await tester.pumpAndSettle();
+    expect(front, isEmpty);
+    expect(back, isEmpty);
+    expect(camera.closed, isFalse);
+    expect(find.text('identity_front_scan_retry'.tr), findsOneWidget);
+    camera.onText!(_front);
+    camera.onText!(_front);
+    await tester.pump();
+    expect(front, ['photo-2.jpg']);
+    expect(back, isEmpty);
+    expect(camera.closed, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Back-only identity camera detects only the selected side', (
+    tester,
+  ) async {
+    final camera = _Camera();
+    final front = <String>[], back = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: IdentityCameraView(
+          singleSideFront: false,
+          createSession: (_) => camera,
+          validateCapture: (_) async => true,
+          onFrontCaptured: front.add,
+          onBackCaptured: back.add,
+          onCancel: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    camera.onText!(_front);
+    camera.onText!(_front);
+    await tester.pump();
+    expect(camera.captures, 0);
+    camera.onText!(_mrz);
+    camera.onText!(_mrz);
+    await tester.pump();
+    expect(front, isEmpty);
+    expect(back, ['photo-1.jpg']);
     expect(camera.closed, isTrue);
     expect(tester.takeException(), isNull);
   });
@@ -675,6 +755,7 @@ void main() {
         IdentityScanController(
           ScanNationalId(_IdentityRepo()),
           scanCardImage: () async => replacement.path,
+          recognizeText: (_) async => _front,
         ),
       );
       await scan.onScanImage(front: true);
@@ -707,6 +788,203 @@ void main() {
       expect(scan.savedToProfile.value, isTrue);
     },
   );
+
+  test(
+    'Front scan retries wrong-side and unreadable captures before saving',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      final original = await seedImageCard(details);
+      var captures = 0;
+      var reads = 0;
+      final texts = [_mrz, 'A blurred receipt', _front];
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          scanCardImage: () async {
+            expect(details.identityCard.value!.toJson(), original.toJson());
+            captures++;
+            return original.frontImagePath;
+          },
+          recognizeText: (_) async => texts[reads++],
+          recognizePrintedText: (_) async => texts[reads - 1],
+        ),
+      );
+      await scan.onScanImage(front: true);
+      expect(captures, 3);
+      expect(scan.savedToProfile.value, isTrue);
+      expect(scan.card.value!.backImagePath, original.backImagePath);
+      expect(scan.isLoading.value, isFalse);
+    },
+  );
+
+  test(
+    'Front retry can be cancelled without replacing the saved photo',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      final original = await seedImageCard(details);
+      var captures = 0;
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          scanCardImage: () async =>
+              ++captures == 1 ? original.backImagePath : null,
+          recognizeText: (_) async => _mrz,
+          recognizePrintedText: (_) async => _mrz,
+        ),
+      );
+      await scan.onScanImage(front: true);
+      expect(captures, 2);
+      expect(details.identityCard.value!.toJson(), original.toJson());
+      expect(scan.card.value!.toJson(), original.toJson());
+      expect(scan.isLoading.value, isFalse);
+    },
+  );
+
+  test('Front scan saves a new card without requiring the back', () async {
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final details = profile(session);
+    final photo = await File(
+      '${fixtureDirectory.path}/front-only.png',
+    ).writeAsBytes(img.encodePng(img.Image(width: 160, height: 100)));
+    var captures = 0;
+    final repo = _IdentityRepo();
+    final scan = Get.put(
+      IdentityScanController(
+        ScanNationalId(repo),
+        scanCardImage: () async {
+          captures++;
+          return photo.path;
+        },
+        recognizeText: (_) async =>
+            throw const FormatException('OCR unavailable'),
+        recognizePrintedText: (_) async => _front,
+      ),
+    );
+    await scan.onScanImage(front: true);
+    expect(captures, 1);
+    expect(scan.currentStep.value, IdentityScanStep.main);
+    expect(scan.imagePath(front: true), isNot(photo.path));
+    expect(scan.hasImage(front: true), isTrue);
+    expect(scan.hasImage(front: false), isFalse);
+    expect(details.identityCard.value!.idNumber, '123456789');
+    expect(scan.savedToProfile.value, isTrue);
+    final bytes = await photo.readAsBytes();
+    await photo.delete();
+    final restored = (await const IdInformationStorage().readCard('id:one'))!;
+    expect(await File(restored.frontImagePath!).readAsBytes(), bytes);
+    expect(restored.backImagePath, isNull);
+    expect(restored.dateOfBirth, isEmpty);
+    await Get.delete<IdentityScanController>();
+    final reopened = Get.put(IdentityScanController(ScanNationalId(repo)));
+    expect(reopened.hasImage(front: true), isTrue);
+    expect(reopened.savedToProfile.value, isTrue);
+    expect(repo.scans, 0);
+    session.user.value = const UserData(id: 'two');
+    expect(reopened.imagePath(front: true), isNull);
+  });
+
+  test(
+    'Saved front downloads immediately and accepts a back image later',
+    () async {
+      final session = SessionStorage()..user.value = const UserData(id: 'one');
+      final details = profile(session);
+      final frontPhoto = await File(
+        '${fixtureDirectory.path}/draft-front.png',
+      ).writeAsBytes(img.encodePng(img.Image(width: 160, height: 100)));
+      final backPhoto = await File(
+        '${fixtureDirectory.path}/draft-back.png',
+      ).writeAsBytes(img.encodePng(img.Image(width: 160, height: 100)));
+      var captures = 0;
+      final exports = <IdentityCardExport>[];
+      final scan = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          scanCardImage: () async =>
+              ++captures == 1 ? frontPhoto.path : backPhoto.path,
+          recognizeText: (path) async =>
+              path == frontPhoto.path ? _front : _mrz,
+          recognizePrintedText: (_) async => '',
+          saveExport: (export) async {
+            exports.add(export);
+            return null;
+          },
+        ),
+      );
+      await scan.onScanImage(front: true);
+      expect(details.identityCard.value!.idNumber, '123456789');
+      expect(scan.savedToProfile.value, isTrue);
+      await scan.onDownloadCard(front: true);
+      expect(exports.single.fileName, 'identity_front.png');
+      expect(exports.single.bytes, await frontPhoto.readAsBytes());
+      await scan.onDownloadCard();
+      expect(exports.last.fileName, 'identity_card.pdf');
+      expect(latin1.decode(exports.last.bytes), startsWith('%PDF-'));
+      await scan.onScanImage(front: false);
+      expect(captures, 2);
+      expect(scan.savedToProfile.value, isTrue);
+      expect(details.identityCard.value!.idNumber, '123456789');
+      expect(scan.hasImage(front: true), isTrue);
+      expect(scan.hasImage(front: false), isTrue);
+      expect(scan.isLoading.value, isFalse);
+    },
+  );
+
+  test('New front save failure can be retried without a back scan', () async {
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final storage = _FailingStorage()..fail = true;
+    final details = profile(session, idStorage: storage);
+    final photo = await File(
+      '${fixtureDirectory.path}/new-front-retry.png',
+    ).writeAsBytes(img.encodePng(img.Image(width: 160, height: 100)));
+    final scan = Get.put(
+      IdentityScanController(
+        ScanNationalId(_IdentityRepo()),
+        scanCardImage: () async => photo.path,
+        recognizeText: (_) async => _front,
+      ),
+    );
+    await scan.onScanImage(front: true);
+    expect(scan.savedToProfile.value, isFalse);
+    expect(details.identityCard.value, isNull);
+    expect(scan.card.value!.frontImagePath, photo.path);
+    storage.fail = false;
+    await scan.onSaveCard();
+    expect(scan.savedToProfile.value, isTrue);
+    expect((await storage.readCard('id:one'))!.backImagePath, isNull);
+    expect(scan.hasImage(front: true), isTrue);
+  });
+
+  test('Front validation cannot save after the account changes', () async {
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final details = profile(session);
+    final original = await seedImageCard(details);
+    final reading = Completer<String>();
+    final started = Completer<void>();
+    final scan = Get.put(
+      IdentityScanController(
+        ScanNationalId(_IdentityRepo()),
+        scanCardImage: () async => original.frontImagePath,
+        recognizeText: (_) {
+          started.complete();
+          return reading.future;
+        },
+      ),
+    );
+    final pending = scan.onScanImage(front: true);
+    await started.future;
+    session.user.value = const UserData(id: 'two');
+    reading.complete(_front);
+    await pending;
+    expect(scan.card.value, isNull);
+    expect(await const IdInformationStorage().readCard('id:two'), isNull);
+    expect(
+      (await const IdInformationStorage().readCard('id:one'))!.toJson(),
+      original.toJson(),
+    );
+    expect(scan.isLoading.value, isFalse);
+  });
 
   test(
     'Cancelled and late photo scans cannot overwrite a saved identity',
@@ -773,7 +1051,7 @@ void main() {
   );
 
   test(
-    'Downloads preserve original image bytes and put both sides in a PDF',
+    'Downloads preserve image bytes and export a printable identity record',
     () async {
       final session = SessionStorage()..user.value = const UserData(id: 'one');
       final details = profile(session);
@@ -804,6 +1082,10 @@ void main() {
         exports[1].bytes,
         await File(original.backImagePath!).readAsBytes(),
       );
+      final artifactPath = Platform.environment['IDENTITY_PDF_REVIEW_PATH'];
+      if (artifactPath != null) {
+        await File(artifactPath).writeAsBytes(exports[2].bytes);
+      }
       final pdf = latin1.decode(exports[2].bytes);
       expect(pdf, startsWith('%PDF-'));
       // Both images retain their source pixel dimensions in the exported PDF.
@@ -811,6 +1093,9 @@ void main() {
       expect(pdf, contains('/Height 100'));
       expect(pdf, contains('/Width 200'));
       expect(pdf, contains('/Height 125'));
+      expect(pdf, contains('/FontFile2'));
+      expect(pdf, contains('/ToUnicode'));
+
       expect(
         (await const IdInformationStorage().readCard('id:one'))!.toJson(),
         original.toJson(),
@@ -818,6 +1103,40 @@ void main() {
       expect(scan.isLoading.value, isFalse);
     },
   );
+
+  testWidgets('Camera action opens the identity scanner and cancels cleanly', (
+    tester,
+  ) async {
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final details = profile(session);
+    await tester.runAsync(() => seedImageCard(details));
+    final original = details.identityCard.value!;
+    final scan = Get.put(
+      IdentityScanController(ScanNationalId(_IdentityRepo())),
+    );
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        home: const Scaffold(),
+      ),
+    );
+    final capture = scan.onScanImage(front: true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    final camera = tester.widget<IdentityCameraView>(
+      find.byType(IdentityCameraView),
+    );
+    expect(camera.singleSideFront, isTrue);
+    expect(camera.validateCapture, isNotNull);
+    camera.onCancel();
+    await tester.pumpAndSettle();
+    await capture;
+    expect(find.byType(IdentityCameraView), findsNothing);
+    expect(scan.isLoading.value, isFalse);
+    expect(details.identityCard.value!.toJson(), original.toJson());
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Image taps scan a side and expand opens the full-image viewer', (
     tester,

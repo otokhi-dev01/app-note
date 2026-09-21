@@ -31,15 +31,12 @@ class IdentityAppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
-          bottom: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.1),
-          ),
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
         ),
       ),
       child: SafeArea(
@@ -73,22 +70,22 @@ class IdentityAppHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              if (onCameraTap != null)
-                CustomGlassButton(
-                  onPressed: onCameraTap,
-                  width: 44,
-                  height: 44,
-                  shape: GlassShape.circle,
-                  blur: 10,
-                  opacity: 0.1,
-                  thickness: 8,
-                  padding: EdgeInsets.zero,
-                  child: Icon(
-                    CupertinoIcons.camera_fill,
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                ),
+              // if (onCameraTap != null)
+              // CustomGlassButton(
+              //   onPressed: onCameraTap,
+              //   width: 44,
+              //   height: 44,
+              //   shape: GlassShape.circle,
+              //   blur: 10,
+              //   opacity: 0.1,
+              //   thickness: 8,
+              //   padding: EdgeInsets.zero,
+              //   child: Icon(
+              //     CupertinoIcons.camera_fill,
+              //     color: theme.colorScheme.primary,
+              //     size: 20,
+              //   ),
+              // ),
             ],
           ),
         ),
@@ -96,7 +93,6 @@ class IdentityAppHeader extends StatelessWidget {
     );
   }
 }
-
 
 /// The success/pending banner.
 class IdentityStatusBanner extends StatelessWidget {
@@ -108,7 +104,7 @@ class IdentityStatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = verified ? idGreen : theme.colorScheme.onSurfaceVariant;
-    
+
     return CustomGlassContainer(
       borderRadius: 16,
       blur: 20,
@@ -225,13 +221,15 @@ class IdentityTag extends StatelessWidget {
             Icon(icon, size: 11, color: color),
             const SizedBox(width: 5),
           ],
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
+          Flexible(
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
@@ -271,7 +269,11 @@ class IdentityFieldCard extends StatelessWidget {
           Row(
             children: [
               if (leadingIcon != null) ...[
-                Icon(leadingIcon, size: 14, color: theme.colorScheme.primary.withValues(alpha: 0.6)),
+                Icon(
+                  leadingIcon,
+                  size: 14,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                ),
                 const SizedBox(width: 8),
               ],
               Expanded(
@@ -284,7 +286,7 @@ class IdentityFieldCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (tag != null) tag!,
+              ?tag,
             ],
           ),
           const SizedBox(height: 12),
@@ -294,7 +296,6 @@ class IdentityFieldCard extends StatelessWidget {
     );
   }
 }
-
 
 /// The National ID Number field's value.
 class IdentityCopyableValue extends StatelessWidget {
@@ -335,11 +336,18 @@ class IdentityCopyableValue extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(CupertinoIcons.doc_on_doc, size: 14),
+              const Icon(
+                CupertinoIcons.doc_on_doc,
+                size: 14,
+                fontWeight: FontWeight.bold,
+              ),
               const SizedBox(width: 6),
               Text(
                 'identity_copy_action'.tr,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -414,59 +422,65 @@ class IdentityPreviewCard extends StatelessWidget {
                         : _placeholderMock(context),
                   ),
                 ),
-                if (_hasImage && (onView != null || onDownload != null))
+                if (_hasImage && onView != null)
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (onView != null)
-                          _smallActionButton(
-                            icon: CupertinoIcons.arrow_up_left_arrow_down_right,
-                            onTap: onView,
-                          ),
-                        if (onView != null && onDownload != null)
-                          const SizedBox(width: 6),
-                        if (onDownload != null)
-                          _smallActionButton(
-                            icon: CupertinoIcons.arrow_down_to_line,
-                            onTap: onDownload,
-                          ),
-                      ],
+                    child: _smallActionButton(
+                      key: ValueKey('identity_view_$side'),
+                      icon: CupertinoIcons.arrow_up_left_arrow_down_right,
+                      onTap: onView,
                     ),
                   ),
-                if (!_hasImage)
-                   Center(
-                     child: CustomGlassButton(
-                       onPressed: onScan,
-                       width: 44,
-                       height: 44,
-                       shape: GlassShape.circle,
-                       opacity: 0.2,
-                       padding: EdgeInsets.zero,
-                       child: const Icon(CupertinoIcons.camera_fill, size: 20, color: Colors.white),
-                     ),
-                   ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
-          ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            IconButton(
+              key: ValueKey('identity_scan_$side'),
+              tooltip: scanLabel,
+              onPressed: onScan,
+              visualDensity: VisualDensity.compact,
+              color: theme.colorScheme.primary,
+              icon: const Icon(CupertinoIcons.camera_fill, size: 20),
+            ),
+            IconButton(
+              key: ValueKey('identity_download_$side'),
+              tooltip: 'identity_download_image'.tr,
+              onPressed: _hasImage ? onDownload : null,
+              visualDensity: VisualDensity.compact,
+              color: theme.colorScheme.primary,
+              icon: const Icon(
+                CupertinoIcons.arrow_down_to_line,
+                size: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _smallActionButton({required IconData icon, VoidCallback? onTap}) {
+  Widget _smallActionButton({
+    Key? key,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
     return CustomGlassButton(
+      key: key,
       onPressed: onTap,
       width: 32,
       height: 32,
@@ -486,11 +500,17 @@ class IdentityPreviewCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(front ? CupertinoIcons.person_crop_rectangle : CupertinoIcons.barcode_viewfinder, 
-               size: 32, color: color),
+          Icon(
+            front
+                ? CupertinoIcons.person_crop_rectangle
+                : CupertinoIcons.barcode_viewfinder,
+            size: 32,
+            color: color,
+          ),
           const SizedBox(height: 8),
           Text(
-            (front ? 'identity_side_front' : 'identity_side_back').tr.toUpperCase(),
+            (front ? 'identity_side_front' : 'identity_side_back').tr
+                .toUpperCase(),
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -612,11 +632,14 @@ class IdentityPrimaryButton extends StatelessWidget {
                 children: [
                   Icon(icon, size: 20),
                   const SizedBox(width: 10),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -654,10 +677,7 @@ class IdentityDestructiveButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ),
     );
@@ -676,7 +696,11 @@ class IdentityFooterNote extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(CupertinoIcons.lock_shield, size: 14, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+        Icon(
+          CupertinoIcons.lock_shield,
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
         const SizedBox(width: 8),
         Flexible(
           child: Text(
@@ -692,4 +716,3 @@ class IdentityFooterNote extends StatelessWidget {
     );
   }
 }
-
