@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -65,7 +64,10 @@ class ProfileView extends GetView<ProfileController> {
                         const SizedBox(height: 8),
                         _buildIdInformationCard(context),
                         const SizedBox(height: 22),
-                        _buildSectionLabel(context, 'passport_information_title'.tr),
+                        _buildSectionLabel(
+                          context,
+                          'passport_information_title'.tr,
+                        ),
                         const SizedBox(height: 8),
                         _buildPassportInformationCard(context),
                         const SizedBox(height: 22),
@@ -529,256 +531,112 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildIdInformationCard(BuildContext context) {
     return Obx(() {
-      final edit = controller.updateIdInformation;
       final card = controller.identityCard.value;
+      final edit = card == null ? controller.updateIdInformation : null;
       final cardIndex = controller.identityCards.indexWhere(
         (saved) => saved.idNumber == card?.idNumber,
       );
-      final children = <Widget>[];
-      // 1. Navigation and Photos Card
-      children.add(
-        _buildSurfaceCard(
-          context,
-          key: const ValueKey('profile_identity_header'),
-          children: [
+      final idNumber = card?.idNumber ?? controller.userIdNumber.value;
+      final dateOfBirth = card?.dateOfBirth ?? controller.formattedDateOfBirth;
+      final placeOfBirth =
+          card?.displayPlaceOfBirth ?? controller.userPlaceOfBirth.value;
+      final currentAddress =
+          card?.displayCurrentAddress ?? controller.userCurrentAddress.value;
+      final expiryDate = card?.expiryDate ?? controller.formattedIdExpiryDate;
+
+      return _buildSurfaceCard(
+        context,
+        key: const ValueKey('profile_identity_information'),
+        children: [
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.shield_lefthalf_fill,
+            iconColor: _iosGreen,
+            label: 'identity_app_title'.tr,
+            value: cardIndex < 0
+                ? ''
+                : 'identity_card_number'.trParams({
+                    'number': '${cardIndex + 1}',
+                  }),
+            wrapValue: true,
+            onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
+          ),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.number,
+            iconColor: _iosGray,
+            label: 'id_number_label'.tr,
+            value: idNumber.isEmpty ? 'not_set'.tr : idNumber,
+            wrapValue: true,
+            onTap: edit,
+          ),
+          if (card == null)
             _buildDetailRow(
               context,
-              icon: CupertinoIcons.shield_lefthalf_fill,
-              iconColor: _iosGreen,
-              label: 'identity_app_title'.tr,
-              value: cardIndex < 0
-                  ? ''
-                  : 'identity_card_number'.trParams({
-                      'number': '${cardIndex + 1}',
-                    }),
+              icon: CupertinoIcons.person_fill,
+              iconColor: _iosBlue,
+              label: 'id_name_label'.tr,
+              value: controller.userIdName.value.isEmpty
+                  ? 'not_set'.tr
+                  : controller.userIdName.value,
               wrapValue: true,
-              onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
+              onTap: edit,
+            )
+          else ...[
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.person_fill,
+              iconColor: _iosBlue,
+              label: 'identity_name_khmer_label'.tr,
+              value: card.nameKhmer.isEmpty ? 'not_set'.tr : card.nameKhmer,
+              wrapValue: true,
             ),
-            if (card != null &&
-                (card.frontImagePath != null || card.backImagePath != null))
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    if (card.frontImagePath != null)
-                      _buildIdPhoto(context, card.frontImagePath, front: true),
-                    if (card.frontImagePath != null && card.backImagePath != null)
-                      const SizedBox(height: 12),
-                    if (card.backImagePath != null)
-                      _buildIdPhoto(context, card.backImagePath, front: false),
-                  ],
-                ),
-              ),
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.person_fill,
+              iconColor: _iosIndigo,
+              label: 'identity_name_latin_label'.tr,
+              value: card.nameLatin.isEmpty ? 'not_set'.tr : card.nameLatin,
+              wrapValue: true,
+            ),
           ],
-        ),
-      );
-
-      if (card == null) {
-        // Fallback to standard rows for manual entry if no card scanned
-        children.add(const SizedBox(height: 16));
-        children.add(
-          _buildSurfaceCard(
+          _buildDetailRow(
             context,
-            key: const ValueKey('profile_identity_empty'),
-            children: [
-              _buildDetailRow(
-                context,
-                icon: Icons.badge_outlined,
-                iconColor: _iosGray,
-                label: 'id_number_label'.tr,
-                value: controller.userIdNumber.value.isEmpty
-                    ? 'not_set'.tr
-                    : controller.userIdNumber.value,
-                wrapValue: true,
-                onTap: edit,
-              ),
-              _buildDetailRow(
-                context,
-                icon: Icons.person_outline_rounded,
-                iconColor: _iosIndigo,
-                label: 'id_name_label'.tr,
-                value: controller.userIdName.value.isEmpty
-                    ? 'not_set'.tr
-                    : controller.userIdName.value,
-                wrapValue: true,
-                onTap: edit,
-              ),
-              _buildDetailRow(
-                context,
-                icon: Icons.cake_outlined,
-                iconColor: _iosPink,
-                label: 'date_of_birth_label'.tr,
-                value: controller.formattedDateOfBirth.isEmpty
-                    ? 'not_set'.tr
-                    : controller.formattedDateOfBirth,
-                wrapValue: true,
-                onTap: edit,
-              ),
-              _buildDetailRow(
-                context,
-                icon: CupertinoIcons.map_pin_ellipse,
-                iconColor: _iosGreen,
-                label: 'place_of_birth_label'.tr,
-                value: controller.userPlaceOfBirth.value.isEmpty
-                    ? 'not_set'.tr
-                    : controller.userPlaceOfBirth.value,
-                wrapValue: true,
-                onTap: edit,
-              ),
-              _buildDetailRow(
-                context,
-                icon: CupertinoIcons.location_solid,
-                iconColor: _iosBlue,
-                label: 'identity_current_residence_label'.tr,
-                value: controller.userCurrentAddress.value.isEmpty
-                    ? 'not_set'.tr
-                    : controller.userCurrentAddress.value,
-                wrapValue: true,
-                onTap: edit,
-              ),
-              _buildDetailRow(
-                context,
-                icon: CupertinoIcons.calendar_badge_minus,
-                iconColor: _iosOrange,
-                label: 'id_expiry_date_label'.tr,
-                value: controller.formattedIdExpiryDate.isEmpty
-                    ? 'not_set'.tr
-                    : controller.formattedIdExpiryDate,
-                wrapValue: true,
-                onTap: edit,
-              ),
-            ],
+            icon: CupertinoIcons.calendar,
+            iconColor: _iosPink,
+            label: 'date_of_birth_label'.tr,
+            value: dateOfBirth.isEmpty ? 'not_set'.tr : dateOfBirth,
+            wrapValue: true,
+            onTap: edit,
           ),
-        );
-      } else {
-        // MATCH IDENTITY CARD SCREEN STYLE
-        children.add(const SizedBox(height: 16));
-
-        // ID Number
-        children.add(
-          IdentityFieldCard(
-            label: 'id_number_label'.tr,
-            tag: IdentityTag(
-              'identity_chip_matched_tag'.tr.toUpperCase(),
-              color: idGreen,
-              icon: CupertinoIcons.checkmark_shield_fill,
-            ),
-            child: IdentityCopyableValue(card.idNumber),
-          ),
-        );
-        children.add(const SizedBox(height: 12));
-
-        // Khmer Name
-        children.add(
-          IdentityFieldCard(
-            label: 'identity_name_khmer_label'.tr,
-            tag: const Icon(
-              CupertinoIcons.checkmark_alt_circle_fill,
-              size: 16,
-              color: idGreen,
-            ),
-            child: Text(
-              card.nameKhmer.isEmpty ? 'not_set'.tr : card.nameKhmer,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-        );
-        children.add(const SizedBox(height: 12));
-
-        // Latin Name
-        children.add(
-          IdentityFieldCard(
-            label: 'identity_name_latin_label'.tr,
-            tag: const Icon(
-              CupertinoIcons.checkmark_alt_circle_fill,
-              size: 16,
-              color: idGreen,
-            ),
-            child: Text(
-              card.nameLatin.isEmpty ? 'not_set'.tr : card.nameLatin,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-        );
-        children.add(const SizedBox(height: 12));
-
-        // DOB & Expiry Row
-        children.add(
-          Row(
-            children: [
-              Expanded(
-                child: IdentityFieldCard(
-                  label: 'date_of_birth_label'.tr,
-                  child: Text(
-                    card.dateOfBirth,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: IdentityFieldCard(
-                  label: 'id_expiry_date_label'.tr,
-                  child: Text(
-                    card.expiryDate,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-        children.add(const SizedBox(height: 12));
-
-        // Place of Birth
-        children.add(
-          IdentityFieldCard(
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.map_pin_ellipse,
+            iconColor: _iosGreen,
             label: 'place_of_birth_label'.tr,
-            leadingIcon: CupertinoIcons.map_pin_ellipse,
-            child: Text(
-              card.displayPlaceOfBirth.isEmpty
-                  ? 'identity_not_read'.tr
-                  : card.displayPlaceOfBirth,
-              style: const TextStyle(height: 1.5),
-            ),
+            value: placeOfBirth.isEmpty ? 'not_set'.tr : placeOfBirth,
+            wrapValue: true,
+            onTap: edit,
           ),
-        );
-        children.add(const SizedBox(height: 12));
-
-        // Place of Now
-        children.add(
-          IdentityFieldCard(
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.location_solid,
+            iconColor: _iosBlue,
             label: 'identity_current_residence_label'.tr,
-            leadingIcon: CupertinoIcons.location_solid,
-            tag: const Icon(
-              CupertinoIcons.checkmark_alt_circle_fill,
-              size: 16,
-              color: idGreen,
-            ),
-            child: Text(
-              card.displayCurrentAddress.isEmpty
-                  ? 'identity_not_read'.tr
-                  : card.displayCurrentAddress,
-              style: const TextStyle(height: 1.5),
-            ),
+            value: currentAddress.isEmpty ? 'not_set'.tr : currentAddress,
+            wrapValue: true,
+            onTap: edit,
           ),
-        );
-        children.add(const SizedBox(height: 16));
-
-        // IOCA Block
-        if (card.mrzLines.any((line) => line.trim().isNotEmpty)) {
-          children.add(IdentityMrzBlock(lines: card.mrzLines));
-        }
-      }
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.calendar_badge_minus,
+            iconColor: _iosRed,
+            label: 'id_expiry_date_label'.tr,
+            value: expiryDate.isEmpty ? 'not_set'.tr : expiryDate,
+            wrapValue: true,
+            onTap: edit,
+          ),
+        ],
       );
     });
   }
@@ -807,21 +665,6 @@ class ProfileView extends GetView<ProfileController> {
             wrapValue: true,
             onTap: () => Get.toNamed(Routes.PASSPORT_SCAN),
           ),
-          if (card != null && card.imagePath != null)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: AspectRatio(
-                aspectRatio: 1.5,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    File(card.imagePath!),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Center(child: Text('not_set'.tr)),
-                  ),
-                ),
-              ),
-            ),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.number,
@@ -885,72 +728,6 @@ class ProfileView extends GetView<ProfileController> {
         ],
       );
     });
-  }
-
-  Widget _buildIdPhoto(
-    BuildContext context,
-    String? path, {
-    required bool front,
-  }) {
-    final available = path != null && File(path).existsSync();
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: AspectRatio(
-        aspectRatio: 1.586,
-        child: available
-            ? Image.file(
-                File(path),
-                key: ValueKey('profile_identity_${front ? 'front' : 'back'}'),
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _buildBlueprint(context, front: front),
-              )
-            : _buildBlueprint(context, front: front),
-      ),
-    );
-  }
-
-  Widget _buildBlueprint(BuildContext context, {required bool front}) {
-    final _ = Theme.of(context);
-    final color = front ? _iosGreen : _iosBlue;
-
-    return Container(
-      color: color.withValues(alpha: 0.08),
-      child: Stack(
-        children: [
-          // Schematic background lines
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _BlueprintPainter(color: color.withValues(alpha: 0.1)),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  front
-                      ? CupertinoIcons.person_crop_rectangle
-                      : CupertinoIcons.barcode_viewfinder,
-                  size: 44,
-                  color: color.withValues(alpha: 0.45),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  (front ? 'identity_side_front' : 'identity_side_back').tr.toUpperCase(),
-                  style: TextStyle(
-                    color: color.withValues(alpha: 0.5),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSurfaceCard(
@@ -1247,29 +1024,6 @@ class ProfileView extends GetView<ProfileController> {
       ),
     );
   }
-}
-
-class _BlueprintPainter extends CustomPainter {
-  final Color color;
-  _BlueprintPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0;
-
-    const spacing = 20.0;
-    for (double i = 0; i < size.width; i += spacing) {
-      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
-    }
-    for (double i = 0; i < size.height; i += spacing) {
-      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ProfileColorValue extends StatelessWidget {
