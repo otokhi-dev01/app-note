@@ -106,9 +106,27 @@ class ApiClient extends GetxService {
             final refreshResult = alreadyRefreshed
                 ? _RefreshResult.refreshed
                 : await _tryRefreshSession(tokenBeforeRecovery);
-            if (refreshResult == _RefreshResult.refreshed) {
+
+            // A Note-side failure (often a replication lag right after login)
+            // with a token Chat still considers valid should be retried once.
+            final shouldRetry = refreshResult == _RefreshResult.refreshed ||
+                (isNoteRequest && refreshResult == _RefreshResult.accountValid);
+
+            if (shouldRetry) {
               final retryToken = session.token.value;
+              if (kDebugMode) {
+                debugPrint(
+                  '[API] Retrying rejected ${isNoteRequest ? 'Note' : 'Chat'} '
+                  'request (refreshResult=${refreshResult.name})...',
+                );
+              }
               try {
+                // If Chat considered the token valid but Note didn't, retrying
+                // after a brief pause can help absorb replication lag.
+                // Lag can sometimes be significant, so we use a 2s delay.
+                if (refreshResult == _RefreshResult.accountValid) {
+                  await Future<void>.delayed(const Duration(milliseconds: 2000));
+                }
                 final retried = await _dio.fetch(
                   request.copyWith(
                     data: request.data is FormData
@@ -119,8 +137,31 @@ class ApiClient extends GetxService {
                 );
                 return handler.resolve(retried);
               } on DioException catch (retryError) {
-                // Preserve the actual retry failure (including timeouts/5xx).
-                e = retryError;
+                // If a Note request still 401s, try one last time with a longer
+                // delay. Replication lag between servers can be severe.
+                if (isNoteRequest &&
+                    retryError.response?.statusCode == 401 &&
+                    session.token.value == retryToken) {
+                  if (kDebugMode) {
+                    debugPrint('[API] Second retry for Note lag...');
+                  }
+                  await Future<void>.delayed(const Duration(milliseconds: 3000));
+                  try {
+                    final secondRetry = await _dio.fetch(
+                      request.copyWith(
+                        data: request.data is FormData
+                            ? (request.data as FormData).clone()
+                            : request.data,
+                        extra: {...request.extra, 'authRetried': true},
+                      ),
+                    );
+                    return handler.resolve(secondRetry);
+                  } catch (secondError) {
+                    if (secondError is DioException) e = secondError;
+                  }
+                } else {
+                  e = retryError;
+                }
                 if (isChatRequest &&
                     e.response?.statusCode == 401 &&
                     session.token.value == retryToken) {

@@ -384,6 +384,13 @@ const Map<String, String> enUS = {
   'identity_add_action': 'Add',
   'identity_saved_cards': 'Saved identities',
   'identity_card_number': 'Card @number',
+  'identity_checking_capture': 'Checking card image…',
+  'identity_back_scan_retry':
+      'Back not recognized. Scan the back of your ID card again with the text clearly visible.',
+  'identity_front_scan_retry':
+      'Front not recognized. Scan the front of your ID card again with all text clearly visible.',
+  'identity_scan_front_first':
+      'Scan the front of your ID card first, then scan the back.',
   'identity_scan_front': 'Scan front image',
   'identity_scan_back': 'Scan back image',
   'identity_view_full_image': 'View full image',

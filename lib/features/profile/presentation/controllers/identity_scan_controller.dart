@@ -11,12 +11,14 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/services/native_media_services.dart';
 import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
+import 'package:Note/features/profile/domain/entities/identity_scan_recognition.dart';
 import 'package:Note/features/profile/domain/entities/identity_printed_text_reader.dart';
 import 'package:Note/features/profile/data/services/identity_printed_text_service.dart';
 import 'package:Note/features/profile/data/services/identity_image_service.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
 import 'package:Note/features/profile/presentation/views/document_upload_view.dart';
+import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
 import 'package:Note/features/profile/domain/usecases/identity_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -42,7 +44,7 @@ class IdentityScanController extends GetxController {
   IdentityScanController(
     this._scanNationalId, {
     BlinkIdFlutter? scanner,
-    Future<String?> Function() scanCardImage = IdentityImageService.scan,
+    Future<String?> Function()? scanCardImage,
     Future<String?> Function(IdentityCardExport) saveExport =
         IdentityImageService.save,
     Future<String> Function(String) recognizePrintedText =
@@ -64,7 +66,7 @@ class IdentityScanController extends GetxController {
        _androidLicenseKey = androidLicenseKey.trim();
 
   final ScanNationalId _scanNationalId;
-  final Future<String?> Function() _scanCardImage;
+  final Future<String?> Function()? _scanCardImage;
   final Future<String?> Function(IdentityCardExport) _saveExport;
   final Future<String> Function(String) _recognizeText;
   final Future<String> Function(String) _recognizePrintedText;
@@ -79,39 +81,130 @@ class IdentityScanController extends GetxController {
   List<NationalIdCard> get savedCards =>
       Get.find<ProfileController>().identityCards;
 
+  String? imagePath({required bool front}) =>
+      front ? card.value?.frontImagePath : card.value?.backImagePath;
+
+  String? _validatedFrontText;
+
   bool hasImage({required bool front}) {
-    final path = front ? card.value?.frontImagePath : card.value?.backImagePath;
+    final path = imagePath(front: front);
     return path != null && File(path).existsSync();
   }
 
-  /// Replaces one photo, leaving the other side and all edited fields intact.
+  Future<bool> _matchesCardSide(String path, {required bool front}) async {
+    var text = '';
+    try {
+      text = await _recognizeText(path);
+    } catch (_) {
+      // Printed-text OCR also works when native recognition is unavailable.
+    }
+    if (isClosed) return false;
+    if (IdentityScanRecognition.candidate(text, front: front) != null) {
+      if (front) _validatedFrontText = text;
+      return true;
+    }
+    try {
+      text = await _recognizePrintedText(path);
+    } catch (_) {
+      return false;
+    }
+    final matches =
+        !isClosed &&
+        IdentityScanRecognition.candidate(text, front: front) != null;
+    if (matches && front) _validatedFrontText = text;
+    return matches;
+  }
+
+  Future<String?> _captureIdentitySide({required bool front}) async {
+    return await Get.to<String>(
+      () => IdentityCameraView(
+        singleSideFront: front,
+        validateCapture: (path) => _matchesCardSide(path, front: front),
+        onFrontCaptured: (path) => Get.back(result: path),
+        onBackCaptured: (path) => Get.back(result: path),
+        onCancel: () => Get.back(),
+      ),
+    );
+  }
+
+  /// Captures one side. Rejects unreadable or wrong-side front images and
+  /// reopens the scanner until a front is recognized or the user cancels.
   Future<void> onScanImage({required bool front}) async {
     if (isLoading.value || isClosed) return;
     final original = card.value;
-    if (original == null) {
-      await onStartScan();
+    final profile = Get.find<ProfileController>();
+    final owner = profile.identityOwnerKey;
+    if (original == null && !front && !hasImage(front: true)) {
+      AppSnackbar.info(
+        'identity_scan_front'.tr,
+        'identity_scan_front_first'.tr,
+      );
       return;
     }
-    final owner = _cardOwnerKey;
+    bool isCurrent() =>
+        !isClosed &&
+        card.value == original &&
+        owner == profile.identityOwnerKey;
+    _validatedFrontText = null;
     isLoading.value = true;
     try {
-      final path = await _scanCardImage();
-      if (path == null ||
-          isClosed ||
-          card.value != original ||
-          owner != Get.find<ProfileController>().identityOwnerKey) {
-        return;
+      while (isCurrent()) {
+        final scanImage = _scanCardImage;
+        final path = scanImage == null
+            ? await _captureIdentitySide(front: front)
+            : await scanImage();
+        if (path == null || !isCurrent()) return;
+        if (!File(path).existsSync()) {
+          throw const FileSystemException('Captured image is unavailable');
+        }
+        if (front && scanImage != null) {
+          final matches = await _matchesCardSide(path, front: true);
+          if (!isCurrent()) return;
+          if (!matches) {
+            AppSnackbar.info(
+              'identity_scan_front'.tr,
+              'identity_front_scan_retry'.tr,
+            );
+            continue;
+          }
+        }
+        if (original == null) {
+          final text = _validatedFrontText!;
+          final number = IdentityScanRecognition.candidate(
+            text,
+            front: true,
+          )!.split(':').first;
+          // Persist the front immediately. Unread fields remain empty until
+          // reviewed or scanned separately; no back image is required.
+          card.value = IdentityPrintedTextReader.enrich(
+            NationalIdCard(
+              idNumber: number,
+              nameKhmer: '',
+              nameLatin: '',
+              dateOfBirth: '',
+              placeOfBirthKhmer: '',
+              placeOfBirthEnglish: '',
+              currentAddressKhmer: '',
+              currentAddressEnglish: '',
+              expiryDate: '',
+              mrzLines: const [],
+              chipIntegrityPercent: 0,
+              frontImagePath: path,
+            ),
+            text,
+          );
+          _cardOwnerKey = owner;
+        } else {
+          card.value = front
+              ? original.copyWith(frontImagePath: path)
+              : original.copyWith(backImagePath: path);
+        }
+        savedToProfile.value = false;
+        await _saveCardToProfile();
+        break;
       }
-      if (!File(path).existsSync()) {
-        throw const FileSystemException('Captured image is unavailable');
-      }
-      card.value = front
-          ? original.copyWith(frontImagePath: path)
-          : original.copyWith(backImagePath: path);
-      savedToProfile.value = false;
-      await _saveCardToProfile();
     } catch (_) {
-      if (!isClosed) {
+      if (isCurrent()) {
         AppSnackbar.error(
           'identity_scan_failed_title'.tr,
           'identity_scan_failed_generic_message'.tr,
@@ -136,7 +229,7 @@ class IdentityScanController extends GetxController {
   Future<void> onDownloadCard({bool? front}) async {
     final original = card.value;
     if (isLoading.value || isClosed || original == null) return;
-    final owner = _cardOwnerKey;
+    final owner = Get.find<ProfileController>().identityOwnerKey;
     isLoading.value = true;
     try {
       final export = front == null
@@ -204,6 +297,7 @@ class IdentityScanController extends GetxController {
     super.onInit();
     final profile = Get.find<ProfileController>();
     void sync(NationalIdCard? saved) {
+      _pendingFrontPath = null;
       card.value = saved;
       _cardOwnerKey = saved == null ? null : profile.identityOwnerKey;
       savedToProfile.value = saved != null;

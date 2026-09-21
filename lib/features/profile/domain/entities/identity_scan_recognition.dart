@@ -15,8 +15,13 @@ abstract final class IdentityScanRecognition {
       return card.mrzLines.join('\n');
     }
     // Avoid accepting the back as the front, or an arbitrary receipt/card.
-    if (MrzReader.parse(text) != null) return null;
     final upper = text.toUpperCase();
+    if (MrzReader.parse(text) != null ||
+        upper.contains('PASSPORT') ||
+        RegExp(r'[A-Z0-9<]*<<[A-Z0-9<]*').hasMatch(upper) ||
+        RegExp(r'^[IPV]<', multiLine: true).hasMatch(upper)) {
+      return null;
+    }
     if (!upper.contains('IDENTITY') &&
         !upper.contains('CAMBODIA') &&
         !text.contains('អត្តសញ្ញាណ')) {
@@ -41,4 +46,3 @@ abstract final class IdentityScanRecognition {
     return passport.mrzLines.join('\n');
   }
 }
-

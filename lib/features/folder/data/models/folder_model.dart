@@ -94,7 +94,11 @@ class FolderResponse {
   });
 
   factory FolderResponse.fromJson(Map<String, dynamic> json) {
-    final dynamic rawData = json['data'] ?? json['Data'] ?? json;
+    // Some endpoints return the list directly at the top level, or nested
+    // under 'data'/'Data' or 'payload'/'result'.
+    final dynamic rawData =
+        json['data'] ?? json['Data'] ?? json['payload'] ?? json['result'] ?? json;
+
     List<FolderModel> activeList = [];
     List<FolderModel> trashList = [];
 
@@ -104,13 +108,24 @@ class FolderResponse {
         .toList();
 
     if (rawData is Map) {
-      final all = [...parse(rawData['folder']), ...parse(rawData['archive']), ...parse(rawData['folders'])];
-      if (all.isEmpty && (rawData.containsKey('id') || rawData.containsKey('FolderId'))) {
+      final all = [
+        ...parse(rawData['folder']),
+        ...parse(rawData['folders']),
+        ...parse(rawData['archive']),
+        ...parse(rawData['Folders']),
+        ...parse(rawData['data']),
+      ];
+
+      // If the map itself represents a single folder (not an envelope)
+      if (all.isEmpty &&
+          (rawData.containsKey('id') || rawData.containsKey('FolderId'))) {
         all.add(FolderModel.fromJson(Map<String, dynamic>.from(rawData)));
       }
+
       activeList = all.where((f) => f.deletedAt == null).toList();
       trashList = [
         ...parse(rawData['trash']),
+        ...parse(rawData['Trash']),
         ...all.where((f) => f.deletedAt != null),
       ];
     } else if (rawData is List) {
@@ -122,8 +137,10 @@ class FolderResponse {
     return FolderResponse(
       folders: activeList,
       trash: trashList,
-      code: asInt(json['code'] ?? json['Code'] ?? 200),
-      message: asString(json['message'] ?? json['Message'] ?? 'Success'),
+      code: asInt(json['code'] ?? json['Code'] ?? json['statusCode'] ?? 200),
+      message: asString(
+        json['message'] ?? json['Message'] ?? json['error'] ?? 'Success',
+      ),
     );
   }
 }

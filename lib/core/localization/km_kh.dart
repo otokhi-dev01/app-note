@@ -382,6 +382,13 @@ const Map<String, String> kmKH = {
   'identity_add_action': 'បន្ថែម',
   'identity_saved_cards': 'អត្តសញ្ញាណដែលបានរក្សាទុក',
   'identity_card_number': 'ប័ណ្ណ @number',
+  'identity_checking_capture': 'កំពុងពិនិត្យរូបភាពអត្តសញ្ញាណប័ណ្ណ…',
+  'identity_back_scan_retry':
+      'មិនស្គាល់ផ្នែកខាងក្រោយ។ សូមស្កេនផ្នែកខាងក្រោយនៃអត្តសញ្ញាណប័ណ្ណម្ដងទៀត ដោយឱ្យអក្សរមើលឃើញច្បាស់។',
+  'identity_front_scan_retry':
+      'មិនស្គាល់ផ្នែកខាងមុខ។ សូមស្កេនផ្នែកខាងមុខនៃអត្តសញ្ញាណប័ណ្ណម្ដងទៀត ដោយឱ្យអក្សរទាំងអស់មើលឃើញច្បាស់។',
+  'identity_scan_front_first':
+      'សូមស្កេនផ្នែកខាងមុខនៃអត្តសញ្ញាណប័ណ្ណជាមុន រួចស្កេនផ្នែកខាងក្រោយ។',
   'identity_scan_front': 'ស្កេនរូបភាពខាងមុខ',
   'identity_scan_back': 'ស្កេនរូបភាពខាងក្រោយ',
   'identity_view_full_image': 'មើលរូបភាពពេញ',

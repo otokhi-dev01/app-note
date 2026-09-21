@@ -189,7 +189,36 @@ class CardCameraSession {
     if (_closed || camera != _camera || !camera.value.isInitialized) {
       throw CameraException('CameraUnavailable', 'The camera was closed.');
     }
-    return (await camera.takePicture()).path;
+    final captureViewport = viewport;
+    final captureFrame = frame;
+    if (captureViewport.isEmpty || captureFrame.isEmpty) {
+      throw CameraException(
+        'CameraUnavailable',
+        'The card guide is not ready.',
+      );
+    }
+    final source = File((await camera.takePicture()).path);
+    final cropped = File('${source.path}_card.jpg');
+    try {
+      final bytes = await compute(cropCardCameraPhoto, (
+        bytes: await source.readAsBytes(),
+        viewport: captureViewport,
+        frame: captureFrame,
+      ));
+      if (_closed || camera != _camera) {
+        throw CameraException('CameraUnavailable', 'The camera was closed.');
+      }
+      await cropped.writeAsBytes(bytes, flush: true);
+      if (_closed || camera != _camera) {
+        throw CameraException('CameraUnavailable', 'The camera was closed.');
+      }
+      return cropped.path;
+    } catch (_) {
+      await _removeTemporary(cropped);
+      rethrow;
+    } finally {
+      await _removeTemporary(source);
+    }
   }
 
   Future<String> captureText() async {
@@ -285,6 +314,36 @@ Uint8List encodeCardCameraFrame(CardCameraFrame data) {
     height: math.max(1, crop.height.floor()),
   );
   return img.encodeJpg(image, quality: 88);
+}
+
+/// Saves only the area inside the guide, at the still photo's resolution.
+/// Bake EXIF orientation before mapping the preview's cover transform.
+Uint8List cropCardCameraPhoto(
+  ({Uint8List bytes, Size viewport, Rect frame}) data,
+) {
+  if (data.viewport.isEmpty || data.frame.isEmpty) {
+    throw const FormatException('Missing card guide');
+  }
+  if (data.bytes.isEmpty) throw const FormatException('Unreadable card photo');
+  final decoded = img.decodeImage(data.bytes);
+  if (decoded == null) throw const FormatException('Unreadable card photo');
+  final photo = img.bakeOrientation(decoded);
+  final crop = cardFrameCrop(
+    Size(photo.width.toDouble(), photo.height.toDouble()),
+    data.viewport,
+    data.frame,
+  );
+  final left = crop.left.ceil();
+  final top = crop.top.ceil();
+  final width = crop.right.floor() - left;
+  final height = crop.bottom.floor() - top;
+  if (width < 1 || height < 1) {
+    throw const FormatException('Card guide is outside the photo');
+  }
+  return img.encodeJpg(
+    img.copyCrop(photo, x: left, y: top, width: width, height: height),
+    quality: 95,
+  );
 }
 
 /// Maps the visible guide through the same cover transform as CameraPreview.

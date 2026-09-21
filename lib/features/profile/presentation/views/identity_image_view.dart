@@ -11,9 +11,7 @@ class IdentityImageView extends GetView<IdentityScanController> {
 
   @override
   Widget build(BuildContext context) => Obx(() {
-    final path = front
-        ? controller.card.value?.frontImagePath
-        : controller.card.value?.backImagePath;
+    final path = controller.imagePath(front: front);
     final available = controller.hasImage(front: front);
     final busy = controller.isLoading.value;
     return Scaffold(
@@ -66,7 +64,7 @@ class IdentityImageView extends GetView<IdentityScanController> {
                 runSpacing: 8,
                 children: [
                   FilledButton.icon(
-                    onPressed: busy || controller.card.value == null
+                    onPressed: busy
                         ? null
                         : () => controller.onScanImage(front: front),
                     icon: const Icon(Icons.document_scanner_outlined),

@@ -10,13 +10,9 @@ import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets
 import 'package:Note/features/profile/data/services/card_camera_session.dart';
 import 'package:Note/features/profile/domain/entities/identity_scan_recognition.dart';
 
-/// Fallback front/back capture screen for the Digital Civic ID scan flow,
-/// used only when no BlinkID license is configured for the current platform
-/// (see `IdentityScanController.onStartScan` — BlinkID's own native UI is
-/// preferred and never routes through this screen).
-///
-/// Samples OCR inside the guide and captures after two matching readings.
-/// Manual capture and gallery selection remain available on unsupported devices.
+/// Identity-card camera with live OCR detection and a card-shaped guide.
+/// Supports a complete front/back scan or capture of one selected side.
+/// Single-side captures are validated before the image is returned.
 class IdentityCameraView extends StatefulWidget {
   const IdentityCameraView({
     super.key,
@@ -24,6 +20,8 @@ class IdentityCameraView extends StatefulWidget {
     required this.onBackCaptured,
     required this.onCancel,
     this.passportMode = false,
+    this.singleSideFront,
+    this.validateCapture,
     this.createSession = _createSession,
     this.pickPhoto = _pickPhoto,
   });
@@ -32,6 +30,10 @@ class IdentityCameraView extends StatefulWidget {
   final ValueChanged<String> onBackCaptured;
   final VoidCallback onCancel;
   final bool passportMode;
+
+  /// Null scans both sides; true locks the front, false locks the back.
+  final bool? singleSideFront;
+  final Future<bool> Function(String path)? validateCapture;
   final CardCameraSession Function(int lensIndex) createSession;
   final Future<String?> Function() pickPhoto;
 
@@ -67,12 +69,14 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   bool _front = true;
   bool _finished = false;
   bool _permissionDenied = false;
+  bool _validationFailed = false;
   String? _error;
   Future<void> _lifecycle = Future.value();
 
   @override
   void initState() {
     super.initState();
+    _front = widget.singleSideFront ?? true;
     WidgetsBinding.instance.addObserver(this);
     _queueCamera();
   }
@@ -257,6 +261,34 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     _matches = 0;
     _sideVersion++;
 
+    final validate = widget.validateCapture;
+    if (validate != null) {
+      var valid = false;
+      try {
+        valid = await validate(path);
+      } catch (_) {
+        // An unreadable capture stays in the scanner for another attempt.
+      }
+      if (!mounted || _finished) return;
+      if (!valid || !_active) {
+        setState(() => _validationFailed = true);
+        return;
+      }
+      setState(() => _validationFailed = false);
+    }
+
+    if (widget.singleSideFront != null) {
+      setState(() => _finished = true);
+      await _closeCamera();
+      if (!mounted) return;
+      if (_front) {
+        widget.onFrontCaptured(path);
+      } else {
+        widget.onBackCaptured(path);
+      }
+      return;
+    }
+
     if (widget.passportMode) {
       _finished = true;
       await _closeCamera();
@@ -286,7 +318,13 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   }
 
   void _selectSide(bool front) {
-    if (_busy || _finished || front == _front || (!front && !_hasFront)) return;
+    if (widget.singleSideFront != null ||
+        _busy ||
+        _finished ||
+        front == _front ||
+        (!front && !_hasFront)) {
+      return;
+    }
     _sideVersion++;
     _candidate = null;
     _matches = 0;
@@ -295,7 +333,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   }
 
   void _cancel() {
-    _finished = true;
+    setState(() => _finished = true);
     _turnTimer?.cancel();
     widget.onCancel();
   }
@@ -312,7 +350,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: _finished,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _cancel();
       },
@@ -327,7 +365,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 const SizedBox(height: 14),
                 AspectRatio(aspectRatio: 0.85, child: _viewfinder()),
                 const SizedBox(height: 16),
-                if (!widget.passportMode) ...[
+                if (!widget.passportMode && widget.singleSideFront == null) ...[
                   _sideTabs(),
                   const SizedBox(height: 14),
                 ],
@@ -365,9 +403,11 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
               child: Text(
                 widget.passportMode
                     ? 'passport_information_title'.tr
+                    : widget.singleSideFront != null
+                    ? (_front ? 'identity_scan_front' : 'identity_scan_back').tr
                     : _front
-                        ? 'identity_step_front_label'.tr
-                        : 'identity_step_back_label'.tr,
+                    ? 'identity_step_front_label'.tr
+                    : 'identity_step_back_label'.tr,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -428,7 +468,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     builder: (context, constraints) {
       final size = constraints.biggest;
       final guideWidth = size.width - 52;
-      final ratio = widget.passportMode ? 1.4 : 1.55;
+      final ratio = widget.passportMode ? 1.4 : 1.586;
       _session?.viewport = size;
       _session?.frame = Rect.fromCenter(
         center: Offset(size.width / 2, size.height / 2),
@@ -495,7 +535,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
               child: Center(
                 child: _darkPill(
                   (_busy
-                          ? 'identity_hint_flip_back'
+                          ? (widget.singleSideFront != null
+                                ? 'identity_checking_capture'
+                                : 'identity_hint_flip_back')
                           : _ready && _automatic
                           ? 'identity_auto_detecting'
                           : 'identity_manual_capture')
@@ -653,11 +695,16 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            widget.passportMode
+            _validationFailed
+                ? (_front
+                          ? 'identity_front_scan_retry'
+                          : 'identity_back_scan_retry')
+                      .tr
+                : widget.passportMode
                 ? 'passport_number_hint'.tr
                 : _front
-                    ? 'identity_hint_flat_front'.tr
-                    : 'identity_hint_flip_back'.tr,
+                ? 'identity_hint_flat_front'.tr
+                : 'identity_hint_flip_back'.tr,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: idMuted,

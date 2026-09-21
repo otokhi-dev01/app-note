@@ -1,13 +1,11 @@
+import 'package:Note/features/profile/presentation/views/identity_image_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
 import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
-import 'package:Note/features/profile/presentation/views/identity_details_edit_view.dart';
-import 'package:Note/features/profile/presentation/views/identity_image_view.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
 
 /// Digital Civic ID (national ID) scan-and-verify screen.
 /// Shows the bilingual (Khmer/English) OCR result once both sides of the ID
@@ -45,7 +43,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
         children: [
           IdentityAppHeader(
             onBackTap: () => Get.back(),
-            onCameraTap: controller.isLoading.value ? null : controller.onRescan,
+            onCameraTap: controller.isLoading.value
+                ? null
+                : controller.onRescan,
           ),
           Expanded(
             child: SafeArea(
@@ -66,7 +66,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
                             Expanded(
                               child: IdentityPreviewCard(
                                 label: 'identity_side_front'.tr,
-                                imagePath: card?.frontImagePath,
+                                imagePath: controller.imagePath(front: true),
                                 onScan: controller.isLoading.value
                                     ? null
                                     : () => controller.onScanImage(front: true),
@@ -75,7 +75,9 @@ class IdentityScanView extends GetView<IdentityScanController> {
                                 ),
                                 onDownload: controller.isLoading.value
                                     ? null
-                                    : () => controller.onDownloadCard(front: true),
+                                    : () => controller.onDownloadCard(
+                                        front: true,
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -86,13 +88,16 @@ class IdentityScanView extends GetView<IdentityScanController> {
                                 front: false,
                                 onScan: controller.isLoading.value
                                     ? null
-                                    : () => controller.onScanImage(front: false),
+                                    : () =>
+                                          controller.onScanImage(front: false),
                                 onView: () => Get.to<void>(
                                   () => const IdentityImageView(front: false),
                                 ),
                                 onDownload: controller.isLoading.value
                                     ? null
-                                    : () => controller.onDownloadCard(front: false),
+                                    : () => controller.onDownloadCard(
+                                        front: false,
+                                      ),
                               ),
                             ),
                           ],
@@ -101,27 +106,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         IdentitySectionHeader(
                           icon: CupertinoIcons.doc_person_fill,
                           label: 'id_information_title'.tr,
-                          trailing: card == null
-                              ? null
-                              : CustomGlassButton(
-                                  onPressed: controller.isLoading.value
-                                      ? null
-                                      : () => Get.to<void>(
-                                            () => IdentityDetailsEditView(
-                                              card: card,
-                                              onSave: controller.saveCorrections,
-                                            ),
-                                          ),
-                                  width: 100,
-                                  height: 32,
-                                  borderRadius: 10,
-                                  opacity: 0.1,
-                                  padding: EdgeInsets.zero,
-                                  child: Text(
-                                    'identity_edit_details'.tr,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
+                          trailing: null,
                         ),
                         const SizedBox(height: 16),
                         if (card == null)
@@ -132,13 +117,26 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         IdentityPrimaryButton(
                           label: 'document_review_upload'.tr,
                           loading: controller.isLoading.value,
-                          onPressed: controller.isLoading.value ? null : controller.onConfirm,
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : controller.onConfirm,
                         ),
                         if (card != null) ...[
                           const SizedBox(height: 12),
+                          IdentityPrimaryButton(
+                            label: 'identity_download_card'.tr,
+                            icon: CupertinoIcons.arrow_down_doc_fill,
+                            loading: controller.isLoading.value,
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : () => controller.onDownloadCard(),
+                          ),
+                          const SizedBox(height: 12),
                           IdentityDestructiveButton(
                             label: 'identity_delete_info_action'.tr,
-                            onPressed: controller.isLoading.value ? null : controller.onDeleteInfo,
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : controller.onDeleteInfo,
                           ),
                         ],
                         const SizedBox(height: 24),
@@ -183,8 +181,12 @@ class IdentityScanView extends GetView<IdentityScanController> {
                       message: card == null
                           ? 'identity_add_new_action'.tr
                           : [
-                              card.nameKhmer,
-                              card.nameLatin,
+                              card.nameKhmer.isEmpty
+                                  ? 'not_set'.tr
+                                  : card.nameKhmer,
+                              card.nameLatin.isEmpty
+                                  ? 'not_set'.tr
+                                  : card.nameLatin,
                               card.idNumber,
                             ].where((value) => value.isNotEmpty).join(' • '),
                       child: ChoiceChip(
@@ -198,19 +200,21 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         ),
                         selected: card?.idNumber == activeCard?.idNumber,
                         showCheckmark: false,
-                        selectedColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        selectedColor: theme.colorScheme.primary.withValues(
+                          alpha: 0.1,
+                        ),
                         labelStyle: TextStyle(
-                          color: card?.idNumber == activeCard?.idNumber 
-                            ? theme.colorScheme.primary 
-                            : theme.colorScheme.onSurfaceVariant,
-                          fontWeight: card?.idNumber == activeCard?.idNumber 
-                            ? FontWeight.bold 
-                            : FontWeight.normal,
+                          color: card?.idNumber == activeCard?.idNumber
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: card?.idNumber == activeCard?.idNumber
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                         side: BorderSide(
-                          color: card?.idNumber == activeCard?.idNumber 
-                            ? theme.colorScheme.primary.withValues(alpha: 0.5) 
-                            : theme.dividerColor.withValues(alpha: 0.1),
+                          color: card?.idNumber == activeCard?.idNumber
+                              ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                              : theme.dividerColor.withValues(alpha: 0.1),
                         ),
                         onSelected:
                             busy ||
@@ -253,23 +257,27 @@ class IdentityScanView extends GetView<IdentityScanController> {
       children: [
         IdentityFieldCard(
           label: 'id_number_label'.tr,
-          tag: IdentityTag(
-            'identity_chip_matched_tag'.tr.toUpperCase(),
-            color: idGreen,
-            icon: CupertinoIcons.checkmark_shield_fill,
-          ),
+          tag: card.mrzLines.isEmpty
+              ? null
+              : IdentityTag(
+                  'identity_chip_matched_tag'.tr.toUpperCase(),
+                  color: idGreen,
+                  icon: CupertinoIcons.checkmark_shield_fill,
+                ),
           child: IdentityCopyableValue(card.idNumber),
         ),
         const SizedBox(height: 12),
         IdentityFieldCard(
           label: 'identity_name_khmer_label'.tr,
-          tag: const Icon(
-            CupertinoIcons.checkmark_alt_circle_fill,
-            size: 16,
-            color: idGreen,
-          ),
+          tag: card.nameKhmer.isEmpty
+              ? null
+              : const Icon(
+                  CupertinoIcons.checkmark_alt_circle_fill,
+                  size: 16,
+                  color: idGreen,
+                ),
           child: Text(
-            card.nameKhmer,
+            card.nameKhmer.isEmpty ? 'not_set'.tr : card.nameKhmer,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -278,13 +286,15 @@ class IdentityScanView extends GetView<IdentityScanController> {
         const SizedBox(height: 12),
         IdentityFieldCard(
           label: 'identity_name_latin_label'.tr,
-          tag: const Icon(
-            CupertinoIcons.checkmark_alt_circle_fill,
-            size: 16,
-            color: idGreen,
-          ),
+          tag: card.nameLatin.isEmpty
+              ? null
+              : const Icon(
+                  CupertinoIcons.checkmark_alt_circle_fill,
+                  size: 16,
+                  color: idGreen,
+                ),
           child: Text(
-            card.nameLatin,
+            card.nameLatin.isEmpty ? 'not_set'.tr : card.nameLatin,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
@@ -299,7 +309,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
               child: IdentityFieldCard(
                 label: 'date_of_birth_label'.tr,
                 child: Text(
-                  card.dateOfBirth,
+                  card.dateOfBirth.isEmpty ? 'not_set'.tr : card.dateOfBirth,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -322,7 +332,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      card.expiryDate,
+                      card.expiryDate.isEmpty ? 'not_set'.tr : card.expiryDate,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -368,7 +378,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
           ),
         ),
         const SizedBox(height: 12),
-        IdentityMrzBlock(lines: card.mrzLines),
+        if (card.mrzLines.isNotEmpty) IdentityMrzBlock(lines: card.mrzLines),
       ],
     );
   }

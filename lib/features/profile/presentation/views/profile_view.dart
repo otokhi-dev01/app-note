@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -65,7 +64,10 @@ class ProfileView extends GetView<ProfileController> {
                         const SizedBox(height: 8),
                         _buildIdInformationCard(context),
                         const SizedBox(height: 22),
-                        _buildSectionLabel(context, 'passport_information_title'.tr),
+                        _buildSectionLabel(
+                          context,
+                          'passport_information_title'.tr,
+                        ),
                         const SizedBox(height: 8),
                         _buildPassportInformationCard(context),
                         const SizedBox(height: 22),
@@ -529,13 +531,18 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildIdInformationCard(BuildContext context) {
     return Obx(() {
-      // Saved keyed by 'guest' on-device for a guest (see
-      // ProfileController._idOwnerKey) — no reason to block editing.
-      final edit = controller.updateIdInformation;
       final card = controller.identityCard.value;
+      final edit = card == null ? controller.updateIdInformation : null;
       final cardIndex = controller.identityCards.indexWhere(
         (saved) => saved.idNumber == card?.idNumber,
       );
+      final idNumber = card?.idNumber ?? controller.userIdNumber.value;
+      final dateOfBirth = card?.dateOfBirth ?? controller.formattedDateOfBirth;
+      final placeOfBirth =
+          card?.displayPlaceOfBirth ?? controller.userPlaceOfBirth.value;
+      final currentAddress =
+          card?.displayCurrentAddress ?? controller.userCurrentAddress.value;
+      final expiryDate = card?.expiryDate ?? controller.formattedIdExpiryDate;
 
       return _buildSurfaceCard(
         context,
@@ -554,73 +561,51 @@ class ProfileView extends GetView<ProfileController> {
             wrapValue: true,
             onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
           ),
-          if (card != null &&
-              (card.frontImagePath != null || card.backImagePath != null))
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildIdPhoto(
-                      context,
-                      card.frontImagePath,
-                      front: true,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildIdPhoto(
-                      context,
-                      card.backImagePath,
-                      front: false,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           _buildDetailRow(
             context,
-            icon: Icons.badge_outlined,
+            icon: CupertinoIcons.number,
             iconColor: _iosGray,
             label: 'id_number_label'.tr,
-            value: controller.userIdNumber.value.isEmpty
-                ? 'not_set'.tr
-                : controller.userIdNumber.value,
+            value: idNumber.isEmpty ? 'not_set'.tr : idNumber,
             wrapValue: true,
             onTap: edit,
           ),
-          _buildDetailRow(
-            context,
-            icon: Icons.person_outline_rounded,
-            iconColor: _iosIndigo,
-            label: card?.nameLatin.isNotEmpty == true
-                ? 'identity_name_latin_label'.tr
-                : 'id_name_label'.tr,
-            value: controller.userIdName.value.isEmpty
-                ? 'not_set'.tr
-                : controller.userIdName.value,
-            wrapValue: true,
-            onTap: edit,
-          ),
-          if (card != null)
+          if (card == null)
             _buildDetailRow(
               context,
-              icon: Icons.person_outline_rounded,
-              iconColor: _iosIndigo,
+              icon: CupertinoIcons.person_fill,
+              iconColor: _iosBlue,
+              label: 'id_name_label'.tr,
+              value: controller.userIdName.value.isEmpty
+                  ? 'not_set'.tr
+                  : controller.userIdName.value,
+              wrapValue: true,
+              onTap: edit,
+            )
+          else ...[
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.person_fill,
+              iconColor: _iosBlue,
               label: 'identity_name_khmer_label'.tr,
               value: card.nameKhmer.isEmpty ? 'not_set'.tr : card.nameKhmer,
               wrapValue: true,
-              onTap: () => Get.toNamed(Routes.IDENTITY_SCAN),
             ),
+            _buildDetailRow(
+              context,
+              icon: CupertinoIcons.person_fill,
+              iconColor: _iosIndigo,
+              label: 'identity_name_latin_label'.tr,
+              value: card.nameLatin.isEmpty ? 'not_set'.tr : card.nameLatin,
+              wrapValue: true,
+            ),
+          ],
           _buildDetailRow(
             context,
-            icon: Icons.cake_outlined,
+            icon: CupertinoIcons.calendar,
             iconColor: _iosPink,
             label: 'date_of_birth_label'.tr,
-            value: controller.formattedDateOfBirth.isEmpty
-                ? 'not_set'.tr
-                : controller.formattedDateOfBirth,
+            value: dateOfBirth.isEmpty ? 'not_set'.tr : dateOfBirth,
             wrapValue: true,
             onTap: edit,
           ),
@@ -629,9 +614,7 @@ class ProfileView extends GetView<ProfileController> {
             icon: CupertinoIcons.map_pin_ellipse,
             iconColor: _iosGreen,
             label: 'place_of_birth_label'.tr,
-            value: controller.userPlaceOfBirth.value.isEmpty
-                ? 'not_set'.tr
-                : controller.userPlaceOfBirth.value,
+            value: placeOfBirth.isEmpty ? 'not_set'.tr : placeOfBirth,
             wrapValue: true,
             onTap: edit,
           ),
@@ -639,35 +622,20 @@ class ProfileView extends GetView<ProfileController> {
             context,
             icon: CupertinoIcons.location_solid,
             iconColor: _iosBlue,
-            label: 'current_address_label'.tr,
-            value: controller.userCurrentAddress.value.isEmpty
-                ? 'not_set'.tr
-                : controller.userCurrentAddress.value,
+            label: 'identity_current_residence_label'.tr,
+            value: currentAddress.isEmpty ? 'not_set'.tr : currentAddress,
             wrapValue: true,
             onTap: edit,
           ),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.calendar_badge_minus,
-            iconColor: _iosOrange,
+            iconColor: _iosRed,
             label: 'id_expiry_date_label'.tr,
-            value: controller.formattedIdExpiryDate.isEmpty
-                ? 'not_set'.tr
-                : controller.formattedIdExpiryDate,
+            value: expiryDate.isEmpty ? 'not_set'.tr : expiryDate,
             wrapValue: true,
             onTap: edit,
           ),
-          if (card != null &&
-              card.mrzLines.any((line) => line.trim().isNotEmpty))
-            _buildDetailRow(
-              context,
-              icon: CupertinoIcons.barcode,
-              iconColor: _iosGray,
-              label: 'identity_mrz_title'.tr,
-              value: card.mrzLines.join('\n'),
-              wrapValue: true,
-              showChevron: false,
-            ),
         ],
       );
     });
@@ -697,21 +665,6 @@ class ProfileView extends GetView<ProfileController> {
             wrapValue: true,
             onTap: () => Get.toNamed(Routes.PASSPORT_SCAN),
           ),
-          if (card != null && card.imagePath != null)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: AspectRatio(
-                aspectRatio: 1.5,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    File(card.imagePath!),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Center(child: Text('not_set'.tr)),
-                  ),
-                ),
-              ),
-            ),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.number,
@@ -775,35 +728,6 @@ class ProfileView extends GetView<ProfileController> {
         ],
       );
     });
-  }
-
-  Widget _buildIdPhoto(
-    BuildContext context,
-    String? path, {
-    required bool front,
-  }) {
-    final available = path != null && File(path).existsSync();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          (front ? 'identity_side_front' : 'identity_side_back').tr,
-          style: Theme.of(context).textTheme.labelMedium,
-        ),
-        const SizedBox(height: 8),
-        AspectRatio(
-          aspectRatio: 1.586,
-          child: available
-              ? Image.file(
-                  File(path),
-                  key: ValueKey('profile_identity_${front ? 'front' : 'back'}'),
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => Center(child: Text('not_set'.tr)),
-                )
-              : Center(child: Text('not_set'.tr)),
-        ),
-      ],
-    );
   }
 
   Widget _buildSurfaceCard(
