@@ -70,18 +70,32 @@ class FolderRepositoryImpl implements FolderRepository {
       );
 
       final code = asInt(body['code'] ?? body['Code'] ?? body['statusCode']);
+      final success = body['success'] ?? body['Success'] ?? body['status'];
       final data = body['data'] ?? body['Data'];
-      
+
       int savedId = 0;
       if (data is Map) {
-        savedId = asInt(data['FolderId'] ?? data['folderId'] ?? data['id'] ?? data['Id']);
-      }
-      if (savedId == 0) {
-        savedId = asInt(body['FolderId'] ?? body['folderId'] ?? body['id'] ?? body['Id']);
+        savedId = asInt(
+          data['FolderId'] ?? data['folderId'] ?? data['id'] ?? data['Id'],
+        );
+      } else if (data is num || data is String) {
+        // Some APIs return the ID directly as the 'data' field.
+        savedId = asInt(data);
       }
 
-      final isSuccessBody = body['success'] == true || body['Success'] == true;
-      final succeeded = code == 200 || code == 201 || savedId > 0 || isSuccessBody;
+      if (savedId == 0) {
+        savedId = asInt(
+          body['FolderId'] ?? body['folderId'] ?? body['id'] ?? body['Id'],
+        );
+      }
+
+      final isSuccessBody = asBool(success) || 
+          (success is String && (success.toLowerCase() == 'success' || success.toLowerCase() == 'ok'));
+      
+      // If code is missing (0), we rely on isSuccessBody or savedId.
+      // If code is present, it must be a 2xx success.
+      final succeeded = (code >= 200 && code < 300) || isSuccessBody || savedId > 0;
+      
       if (!succeeded) {
         throw ServerException(ApiErrorParser.messageFrom(body));
       }

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -535,9 +534,7 @@ class ProfileView extends GetView<ProfileController> {
       final cardIndex = controller.identityCards.indexWhere(
         (saved) => saved.idNumber == card?.idNumber,
       );
-
       final children = <Widget>[];
-
       // 1. Navigation and Photos Card
       children.add(
         _buildSurfaceCard(
@@ -773,7 +770,7 @@ class ProfileView extends GetView<ProfileController> {
         );
         children.add(const SizedBox(height: 16));
 
-        // ICAO Block
+        // IOCA Block
         if (card.mrzLines.any((line) => line.trim().isNotEmpty)) {
           children.add(IdentityMrzBlock(lines: card.mrzLines));
         }
@@ -896,7 +893,6 @@ class ProfileView extends GetView<ProfileController> {
     required bool front,
   }) {
     final available = path != null && File(path).existsSync();
-    final theme = Theme.of(context);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -907,15 +903,52 @@ class ProfileView extends GetView<ProfileController> {
                 File(path),
                 key: ValueKey('profile_identity_${front ? 'front' : 'back'}'),
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                  child: Center(child: Text('not_set'.tr)),
-                ),
+                errorBuilder: (_, _, _) => _buildBlueprint(context, front: front),
               )
-            : Container(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                child: Center(child: Text('not_set'.tr)),
-              ),
+            : _buildBlueprint(context, front: front),
+      ),
+    );
+  }
+
+  Widget _buildBlueprint(BuildContext context, {required bool front}) {
+    final _ = Theme.of(context);
+    final color = front ? _iosGreen : _iosBlue;
+
+    return Container(
+      color: color.withValues(alpha: 0.08),
+      child: Stack(
+        children: [
+          // Schematic background lines
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _BlueprintPainter(color: color.withValues(alpha: 0.1)),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  front
+                      ? CupertinoIcons.person_crop_rectangle
+                      : CupertinoIcons.barcode_viewfinder,
+                  size: 44,
+                  color: color.withValues(alpha: 0.45),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  (front ? 'identity_side_front' : 'identity_side_back').tr.toUpperCase(),
+                  style: TextStyle(
+                    color: color.withValues(alpha: 0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1214,6 +1247,29 @@ class ProfileView extends GetView<ProfileController> {
       ),
     );
   }
+}
+
+class _BlueprintPainter extends CustomPainter {
+  final Color color;
+  _BlueprintPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.0;
+
+    const spacing = 20.0;
+    for (double i = 0; i < size.width; i += spacing) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
+    }
+    for (double i = 0; i < size.height; i += spacing) {
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ProfileColorValue extends StatelessWidget {

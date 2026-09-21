@@ -32,24 +32,30 @@ class FolderRemoteDataSource extends GetxService {
             : null,
       );
       final body = response.data;
+      if (body == null || (body is String && body.trim().isEmpty)) {
+        return const FolderResponse(
+          folders: [],
+          trash: [],
+          code: 200,
+          message: 'Empty Response',
+        );
+      }
       if (body is! Map) {
         if (body is List) {
           return FolderResponse(
-            folders: (body)
-                .whereType<Map>()
-                .map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e)))
-                .toList(),
+            folders:
+                (body)
+                    .whereType<Map>()
+                    .map(
+                      (e) => FolderModel.fromJson(Map<String, dynamic>.from(e)),
+                    )
+                    .toList(),
             trash: [],
             code: 200,
             message: 'Success',
           );
         }
-        return const FolderResponse(
-          folders: [],
-          trash: [],
-          code: 0,
-          message: '',
-        );
+        throw ServerException('Unexpected response format: $body');
       }
       return FolderResponse.fromJson(Map<String, dynamic>.from(body));
     } on dio.DioException catch (e) {
