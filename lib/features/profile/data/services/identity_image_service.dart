@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 
 class IdentityCardExport {
@@ -175,9 +176,27 @@ abstract final class IdentityImageService {
         ],
       ),
     );
+    final pdfBytes = await document.save();
+    final pdfDoc = await pdfx.PdfDocument.openData(pdfBytes);
+    final page = await pdfDoc.getPage(1);
+    const renderWidth = 1600.0;
+    final rendered = await page.render(
+      width: renderWidth,
+      height: renderWidth * page.height / page.width,
+      format: pdfx.PdfPageImageFormat.png,
+      backgroundColor: '#FFFFFF',
+      forPrint: true,
+    );
+    await page.close();
+    await pdfDoc.close();
+
+    if (rendered == null) {
+      throw StateError('Could not render identity card PDF to image');
+    }
+
     return IdentityCardExport(
-      bytes: await document.save(),
-      fileName: 'identity_card.pdf',
+      bytes: rendered.bytes,
+      fileName: 'identity_card.png',
     );
   }
 

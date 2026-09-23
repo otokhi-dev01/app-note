@@ -49,19 +49,11 @@ abstract final class IdentityPrintedTextReader {
       values.putIfAbsent('$kind$script', () => value);
     }
     return card.copyWith(
-      nameKhmer: card.nameKhmer.isEmpty ? values['nameKhmer'] : null,
-      placeOfBirthKhmer: card.placeOfBirthKhmer.isEmpty
-          ? values['birthKhmer']
-          : null,
-      placeOfBirthEnglish: card.placeOfBirthEnglish.isEmpty
-          ? values['birthEnglish']
-          : null,
-      currentAddressKhmer: card.currentAddressKhmer.isEmpty
-          ? values['addressKhmer']
-          : null,
-      currentAddressEnglish: card.currentAddressEnglish.isEmpty
-          ? values['addressEnglish']
-          : null,
+      nameKhmer: values['nameKhmer'] ?? (card.nameKhmer.isEmpty ? null : card.nameKhmer),
+      placeOfBirthKhmer: values['birthKhmer'] ?? (card.placeOfBirthKhmer.isEmpty ? null : card.placeOfBirthKhmer),
+      placeOfBirthEnglish: values['birthEnglish'] ?? (card.placeOfBirthEnglish.isEmpty ? null : card.placeOfBirthEnglish),
+      currentAddressKhmer: values['addressKhmer'] ?? (card.currentAddressKhmer.isEmpty ? null : card.currentAddressKhmer),
+      currentAddressEnglish: values['addressEnglish'] ?? (card.currentAddressEnglish.isEmpty ? null : card.currentAddressEnglish),
     );
   }
 }

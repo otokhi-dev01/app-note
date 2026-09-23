@@ -125,7 +125,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           const SizedBox(height: 12),
                           IdentityPrimaryButton(
                             label: 'identity_download_card'.tr,
-                            icon: CupertinoIcons.arrow_down_doc_fill,
+                            icon: CupertinoIcons.photo_fill,
                             loading: controller.isLoading.value,
                             onPressed: controller.isLoading.value
                                 ? null
@@ -203,10 +203,13 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         selectedColor: theme.colorScheme.primary.withValues(
                           alpha: 0.1,
                         ),
+                        backgroundColor: card?.idNumber == activeCard?.idNumber
+                            ? null
+                            : (index == 0 ? idMuted.withValues(alpha: 0.08) : null),
                         labelStyle: TextStyle(
                           color: card?.idNumber == activeCard?.idNumber
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant,
+                              : (index == 0 ? idMuted : theme.colorScheme.onSurfaceVariant),
                           fontWeight: card?.idNumber == activeCard?.idNumber
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -214,7 +217,7 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         side: BorderSide(
                           color: card?.idNumber == activeCard?.idNumber
                               ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                              : theme.dividerColor.withValues(alpha: 0.1),
+                              : (index == 0 ? idMuted.withValues(alpha: 0.3) : theme.dividerColor.withValues(alpha: 0.1)),
                         ),
                         onSelected:
                             busy ||

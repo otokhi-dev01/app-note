@@ -396,7 +396,7 @@ const Map<String, String> enUS = {
   'identity_view_full_image': 'View full image',
   'identity_tap_to_scan': 'Tap image to scan',
   'identity_download_image': 'Download image',
-  'identity_download_card': 'Download card (PDF)',
+  'identity_download_card': 'Download card (Image)',
   'identity_save_card': 'Save card',
   'identity_download_saved': 'Saved to your selected location.',
   'identity_download_failed':
@@ -518,7 +518,7 @@ const Map<String, String> enUS = {
 
   // Profile
   'profile_tier_free': 'Free',
-  'profile_basic_info': 'Basic Information',
+  'profile_basic_info': 'My Profile',
   'forget_password_label': 'FORGET PASSWORD',
   'high_school_label': 'High school',
   'high_school_hint': 'Enter your high school',
@@ -528,6 +528,12 @@ const Map<String, String> enUS = {
   'father_name_hint': 'Enter your father\'s name',
   'mother_name_label': 'Mother name',
   'mother_name_hint': 'Enter your mother\'s name',
+  'favorite_color_label': 'Favorite color',
+  'favorite_color_hint': 'Enter your favorite color',
+  'favorite_song_label': 'Favorite song',
+  'favorite_song_hint': 'Enter your favorite song',
+  'favorite_food_label': 'Favorite food',
+  'favorite_food_hint': 'Enter your favorite food',
   'profile_change_photo': 'Change Photo',
   'profile_account_settings': 'Account Settings',
   'profile_log_in': 'Log In',

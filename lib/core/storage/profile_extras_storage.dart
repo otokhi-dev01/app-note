@@ -24,6 +24,10 @@ class ProfileExtrasStorage {
   static const _keyFirstChildName = 'profile_extra_first_child_name';
   static const _keyFatherName = 'profile_extra_father_name';
   static const _keyMotherName = 'profile_extra_mother_name';
+  static const _keyPhone = 'profile_extra_phone';
+  static const _keyFavoriteColor = 'profile_extra_favorite_color_q';
+  static const _keyFavoriteSong = 'profile_extra_favorite_song_q';
+  static const _keyFavoriteFood = 'profile_extra_favorite_food_q';
 
   final _storage = GetStorage();
 
@@ -59,6 +63,9 @@ class ProfileExtrasStorage {
   String get guestImagePath => _storage.read<String>(_keyGuestImage) ?? '';
   set guestImagePath(String value) => _storage.write(_keyGuestImage, value);
 
+  String get phone => _storage.read<String>(_keyPhone) ?? '';
+  set phone(String value) => _storage.write(_keyPhone, value);
+
   String get highSchool => _storage.read<String>(_keyHighSchool) ?? '';
   set highSchool(String value) => _storage.write(_keyHighSchool, value);
 
@@ -72,4 +79,13 @@ class ProfileExtrasStorage {
 
   String get motherName => _storage.read<String>(_keyMotherName) ?? '';
   set motherName(String value) => _storage.write(_keyMotherName, value);
+
+  String get favoriteColor => _storage.read<String>(_keyFavoriteColor) ?? '';
+  set favoriteColor(String value) => _storage.write(_keyFavoriteColor, value);
+
+  String get favoriteSong => _storage.read<String>(_keyFavoriteSong) ?? '';
+  set favoriteSong(String value) => _storage.write(_keyFavoriteSong, value);
+
+  String get favoriteFood => _storage.read<String>(_keyFavoriteFood) ?? '';
+  set favoriteFood(String value) => _storage.write(_keyFavoriteFood, value);
 }

@@ -195,9 +195,16 @@ class IdentityScanController extends GetxController {
           );
           _cardOwnerKey = owner;
         } else {
-          card.value = front
+          var updatedCard = front
               ? original.copyWith(frontImagePath: path)
               : original.copyWith(backImagePath: path);
+          try {
+            final sideText = await _recognizePrintedText(path);
+            updatedCard = IdentityPrintedTextReader.enrich(updatedCard, sideText);
+          } catch (_) {
+            debugPrint('[IDENTITY SCAN] Printed text unavailable for side.');
+          }
+          card.value = updatedCard;
         }
         savedToProfile.value = false;
         await _saveCardToProfile();

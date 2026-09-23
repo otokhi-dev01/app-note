@@ -394,7 +394,7 @@ const Map<String, String> kmKH = {
   'identity_view_full_image': 'មើលរូបភាពពេញ',
   'identity_tap_to_scan': 'ចុចរូបភាពដើម្បីស្កេន',
   'identity_download_image': 'ទាញយករូបភាព',
-  'identity_download_card': 'ទាញយកប័ណ្ណ (PDF)',
+  'identity_download_card': 'ទាញយកប័ណ្ណ (រូបភាព)',
   'identity_save_card': 'រក្សាទុកប័ណ្ណ',
   'identity_download_saved': 'បានរក្សាទុកនៅទីតាំងដែលអ្នកបានជ្រើសរើស។',
   'identity_download_failed':

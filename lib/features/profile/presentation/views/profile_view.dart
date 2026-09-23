@@ -333,8 +333,6 @@ class ProfileView extends GetView<ProfileController> {
   Widget _buildDetailsCard(BuildContext context) {
     return Obx(() {
       final isGuest = controller.isGuestMode.value;
-      final colorHex =
-          controller.userColorHex.value ?? FolderAppearance.defaultColorValue;
 
       return _buildSurfaceCard(
         context,
@@ -387,20 +385,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userPhone.value.isEmpty
                 ? 'not_available'.tr
                 : controller.userPhone.value,
-            onTap: isGuest ? null : controller.viewPhone,
-          ),
-
-          _buildJobBioRow(context),
-          _buildDetailRow(
-            context,
-            icon: CupertinoIcons.paintbrush_fill,
-            iconColor: _iosPink,
-            label: 'color_label'.tr,
-            trailing: _ProfileColorValue(
-              color: controller.userColor,
-              label: colorHex,
-            ),
-            onTap: controller.updateColor,
+            onTap: isGuest ? null : controller.updatePhone,
           ),
         ],
       );
@@ -430,7 +415,7 @@ class ProfileView extends GetView<ProfileController> {
             value: controller.userPhone.value.isEmpty
                 ? 'not_available'.tr
                 : controller.userPhone.value,
-            onTap: isGuest ? null : controller.viewPhone,
+            onTap: isGuest ? null : controller.updatePhone,
           ),
           _buildDetailRow(
             context,
@@ -491,6 +476,20 @@ class ProfileView extends GetView<ProfileController> {
                 ? 'not_set'.tr
                 : controller.userMotherName.value,
             onTap: controller.updateMotherName,
+          ),
+          _buildJobBioRow(context),
+          _buildDetailRow(
+            context,
+            icon: CupertinoIcons.paintbrush_fill,
+            iconColor: _iosPink,
+            label: 'color_label'.tr,
+            trailing: _ProfileColorValue(
+              color: controller.userColor,
+              label:
+                  controller.userColorHex.value ??
+                  FolderAppearance.defaultColorValue,
+            ),
+            onTap: controller.updateColor,
           ),
         ],
       );

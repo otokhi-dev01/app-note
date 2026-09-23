@@ -10,9 +10,9 @@ import 'package:Note/core/storage/theme_storage.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/routes/app_pages.dart';
 
-/// The application widget: themes, routes, and the root dependency graph.
+/// The application widget: themes, routes, and the root dependency graph
+// /// `main.dart`; everything the app *is* lives here..
 /// Bootstrapping (bindings init, storage, the glass runtime) stays in
-/// `main.dart`; everything the app *is* lives here.
 class NoteApp extends StatefulWidget {
   const NoteApp({super.key});
 
