@@ -485,7 +485,9 @@ class ProfileView extends GetView<ProfileController> {
             label: 'color_label'.tr,
             trailing: _ProfileColorValue(
               color: controller.userColor,
-              label: controller.userColorHex.value ?? FolderAppearance.defaultColorValue,
+              label:
+                  controller.userColorHex.value ??
+                  FolderAppearance.defaultColorValue,
             ),
             onTap: controller.updateColor,
           ),
