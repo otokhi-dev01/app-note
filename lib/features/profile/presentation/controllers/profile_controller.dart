@@ -67,6 +67,9 @@ class ProfileController extends GetxController {
   final userFirstChildName = ''.obs;
   final userFatherName = ''.obs;
   final userMotherName = ''.obs;
+  final userFavoriteColor = ''.obs;
+  final userFavoriteSong = ''.obs;
+  final userFavoriteFood = ''.obs;
   final userBio = ''.obs;
   final userColorHex = Rx<String?>(null);
   final identityCard = Rxn<NationalIdCard>();
@@ -335,6 +338,9 @@ class ProfileController extends GetxController {
     userFirstChildName.value = _extras.firstChildName;
     userFatherName.value = _extras.fatherName;
     userMotherName.value = _extras.motherName;
+    userFavoriteColor.value = _extras.favoriteColor;
+    userFavoriteSong.value = _extras.favoriteSong;
+    userFavoriteFood.value = _extras.favoriteFood;
     userBio.value = _extras.bio;
     userColorHex.value = _extras.colorHex;
   }
@@ -515,45 +521,46 @@ class ProfileController extends GetxController {
     },
   );
 
-  /// The account phone is owned by authentication and cannot currently be
-  /// changed by the profile API. It still gets a dedicated detail screen so
-  /// the Profile row follows the same navigation model as every other field.
-  Future<void> viewPhone() async {
-    await Get.to<void>(
-      () => ProfileEditScreen(
-        title: 'phone_label'.tr,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'phone_number_label'.tr,
-                style: Get.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 12),
-              SelectableText(
-                userPhone.value.isEmpty ? 'not_available'.tr : userPhone.value,
-                style: Get.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'profile_phone_read_only'.tr,
-                style: Get.textTheme.bodySmall?.copyWith(
-                  color: Get.theme.colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Future<void> updateFavoriteColor() => _editTextField(
+    title: 'favorite_color_label'.tr,
+    hint: 'favorite_color_hint'.tr,
+    initialValue: userFavoriteColor.value,
+    onSave: (value) {
+      _extras.favoriteColor = value;
+      userFavoriteColor.value = value;
+    },
+  );
+
+  Future<void> updateFavoriteSong() => _editTextField(
+    title: 'favorite_song_label'.tr,
+    hint: 'favorite_song_hint'.tr,
+    initialValue: userFavoriteSong.value,
+    onSave: (value) {
+      _extras.favoriteSong = value;
+      userFavoriteSong.value = value;
+    },
+  );
+
+  Future<void> updateFavoriteFood() => _editTextField(
+    title: 'favorite_food_label'.tr,
+    hint: 'favorite_food_hint'.tr,
+    initialValue: userFavoriteFood.value,
+    onSave: (value) {
+      _extras.favoriteFood = value;
+      userFavoriteFood.value = value;
+    },
+  );
+
+  Future<void> updatePhone() => _editTextField(
+    title: 'phone_label'.tr,
+    hint: 'phone_number_label'.tr,
+    initialValue: userPhone.value,
+    keyboardType: TextInputType.phone,
+    onSave: (value) {
+      _extras.phone = value;
+      userPhone.value = value;
+    },
+  );
 
   /// One sheet for both fields since "job" and "bio" are always described
   /// together in a single profile blurb rather than as separate settings.

@@ -72,6 +72,7 @@ class FolderRemoteDataSource extends GetxService {
       final response = await _api.dio.post(
         '/api/folder/save',
         data: folder.toJson(),
+        options: dio.Options(extra: {'requiresAuth': true}),
       );
       final body = response.data;
       // TEMP DEBUG — remove once the real envelope shape is confirmed; this

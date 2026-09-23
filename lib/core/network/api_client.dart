@@ -92,6 +92,11 @@ class ApiClient extends GetxService {
           if (isUnauthorized) {
             final session = Get.find<SessionStorage>();
             final tokenBeforeRecovery = session.token.value;
+            debugPrint(
+              '[API] 401 recovery: tokenBeforeRecovery=${tokenBeforeRecovery?.substring(0, 30)}...'
+              'refreshToken=${session.refreshToken.value?.substring(0, 30)}...'
+              'isLoggedIn=${session.isLoggedIn}',
+            );
             // A public/early request has no session to revoke. In particular,
             // never erase persisted credentials because it ran before restore.
             if (request.headers['Authorization'] == null ||
@@ -106,6 +111,12 @@ class ApiClient extends GetxService {
             final refreshResult = alreadyRefreshed
                 ? _RefreshResult.refreshed
                 : await _tryRefreshSession(tokenBeforeRecovery);
+
+            debugPrint(
+              '[API] Refresh result: ${refreshResult.name}'
+              ' newToken=${session.token.value?.substring(0, 30)}...'
+              ' sameAsOld=${session.token.value == tokenBeforeRecovery}',
+            );
 
             // A Note-side failure (often a replication lag right after login)
             // with a token Chat still considers valid should be retried once.
@@ -124,18 +135,27 @@ class ApiClient extends GetxService {
                 // If Chat considered the token valid but Note didn't, retrying
                 // after a brief pause can help absorb replication lag.
                 // Lag can sometimes be significant, so we use a 2s delay.
-                if (refreshResult == _RefreshResult.accountValid) {
-                  await Future<void>.delayed(const Duration(milliseconds: 2000));
-                }
-                final retried = await _dio.fetch(
-                  request.copyWith(
-                    data: request.data is FormData
-                        ? (request.data as FormData).clone()
-                        : request.data,
-                    extra: {...request.extra, 'authRetried': true},
-                  ),
-                );
-                return handler.resolve(retried);
+              if (refreshResult == _RefreshResult.accountValid) {
+                await Future<void>.delayed(const Duration(milliseconds: 2000));
+              } else if (refreshResult == _RefreshResult.refreshed) {
+                await Future<void>.delayed(const Duration(milliseconds: 500));
+              }
+              debugPrint(
+                '[API] Retry with token=${session.token.value?.substring(0, 30)}...'
+                ' URL=${request.uri}',
+              );
+              final retryOptions = request.copyWith(
+                data: request.data is FormData
+                    ? (request.data as FormData).clone()
+                    : request.data,
+                headers: {
+                  ...request.headers,
+                  'Authorization': 'Bearer ${session.token.value}',
+                },
+                extra: {...request.extra, 'authRetried': true},
+              );
+              final retried = await _dio.fetch(retryOptions);
+              return handler.resolve(retried);
               } on DioException catch (retryError) {
                 // If a Note request still 401s, try one last time with a longer
                 // delay. Replication lag between servers can be severe.
@@ -152,6 +172,10 @@ class ApiClient extends GetxService {
                         data: request.data is FormData
                             ? (request.data as FormData).clone()
                             : request.data,
+                        headers: {
+                          ...request.headers,
+                          'Authorization': 'Bearer ${session.token.value}',
+                        },
                         extra: {...request.extra, 'authRetried': true},
                       ),
                     );
