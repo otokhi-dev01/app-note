@@ -106,7 +106,18 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         IdentitySectionHeader(
                           icon: CupertinoIcons.doc_person_fill,
                           label: 'id_information_title'.tr,
-                          trailing: null,
+                          // trailing: CustomGlassButton(
+                          //   onPressed: () => Get.find<ProfileController>().updateIdInformation(),
+                          //   width: 100,
+                          //   height: 32,
+                          //   borderRadius: 10,
+                          //   opacity: 0.1,
+                          //   padding: EdgeInsets.zero,
+                          //   child: Text(
+                          //     'identity_edit_details'.tr,
+                          //     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          //   ),
+                          // ),
                         ),
                         const SizedBox(height: 16),
                         if (card == null)
@@ -195,8 +206,10 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         ),
                         label: Text(
                           card != null && card.idNumber == activeCard?.idNumber
-                              ? '${'identity_card_number'.trParams({'number': '${index + 1}'})}\n${'identity_default_card'.tr}'
-                              : 'identity_card_number'.trParams({'number': '${index + 1}'}),
+                              ? 'identity_default_card'.tr
+                              : 'identity_card_number'.trParams({
+                                  'number': '${index + 1}',
+                                }),
                           textAlign: TextAlign.center,
                         ),
                         selected: card?.idNumber == activeCard?.idNumber,
@@ -206,11 +219,15 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         ),
                         backgroundColor: card?.idNumber == activeCard?.idNumber
                             ? null
-                            : (index == 0 ? idMuted.withValues(alpha: 0.08) : null),
+                            : (index == 0
+                                  ? idMuted.withValues(alpha: 0.08)
+                                  : null),
                         labelStyle: TextStyle(
                           color: card?.idNumber == activeCard?.idNumber
                               ? theme.colorScheme.primary
-                              : (index == 0 ? idMuted : theme.colorScheme.onSurfaceVariant),
+                              : (index == 0
+                                    ? idMuted
+                                    : theme.colorScheme.onSurfaceVariant),
                           fontWeight: card?.idNumber == activeCard?.idNumber
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -218,7 +235,11 @@ class IdentityScanView extends GetView<IdentityScanController> {
                         side: BorderSide(
                           color: card?.idNumber == activeCard?.idNumber
                               ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                              : (index == 0 ? idMuted.withValues(alpha: 0.3) : theme.dividerColor.withValues(alpha: 0.1)),
+                              : (index == 0
+                                    ? idMuted.withValues(alpha: 0.3)
+                                    : theme.dividerColor.withValues(
+                                        alpha: 0.1,
+                                      )),
                         ),
                         onSelected:
                             busy ||

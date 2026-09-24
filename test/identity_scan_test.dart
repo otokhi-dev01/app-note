@@ -1358,12 +1358,12 @@ void main() {
     expect(scan.card.value?.idNumber, 'second');
     expect(details.identityCards.length, 2);
     expect(find.text('Card 1'), findsOneWidget);
-    expect(find.text('Card 2\nDefault'), findsOneWidget);
+    expect(find.text('Default'), findsOneWidget);
     final firstTab = find.byKey(const ValueKey('identity_card_tab_first'));
     final secondTab = find.byKey(const ValueKey('identity_card_tab_second'));
     expect(tester.widget<ChoiceChip>(secondTab).selected, isTrue);
     expect(
-      find.descendant(of: secondTab, matching: find.textContaining('Default')),
+      find.descendant(of: secondTab, matching: find.text('Default')),
       findsOneWidget,
     );
     await tester.runAsync(() async {
@@ -1381,7 +1381,7 @@ void main() {
     expect(scan.defaultCardId, 'first');
     expect(tester.widget<ChoiceChip>(firstTab).selected, isTrue);
     expect(
-      find.descendant(of: firstTab, matching: find.textContaining('Default')),
+      find.descendant(of: firstTab, matching: find.text('Default')),
       findsOneWidget,
     );
     expect(
@@ -1407,7 +1407,7 @@ void main() {
     expect(details.userIdNumber.value, 'second');
     expect(scan.defaultCardId, 'second');
     expect(
-      find.descendant(of: secondTab, matching: find.textContaining('Default')),
+      find.descendant(of: secondTab, matching: find.text('Default')),
       findsOneWidget,
     );
     expect(

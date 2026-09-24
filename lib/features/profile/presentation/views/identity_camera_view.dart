@@ -365,10 +365,6 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                 const SizedBox(height: 14),
                 AspectRatio(aspectRatio: 1.3, child: _viewfinder()),
                 const SizedBox(height: 16),
-                if (!widget.passportMode && widget.singleSideFront == null) ...[
-                  _sideTabs(),
-                  const SizedBox(height: 14),
-                ],
                 _hintBar(),
                 const SizedBox(height: 16),
                 _largeCardsTemplatesRow(),
@@ -431,7 +427,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
           ),
           boxShadow: [
             BoxShadow(
-              color: selected ? idAccent.withValues(alpha: 0.25) : Colors.black12,
+              color: selected
+                  ? idAccent.withValues(alpha: 0.25)
+                  : Colors.black12,
               blurRadius: selected ? 10 : 4,
               offset: const Offset(0, 2),
             ),
@@ -444,7 +442,9 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  isFront ? CupertinoIcons.creditcard_fill : CupertinoIcons.rectangle_stack_fill,
+                  isFront
+                      ? CupertinoIcons.creditcard_fill
+                      : CupertinoIcons.rectangle_stack_fill,
                   size: 14,
                   color: selected ? idAccent : idInk,
                 ),
@@ -500,9 +500,17 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                                 ),
                                 Column(
                                   children: [
-                                    Container(width: 55, height: 3, color: const Color(0xFF032EA1)),
+                                    Container(
+                                      width: 55,
+                                      height: 3,
+                                      color: const Color(0xFF032EA1),
+                                    ),
                                     const SizedBox(height: 1.5),
-                                    Container(width: 45, height: 2, color: Colors.black54),
+                                    Container(
+                                      width: 45,
+                                      height: 2,
+                                      color: Colors.black54,
+                                    ),
                                   ],
                                 ),
                                 Container(
@@ -524,27 +532,47 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFE5C158),
                                     borderRadius: BorderRadius.circular(3),
-                                    border: Border.all(color: Colors.brown, width: 0.8),
+                                    border: Border.all(
+                                      color: Colors.brown,
+                                      width: 0.8,
+                                    ),
                                   ),
                                   child: Center(
-                                    child: Container(width: 14, height: 11, color: Colors.amber.shade200),
+                                    child: Container(
+                                      width: 14,
+                                      height: 11,
+                                      color: Colors.amber.shade200,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Container(width: double.infinity, height: 4, color: const Color(0xFF032EA1)),
+                                      Container(
+                                        width: double.infinity,
+                                        height: 4,
+                                        color: const Color(0xFF032EA1),
+                                      ),
                                       const SizedBox(height: 3),
-                                      Container(width: 50, height: 2.5, color: Colors.black54),
+                                      Container(
+                                        width: 50,
+                                        height: 2.5,
+                                        color: Colors.black54,
+                                      ),
                                     ],
                                   ),
                                 ),
                               ],
                             ),
                             const Spacer(),
-                            Container(width: double.infinity, height: 2, color: Colors.black38),
+                            Container(
+                              width: double.infinity,
+                              height: 2,
+                              color: Colors.black38,
+                            ),
                           ],
                         ),
                       )
@@ -559,22 +587,39 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                               decoration: BoxDecoration(
                                 color: const Color(0xFFD0D0D0),
                                 borderRadius: BorderRadius.circular(3),
-                                border: Border.all(color: Colors.black26, width: 0.8),
+                                border: Border.all(
+                                  color: Colors.black26,
+                                  width: 0.8,
+                                ),
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
                                 child: Align(
                                   alignment: Alignment.centerLeft,
-                                  child: Container(width: 30, height: 4, color: Colors.black38),
+                                  child: Container(
+                                    width: 30,
+                                    height: 4,
+                                    color: Colors.black38,
+                                  ),
                                 ),
                               ),
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(width: double.infinity, height: 2.5, color: Colors.black54),
+                                Container(
+                                  width: double.infinity,
+                                  height: 2.5,
+                                  color: Colors.black54,
+                                ),
                                 const SizedBox(height: 2),
-                                Container(width: double.infinity, height: 2, color: Colors.black45),
+                                Container(
+                                  width: double.infinity,
+                                  height: 2,
+                                  color: Colors.black45,
+                                ),
                               ],
                             ),
                             Container(
@@ -583,16 +628,31 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                               decoration: BoxDecoration(
                                 color: const Color(0xFFC8D6CE),
                                 borderRadius: BorderRadius.circular(3),
-                                border: Border.all(color: Colors.black26, width: 0.5),
+                                border: Border.all(
+                                  color: Colors.black26,
+                                  width: 0.5,
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(width: double.infinity, height: 2.5, color: Colors.black87),
+                                  Container(
+                                    width: double.infinity,
+                                    height: 2.5,
+                                    color: Colors.black87,
+                                  ),
                                   const SizedBox(height: 1.5),
-                                  Container(width: double.infinity, height: 2.5, color: Colors.black87),
+                                  Container(
+                                    width: double.infinity,
+                                    height: 2.5,
+                                    color: Colors.black87,
+                                  ),
                                   const SizedBox(height: 1.5),
-                                  Container(width: 90, height: 2.5, color: Colors.black87),
+                                  Container(
+                                    width: 90,
+                                    height: 2.5,
+                                    color: Colors.black87,
+                                  ),
                                 ],
                               ),
                             ),
@@ -832,75 +892,6 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
           color: muted ? Colors.white70 : Colors.white,
           fontSize: 11,
           fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  /// The Front/Back switch as one segmented pill (rather than two separate
-  /// cards) — selected side shows as a white chip on the dark track.
-  Widget _sideTabs() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: idInk,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _segment(
-              selected: _front,
-              icon: CupertinoIcons.creditcard,
-              label: 'identity_side_front'.tr,
-              onTap: () => _selectSide(true),
-            ),
-          ),
-          Expanded(
-            child: _segment(
-              selected: !_front,
-              icon: CupertinoIcons.rectangle_stack,
-              label: 'identity_side_back'.tr,
-              onTap: () => _selectSide(false),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _segment({
-    required bool selected,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 15, color: selected ? idInk : Colors.white60),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: selected ? idInk : Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.5,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
