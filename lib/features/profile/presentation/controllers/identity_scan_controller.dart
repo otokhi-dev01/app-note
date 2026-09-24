@@ -80,6 +80,8 @@ class IdentityScanController extends GetxController {
   final savedToProfile = false.obs;
   List<NationalIdCard> get savedCards =>
       Get.find<ProfileController>().identityCards;
+  String? get defaultCardId =>
+      Get.find<ProfileController>().identityCard.value?.idNumber;
 
   String? imagePath({required bool front}) =>
       front ? card.value?.frontImagePath : card.value?.backImagePath;
@@ -200,7 +202,10 @@ class IdentityScanController extends GetxController {
               : original.copyWith(backImagePath: path);
           try {
             final sideText = await _recognizePrintedText(path);
-            updatedCard = IdentityPrintedTextReader.enrich(updatedCard, sideText);
+            updatedCard = IdentityPrintedTextReader.enrich(
+              updatedCard,
+              sideText,
+            );
           } catch (_) {
             debugPrint('[IDENTITY SCAN] Printed text unavailable for side.');
           }

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
@@ -8,7 +6,6 @@ import 'package:Note/core/services/native_media_services.dart';
 import 'package:Note/features/profile/domain/entities/mrz_reader.dart';
 import 'package:Note/features/profile/domain/entities/passport_card.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
-import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
 
 enum PassportScanStep { main, scanning, processing }
 

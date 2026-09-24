@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response, FormData;
 import 'package:Note/core/constants/app_constants.dart';
+import 'package:Note/core/network/auth_diagnostics.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 
@@ -62,25 +63,26 @@ class ApiClient extends GetxService {
           return handler.next(response);
         },
         onError: (e, handler) async {
-          if (kDebugMode) {
-            // Only log error body if not a sensitive endpoint
-            if (!_isSensitiveEndpoint(e.requestOptions.path)) {
-              final request = e.requestOptions;
+          final request = e.requestOptions;
+          if (kDebugMode && !_isSensitiveEndpoint(request.path)) {
+            debugPrint(
+              '[API] ${request.method} ${request.uri.origin}${request.uri.path} '
+              'status=${e.response?.statusCode} type=${e.type.name} '
+              'authorizationAttached=${request.headers.containsKey('Authorization')}',
+            );
+            if (e.response?.statusCode == 401) {
               debugPrint(
-                '[API] ${request.method} ${request.uri.origin}${request.uri.path} '
-                'status=${e.response?.statusCode} type=${e.type.name} '
-                'authenticated=${request.headers.containsKey('Authorization')}',
+                '[API] Auth diagnostics: ${AuthDiagnostics.describe(authorization: request.headers['Authorization']?.toString(), challenges: e.response?.headers['www-authenticate'] ?? const [])}',
               );
+            } else {
               _printErrorResponse(e.response?.data);
             }
           }
-          // Recovery requests and the one permitted retry must never start
-          // another recovery cycle through this interceptor.
-          if (e.requestOptions.extra['isTokenRefresh'] == true ||
-              e.requestOptions.extra['authRetried'] == true) {
+          // Recovery requests and the one permitted retry cannot recurse.
+          if (request.extra['isTokenRefresh'] == true ||
+              request.extra['authRetried'] == true) {
             return handler.next(e);
           }
-          final request = e.requestOptions;
           final isNoteRequest = request.uri.origin == Uri.parse(baseUrl).origin;
           final isChatRequest =
               request.uri.origin == Uri.parse(AppConstants.baseUrl).origin;
@@ -88,15 +90,9 @@ class ApiClient extends GetxService {
               e.response?.statusCode == 401 &&
               request.extra['requiresAuth'] != false &&
               (isNoteRequest || isChatRequest);
-
           if (isUnauthorized) {
             final session = Get.find<SessionStorage>();
             final tokenBeforeRecovery = session.token.value;
-            debugPrint(
-              '[API] 401 recovery: tokenBeforeRecovery=${tokenBeforeRecovery?.substring(0, 30)}...'
-              'refreshToken=${session.refreshToken.value?.substring(0, 30)}...'
-              'isLoggedIn=${session.isLoggedIn}',
-            );
             // A public/early request has no session to revoke. In particular,
             // never erase persisted credentials because it ran before restore.
             if (request.headers['Authorization'] == null ||
@@ -104,108 +100,51 @@ class ApiClient extends GetxService {
                 tokenBeforeRecovery.isEmpty) {
               return handler.next(e);
             }
-            // A concurrent request may already have refreshed this token.
             final alreadyRefreshed =
                 request.headers['Authorization'] !=
                 'Bearer $tokenBeforeRecovery';
             final refreshResult = alreadyRefreshed
                 ? _RefreshResult.refreshed
                 : await _tryRefreshSession(tokenBeforeRecovery);
-
-            debugPrint(
-              '[API] Refresh result: ${refreshResult.name}'
-              ' newToken=${session.token.value?.substring(0, 30)}...'
-              ' sameAsOld=${session.token.value == tokenBeforeRecovery}',
-            );
-
-            // A Note-side failure (often a replication lag right after login)
-            // with a token Chat still considers valid should be retried once.
-            final shouldRetry = refreshResult == _RefreshResult.refreshed ||
-                (isNoteRequest && refreshResult == _RefreshResult.accountValid);
-
-            if (shouldRetry) {
-              final retryToken = session.token.value;
-              if (kDebugMode) {
-                debugPrint(
-                  '[API] Retrying rejected ${isNoteRequest ? 'Note' : 'Chat'} '
-                  'request (refreshResult=${refreshResult.name})...',
-                );
-              }
-              try {
-                // If Chat considered the token valid but Note didn't, retrying
-                // after a brief pause can help absorb replication lag.
-                // Lag can sometimes be significant, so we use a 2s delay.
-              if (refreshResult == _RefreshResult.accountValid) {
-                await Future<void>.delayed(const Duration(milliseconds: 2000));
-              } else if (refreshResult == _RefreshResult.refreshed) {
-                await Future<void>.delayed(const Duration(milliseconds: 500));
-              }
+            if (kDebugMode) {
               debugPrint(
-                '[API] Retry with token=${session.token.value?.substring(0, 30)}...'
-                ' URL=${request.uri}',
+                '[API] Account recovery: ${refreshResult.name}; '
+                'requestingService=${isNoteRequest ? 'Note' : 'Chat'}',
               );
-              final retryOptions = request.copyWith(
-                data: request.data is FormData
-                    ? (request.data as FormData).clone()
-                    : request.data,
-                headers: {
-                  ...request.headers,
-                  'Authorization': 'Bearer ${session.token.value}',
-                },
-                extra: {...request.extra, 'authRetried': true},
-              );
-              final retried = await _dio.fetch(retryOptions);
-              return handler.resolve(retried);
+            }
+            if (refreshResult == _RefreshResult.refreshed) {
+              final retryToken = session.token.value;
+              try {
+                final targetBaseUrl = isNoteRequest ? AppConstants.baseUrl : baseUrl;
+                final retried = await _dio.fetch(
+                  request.copyWith(
+                    baseUrl: targetBaseUrl,
+                    data: request.data is FormData
+                        ? (request.data as FormData).clone()
+                        : request.data,
+                    extra: {...request.extra, 'authRetried': true},
+                  ),
+                );
+                return handler.resolve(retried);
               } on DioException catch (retryError) {
-                // If a Note request still 401s, try one last time with a longer
-                // delay. Replication lag between servers can be severe.
-                if (isNoteRequest &&
-                    retryError.response?.statusCode == 401 &&
+                e = retryError;
+                if (e.response?.statusCode == 401 &&
                     session.token.value == retryToken) {
-                  if (kDebugMode) {
-                    debugPrint('[API] Second retry for Note lag...');
-                  }
-                  await Future<void>.delayed(const Duration(milliseconds: 3000));
-                  try {
-                    final secondRetry = await _dio.fetch(
-                      request.copyWith(
-                        data: request.data is FormData
-                            ? (request.data as FormData).clone()
-                            : request.data,
-                        headers: {
-                          ...request.headers,
-                          'Authorization': 'Bearer ${session.token.value}',
-                        },
-                        extra: {...request.extra, 'authRetried': true},
-                      ),
+                  if (isChatRequest) {
+                    _forceSignOut();
+                  } else {
+                    // Chat issued the renewed token, but Note rejected it.
+                    // Retrying the same token cannot fix service authorization.
+                    _recoveryToken = retryToken;
+                    _lastRecovery = _RefreshResult.accountValid;
+                    _retryRecoveryAfter = DateTime.now().add(
+                      const Duration(seconds: 30),
                     );
-                    return handler.resolve(secondRetry);
-                  } catch (secondError) {
-                    if (secondError is DioException) e = secondError;
                   }
-                } else {
-                  e = retryError;
-                }
-                if (isChatRequest &&
-                    e.response?.statusCode == 401 &&
-                    session.token.value == retryToken) {
-                  _forceSignOut();
-                } else if (isNoteRequest &&
-                    e.response?.statusCode == 401 &&
-                    session.token.value == retryToken) {
-                  // The account server just issued this token. Refreshing it
-                  // repeatedly cannot repair a Note-side authorization failure.
-                  _recoveryToken = retryToken;
-                  _lastRecovery = _RefreshResult.accountValid;
-                  _retryRecoveryAfter = DateTime.now().add(
-                    const Duration(seconds: 30),
-                  );
                 }
               }
             } else if (refreshResult == _RefreshResult.rejected &&
                 session.token.value == tokenBeforeRecovery) {
-              // An explicit rejection by the account server invalidates the
-              // session even when the original request was to the Note server.
               _forceSignOut();
             }
           }

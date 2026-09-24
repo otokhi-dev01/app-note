@@ -89,8 +89,9 @@ class IdInformationStorage {
     required PassportCard passport,
   }) async {
     final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
-    final Map<String, dynamic> snapshot =
-        raw != null ? Map<String, dynamic>.from(jsonDecode(raw)) : {};
+    final Map<String, dynamic> snapshot = raw != null
+        ? Map<String, dynamic>.from(jsonDecode(raw))
+        : {};
 
     final passports = snapshot['passports'] is List
         ? List<Map<String, dynamic>>.from(snapshot['passports'])
@@ -132,8 +133,9 @@ class IdInformationStorage {
     final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
     if (raw == null) return;
 
-    final Map<String, dynamic> snapshot =
-        Map<String, dynamic>.from(jsonDecode(raw));
+    final Map<String, dynamic> snapshot = Map<String, dynamic>.from(
+      jsonDecode(raw),
+    );
     if (snapshot['passports'] is! List) return;
 
     final passports = List<Map<String, dynamic>>.from(snapshot['passports']);
@@ -241,10 +243,23 @@ class IdInformationStorage {
     String ownerKey,
     List<Map<String, dynamic>> entries,
     Map<String, dynamic> selected,
-  ) => _storage.write(
-    key: '${_prefix(ownerKey)}snapshot',
-    value: jsonEncode({...selected, 'cards': entries}),
-  );
+  ) async {
+    final key = '${_prefix(ownerKey)}snapshot';
+    final raw = await _storage.read(key: key);
+    final snapshot = raw == null
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(jsonDecode(raw));
+    // Changing the default identity must retain other saved documents.
+    await _storage.write(
+      key: key,
+      value: jsonEncode({
+        ...snapshot,
+        'profile': selected['profile'],
+        'card': selected['card'],
+        'cards': entries,
+      }),
+    );
+  }
 
   Future<void> selectCard(String ownerKey, String idNumber) async {
     final entries = await _entries(ownerKey);

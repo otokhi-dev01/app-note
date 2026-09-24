@@ -194,9 +194,10 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           'identity_card_tab_${card?.idNumber ?? 'empty'}',
                         ),
                         label: Text(
-                          'identity_card_number'.trParams({
-                            'number': '${index + 1}',
-                          }),
+                          card != null && card.idNumber == activeCard?.idNumber
+                              ? '${'identity_card_number'.trParams({'number': '${index + 1}'})}\n${'identity_default_card'.tr}'
+                              : 'identity_card_number'.trParams({'number': '${index + 1}'}),
+                          textAlign: TextAlign.center,
                         ),
                         selected: card?.idNumber == activeCard?.idNumber,
                         showCheckmark: false,

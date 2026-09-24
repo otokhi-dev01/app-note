@@ -30,6 +30,7 @@ import 'package:Note/features/profile/presentation/views/identity_details_edit_v
 import 'package:identity_ocr/identity_ocr.dart';
 import 'package:image/image.dart' as img;
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/features/profile/domain/entities/passport_card.dart';
 import 'package:Note/features/profile/domain/repositories/identity_repository.dart';
 import 'package:Note/features/profile/domain/repositories/profile_repository.dart';
 import 'package:Note/features/profile/domain/usecases/identity_usecases.dart';
@@ -1320,7 +1321,7 @@ void main() {
     },
   );
 
-  testWidgets('Add starts a scan and cancellation keeps saved cards', (
+  testWidgets('Card tabs persist the default and Add cancellation keeps it', (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
@@ -1357,10 +1358,14 @@ void main() {
     expect(scan.card.value?.idNumber, 'second');
     expect(details.identityCards.length, 2);
     expect(find.text('Card 1'), findsOneWidget);
-    expect(find.text('Card 2'), findsOneWidget);
+    expect(find.text('Card 2\nDefault'), findsOneWidget);
     final firstTab = find.byKey(const ValueKey('identity_card_tab_first'));
     final secondTab = find.byKey(const ValueKey('identity_card_tab_second'));
     expect(tester.widget<ChoiceChip>(secondTab).selected, isTrue);
+    expect(
+      find.descendant(of: secondTab, matching: find.textContaining('Default')),
+      findsOneWidget,
+    );
     await tester.runAsync(() async {
       final selected = Completer<void>();
       final worker = ever(scan.isLoading, (busy) {
@@ -1372,9 +1377,23 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(scan.card.value?.idNumber, 'first');
+    expect(details.userIdNumber.value, 'first');
+    expect(scan.defaultCardId, 'first');
     expect(tester.widget<ChoiceChip>(firstTab).selected, isTrue);
+    expect(
+      find.descendant(of: firstTab, matching: find.textContaining('Default')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: secondTab, matching: find.text('Default')),
+      findsNothing,
+    );
     expect(find.text('FIRST'), findsOneWidget);
     await tester.runAsync(() async {
+      expect(
+        (await const IdInformationStorage().readCard('id:one'))?.idNumber,
+        'first',
+      );
       final selected = Completer<void>();
       final worker = ever(scan.isLoading, (busy) {
         if (!busy && !selected.isCompleted) selected.complete();
@@ -1385,10 +1404,80 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(scan.card.value?.idNumber, 'second');
+    expect(details.userIdNumber.value, 'second');
+    expect(scan.defaultCardId, 'second');
+    expect(
+      find.descendant(of: secondTab, matching: find.textContaining('Default')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: firstTab, matching: find.text('Default')),
+      findsNothing,
+    );
     expect(find.text('SECOND'), findsOneWidget);
+    await tester.runAsync(() async {
+      expect(
+        (await const IdInformationStorage().readCard('id:one'))?.idNumber,
+        'second',
+      );
+      await Get.delete<IdentityScanController>();
+      final reopened = Get.put(
+        IdentityScanController(
+          ScanNationalId(_IdentityRepo()),
+          iosLicenseKey: '',
+          androidLicenseKey: '',
+        ),
+      );
+      expect(reopened.card.value?.idNumber, 'second');
+      expect(reopened.defaultCardId, 'second');
+    });
     debugDefaultTargetPlatformOverride = null;
     expect(tester.takeException(), isNull);
   });
+
+  test(
+    'Changing the default identity preserves saved passports after reload',
+    () async {
+      const storage = IdInformationStorage();
+      for (final id in ['first', 'second']) {
+        await storage.save(
+          ownerKey: 'id:one',
+          idNumber: id,
+          name: id,
+          dateOfBirth: null,
+        );
+      }
+      const passport = PassportCard(
+        passportNumber: 'passport-one',
+        fullName: 'TEST USER',
+        dateOfBirth: '',
+        gender: '',
+        nationality: '',
+        expiryDate: '',
+        mrzLines: [],
+      );
+      await storage.savePassport(ownerKey: 'id:one', passport: passport);
+      for (final id in ['first', 'second']) {
+        await storage.selectCard('id:one', id);
+        const restored = IdInformationStorage();
+        expect((await restored.readCard('id:one'))?.idNumber, id);
+        expect((await restored.read('id:one')).idNumber, id);
+        expect(
+          (await restored.readCards('id:one')).map((card) => card.idNumber),
+          ['first', 'second'],
+        );
+        expect(
+          (await restored.readPassport('id:one'))?.passportNumber,
+          'passport-one',
+        );
+        expect(
+          (await restored.readPassports('id:one')).single.passportNumber,
+          'passport-one',
+        );
+        expect(await restored.readCards('id:other'), isEmpty);
+      }
+    },
+  );
 
   testWidgets(
     'Card editor saves separate Khmer birth place and current address',

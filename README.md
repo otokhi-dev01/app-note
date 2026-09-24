@@ -147,6 +147,11 @@ document-type values still need checking with a signed-in test account.
 
 ## Session recovery
 
+Login, registration, and other account features use `https://chat.piisiit.com`.
+Folders, notes, and attachments use `https://note.piisiit.com`. Folder creation
+and updates send `POST /api/folder/save` with the logged-in user's bearer token.
+A `code: 200` folder response with `data: null` is successful.
+
 ### Login diagnostics
 
 Login and registration send only the fields defined in the Chat Swagger request:
@@ -234,7 +239,10 @@ present in this app, so this method is not exposed in the recovery UI.
 
 ### Authenticated session recovery
 
-An authenticated 401 triggers one shared recovery attempt and at most one retry.
+An authenticated 401 triggers one shared recovery attempt through Chat. The
+original request is retried only when recovery produces a refreshed token, at
+most once. A valid account session alone does not retry a Note request with the
+same rejected token. There are no delayed replication-lag retries.
 Chat Swagger requires `POST /api/auth/refresh-token` with JSON
 `{"refreshToken":"..."}`. Login now parses and securely persists the refresh
 token alongside the access token, and renewal saves rotated tokens before
@@ -252,6 +260,13 @@ validation. `test/session_recovery_test.dart` covers renewal, rotation, restart,
 concurrent 401s, legacy sessions, failures, and sign-out during refresh. Successful
 live renewal still needs verification with an authenticated test account; Swagger
 does not specify the successful login/refresh response bodies.
+
+For a persistent 401, debug builds emit `[API] Auth diagnostics:` with JWT
+issuer/audience metadata, token-format checks, device-clock validity checks,
+and a category derived from `WWW-Authenticate`. This is diagnostic decoding,
+not signature verification. Tokens, user claims, and raw authentication error
+descriptions are omitted. `[API] Account recovery:` reports Chat's recovery
+outcome. These two lines help identify the rejection without sharing credentials.
 
 ## Getting Started
 
