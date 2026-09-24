@@ -17,12 +17,6 @@ class FolderRemoteDataSource extends GetxService {
   /// `parentFolderId: null` fetches the top-level (root) folders; pass a
   /// folder's id to fetch just its immediate children.
   ///
-  /// The post-login failure this used to chase — the very first
-  /// `/api/folder` call right after login 401ing because the Note server's
-  /// own session/token check lags the Chat server by a beat — is now
-  /// absorbed centrally by [ApiClient]'s silent refresh-and-retry, which
-  /// covers both servers. A 401 that reaches here survived that retry and
-  /// is a real auth failure.
   Future<FolderResponse> getFolders({int? parentFolderId}) async {
     try {
       final response = await _api.dio.get(
@@ -43,13 +37,10 @@ class FolderRemoteDataSource extends GetxService {
       if (body is! Map) {
         if (body is List) {
           return FolderResponse(
-            folders:
-                (body)
-                    .whereType<Map>()
-                    .map(
-                      (e) => FolderModel.fromJson(Map<String, dynamic>.from(e)),
-                    )
-                    .toList(),
+            folders: (body)
+                .whereType<Map>()
+                .map((e) => FolderModel.fromJson(Map<String, dynamic>.from(e)))
+                .toList(),
             trash: [],
             code: 200,
             message: 'Success',
@@ -75,11 +66,6 @@ class FolderRemoteDataSource extends GetxService {
         options: dio.Options(extra: {'requiresAuth': true}),
       );
       final body = response.data;
-      // TEMP DEBUG — remove once the real envelope shape is confirmed; this
-      // endpoint answers 200 even on failure, so without this the console
-      // shows nothing at all when the app misreads a 200 body as a failure.
-      // ignore: avoid_print
-      print('📤 folder save raw response -> ${response.statusCode}: $body');
       if (body is! Map) {
         throw ServerException('Invalid folder save response: $body');
       }

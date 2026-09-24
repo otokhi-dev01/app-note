@@ -13,6 +13,8 @@ import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
+import 'package:Note/features/folder/data/datasources/folder_remote_data_source.dart';
+import 'package:Note/features/folder/data/repositories/folder_repository_impl.dart';
 
 class _Device implements AuthDeviceService {
   @override
@@ -149,6 +151,80 @@ void main() {
         'platform': 'iOS',
         'deviceModel': 'Test model',
       });
+    },
+  );
+
+  test(
+    'Chat login supplies the bearer token for Note reads and folder saves',
+    () async {
+      final signIn = adapter.respond;
+      adapter.respond = (request) {
+        if (request.uri.path == '/api/auth/login') {
+          expect(request.uri.origin, 'https://chat.piisiit.com');
+          return signIn(request);
+        }
+        expect(request.uri.origin, ApiClient.baseUrl);
+        expect(request.headers['Authorization'], 'Bearer test-session');
+        if (request.uri.path == '/api/folder/save') {
+          expect(request.method, 'POST');
+          expect(request.data, {
+            'id': adapter.requests.length == 3 ? 0 : 42,
+            'name': 'Work',
+            'iconName': 'folder',
+            'colorValue': 'blue',
+            'sortOrder': 0,
+            'parentFolderId': null,
+          });
+          return _json({
+            'code': 200,
+            'message': 'Folder saved successfully.',
+            'data': null,
+          });
+        }
+        return _json({'code': 200, 'data': []});
+      };
+      expect((await login(params)).isOk, isTrue);
+      await Get.find<ApiClient>().dio.get('/api/note');
+      final folders = FolderRepositoryImpl(FolderRemoteDataSource());
+      for (final id in [0, 42]) {
+        final result = await folders.saveFolder(
+          id: id,
+          name: 'Work',
+          iconName: 'folder',
+          colorValue: 'blue',
+        );
+        expect(result.isOk, isTrue);
+      }
+      expect(adapter.requests, hasLength(4));
+    },
+  );
+
+  test(
+    'Registration and authenticated account operations stay on Chat',
+    () async {
+      final remote = AuthRemoteDataSource(
+        api: Get.find<ApiClient>(),
+        deviceService: _Device(),
+      );
+      await remote.register('someone@example.com', 'password');
+      final registration = adapter.requests.single;
+      expect(
+        registration.uri.toString(),
+        'https://chat.piisiit.com/api/auth/register',
+      );
+      expect(registration.headers['Authorization'], isNull);
+      expect(registration.data['account'], 'someone@example.com');
+      expect(registration.data.containsKey('phone'), isFalse);
+      expect((await login(params)).isOk, isTrue);
+      await remote.logout();
+      expect(
+        adapter.requests.last.uri.toString(),
+        'https://chat.piisiit.com/api/auth/logout-current-device',
+      );
+      expect(
+        adapter.requests.last.headers['Authorization'],
+        'Bearer test-session',
+      );
     },
   );
 

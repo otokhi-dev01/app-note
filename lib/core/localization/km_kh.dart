@@ -382,6 +382,7 @@ const Map<String, String> kmKH = {
   'identity_add_action': 'បន្ថែម',
   'identity_saved_cards': 'អត្តសញ្ញាណដែលបានរក្សាទុក',
   'identity_card_number': 'ប័ណ្ណ @number',
+  'identity_default_card': 'លំនាំដើម',
   'identity_checking_capture': 'កំពុងពិនិត្យរូបភាពអត្តសញ្ញាណប័ណ្ណ…',
   'identity_back_scan_retry':
       'មិនស្គាល់ផ្នែកខាងក្រោយ។ សូមស្កេនផ្នែកខាងក្រោយនៃអត្តសញ្ញាណប័ណ្ណម្ដងទៀត ដោយឱ្យអក្សរមើលឃើញច្បាស់។',

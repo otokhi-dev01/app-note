@@ -384,6 +384,7 @@ const Map<String, String> enUS = {
   'identity_add_action': 'Add',
   'identity_saved_cards': 'Saved identities',
   'identity_card_number': 'Card @number',
+  'identity_default_card': 'Default',
   'identity_checking_capture': 'Checking card image…',
   'identity_back_scan_retry':
       'Back not recognized. Scan the back of your ID card again with the text clearly visible.',

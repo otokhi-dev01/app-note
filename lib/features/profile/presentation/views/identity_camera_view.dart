@@ -363,13 +363,15 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
               children: [
                 _toolbar(),
                 const SizedBox(height: 14),
-                AspectRatio(aspectRatio: 0.85, child: _viewfinder()),
+                AspectRatio(aspectRatio: 1.3, child: _viewfinder()),
                 const SizedBox(height: 16),
                 if (!widget.passportMode && widget.singleSideFront == null) ...[
                   _sideTabs(),
                   const SizedBox(height: 14),
                 ],
                 _hintBar(),
+                const SizedBox(height: 16),
+                _largeCardsTemplatesRow(),
                 const SizedBox(height: 22),
                 _captureControls(),
                 const SizedBox(height: 18),
@@ -383,6 +385,223 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _largeCardsTemplatesRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _cardImageTemplateBanner(
+            title: 'identity_side_front'.tr,
+            selected: _front,
+            isFront: true,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _cardImageTemplateBanner(
+            title: 'identity_side_back'.tr,
+            selected: !_front,
+            isFront: false,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _cardImageTemplateBanner({
+    required String title,
+    required bool selected,
+    required bool isFront,
+  }) {
+    return GestureDetector(
+      onTap: () => _selectSide(isFront),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.white.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? idAccent : Colors.grey.shade300,
+            width: selected ? 2.5 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: selected ? idAccent.withValues(alpha: 0.25) : Colors.black12,
+              blurRadius: selected ? 10 : 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isFront ? CupertinoIcons.creditcard_fill : CupertinoIcons.rectangle_stack_fill,
+                  size: 14,
+                  color: selected ? idAccent : idInk,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: selected ? idAccent : idInk,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            AspectRatio(
+              aspectRatio: 1.586,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isFront
+                        ? [const Color(0xFFF9FBF9), const Color(0xFFE2EBE5)]
+                        : [const Color(0xFFEFEFEF), const Color(0xFFDCDEDD)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.black38, width: 1),
+                ),
+                child: isFront
+                    ? Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDA291C),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                  child: Center(
+                                    child: Container(
+                                      width: 10,
+                                      height: 6,
+                                      color: const Color(0xFF032EA1),
+                                    ),
+                                  ),
+                                ),
+                                Column(
+                                  children: [
+                                    Container(width: 55, height: 3, color: const Color(0xFF032EA1)),
+                                    const SizedBox(height: 1.5),
+                                    Container(width: 45, height: 2, color: Colors.black54),
+                                  ],
+                                ),
+                                Container(
+                                  width: 16,
+                                  height: 16,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF1BE48),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 22,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE5C158),
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(color: Colors.brown, width: 0.8),
+                                  ),
+                                  child: Center(
+                                    child: Container(width: 14, height: 11, color: Colors.amber.shade200),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(width: double.infinity, height: 4, color: const Color(0xFF032EA1)),
+                                      const SizedBox(height: 3),
+                                      Container(width: 50, height: 2.5, color: Colors.black54),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Container(width: double.infinity, height: 2, color: Colors.black38),
+                          ],
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD0D0D0),
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(color: Colors.black26, width: 0.8),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(width: 30, height: 4, color: Colors.black38),
+                                ),
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(width: double.infinity, height: 2.5, color: Colors.black54),
+                                const SizedBox(height: 2),
+                                Container(width: double.infinity, height: 2, color: Colors.black45),
+                              ],
+                            ),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC8D6CE),
+                                borderRadius: BorderRadius.circular(3),
+                                border: Border.all(color: Colors.black26, width: 0.5),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(width: double.infinity, height: 2.5, color: Colors.black87),
+                                  const SizedBox(height: 1.5),
+                                  Container(width: double.infinity, height: 2.5, color: Colors.black87),
+                                  const SizedBox(height: 1.5),
+                                  Container(width: 90, height: 2.5, color: Colors.black87),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );

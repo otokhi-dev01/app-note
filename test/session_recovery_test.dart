@@ -152,6 +152,82 @@ void main() {
   );
 
   test(
+    'A valid Chat session does not replay a Note request with the same token',
+    () async {
+      await session.saveSession('valid-access', const UserData(id: 'user-one'));
+      adapter.respond = (request) {
+        expect(request.headers['Authorization'], 'Bearer valid-access');
+        if (request.uri.path == sessionsPath) {
+          expect(request.uri.host, 'chat.piisiit.com');
+          return response({'success': true, 'data': []});
+        }
+        expect(request.uri.host, 'note.piisiit.com');
+        return response({}, 401);
+      };
+      await rejectedRequest();
+      await rejectedRequest('/api/folder');
+      expect(adapter.requests.map((request) => request.uri.path), [
+        '/api/note',
+        sessionsPath,
+        '/api/folder',
+      ]);
+      expect(session.token.value, 'valid-access');
+    },
+  );
+
+  test(
+    'Note signature rejection does not replay a folder save or revoke a valid Chat session',
+    () async {
+      await session.saveSession('chat-access', const UserData(id: 'user-one'));
+      final payload = {
+        'id': 0,
+        'name': 'Work',
+        'iconName': 'folder',
+        'colorValue': 'blue',
+        'sortOrder': 0,
+      };
+      adapter.respond = (request) {
+        expect(request.headers['Authorization'], 'Bearer chat-access');
+        if (request.uri.path == sessionsPath) {
+          expect(request.uri.host, 'chat.piisiit.com');
+          return response({'success': true, 'data': []});
+        }
+        expect(request.uri.host, 'note.piisiit.com');
+        expect(request.uri.path, '/api/folder/save');
+        expect(request.method, 'POST');
+        expect(request.data, payload);
+        return dio.ResponseBody.fromString(
+          '',
+          401,
+          headers: {
+            'www-authenticate': [
+              'Bearer error="invalid_token", error_description="The signature is invalid"',
+            ],
+          },
+        );
+      };
+      await expectLater(
+        api.dio.post('/api/folder/save', data: payload),
+        throwsA(
+          isA<dio.DioException>().having(
+            (e) => e.response?.statusCode,
+            'status',
+            401,
+          ),
+        ),
+      );
+      expect(adapter.requests.map((r) => r.uri.path), [
+        '/api/folder/save',
+        sessionsPath,
+      ]);
+      expect(session.token.value, 'chat-access');
+      final restarted = SessionStorage();
+      await restarted.ready;
+      expect(restarted.token.value, 'chat-access');
+    },
+  );
+
+  test(
     'Expired legacy session returns to login without an empty refresh request',
     () async {
       await session.saveSession('legacy-access', const UserData());
