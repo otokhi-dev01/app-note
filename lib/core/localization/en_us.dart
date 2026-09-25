@@ -400,6 +400,9 @@ const Map<String, String> enUS = {
   'identity_download_card': 'Download card (Image)',
   'identity_save_card': 'Save card',
   'identity_download_saved': 'Saved to your selected location.',
+  'identity_saved_to_photos': 'Saved to your photo library.',
+  'identity_photo_permission_denied':
+      'Allow photo saving for Pii Note in your phone Settings, then try again.',
   'identity_download_failed':
       'Could not save the card. Check the images and try again.',
   'identity_photo_hologram_label': 'Photo & Hologram',

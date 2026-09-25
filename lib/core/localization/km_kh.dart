@@ -398,6 +398,9 @@ const Map<String, String> kmKH = {
   'identity_download_card': 'ទាញយកប័ណ្ណ (រូបភាព)',
   'identity_save_card': 'រក្សាទុកប័ណ្ណ',
   'identity_download_saved': 'បានរក្សាទុកនៅទីតាំងដែលអ្នកបានជ្រើសរើស។',
+  'identity_saved_to_photos': 'បានរក្សាទុកក្នុងបណ្ណាល័យរូបថតរបស់អ្នក។',
+  'identity_photo_permission_denied':
+      'សូមអនុញ្ញាតឱ្យ Pii Note រក្សាទុករូបថតនៅក្នុងការកំណត់ទូរសព្ទ រួចព្យាយាមម្តងទៀត។',
   'identity_download_failed':
       'មិនអាចរក្សាទុកប័ណ្ណបានទេ។ សូមពិនិត្យរូបភាព ហើយព្យាយាមម្តងទៀត។',
   'identity_photo_hologram_label': 'រូបថត និងហូឡូក្រាម',

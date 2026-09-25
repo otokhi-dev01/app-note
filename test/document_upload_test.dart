@@ -16,6 +16,7 @@ import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/profile/data/datasources/identity_remote_data_source.dart';
 import 'package:Note/features/profile/data/repositories/identity_repository_impl.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
+import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/domain/usecases/identity_usecases.dart';
 import 'package:Note/features/profile/presentation/views/document_upload_view.dart';
 
@@ -107,6 +108,34 @@ void main() {
 
   setUp(initialize);
   tearDown(() => Get.reset());
+
+  test(
+    'Identity API unwraps Khmer details and preserves additional fields',
+    () async {
+      adapter.respond = (_) => _json({
+        'Data': {
+          'DocumentNumber': '123',
+          'FullName': 'សុខ ដារ៉ា',
+          'Gender': 'ស្រី',
+          'Nationality': 'ខ្មែរ',
+          'IssuedDate': '2024-01-02',
+          'IssuingAuthority': 'ក្រសួងមហាផ្ទៃ',
+          'village': 'ភូមិថ្មី',
+        },
+      });
+      final card = await IdentityRemoteDataSource(
+        api: Get.find<ApiClient>(),
+      ).scanNationalId(frontImagePath: frontPath, backImagePath: backPath);
+      expect(card.nameKhmer, 'សុខ ដារ៉ា');
+      expect(card.gender, 'ស្រី');
+      expect(card.nationality, 'ខ្មែរ');
+      expect(card.issuedDate, '02-01-2024');
+      expect(card.issuingAuthority, 'ក្រសួងមហាផ្ទៃ');
+      expect(card.additionalFields, {'village': 'ភូមិថ្មី'});
+      expect(card.frontImagePath, frontPath);
+      expect(card.backImagePath, backPath);
+    },
+  );
 
   test(
     'Uploads exact multipart fields and both image files to the account server',
@@ -280,6 +309,36 @@ void main() {
       );
     },
   );
+
+  testWidgets('Upload review prefills all returned identity document fields', (
+    tester,
+  ) async {
+    final card = NationalIdCard.fromJson({
+      'DocumentNumber': '123',
+      'FullName': 'សុខ ដារ៉ា',
+      'DocumentType': 'អត្តសញ្ញាណប័ណ្ណ',
+      'Gender': 'ស្រី',
+      'Nationality': 'ខ្មែរ',
+      'IssuingCountry': 'កម្ពុជា',
+      'IssuedDate': '2024-01-02',
+      'IssuingAuthority': 'ក្រសួងមហាផ្ទៃ',
+    });
+    await tester.pumpWidget(
+      GetMaterialApp(home: DocumentUploadView(initialCard: card)),
+    );
+    for (final entry in {
+      'FullName': 'សុខ ដារ៉ា',
+      'DocumentType': 'អត្តសញ្ញាណប័ណ្ណ',
+      'Gender': 'ស្រី',
+      'Nationality': 'ខ្មែរ',
+      'IssuingCountry': 'កម្ពុជា',
+      'IssuedDate': '2024-01-02',
+      'IssuingAuthority': 'ក្រសួងមហាផ្ទៃ',
+    }.entries) {
+      final field = find.byKey(ValueKey(entry.key));
+      expect(tester.widget<TextFormField>(field).controller!.text, entry.value);
+    }
+  });
 
   testWidgets(
     'Upload form validates input, retains server failures, and returns only on success',

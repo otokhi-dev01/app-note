@@ -635,6 +635,26 @@ class ProfileView extends GetView<ProfileController> {
             wrapValue: true,
             onTap: edit,
           ),
+          // if (card != null) ...[
+          //   for (final field in identityAdditionalDetails(card))
+          //     _buildDetailRow(
+          //       context,
+          //       icon: CupertinoIcons.doc_text,
+          //       iconColor: _iosGray,
+          //       label: field.label,
+          //       value: field.value,
+          //       wrapValue: true,
+          //     ),
+          //   if (card.mrzLines.any((line) => line.isNotEmpty))
+          //     _buildDetailRow(
+          //       context,
+          //       icon: CupertinoIcons.doc_text,
+          //       iconColor: _iosGray,
+          //       label: 'identity_mrz_title'.tr,
+          //       value: card.mrzLines.join('\n'),
+          //       wrapValue: true,
+          //     ),
+          // ],
         ],
       );
     });

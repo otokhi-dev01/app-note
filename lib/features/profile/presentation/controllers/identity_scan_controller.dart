@@ -237,7 +237,7 @@ class IdentityScanController extends GetxController {
     }
   }
 
-  /// A null side exports both images as a PDF; otherwise exports the original.
+  /// A null side exports the card as a PNG; otherwise exports the original side.
   Future<void> onDownloadCard({bool? front}) async {
     final original = card.value;
     if (isLoading.value || isClosed || original == null) return;
@@ -254,7 +254,23 @@ class IdentityScanController extends GetxController {
       }
       final destination = await _saveExport(export);
       if (!isClosed && destination != null) {
-        AppSnackbar.success('saved_title'.tr, 'identity_download_saved'.tr);
+        AppSnackbar.success(
+          'saved_title'.tr,
+          (IdentityImageService.savesToPhotoLibrary
+                  ? 'identity_saved_to_photos'
+                  : 'identity_download_saved')
+              .tr,
+        );
+      }
+    } on PlatformException catch (error) {
+      if (!isClosed) {
+        AppSnackbar.error(
+          'identity_save_failed_title'.tr,
+          (error.code == 'PHOTO_PERMISSION_DENIED'
+                  ? 'identity_photo_permission_denied'
+                  : 'identity_download_failed')
+              .tr,
+        );
       }
     } catch (_) {
       if (!isClosed) {

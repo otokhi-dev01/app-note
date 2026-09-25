@@ -1321,6 +1321,93 @@ void main() {
     },
   );
 
+  testWidgets('Identity screen displays complete Khmer API details', (
+    tester,
+  ) async {
+    final session = SessionStorage()..user.value = const UserData(id: 'one');
+    final card = NationalIdCard.fromJson({
+      'DocumentNumber': '123456789',
+      'FullName': 'សុខ ដារ៉ា',
+      'Gender': 'ស្រី',
+      'Nationality': 'ខ្មែរ',
+      'IssuingCountry': 'កម្ពុជា',
+      'IssuedDate': '2024-01-02',
+      'IssuingAuthority': 'ក្រសួងមហាផ្ទៃ',
+      'កំណត់សម្គាល់': 'ភូមិថ្មី សង្កាត់ទឹកថ្លា រាជធានីភ្នំពេញ',
+    });
+    await tester.runAsync(
+      () => const IdInformationStorage().save(
+        ownerKey: 'id:one',
+        idNumber: card.idNumber,
+        name: card.nameKhmer,
+        dateOfBirth: null,
+        scannedCard: card,
+      ),
+    );
+    final details = profile(session);
+    await tester.runAsync(
+      () => details.identityCard.stream.firstWhere((value) => value != null),
+    );
+    expect(details.identityCard.value?.gender, 'ស្រី');
+    final scan = Get.put(
+      IdentityScanController(ScanNationalId(_IdentityRepo())),
+    );
+    expect(scan.card.value?.gender, 'ស្រី');
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('km', 'KH'),
+        home: const IdentityScanView(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (final value in [
+      'ស្រី',
+      'ខ្មែរ',
+      'កម្ពុជា',
+      '02-01-2024',
+      'ក្រសួងមហាផ្ទៃ',
+      'ភូមិថ្មី សង្កាត់ទឹកថ្លា រាជធានីភ្នំពេញ',
+    ]) {
+      final field = find.byWidgetPredicate(
+        (widget) => widget is SelectableText && widget.data == value,
+      );
+      expect(field, findsOneWidget);
+      await tester.ensureVisible(field);
+      await tester.pumpAndSettle();
+    }
+    final authority = tester.widget<SelectableText>(
+      find.byWidgetPredicate(
+        (widget) => widget is SelectableText && widget.data == 'ក្រសួងមហាផ្ទៃ',
+      ),
+    );
+    expect(authority.maxLines, isNull);
+    expect(authority.style?.fontFamilyFallback, contains('NotoSansKhmer'));
+    await tester.pumpWidget(
+      GetMaterialApp(
+        translations: AppTranslations(),
+        locale: const Locale('km', 'KH'),
+        home: const ProfileView(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final section = find.byKey(const ValueKey('profile_identity_information'));
+    for (final value in [
+      'ស្រី',
+      'ខ្មែរ',
+      'កម្ពុជា',
+      '02-01-2024',
+      'ក្រសួងមហាផ្ទៃ',
+    ]) {
+      expect(
+        find.descendant(of: section, matching: find.text(value)),
+        findsOneWidget,
+      );
+    }
+  });
+
   testWidgets('Card tabs persist the default and Add cancellation keeps it', (
     tester,
   ) async {
@@ -1388,6 +1475,11 @@ void main() {
       find.descendant(of: secondTab, matching: find.text('Default')),
       findsNothing,
     );
+    expect(
+      find.descendant(of: secondTab, matching: find.text('Card 1')),
+      findsOneWidget,
+    );
+    expect(find.text('Card 2'), findsNothing);
     expect(find.text('FIRST'), findsOneWidget);
     await tester.runAsync(() async {
       expect(
@@ -1414,6 +1506,11 @@ void main() {
       find.descendant(of: firstTab, matching: find.text('Default')),
       findsNothing,
     );
+    expect(
+      find.descendant(of: firstTab, matching: find.text('Card 1')),
+      findsOneWidget,
+    );
+    expect(find.text('Card 2'), findsNothing);
     expect(find.text('SECOND'), findsOneWidget);
     await tester.runAsync(() async {
       expect(

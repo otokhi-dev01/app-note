@@ -49,13 +49,20 @@ class _DocumentUploadViewState extends State<DocumentUploadView> {
     String date(DateTime? value) =>
         value == null ? '' : DateFormat('yyyy-MM-dd').format(value);
     final initial = {
-      'DocumentType': card == null ? '' : 'National ID',
+      'DocumentType': card == null
+          ? ''
+          : (card.documentType.isEmpty ? 'National ID' : card.documentType),
       'DocumentNumber': card?.idNumber ?? '',
       'FullName': card == null
           ? ''
           : (card.nameLatin.isEmpty ? card.nameKhmer : card.nameLatin),
       'DateOfBirth': date(card?.dateOfBirthAsDate),
       'ExpiryDate': date(card?.expiryDateAsDate),
+      'Gender': card?.gender ?? '',
+      'Nationality': card?.nationality ?? '',
+      'IssuingCountry': card?.issuingCountry ?? '',
+      'IssuedDate': date(card?.issuedDateAsDate),
+      'IssuingAuthority': card?.issuingAuthority ?? '',
     };
     for (final key in _labels.keys) {
       _fields[key] = TextEditingController(text: initial[key] ?? '');

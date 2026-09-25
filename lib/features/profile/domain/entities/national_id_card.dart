@@ -17,6 +17,13 @@ class NationalIdCard {
     required this.currentAddressEnglish,
     required this.expiryDate,
     required this.mrzLines,
+    this.documentType = '',
+    this.gender = '',
+    this.nationality = '',
+    this.issuingCountry = '',
+    this.issuedDate = '',
+    this.issuingAuthority = '',
+    this.additionalFields = const {},
     this.validityYears = 10,
     this.chipIntegrityPercent = 100,
     this.frontImagePath,
@@ -32,6 +39,15 @@ class NationalIdCard {
   final String currentAddressKhmer;
   final String currentAddressEnglish;
   final String expiryDate;
+  final String documentType;
+  final String gender;
+  final String nationality;
+  final String issuingCountry;
+  final String issuedDate;
+  final String issuingAuthority;
+
+  /// Identity response fields not yet mapped to a named property.
+  final Map<String, dynamic> additionalFields;
 
   /// The two printed MRZ rows (ICAO 9303 style), shown verbatim in the
   /// encrypted chip signature block.
@@ -60,6 +76,13 @@ class NationalIdCard {
     'currentAddressKhmer': currentAddressKhmer,
     'currentAddressEnglish': currentAddressEnglish,
     'expiryDate': expiryDate,
+    'documentType': documentType,
+    'gender': gender,
+    'nationality': nationality,
+    'issuingCountry': issuingCountry,
+    'issuedDate': issuedDate,
+    'issuingAuthority': issuingAuthority,
+    'additionalFields': additionalFields,
     'mrzLines': mrzLines,
     'validityYears': validityYears,
     'chipIntegrityPercent': chipIntegrityPercent,
@@ -89,6 +112,13 @@ class NationalIdCard {
         previous.currentAddressEnglish,
       ),
       expiryDate: fill(expiryDate, previous.expiryDate),
+      documentType: fill(documentType, previous.documentType),
+      gender: fill(gender, previous.gender),
+      nationality: fill(nationality, previous.nationality),
+      issuingCountry: fill(issuingCountry, previous.issuingCountry),
+      issuedDate: fill(issuedDate, previous.issuedDate),
+      issuingAuthority: fill(issuingAuthority, previous.issuingAuthority),
+      additionalFields: {...previous.additionalFields, ...additionalFields},
       mrzLines: mrzLines.any((line) => line.isNotEmpty)
           ? mrzLines
           : previous.mrzLines,
@@ -103,11 +133,14 @@ class NationalIdCard {
   /// the value isn't in that shape.
   DateTime? get dateOfBirthAsDate => _parseDisplayDate(dateOfBirth);
 
+  /// Issue date in a form suitable for the upload API.
+  DateTime? get issuedDateAsDate => _parseDisplayDate(issuedDate);
+
   /// [expiryDate] parsed the same way — see [dateOfBirthAsDate].
   DateTime? get expiryDateAsDate => _parseDisplayDate(expiryDate);
 
   static DateTime? _parseDisplayDate(String value) {
-    final parts = value.split('-');
+    final parts = _formatDate(value).split('-');
     if (parts.length != 3) return null;
     final day = int.tryParse(parts[0]);
     final month = int.tryParse(parts[1]);
@@ -131,9 +164,15 @@ class NationalIdCard {
     String? frontImagePath,
     String? backImagePath,
   }) {
+    String normalize(String key) => key.replaceAll('_', '').toLowerCase();
+    final values = {
+      for (final entry in json.entries) normalize(entry.key): entry.value,
+    };
+    final consumed = <String>{'additionalfields', 'mrzlines', 'mrz', 'mrzdata'};
     String pick(List<String> keys) {
+      consumed.addAll(keys.map(normalize));
       for (final key in keys) {
-        final value = json[key];
+        final value = values[normalize(key)];
         if (value != null && value.toString().trim().isNotEmpty) {
           return value.toString().trim();
         }
@@ -141,21 +180,21 @@ class NationalIdCard {
       return '';
     }
 
-    final mrzRaw =
-        json['mrzLines'] ??
-        json['mrz_lines'] ??
-        json['mrz'] ??
-        json['MrzLines'] ??
-        json['Mrz'] ??
-        json['mrzData'] ??
-        json['mrz_data'];
+    final mrzRaw = values['mrzlines'] ?? values['mrz'] ?? values['mrzdata'];
     final mrzLines = switch (mrzRaw) {
       List<dynamic>() => mrzRaw.map((line) => line.toString()).toList(),
       String() when mrzRaw.isNotEmpty => mrzRaw.split('\n'),
       _ => const <String>[],
     };
 
-    return NationalIdCard(
+    final front = pick(['frontImagePath', 'frontImage', 'front']);
+    final back = pick(['backImagePath', 'backImage', 'back']);
+    final genericName = pick(['fullName', 'name']);
+    final genericBirthPlace = pick(['placeOfBirth', 'pob']);
+    final genericAddress = pick(['currentAddress', 'address']);
+    bool khmer(String value) =>
+        RegExp(r'[\u1780-\u17FF\u19E0-\u19FF]').hasMatch(value);
+    final parsed = NationalIdCard(
       idNumber: pick([
         'idNumber',
         'id_number',
@@ -203,13 +242,13 @@ class NationalIdCard {
         'latinName',
         'LatinName',
         'latin_name',
+        'englishName',
+        'EnglishName',
         'fullName',
         'FullName',
         'full_name',
         'name',
         'Name',
-        'englishName',
-        'EnglishName',
       ]),
       dateOfBirth: _formatDate(
         pick([
@@ -291,10 +330,21 @@ class NationalIdCard {
           'valid_until',
         ]),
       ),
+      documentType: pick(['documentType', 'type']),
+      gender: pick(['gender', 'sex']),
+      nationality: pick(['nationality']),
+      issuingCountry: pick(['issuingCountry', 'countryOfIssue']),
+      issuedDate: _formatDate(pick(['issuedDate', 'issueDate', 'dateOfIssue'])),
+      issuingAuthority: pick(['issuingAuthority', 'authority']),
       mrzLines: mrzLines.isEmpty ? const [''] : mrzLines,
       validityYears:
           int.tryParse(
-            pick(['validityYears', 'validity_years', 'ValidityYears', 'validity']),
+            pick([
+              'validityYears',
+              'validity_years',
+              'ValidityYears',
+              'validity',
+            ]),
           ) ??
           10,
       chipIntegrityPercent:
@@ -307,38 +357,44 @@ class NationalIdCard {
             ]),
           ) ??
           100,
-      frontImagePath:
-          (frontImagePath != null && frontImagePath.isNotEmpty)
-              ? frontImagePath
-              : () {
-                  final val = pick([
-                    'frontImagePath',
-                    'front_image_path',
-                    'FrontImagePath',
-                    'frontImage',
-                    'FrontImage',
-                    'front_image',
-                    'front',
-                    'Front',
-                  ]);
-                  return val.isEmpty ? null : val;
-                }(),
-      backImagePath:
-          (backImagePath != null && backImagePath.isNotEmpty)
-              ? backImagePath
-              : () {
-                  final val = pick([
-                    'backImagePath',
-                    'back_image_path',
-                    'BackImagePath',
-                    'backImage',
-                    'BackImage',
-                    'back_image',
-                    'back',
-                    'Back',
-                  ]);
-                  return val.isEmpty ? null : val;
-                }(),
+      frontImagePath: frontImagePath?.isNotEmpty == true
+          ? frontImagePath
+          : (front.isEmpty ? null : front),
+      backImagePath: backImagePath?.isNotEmpty == true
+          ? backImagePath
+          : (back.isEmpty ? null : back),
+    );
+    return parsed.copyWith(
+      nameKhmer: parsed.nameKhmer.isEmpty && khmer(genericName)
+          ? genericName
+          : parsed.nameKhmer,
+      nameLatin: parsed.nameLatin == genericName && khmer(genericName)
+          ? ''
+          : parsed.nameLatin,
+      placeOfBirthKhmer:
+          parsed.placeOfBirthKhmer.isEmpty && khmer(genericBirthPlace)
+          ? genericBirthPlace
+          : parsed.placeOfBirthKhmer,
+      placeOfBirthEnglish:
+          parsed.placeOfBirthEnglish == genericBirthPlace &&
+              khmer(genericBirthPlace)
+          ? ''
+          : parsed.placeOfBirthEnglish,
+      currentAddressKhmer:
+          parsed.currentAddressKhmer.isEmpty && khmer(genericAddress)
+          ? genericAddress
+          : parsed.currentAddressKhmer,
+      currentAddressEnglish:
+          parsed.currentAddressEnglish == genericAddress &&
+              khmer(genericAddress)
+          ? ''
+          : parsed.currentAddressEnglish,
+      additionalFields: {
+        if (json['additionalFields'] is Map)
+          ...Map<String, dynamic>.from(json['additionalFields']),
+        for (final entry in json.entries)
+          if (!consumed.contains(normalize(entry.key))) entry.key: entry.value,
+      },
     );
   }
 
@@ -346,7 +402,10 @@ class NationalIdCard {
   /// `DD/MM/YYYY`, `YYYY/MM/DD` as the `DD-MM-YYYY` format used throughout
   /// this screen.
   static String _formatDate(String raw) {
-    final trimmed = raw.trim();
+    final trimmed = raw.trim().replaceAllMapped(
+      RegExp(r'[០-៩]'),
+      (match) => '${match[0]!.codeUnitAt(0) - 0x17E0}',
+    );
     if (trimmed.isEmpty) return '';
 
     // Match DD-MM-YYYY or DD/MM/YYYY
@@ -379,6 +438,13 @@ class NationalIdCard {
     String? currentAddressKhmer,
     String? currentAddressEnglish,
     String? expiryDate,
+    String? documentType,
+    String? gender,
+    String? nationality,
+    String? issuingCountry,
+    String? issuedDate,
+    String? issuingAuthority,
+    Map<String, dynamic>? additionalFields,
     List<String>? mrzLines,
     int? validityYears,
     int? chipIntegrityPercent,
@@ -396,6 +462,13 @@ class NationalIdCard {
       currentAddressEnglish:
           currentAddressEnglish ?? this.currentAddressEnglish,
       expiryDate: expiryDate ?? this.expiryDate,
+      documentType: documentType ?? this.documentType,
+      gender: gender ?? this.gender,
+      nationality: nationality ?? this.nationality,
+      issuingCountry: issuingCountry ?? this.issuingCountry,
+      issuedDate: issuedDate ?? this.issuedDate,
+      issuingAuthority: issuingAuthority ?? this.issuingAuthority,
+      additionalFields: additionalFields ?? this.additionalFields,
       mrzLines: mrzLines ?? this.mrzLines,
       validityYears: validityYears ?? this.validityYears,
       chipIntegrityPercent: chipIntegrityPercent ?? this.chipIntegrityPercent,

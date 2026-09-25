@@ -73,6 +73,12 @@ flutter:
   config:
     enable-swift-package-manager: true
   uses-material-design: true
+  fonts:
+    - family: NotoSansKhmer
+      fonts:
+        - asset: assets/fonts/NotoSansKhmer-Regular.ttf
+        - asset: assets/fonts/NotoSansKhmer-Bold.ttf
+          weight: 700
   assets:
     - assets/icons/img.png
     - assets/icons/piisiit_logo_mark.png
