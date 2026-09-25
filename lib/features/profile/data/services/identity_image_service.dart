@@ -1,8 +1,9 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:Note/core/services/native_media_services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdfx/pdfx.dart' as pdfx;
@@ -200,11 +201,21 @@ abstract final class IdentityImageService {
     );
   }
 
-  /// The native save dialog writes the bytes; null means the user cancelled.
-  static Future<String?> save(IdentityCardExport export) => FilePicker.saveFile(
-    fileName: export.fileName,
-    type: FileType.custom,
-    allowedExtensions: [export.fileName.split('.').last],
-    bytes: export.bytes,
-  );
+  static bool get savesToPhotoLibrary =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+
+  /// Phones save directly to Photos/Gallery; desktop keeps the file dialog.
+  static Future<String?> save(IdentityCardExport export) async {
+    if (savesToPhotoLibrary) {
+      return NativeMediaServices.savePhoto(export.bytes, export.fileName);
+    }
+    return FilePicker.saveFile(
+      fileName: export.fileName,
+      type: FileType.custom,
+      allowedExtensions: [export.fileName.split('.').last],
+      bytes: export.bytes,
+    );
+  }
 }

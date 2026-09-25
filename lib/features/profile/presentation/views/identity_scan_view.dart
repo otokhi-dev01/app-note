@@ -6,6 +6,7 @@ import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/presentation/controllers/identity_scan_controller.dart';
 import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
+import 'package:Note/features/profile/presentation/widgets/identity_detail_fields.dart';
 
 /// Digital Civic ID (national ID) scan-and-verify screen.
 /// Shows the bilingual (Khmer/English) OCR result once both sides of the ID
@@ -176,6 +177,10 @@ class IdentityScanView extends GetView<IdentityScanController> {
       cards.add(activeCard);
     }
     if (cards.isEmpty) cards.add(null);
+    // Number only the alternatives; the selected card is labeled Default.
+    final numberedCards = cards
+        .where((card) => card == null || card.idNumber != activeCard?.idNumber)
+        .toList();
     final busy = controller.isLoading.value;
     return Row(
       key: const ValueKey('identity_card_tabs'),
@@ -208,7 +213,8 @@ class IdentityScanView extends GetView<IdentityScanController> {
                           card != null && card.idNumber == activeCard?.idNumber
                               ? 'identity_default_card'.tr
                               : 'identity_card_number'.trParams({
-                                  'number': '${index + 1}',
+                                  'number':
+                                      '${numberedCards.indexOf(card) + 1}',
                                 }),
                           textAlign: TextAlign.center,
                         ),
@@ -403,7 +409,21 @@ class IdentityScanView extends GetView<IdentityScanController> {
           ),
         ),
         const SizedBox(height: 12),
-        if (card.mrzLines.isNotEmpty) IdentityMrzBlock(lines: card.mrzLines),
+        for (final field in identityAdditionalDetails(card)) ...[
+          IdentityFieldCard(
+            label: field.label,
+            child: SelectableText(
+              field.value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontFamilyFallback: const ['NotoSansKhmer'],
+                height: 1.6,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (card.mrzLines.any((line) => line.isNotEmpty))
+          IdentityMrzBlock(lines: card.mrzLines),
       ],
     );
   }

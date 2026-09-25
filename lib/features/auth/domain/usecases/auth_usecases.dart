@@ -154,8 +154,12 @@ class VerifySecurityAnswers
     if (params.account.trim().isEmpty) {
       return const Err(ValidationFailure('Please enter your account.'));
     }
-    if (params.answers.isEmpty ||
-        params.answers.any(
+    if (params.answers.length < 3) {
+      return const Err(
+        ValidationFailure('Please answer 3 security questions.'),
+      );
+    }
+    if (params.answers.any(
           (answer) =>
               answer.questionId.trim().isEmpty || answer.answer.trim().isEmpty,
         )) {

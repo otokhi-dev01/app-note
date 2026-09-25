@@ -10,6 +10,18 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private val photoLibrarySaver by lazy { PhotoLibrarySaver(this) }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        photoLibrarySaver.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onDestroy() {
+        photoLibrarySaver.close()
+        super.onDestroy()
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -57,6 +69,10 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "com.kimchheang.otokhi-note/media"
         ).setMethodCallHandler { call, result ->
+            if (call.method == "savePhoto") {
+                photoLibrarySaver.savePhoto(call.argument<ByteArray>("bytes"), call.argument<String>("fileName"), result)
+                return@setMethodCallHandler
+            }
             if (call.method != "recognizeText") {
                 result.notImplemented()
                 return@setMethodCallHandler

@@ -370,6 +370,13 @@ class IdInformationStorage {
             ? sameCard.currentAddressEnglish
             : card.currentAddressEnglish,
         mrzLines: sameCard.mrzLines,
+        documentType: sameCard.documentType,
+        gender: sameCard.gender,
+        nationality: sameCard.nationality,
+        issuingCountry: sameCard.issuingCountry,
+        issuedDate: sameCard.issuedDate,
+        issuingAuthority: sameCard.issuingAuthority,
+        additionalFields: sameCard.additionalFields,
         frontImagePath: sameCard.frontImagePath,
         backImagePath: sameCard.backImagePath,
       );

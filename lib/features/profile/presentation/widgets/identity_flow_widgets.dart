@@ -327,8 +327,8 @@ class IdentityCopyableValue extends StatelessWidget {
               'identity_copied_message'.tr,
             );
           },
-          width: 80,
-          height: 36,
+          width: 100,
+          height: 44,
           borderRadius: 12,
           opacity: 0.1,
           thickness: 4,
@@ -342,11 +342,14 @@ class IdentityCopyableValue extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
               const SizedBox(width: 6),
-              Text(
-                'identity_copy_action'.tr,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  'identity_copy_action'.tr,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    fontFamilyFallback: ['NotoSansKhmer'],
+                  ),
                 ),
               ),
             ],
@@ -386,7 +389,6 @@ class IdentityPreviewCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final side = front ? 'front' : 'back';
-    final scanLabel = (front ? 'identity_scan_front' : 'identity_scan_back').tr;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -448,14 +450,14 @@ class IdentityPreviewCard extends StatelessWidget {
                 ),
               ),
             ),
-            IconButton(
-              key: ValueKey('identity_scan_$side'),
-              tooltip: scanLabel,
-              onPressed: onScan,
-              visualDensity: VisualDensity.compact,
-              color: theme.colorScheme.primary,
-              icon: const Icon(CupertinoIcons.camera_fill, size: 20),
-            ),
+            // IconButton(
+            //   key: ValueKey('identity_scan_$side'),
+            //   tooltip: scanLabel,
+            //   onPressed: onScan,
+            //   visualDensity: VisualDensity.compact,
+            //   color: theme.colorScheme.primary,
+            //   icon: const Icon(CupertinoIcons.camera_fill, size: 20),
+            // ),
             IconButton(
               key: ValueKey('identity_download_$side'),
               tooltip: 'identity_download_image'.tr,

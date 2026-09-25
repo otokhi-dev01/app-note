@@ -1,4 +1,5 @@
 import Flutter
+import Photos
 import QuickLook
 import UIKit
 import Vision
@@ -40,6 +41,10 @@ private final class NativeMediaServices: NSObject {
   }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "savePhoto" {
+      savePhoto(call.arguments, result: result)
+      return
+    }
     guard
       let arguments = call.arguments as? [String: Any],
       let path = arguments["path"] as? String,
@@ -64,6 +69,57 @@ private final class NativeMediaServices: NSObject {
       presentPdfEditor(for: path, result: result)
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func savePhoto(_ arguments: Any?, result: @escaping FlutterResult) {
+    guard
+      let arguments = arguments as? [String: Any],
+      let bytes = arguments["bytes"] as? FlutterStandardTypedData,
+      let fileName = arguments["fileName"] as? String,
+      !bytes.data.isEmpty
+    else {
+      result(FlutterError(code: "INVALID_IMAGE", message: "Image data is required.", details: nil))
+      return
+    }
+
+    let save: (PHAuthorizationStatus) -> Void = { status in
+      guard status == .authorized else {
+        DispatchQueue.main.async {
+          result(FlutterError(
+            code: "PHOTO_PERMISSION_DENIED",
+            message: "Allow saving photos in Settings.",
+            details: nil
+          ))
+        }
+        return
+      }
+      var identifier: String?
+      PHPhotoLibrary.shared().performChanges({
+        let request = PHAssetCreationRequest.forAsset()
+        let options = PHAssetResourceCreationOptions()
+        options.originalFilename = URL(fileURLWithPath: fileName).lastPathComponent
+        request.addResource(with: .photo, data: bytes.data, options: options)
+        identifier = request.placeholderForCreatedAsset?.localIdentifier
+      }, completionHandler: { success, _ in
+        DispatchQueue.main.async {
+          if success, let identifier = identifier {
+            result(identifier)
+          } else {
+            result(FlutterError(
+              code: "PHOTO_SAVE_FAILED",
+              message: "The image could not be saved to Photos.",
+              details: nil
+            ))
+          }
+        }
+      })
+    }
+    if #available(iOS 14, *) {
+      // Saving a download does not require reading the user's existing photos.
+      PHPhotoLibrary.requestAuthorization(for: .addOnly, handler: save)
+    } else {
+      PHPhotoLibrary.requestAuthorization(save)
     }
   }
 

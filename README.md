@@ -93,6 +93,26 @@ survive temporary-file cleanup. Reopening the Khmer ID screen restores the saved
 card, and edits from either screen update the shared record. Existing profile-only
 records migrate on the next save. Partial rescans of the same ID preserve previous
 address corrections; a different ID does not inherit them.
+Identity responses also retain document type, gender, nationality, issuing country,
+issue date, and issuing authority. Both identity and Profile details display these
+values; the upload review form prefills the supported document fields. Additional
+response fields are preserved in the encrypted card snapshot and displayed as
+labeled rows, including nested values. These fields survive card switching,
+partial rescans, and profile edits. Generic Khmer names and addresses are shown
+in their Khmer fields, and bundled Noto Sans Khmer fonts support offline display.
+The published Chat Swagger currently documents document upload fields but no
+identity-read/OCR response schema, so live response mapping still needs a confirmed
+endpoint or a redacted sample response.
+
+**Download Card** saves the generated PNG directly to Photos on iPhone and to
+Pictures/Pii Note in the Android photo library. The front/back download buttons
+save the original side images to the same library. iPhone requests permission to
+add photos; Android 10+ saves without a storage permission prompt, while older
+Android versions request storage access. Success appears only after the native
+save completes. Denied permission displays instructions to enable access in
+Settings. Desktop downloads retain the file-save dialog. Rebuild the phone app
+after this change so the new native method and photo permission are included.
+
 Server OCR is attempted only when local parsing fails; `AppConstants.identityApiUrl`
 is still an unconfirmed endpoint. OCR capture does not verify document authenticity.
 

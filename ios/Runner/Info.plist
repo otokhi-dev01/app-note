@@ -43,6 +43,8 @@
 	<string>We use your camera to scan payment cards and take photos to attach to your notes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We need access to your photo library to pick images and attach them to your notes.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save downloaded identity card images to your photo library.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>We need access to your microphone to record audio and videos for your notes.</string>
 	<key>NSBonjourServices</key>

@@ -102,6 +102,10 @@ void main() {
       'id': '0f3f550d-6e25-48a7-8fbc-1301634035d5',
       'question': 'What was the name of your first teacher?',
     },
+    {
+      'id': '3c1f880a-9d32-45e6-a812-123456789abc',
+      'question': 'What was your childhood nickname?',
+    },
   ];
 
   test(
@@ -153,24 +157,35 @@ void main() {
     'Security verification validates rows and uses account with questionId/answer pairs',
     () async {
       final verify = Get.find<VerifySecurityAnswers>();
-      final answer = SecurityAnswer(
-        questionId: questionData.first['id']!,
-        answer: ' Phnom Penh ',
-      );
+      final answers = [
+        SecurityAnswer(questionId: questionData[0]['id']!, answer: ' Phnom Penh '),
+        SecurityAnswer(questionId: questionData[1]['id']!, answer: ' Teacher '),
+        SecurityAnswer(questionId: questionData[2]['id']!, answer: ' Nickname '),
+      ];
       for (final params in [
-        VerifySecurityAnswersParams(account: '', answers: [answer]),
+        VerifySecurityAnswersParams(account: '', answers: answers),
         const VerifySecurityAnswersParams(account: 'someone', answers: []),
-        const VerifySecurityAnswersParams(
+        VerifySecurityAnswersParams(account: 'someone', answers: [answers[0]]),
+        VerifySecurityAnswersParams(account: 'someone', answers: [answers[0], answers[1]]),
+        VerifySecurityAnswersParams(
           account: 'someone',
-          answers: [SecurityAnswer(questionId: '', answer: 'Answer')],
-        ),
-        const VerifySecurityAnswersParams(
-          account: 'someone',
-          answers: [SecurityAnswer(questionId: 'id', answer: ' ')],
+          answers: [
+            answers[0],
+            answers[1],
+            const SecurityAnswer(questionId: '', answer: 'Answer'),
+          ],
         ),
         VerifySecurityAnswersParams(
           account: 'someone',
-          answers: [answer, answer],
+          answers: [
+            answers[0],
+            answers[1],
+            const SecurityAnswer(questionId: 'id', answer: ' '),
+          ],
+        ),
+        VerifySecurityAnswersParams(
+          account: 'someone',
+          answers: [answers[0], answers[0], answers[1]],
         ),
       ]) {
         expect((await verify(params)).failureOrNull, isA<ValidationFailure>());
@@ -182,7 +197,7 @@ void main() {
       });
       expect(
         (await verify(
-          VerifySecurityAnswersParams(account: ' someone ', answers: [answer]),
+          VerifySecurityAnswersParams(account: ' someone ', answers: answers),
         )).valueOrNull,
         'security-proof',
       );
@@ -193,7 +208,9 @@ void main() {
       expect(request.data, {
         'account': 'someone',
         'answers': [
-          {'questionId': answer.questionId, 'answer': ' Phnom Penh '},
+          {'questionId': answers[0].questionId, 'answer': ' Phnom Penh '},
+          {'questionId': answers[1].questionId, 'answer': ' Teacher '},
+          {'questionId': answers[2].questionId, 'answer': ' Nickname '},
         ],
       });
       expect(session.cleared, isFalse);
@@ -445,37 +462,30 @@ void main() {
       await press(tester, 'Use Security Questions');
       expect(find.text('Please enter your account.'), findsOneWidget);
       expect(adapter.requests, isEmpty);
-      await tester.enterText(find.byType(TextField), 'someone@example.com');
+      await tester.enterText(find.byType(EditableText).first, 'someone@example.com');
       await press(tester, 'Use Security Questions');
       expect(find.text('Questions unavailable'), findsOneWidget);
       loadFails = false;
       await press(tester, 'Use Security Questions');
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(questionData.first['question']!).last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'Phnom Penh');
-      await press(tester, 'Add Question');
-      await tester.tap(find.byType(DropdownButtonFormField<String>).last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(questionData.last['question']!).last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).last, 'Teacher');
+      await tester.enterText(find.byType(TextField).at(0), 'Phnom Penh');
+      await tester.enterText(find.byType(TextField).at(1), 'Teacher');
+      await tester.enterText(find.byType(TextField).at(2), 'Nickname');
       await press(tester, 'Verify Answers');
       expect(find.text('Answers do not match'), findsOneWidget);
       expect(find.text('New Password'), findsNothing);
       expect(adapter.requests.last.data, {
         'account': 'someone@example.com',
         'answers': [
-          {'questionId': questionData.first['id'], 'answer': 'Phnom Penh'},
-          {'questionId': questionData.last['id'], 'answer': 'Teacher'},
+          {'questionId': questionData[0]['id'], 'answer': 'Phnom Penh'},
+          {'questionId': questionData[1]['id'], 'answer': 'Teacher'},
+          {'questionId': questionData[2]['id'], 'answer': 'Nickname'},
         ],
       });
       answersFail = false;
       await press(tester, 'Verify Answers');
       expect(find.byType(DropdownButtonFormField<String>), findsNothing);
-      await tester.enterText(find.byType(TextField).first, 'new-password');
-      await tester.enterText(find.byType(TextField).last, 'new-password');
+      await tester.enterText(find.byType(EditableText).at(0), 'new-password');
+      await tester.enterText(find.byType(EditableText).at(1), 'new-password');
       await press(tester, 'Reset Password');
       expect(adapter.requests.last.data['resetToken'], 'security-proof');
       expect(session.cleared, isTrue);
@@ -512,22 +522,22 @@ void main() {
         return _json({'success': true});
       };
       await mount(tester);
-      await tester.enterText(find.byType(TextField), 'someone@example.com');
+      await tester.enterText(find.byType(EditableText).first, 'someone@example.com');
       await press(tester, 'Send Request');
       expect(find.text('Verification Code'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), '012345');
+      await tester.enterText(find.byType(EditableText).first, '012345');
       await press(tester, 'Verify Code');
       expect(find.text('Code is invalid'), findsOneWidget);
       expect(find.text('New Password'), findsNothing);
       invalidOtp = false;
       await press(tester, 'Verify Code');
-      await tester.enterText(find.byType(TextField).first, 'new-password');
-      await tester.enterText(find.byType(TextField).last, 'different');
+      await tester.enterText(find.byType(EditableText).at(0), 'new-password');
+      await tester.enterText(find.byType(EditableText).at(1), 'different');
       final beforeReset = adapter.requests.length;
       await press(tester, 'Reset Password');
       expect(find.text('Passwords do not match.'), findsOneWidget);
       expect(adapter.requests, hasLength(beforeReset));
-      await tester.enterText(find.byType(TextField).last, 'new-password');
+      await tester.enterText(find.byType(EditableText).at(1), 'new-password');
       await press(tester, 'Reset Password');
       expect(find.text('Reset token expired'), findsOneWidget);
       expect(session.cleared, isFalse);
@@ -548,7 +558,7 @@ void main() {
       await mount(tester);
       adapter.respond = (_) =>
           _json({'success': false, 'message': 'Try later'}, 429);
-      await tester.enterText(find.byType(TextField), 'someone');
+      await tester.enterText(find.byType(EditableText).first, 'someone');
       await press(tester, 'Send Request');
       expect(find.text('Try later'), findsOneWidget);
       final pending = Completer<dio.ResponseBody>();
@@ -573,7 +583,7 @@ void main() {
       await press(tester, 'Start Again');
       expect(find.text('Send Request'), findsOneWidget);
       expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        tester.widget<EditableText>(find.byType(EditableText)).controller.text,
         'someone',
       );
       await tester.pumpWidget(const SizedBox.shrink());

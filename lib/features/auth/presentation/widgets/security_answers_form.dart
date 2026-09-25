@@ -21,7 +21,25 @@ class SecurityAnswersForm extends StatefulWidget {
 }
 
 class _SecurityAnswersFormState extends State<SecurityAnswersForm> {
-  final _rows = [_AnswerRow()];
+  late final List<_AnswerRow> _rows;
+
+  @override
+  void initState() {
+    super.initState();
+    final targetCount = widget.questions.length >= 3
+        ? 3
+        : (widget.questions.isNotEmpty ? widget.questions.length : 3);
+    _rows = List.generate(targetCount, (index) {
+      final row = _AnswerRow();
+      if (index < widget.questions.length) {
+        row.questionId = widget.questions[index].id;
+      }
+      return row;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _notify();
+    });
+  }
 
   @override
   void dispose() {
@@ -95,7 +113,7 @@ class _SecurityAnswersFormState extends State<SecurityAnswersForm> {
                   ),
                   onChanged: (_) => _notify(),
                 ),
-                if (_rows.length > 1)
+                if (_rows.length > 3)
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -120,7 +138,11 @@ class _SecurityAnswersFormState extends State<SecurityAnswersForm> {
             onPressed: !widget.enabled
                 ? null
                 : () {
-                    setState(() => _rows.add(_AnswerRow()));
+                    final unused = widget.questions.firstWhereOrNull(
+                      (q) => !selected.contains(q.id),
+                    );
+                    final row = _AnswerRow()..questionId = unused?.id;
+                    setState(() => _rows.add(row));
                     _notify();
                   },
             icon: const Icon(Icons.add),

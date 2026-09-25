@@ -115,7 +115,7 @@ class ApiClient extends GetxService {
             if (refreshResult == _RefreshResult.refreshed) {
               final retryToken = session.token.value;
               try {
-                final targetBaseUrl = isNoteRequest ? AppConstants.baseUrl : baseUrl;
+                final targetBaseUrl = isNoteRequest ? baseUrl : AppConstants.baseUrl;
                 final retried = await _dio.fetch(
                   request.copyWith(
                     baseUrl: targetBaseUrl,

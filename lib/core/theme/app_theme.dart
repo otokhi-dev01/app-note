@@ -25,6 +25,7 @@ class AppTheme {
 
   static final light = ThemeData(
     brightness: Brightness.light,
+    fontFamilyFallback: const ['NotoSansKhmer'],
     primaryColor: folderPink,
     scaffoldBackgroundColor: bodyColor,
     colorScheme: ColorScheme.fromSeed(
@@ -51,16 +52,19 @@ class AppTheme {
       ),
       iconTheme: IconThemeData(color: folderPink),
     ),
-    textTheme: GoogleFonts.poppinsTextTheme().copyWith(
-      bodyLarge: const TextStyle(color: textPrimary),
-      bodyMedium: const TextStyle(color: textSecondary),
-    ),
+    textTheme: GoogleFonts.poppinsTextTheme()
+        .copyWith(
+          bodyLarge: const TextStyle(color: textPrimary),
+          bodyMedium: const TextStyle(color: textSecondary),
+        )
+        .apply(fontFamilyFallback: const ['NotoSansKhmer']),
     extensions: <ThemeExtension<dynamic>>[AppColors.light],
     useMaterial3: true,
   );
 
   static final dark = ThemeData(
     brightness: Brightness.dark,
+    fontFamilyFallback: const ['NotoSansKhmer'],
     useMaterial3: true,
     primaryColor: darkFolderPink,
     scaffoldBackgroundColor: darkBackground,
@@ -122,7 +126,8 @@ class AppTheme {
             fontSize: 28,
             fontWeight: FontWeight.w700,
           ),
-        ),
+        )
+        .apply(fontFamilyFallback: const ['NotoSansKhmer']),
 
     iconTheme: const IconThemeData(color: darkFolderPink),
     inputDecorationTheme: InputDecorationTheme(
