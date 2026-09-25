@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -192,7 +192,6 @@
 				E598E417695805C6E72CB20A /* ShareViewController.swift */,
 				EED8AA2662957434D13059C0 /* Base.lproj */,
 			);
-			name = "Share Extension";
 			path = "Share Extension";
 			sourceTree = "<group>";
 		};
@@ -201,7 +200,6 @@
 			children = (
 				557CEE1724AE6452D4B5A99C /* MainInterface.storyboard */,
 			);
-			name = Base.lproj;
 			path = Base.lproj;
 			sourceTree = "<group>";
 		};
@@ -314,8 +312,8 @@
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
 			packageReferences = (
-				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */,
-				5D105DBC8CF283510FB9E22A /* XCLocalSwiftPackageReference "receive_sharing_intent-1.9.0" */,
+				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
+				5D105DBC8CF283510FB9E22A /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/receive_sharing_intent-1.9.0" */,
 			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
@@ -575,7 +573,7 @@
 				CUSTOM_GROUP_ID = "group.com.kimchheang.otokhi-note";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -791,7 +789,7 @@
 				CUSTOM_GROUP_ID = "group.com.kimchheang.otokhi-note";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -816,7 +814,7 @@
 				CUSTOM_GROUP_ID = "group.com.kimchheang.otokhi-note";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -875,11 +873,11 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		5D105DBC8CF283510FB9E22A /* XCLocalSwiftPackageReference "receive_sharing_intent-1.9.0" */ = {
+		5D105DBC8CF283510FB9E22A /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/receive_sharing_intent-1.9.0" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "Flutter/ephemeral/Packages/.packages/receive_sharing_intent-1.9.0";
 		};
-		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "FlutterGeneratedPluginSwiftPackage" */ = {
+		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};
@@ -888,7 +886,7 @@
 /* Begin XCSwiftPackageProductDependency section */
 		1690AA5A9FE6346F6C18957A /* receive-sharing-intent */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5D105DBC8CF283510FB9E22A /* XCLocalSwiftPackageReference "receive_sharing_intent-1.9.0" */;
+			package = 5D105DBC8CF283510FB9E22A /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/receive_sharing_intent-1.9.0" */;
 			productName = "receive-sharing-intent";
 		};
 		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {
