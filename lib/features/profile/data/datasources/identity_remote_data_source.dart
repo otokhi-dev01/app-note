@@ -128,7 +128,8 @@ class IdentityRemoteDataSource extends GetxService {
       );
       // Mirrors UserRemoteDataSource's defensive unwrap: accept either a
       // bare object or one nested under a `data`/`Data` envelope.
-      final dynamic dataRaw = json['data'] ?? json['Data'];
+      final dynamic dataRaw =
+          json['data'] ?? json['Data'] ?? json['payload'] ?? json['result'];
       final Map<String, dynamic> result = dataRaw is Map
           ? Map<String, dynamic>.from(dataRaw)
           : json;

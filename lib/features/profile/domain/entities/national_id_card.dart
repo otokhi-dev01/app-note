@@ -141,7 +141,14 @@ class NationalIdCard {
       return '';
     }
 
-    final mrzRaw = json['mrzLines'] ?? json['mrz_lines'] ?? json['mrz'];
+    final mrzRaw =
+        json['mrzLines'] ??
+        json['mrz_lines'] ??
+        json['mrz'] ??
+        json['MrzLines'] ??
+        json['Mrz'] ??
+        json['mrzData'] ??
+        json['mrz_data'];
     final mrzLines = switch (mrzRaw) {
       List<dynamic>() => mrzRaw.map((line) => line.toString()).toList(),
       String() when mrzRaw.isNotEmpty => mrzRaw.split('\n'),
@@ -149,51 +156,215 @@ class NationalIdCard {
     };
 
     return NationalIdCard(
-      idNumber: pick(['idNumber', 'id_number', 'nationalIdNumber']),
-      nameKhmer: pick(['nameKhmer', 'name_kh', 'nameKh']),
-      nameLatin: pick(['nameLatin', 'name_en', 'nameEn', 'nameLatn']),
-      dateOfBirth: _formatDate(pick(['dateOfBirth', 'date_of_birth', 'dob'])),
+      idNumber: pick([
+        'idNumber',
+        'id_number',
+        'nationalIdNumber',
+        'national_id_number',
+        'id',
+        'Id',
+        'ID',
+        'IdNumber',
+        'NationalIdNumber',
+        'number',
+        'documentNumber',
+        'DocumentNumber',
+        'document_number',
+        'cardNo',
+        'card_no',
+        'CardNo',
+        'idCardNumber',
+        'identityNumber',
+      ]),
+      nameKhmer: pick([
+        'nameKhmer',
+        'name_kh',
+        'nameKh',
+        'NameKhmer',
+        'NameKh',
+        'fullNameKhmer',
+        'FullNameKhmer',
+        'full_name_khmer',
+        'khmerName',
+        'KhmerName',
+        'khmer_name',
+        'nameInKhmer',
+      ]),
+      nameLatin: pick([
+        'nameLatin',
+        'name_en',
+        'nameEn',
+        'nameLatn',
+        'NameLatin',
+        'NameEn',
+        'fullNameLatin',
+        'FullNameLatin',
+        'full_name_latin',
+        'latinName',
+        'LatinName',
+        'latin_name',
+        'fullName',
+        'FullName',
+        'full_name',
+        'name',
+        'Name',
+        'englishName',
+        'EnglishName',
+      ]),
+      dateOfBirth: _formatDate(
+        pick([
+          'dateOfBirth',
+          'date_of_birth',
+          'dob',
+          'DateOfBirth',
+          'Dob',
+          'DOB',
+          'birthDate',
+          'BirthDate',
+          'birth_date',
+          'dateBirth',
+          'DateBirth',
+        ]),
+      ),
       placeOfBirthKhmer: pick([
         'placeOfBirthKhmer',
         'place_of_birth_kh',
         'pobKh',
+        'PlaceOfBirthKhmer',
+        'PlaceOfBirthKh',
+        'pobKhmer',
+        'PobKhmer',
+        'pob_khmer',
+        'pob_kh',
       ]),
       placeOfBirthEnglish: pick([
         'placeOfBirthEnglish',
         'place_of_birth_en',
         'pobEn',
+        'PlaceOfBirthEnglish',
+        'PlaceOfBirthEn',
+        'pobEnglish',
+        'PobEnglish',
+        'pob_english',
+        'pob_en',
+        'placeOfBirth',
+        'PlaceOfBirth',
+        'place_of_birth',
+        'pob',
       ]),
       currentAddressKhmer: pick([
         'currentAddressKhmer',
         'current_address_kh',
         'addressKh',
+        'CurrentAddressKhmer',
+        'CurrentAddressKh',
+        'addressKhmer',
+        'AddressKhmer',
+        'address_kh',
       ]),
       currentAddressEnglish: pick([
         'currentAddressEnglish',
         'current_address_en',
         'addressEn',
+        'CurrentAddressEnglish',
+        'CurrentAddressEn',
+        'addressEnglish',
+        'AddressEnglish',
+        'address_en',
+        'address',
+        'Address',
+        'currentAddress',
+        'CurrentAddress',
+        'current_address',
       ]),
-      expiryDate: _formatDate(pick(['expiryDate', 'expiry_date', 'expiry'])),
+      expiryDate: _formatDate(
+        pick([
+          'expiryDate',
+          'expiry_date',
+          'expiry',
+          'ExpiryDate',
+          'Expiry',
+          'expirationDate',
+          'ExpirationDate',
+          'expiration_date',
+          'validUntil',
+          'valid_until',
+        ]),
+      ),
       mrzLines: mrzLines.isEmpty ? const [''] : mrzLines,
       validityYears:
-          int.tryParse(pick(['validityYears', 'validity_years'])) ?? 10,
+          int.tryParse(
+            pick(['validityYears', 'validity_years', 'ValidityYears', 'validity']),
+          ) ??
+          10,
       chipIntegrityPercent:
           int.tryParse(
-            pick(['chipIntegrityPercent', 'chip_integrity_percent']),
+            pick([
+              'chipIntegrityPercent',
+              'chip_integrity_percent',
+              'ChipIntegrityPercent',
+              'chipIntegrity',
+            ]),
           ) ??
           100,
-      frontImagePath: frontImagePath,
-      backImagePath: backImagePath,
+      frontImagePath:
+          (frontImagePath != null && frontImagePath.isNotEmpty)
+              ? frontImagePath
+              : () {
+                  final val = pick([
+                    'frontImagePath',
+                    'front_image_path',
+                    'FrontImagePath',
+                    'frontImage',
+                    'FrontImage',
+                    'front_image',
+                    'front',
+                    'Front',
+                  ]);
+                  return val.isEmpty ? null : val;
+                }(),
+      backImagePath:
+          (backImagePath != null && backImagePath.isNotEmpty)
+              ? backImagePath
+              : () {
+                  final val = pick([
+                    'backImagePath',
+                    'back_image_path',
+                    'BackImagePath',
+                    'backImage',
+                    'BackImage',
+                    'back_image',
+                    'back',
+                    'Back',
+                  ]);
+                  return val.isEmpty ? null : val;
+                }(),
     );
   }
 
-  /// Renders an ISO-ish date (`2030-08-15`, `2030-08-15T00:00:00Z`, ...) as
-  /// the `DD-MM-YYYY` format used throughout this screen. Falls back to the
-  /// raw string when it isn't a date `DateTime.parse` understands, so an
-  /// unexpected backend format degrades to "shown as-is" rather than blank.
+  /// Renders an ISO-ish date (`2030-08-15`, `2030-08-15T00:00:00Z`, ...) or
+  /// `DD/MM/YYYY`, `YYYY/MM/DD` as the `DD-MM-YYYY` format used throughout
+  /// this screen.
   static String _formatDate(String raw) {
-    final parsed = DateTime.tryParse(raw);
-    if (parsed == null) return raw;
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return '';
+
+    // Match DD-MM-YYYY or DD/MM/YYYY
+    final ddmmyyyy = RegExp(r'^(\d{2})[/-](\d{2})[/-](\d{4})$');
+    final matchDD = ddmmyyyy.firstMatch(trimmed);
+    if (matchDD != null) {
+      return '${matchDD.group(1)}-${matchDD.group(2)}-${matchDD.group(3)}';
+    }
+
+    // Match YYYY-MM-DD or YYYY/MM/DD
+    final yyyymmdd = RegExp(r'^(\d{4})[/-](\d{2})[/-](\d{2})');
+    final matchYYYY = yyyymmdd.firstMatch(trimmed);
+    if (matchYYYY != null) {
+      return '${matchYYYY.group(3)}-${matchYYYY.group(2)}-${matchYYYY.group(1)}';
+    }
+
+    final parsed = DateTime.tryParse(trimmed);
+    if (parsed == null) return trimmed;
     String two(int n) => n.toString().padLeft(2, '0');
     return '${two(parsed.day)}-${two(parsed.month)}-${parsed.year}';
   }
