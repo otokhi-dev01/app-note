@@ -144,9 +144,11 @@ class ProfileController extends GetxController {
     // The avatar is stored as a path relative to the documents directory
     // so it survives app container UUID changes on iOS. Resolve it to a real
     // absolute path for the File widget.
+    final sessionImagePath = user?.profileImage ?? '';
+    final extrasImagePath = _extras.profileImagePath;
     final savedPath = isGuest
         ? _extras.guestImagePath
-        : (user?.profileImage ?? '');
+        : (sessionImagePath.isNotEmpty ? sessionImagePath : extrasImagePath);
     final resolvedPath = await AppMediaStorage.resolve(savedPath);
     userImagePath.value =
         resolvedPath != null && File(resolvedPath).existsSync()
@@ -431,6 +433,7 @@ class ProfileController extends GetxController {
         applyPersisted();
         return;
       }
+      _extras.profileImagePath = relativePath;
       switch (await _updateProfileImage(relativePath)) {
         case Ok():
           applyPersisted();

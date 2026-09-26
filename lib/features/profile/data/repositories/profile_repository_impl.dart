@@ -1,5 +1,6 @@
 import 'package:Note/core/error/guard.dart';
 import 'package:Note/core/error/result.dart';
+import 'package:Note/core/storage/profile_extras_storage.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
@@ -29,8 +30,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
   /// `ProfileController._syncApiUser`), so this stays local-only until that's
   /// deliberately rearchitected.
   @override
-  Future<Result<AuthUser>> updateProfileImage(String imagePath) =>
-      _patchLocal((user) => user.copyWith(profileImage: imagePath));
+  Future<Result<AuthUser>> updateProfileImage(String imagePath) async {
+    ProfileExtrasStorage().profileImagePath = imagePath;
+    return _patchLocal((user) => user.copyWith(profileImage: imagePath));
+  }
 
   Future<Result<AuthUser>> _patchLocal(UserData Function(UserData) change) =>
       guard(() async {

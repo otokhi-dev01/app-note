@@ -50,6 +50,20 @@ class AttachmentBlock extends NoteBlock {
     this.url,
     this.localPath,
   }) : super(type: 'attachment');
+
+  AttachmentBlock copyWith({
+    String? id,
+    int? attachmentId,
+    String? displayName,
+    String? url,
+    String? localPath,
+  }) => AttachmentBlock(
+    id: id ?? this.id,
+    attachmentId: attachmentId ?? this.attachmentId,
+    displayName: displayName ?? this.displayName,
+    url: url ?? this.url,
+    localPath: localPath ?? this.localPath,
+  );
 }
 
 class TableBlock extends NoteBlock {
@@ -65,4 +79,14 @@ class DrawingBlock extends NoteBlock {
 
   const DrawingBlock({required super.id, this.localPath, this.url})
     : super(type: 'drawing');
+
+  DrawingBlock copyWith({
+    String? id,
+    String? localPath,
+    String? url,
+  }) => DrawingBlock(
+    id: id ?? this.id,
+    localPath: localPath ?? this.localPath,
+    url: url ?? this.url,
+  );
 }

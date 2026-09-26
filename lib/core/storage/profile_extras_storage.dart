@@ -28,8 +28,12 @@ class ProfileExtrasStorage {
   static const _keyFavoriteColor = 'profile_extra_favorite_color_q';
   static const _keyFavoriteSong = 'profile_extra_favorite_song_q';
   static const _keyFavoriteFood = 'profile_extra_favorite_food_q';
+  static const _keyProfileImage = 'profile_extra_profile_image';
 
   final _storage = GetStorage();
+
+  String get profileImagePath => _storage.read<String>(_keyProfileImage) ?? '';
+  set profileImagePath(String value) => _storage.write(_keyProfileImage, value);
 
   String get username => _storage.read<String>(_keyUsername) ?? '';
   set username(String value) => _storage.write(_keyUsername, value);
