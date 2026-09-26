@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -49,6 +50,15 @@ class NoteSyncRepository implements NoteRepository {
   /// "syncing…" indicator if it wants one.
   int get pendingCount => _readQueue().length;
 
+  bool _isOfflineOrAuthFailure(AppFailure failure) {
+    if (failure is NetworkFailure) return true;
+    if (kDebugMode) {
+      if (failure is UnauthorizedFailure) return true;
+      if (failure is ServerFailure && failure.statusCode == 401) return true;
+    }
+    return false;
+  }
+
   @override
   Future<Result<NoteBundle>> getNotes({int? folderId}) async {
     await flushPending();
@@ -79,7 +89,7 @@ class NoteSyncRepository implements NoteRepository {
         await _writeCache(list);
         return Ok(_bundle(list, folderId));
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         return Ok(_bundle(_readCache(), folderId));
     }
   }
@@ -99,7 +109,7 @@ class NoteSyncRepository implements NoteRepository {
         await _writeCache(_upsertNote(_readCache(), value));
         return Ok(value);
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         final match = _readCache().where((n) => n.id == id).firstOrNull;
         return match == null ? Err(failure) : Ok(match);
     }
@@ -164,7 +174,7 @@ class NoteSyncRepository implements NoteRepository {
         );
         return Ok(value);
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         final assignedId = noteId == 0 ? _nextTempId() : noteId;
         await _writeCache(
           _apply(
@@ -209,7 +219,7 @@ class NoteSyncRepository implements NoteRepository {
         );
         return okVoid;
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         await _writeCache(
           _apply(
             _readCache(),
@@ -265,7 +275,7 @@ class NoteSyncRepository implements NoteRepository {
         );
         return okVoid;
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         await _writeCache(
           _apply(
             _readCache(),
@@ -303,7 +313,7 @@ class NoteSyncRepository implements NoteRepository {
         );
         return okVoid;
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         await _writeCache(
           _apply(
             _readCache(),
@@ -377,7 +387,7 @@ class NoteSyncRepository implements NoteRepository {
       case Ok(:final value):
         return Ok(value);
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         return _storeAttachmentLocallyAndQueue(
           noteId: noteId,
           filePath: filePath,
@@ -400,7 +410,7 @@ class NoteSyncRepository implements NoteRepository {
       case Ok(:final value):
         return Ok(value);
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         // `url` may already be a local path — an attachment created offline,
         // or one downloaded earlier — in which case there is nothing to
         // fetch from the network at all.
@@ -460,7 +470,7 @@ class NoteSyncRepository implements NoteRepository {
               );
               listChanged = true;
             case Err(:final failure):
-              if (failure is NetworkFailure) {
+              if (_isOfflineOrAuthFailure(failure)) {
                 offline = true;
                 stillQueued.add(remapped);
               }
@@ -471,7 +481,9 @@ class NoteSyncRepository implements NoteRepository {
             title: remapped.title ?? '',
             content: remapped.content!,
           );
-          if (result case Err(:final failure) when failure is NetworkFailure) {
+          if (result
+              case Err(:final failure)
+              when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
@@ -482,7 +494,9 @@ class NoteSyncRepository implements NoteRepository {
             isArchived: remapped.isArchived,
             isLocked: remapped.isLocked,
           );
-          if (result case Err(:final failure) when failure is NetworkFailure) {
+          if (result
+              case Err(:final failure)
+              when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
@@ -491,7 +505,9 @@ class NoteSyncRepository implements NoteRepository {
             remapped.id,
             remapped.isDelete!,
           );
-          if (result case Err(:final failure) when failure is NetworkFailure) {
+          if (result
+              case Err(:final failure)
+              when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
@@ -512,7 +528,7 @@ class NoteSyncRepository implements NoteRepository {
               );
               listChanged = true;
             case Err(:final failure):
-              if (failure is NetworkFailure) {
+              if (_isOfflineOrAuthFailure(failure)) {
                 offline = true;
                 stillQueued.add(remapped);
               }

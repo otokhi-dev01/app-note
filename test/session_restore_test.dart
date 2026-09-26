@@ -120,6 +120,10 @@ void main() {
             name: '/other',
             page: () => const Scaffold(body: Text('Other')),
           ),
+          GetPage(
+            name: Routes.LOGIN,
+            page: () => const Scaffold(body: Text('Sign in')),
+          ),
         ],
       ),
     );
@@ -218,4 +222,59 @@ void main() {
     await session.loadSession();
     expect(session.isLoggedIn, isTrue);
   });
+
+  test(
+    'Restore repairs a legacy prefixed token without changing other keys',
+    () async {
+      stored['token'] = ' \tBearer bearer saved-token\n';
+      stored['encryption_key'] = 'local-key';
+      final before = Map<String, String>.from(stored)
+        ..['token'] = 'saved-token';
+      final session = Get.put(SessionStorage());
+      await session.ready;
+      expect(session.token.value, 'saved-token');
+      expect(stored, before);
+      final restarted = SessionStorage();
+      await restarted.ready;
+      expect(restarted.token.value, 'saved-token');
+    },
+  );
+
+  testWidgets(
+    'Concurrent terminal 401s remove only token and navigate to login',
+    (tester) async {
+      stored['refresh_token'] = 'retained-refresh';
+      stored['encryption_key'] = 'local-key';
+      stored['identity_record'] = 'saved-identity';
+      await GetStorage().write('notes', ['offline-note']);
+      await GetStorage().write('theme', 'dark');
+      final before = Map<String, String>.from(stored)..remove('token');
+      final session = await mount(tester);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.FOLDER);
+      final api = Get.put(ApiClient(refreshTokenEndpoint: null));
+      final adapter = _Adapter()..status = 401;
+      api.dio.httpClientAdapter = adapter;
+      final requests = [
+        for (final path in ['/api/note', '/api/folder'])
+          expectLater(api.dio.get(path), throwsA(isA<dio.DioException>())),
+      ];
+      await tester.pumpAndSettle();
+      await Future.wait(requests);
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.LOGIN);
+      expect(session.isLoggedIn, isFalse);
+      expect(stored, before);
+      expect(GetStorage().read('notes'), ['offline-note']);
+      expect(GetStorage().read('theme'), 'dark');
+      expect(adapter.requests, hasLength(2));
+      final restarted = SessionStorage();
+      await restarted.ready;
+      expect(restarted.isLoggedIn, isFalse);
+      expect(restarted.refreshToken.value, isNull);
+      expect(restarted.user.value, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

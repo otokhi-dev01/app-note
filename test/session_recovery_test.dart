@@ -20,6 +20,16 @@ dio.ResponseBody response(Object body, [int status = 200]) =>
       },
     );
 
+dio.ResponseBody signatureRejected() => dio.ResponseBody.fromString(
+  '',
+  401,
+  headers: {
+    'www-authenticate': [
+      'Bearer error="invalid_token", error_description="The signature is invalid"',
+    ],
+  },
+);
+
 class _Adapter implements dio.HttpClientAdapter {
   final requests = <dio.RequestOptions>[];
   late FutureOr<dio.ResponseBody> Function(dio.RequestOptions) respond;
@@ -44,6 +54,7 @@ void main() {
   late _Adapter adapter;
   const refreshPath = '/api/auth/refresh-token';
   const sessionsPath = '/api/auth/sessions';
+  const secureStorage = FlutterSecureStorage();
 
   setUp(() async {
     Get.testMode = true;
@@ -129,36 +140,31 @@ void main() {
   );
 
   test(
-    'Legacy access-only session skips refresh and verifies the documented endpoint',
+    'Legacy access-only session signs out without refresh or account verification',
     () async {
       await session.saveSession(
         'legacy-access',
         const UserData(id: 'user-one'),
       );
-      adapter.respond = (request) => response({
-        'Success': true,
-        'Data': [],
-      }, request.uri.path == sessionsPath ? 200 : 401);
+      adapter.respond = (_) => response({}, 401);
       await rejectedRequest();
       await rejectedRequest('/api/folder');
       expect(adapter.requests.where((r) => r.uri.path == refreshPath), isEmpty);
       expect(
         adapter.requests.where((r) => r.uri.path == sessionsPath),
-        hasLength(1),
+        isEmpty,
       );
-      expect(session.token.value, 'legacy-access');
+      expect(session.token.value, isNull);
       expect(session.refreshToken.value, isNull);
     },
   );
 
   test(
-    'A valid Chat session does not replay a Note request with the same token',
+    'A Note rejection invalidates access without consulting a valid Chat session',
     () async {
       await session.saveSession('valid-access', const UserData(id: 'user-one'));
       adapter.respond = (request) {
-        expect(request.headers['Authorization'], 'Bearer valid-access');
         if (request.uri.path == sessionsPath) {
-          expect(request.uri.host, 'chat.piisiit.com');
           return response({'success': true, 'data': []});
         }
         expect(request.uri.host, 'note.piisiit.com');
@@ -168,17 +174,31 @@ void main() {
       await rejectedRequest('/api/folder');
       expect(adapter.requests.map((request) => request.uri.path), [
         '/api/note',
-        sessionsPath,
         '/api/folder',
       ]);
-      expect(session.token.value, 'valid-access');
+      expect(
+        adapter.requests.first.headers['Authorization'],
+        'Bearer valid-access',
+      );
+      expect(adapter.requests.last.headers['Authorization'], isNull);
+      expect(session.token.value, isNull);
     },
   );
 
   test(
-    'Note signature rejection does not replay a folder save or revoke a valid Chat session',
+    'Note signature rejection skips refresh and never replays a folder save',
     () async {
-      await session.saveSession('chat-access', const UserData(id: 'user-one'));
+      await session.saveSession(
+        'chat-access',
+        const UserData(id: 'user-one'),
+        refreshToken: 'saved-refresh',
+      );
+      await secureStorage.write(
+        key: 'profile_id_snapshot',
+        value: 'saved identity',
+      );
+      await secureStorage.write(key: 'private_key', value: 'saved key');
+      final storedBefore = await secureStorage.readAll();
       final payload = {
         'id': 0,
         'name': 'Work',
@@ -188,10 +208,6 @@ void main() {
       };
       adapter.respond = (request) {
         expect(request.headers['Authorization'], 'Bearer chat-access');
-        if (request.uri.path == sessionsPath) {
-          expect(request.uri.host, 'chat.piisiit.com');
-          return response({'success': true, 'data': []});
-        }
         expect(request.uri.host, 'note.piisiit.com');
         expect(request.uri.path, '/api/folder/save');
         expect(request.method, 'POST');
@@ -216,14 +232,13 @@ void main() {
           ),
         ),
       );
-      expect(adapter.requests.map((r) => r.uri.path), [
-        '/api/folder/save',
-        sessionsPath,
-      ]);
-      expect(session.token.value, 'chat-access');
+      expect(adapter.requests.map((r) => r.uri.path), ['/api/folder/save']);
+      expect(session.isLoggedIn, isFalse);
+      expect(await secureStorage.readAll(), storedBefore..remove('token'));
       final restarted = SessionStorage();
       await restarted.ready;
-      expect(restarted.token.value, 'chat-access');
+      expect(restarted.isLoggedIn, isFalse);
+      expect(restarted.refreshToken.value, isNull);
     },
   );
 
@@ -235,10 +250,7 @@ void main() {
       await rejectedRequest();
       await session.loadSession();
       expect(session.isLoggedIn, isFalse);
-      expect(adapter.requests.map((r) => r.uri.path), [
-        '/api/note',
-        sessionsPath,
-      ]);
+      expect(adapter.requests.map((r) => r.uri.path), ['/api/note']);
     },
   );
 
@@ -259,7 +271,7 @@ void main() {
   );
 
   test(
-    'Refresh validation failure verifies account and does not loop or erase a valid login',
+    'Refresh validation rejection invalidates access without account verification',
     () async {
       adapter.respond = (request) => response(
         {'success': true},
@@ -271,21 +283,23 @@ void main() {
       );
       await rejectedRequest();
       await rejectedRequest();
-      expect(session.token.value, 'old-access');
+      expect(session.token.value, isNull);
       expect(
         adapter.requests.where((r) => r.uri.path == refreshPath),
         hasLength(1),
       );
       expect(
         adapter.requests.where((r) => r.uri.path == sessionsPath),
-        hasLength(1),
+        isEmpty,
       );
     },
   );
 
-  test('Rejected refresh clears both credentials', () async {
+  test('Rejected refresh removes only the stored access-token key', () async {
+    final storedBefore = await secureStorage.readAll();
     adapter.respond = (_) => response({}, 401);
     await rejectedRequest();
+    expect(await secureStorage.readAll(), storedBefore..remove('token'));
     await session.loadSession();
     expect(session.isLoggedIn, isFalse);
     expect(session.refreshToken.value, isNull);
@@ -296,7 +310,7 @@ void main() {
   });
 
   test(
-    'Note rejecting a renewed token is retried only once and preserves the account',
+    'Note rejecting a renewed token is retried once then invalidates access',
     () async {
       adapter.respond = (request) => request.uri.path == refreshPath
           ? response({
@@ -306,7 +320,9 @@ void main() {
           : response({}, 401);
       await rejectedRequest();
       expect(adapter.requests, hasLength(3));
-      expect(session.token.value, 'renewed');
+      expect(session.token.value, isNull);
+      expect(await secureStorage.read(key: 'token'), isNull);
+      expect(await secureStorage.read(key: 'refresh_token'), 'rotated');
       await rejectedRequest('/api/folder');
       expect(adapter.requests, hasLength(4));
     },
@@ -381,4 +397,153 @@ void main() {
       expect(session.user.value?.id, 'user-two');
     },
   );
+
+  test(
+    'No configured refresh endpoint signs out without a refresh call',
+    () async {
+      await Get.delete<ApiClient>(force: true);
+      api = Get.put(ApiClient(refreshTokenEndpoint: null));
+      api.dio.httpClientAdapter = adapter;
+      adapter.respond = (_) => response({}, 401);
+      await rejectedRequest();
+      expect(adapter.requests.map((r) => r.uri.path), ['/api/note']);
+      expect(session.isLoggedIn, isFalse);
+      expect(await secureStorage.read(key: 'token'), isNull);
+      expect(await secureStorage.read(key: 'refresh_token'), 'old-refresh');
+    },
+  );
+
+  for (final status in [404, 405]) {
+    test(
+      'Refresh HTTP $status disables further attempts in this client',
+      () async {
+        adapter.respond = (request) =>
+            response({}, request.uri.path == refreshPath ? status : 401);
+        await rejectedRequest();
+        expect(session.isLoggedIn, isFalse);
+        await session.saveSession(
+          'second-access',
+          const UserData(id: 'user-two'),
+          refreshToken: 'second-refresh',
+        );
+        await rejectedRequest('/api/folder');
+        expect(adapter.requests.map((r) => r.uri.path), [
+          '/api/note',
+          refreshPath,
+          '/api/folder',
+        ]);
+        expect(session.isLoggedIn, isFalse);
+      },
+    );
+  }
+
+  test(
+    'Login 401 preserves the session even without a requiresAuth flag',
+    () async {
+      final storedBefore = await secureStorage.readAll();
+      final revisionBefore = session.revision;
+      adapter.respond = (_) => response({}, 401);
+      for (final path in [
+        'https://chat.piisiit.com/api/auth/login',
+        '/api/auth/login',
+      ]) {
+        await expectLater(
+          api.dio.post(
+            path,
+            options: dio.Options(headers: {'authorization': 'stale'}),
+          ),
+          throwsA(isA<dio.DioException>()),
+        );
+      }
+      expect(adapter.requests, hasLength(2));
+      for (final request in adapter.requests) {
+        expect(
+          request.headers.keys.where(
+            (key) => key.toLowerCase() == 'authorization',
+          ),
+          isEmpty,
+        );
+      }
+      expect(session.revision, revisionBefore);
+      expect(session.token.value, 'old-access');
+      expect(await secureStorage.readAll(), storedBefore);
+    },
+  );
+
+  test(
+    'A stale 401 after a new login cannot replay or revoke the new session',
+    () async {
+      final started = Completer<void>();
+      final finish = Completer<dio.ResponseBody>();
+      adapter.respond = (_) {
+        started.complete();
+        return finish.future;
+      };
+      final requesting = rejectedRequest();
+      await started.future;
+      await session.saveSession(
+        'second-access',
+        const UserData(id: 'user-two'),
+        refreshToken: 'second-refresh',
+      );
+      finish.complete(signatureRejected());
+      await requesting;
+      expect(adapter.requests, hasLength(1));
+      expect(session.token.value, 'second-access');
+      expect(session.refreshToken.value, 'second-refresh');
+      expect(session.user.value?.id, 'user-two');
+      expect(await secureStorage.read(key: 'token'), 'second-access');
+    },
+  );
+
+  test(
+    'Concurrent and repeated signature rejections never refresh or recurse',
+    () async {
+      final started = Completer<void>();
+      final release = Completer<void>();
+      var arrivals = 0;
+      adapter.respond = (_) async {
+        if (++arrivals == 2) started.complete();
+        await release.future;
+        return signatureRejected();
+      };
+      final initialRevision = session.revision;
+      final requesting = Future.wait([
+        rejectedRequest(),
+        rejectedRequest('/api/folder'),
+      ]);
+      await started.future;
+      release.complete();
+      await requesting;
+      expect(session.revision, initialRevision + 1);
+      expect(session.isLoggedIn, isFalse);
+      await rejectedRequest();
+      expect(adapter.requests.map((r) => r.uri.path), [
+        '/api/note',
+        '/api/folder',
+        '/api/note',
+      ]);
+      expect(adapter.requests.last.headers['Authorization'], isNull);
+    },
+  );
+
+  for (final renewed in ['', 'old-access']) {
+    test(
+      'Refresh returning an ${renewed.isEmpty ? 'empty' : 'unchanged'} token does not retry',
+      () async {
+        adapter.respond = (request) => request.uri.path == refreshPath
+            ? response({
+                'success': true,
+                'data': {'accessToken': renewed},
+              })
+            : response({}, 401);
+        await rejectedRequest();
+        expect(adapter.requests.map((r) => r.uri.path), [
+          '/api/note',
+          refreshPath,
+        ]);
+        expect(session.isLoggedIn, isFalse);
+      },
+    );
+  }
 }

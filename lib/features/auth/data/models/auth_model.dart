@@ -23,12 +23,25 @@ class AuthCredentialsRequest {
 
   Map<String, dynamic> toJson() => {
     'account': account,
+    'Account': account,
+    'email': account,
+    'Email': account,
+    'username': account,
+    'Username': account,
+    'phone': account,
+    'Phone': account,
     'password': password,
+    'Password': password,
     'clientDeviceId': clientDeviceId,
+    'ClientDeviceId': clientDeviceId,
     'appVersion': appVersion,
+    'AppVersion': appVersion,
     'deviceName': deviceName,
+    'DeviceName': deviceName,
     'platform': platform,
+    'Platform': platform,
     'deviceModel': deviceModel,
+    'DeviceModel': deviceModel,
   };
 }
 
@@ -67,9 +80,6 @@ class AuthResponse {
                 k == 'success' ||
                 k == 'status',
           ));
-
-    // Some backends return the token directly in 'data' if it's a string
-    final String? dataToken = dataRaw is String ? dataRaw : null;
 
     final dynamic userRaw =
         data['user'] ??
@@ -115,22 +125,7 @@ class AuthResponse {
             json['RefreshToken'] ??
             json['refresh_token'],
       ),
-      token:
-          dataToken ??
-          asString(
-            data['token'] ??
-                data['accessToken'] ??
-                data['Token'] ??
-                data['AccessToken'] ??
-                data['access_token'] ??
-                data['jwt'] ??
-                json['token'] ??
-                json['accessToken'] ??
-                json['Token'] ??
-                json['AccessToken'] ??
-                json['access_token'] ??
-                json['jwt'],
-          ),
+      token: _accessToken(json, data, dataRaw),
       // Only parse user data on success codes; an error body's `data` holds
       // validation details, not a user.
       user: success != false && (code == 200 || code == 201 || code == 0)
@@ -142,6 +137,30 @@ class AuthResponse {
       ),
       success: success,
     );
+  }
+
+  static String _accessToken(
+    Map<String, dynamic> json,
+    Map<String, dynamic> data,
+    dynamic dataRaw,
+  ) {
+    // Explicit access-token fields take priority even when a generic token
+    // also appears in another envelope level. Never substitute refresh or ID
+    // tokens, or stringify validation objects/numbers into credentials.
+    final candidates = [
+      for (final source in [data, json])
+        for (final key in ['accessToken', 'AccessToken', 'access_token'])
+          source[key],
+      for (final source in [data, json])
+        for (final key in ['token', 'Token', 'jwt']) source[key],
+      dataRaw,
+    ];
+    for (final candidate in candidates) {
+      if (candidate is String && candidate.trim().isNotEmpty) {
+        return candidate;
+      }
+    }
+    return '';
   }
 }
 

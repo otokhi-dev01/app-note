@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
@@ -49,6 +50,15 @@ class FolderSyncRepository implements FolderRepository {
   /// offline and has since synced.
   int resolveId(int id) => id >= 0 ? id : (_readTempMap()[id] ?? id);
 
+  bool _isOfflineOrAuthFailure(AppFailure failure) {
+    if (failure is NetworkFailure) return true;
+    if (kDebugMode) {
+      if (failure is UnauthorizedFailure) return true;
+      if (failure is ServerFailure && failure.statusCode == 401) return true;
+    }
+    return false;
+  }
+
   @override
   Future<Result<FolderBundle>> getFolders() async {
     await flushPending();
@@ -67,7 +77,7 @@ class FolderSyncRepository implements FolderRepository {
         await _writeCache(list);
         return Ok(_bundle(list));
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         return Ok(_bundle(_readCache()));
     }
   }
@@ -132,7 +142,7 @@ class FolderSyncRepository implements FolderRepository {
         );
         return Ok(value);
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         final assignedId = id == 0 ? _nextTempId() : id;
         await _writeCache(
           _apply(
@@ -183,7 +193,7 @@ class FolderSyncRepository implements FolderRepository {
         );
         return okVoid;
       case Err(:final failure):
-        if (failure is! NetworkFailure) return Err(failure);
+        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
         await _writeCache(
           _apply(
             _readCache(),
@@ -256,7 +266,7 @@ class FolderSyncRepository implements FolderRepository {
             case Ok(:final value):
               if (remapped.id < 0) tempToReal[remapped.id] = value;
             case Err(:final failure):
-              if (failure is NetworkFailure) {
+              if (_isOfflineOrAuthFailure(failure)) {
                 offline = true;
                 stillQueued.add(remapped);
               }
@@ -266,7 +276,9 @@ class FolderSyncRepository implements FolderRepository {
             remapped.id,
             remapped.isDelete!,
           );
-          if (result case Err(:final failure) when failure is NetworkFailure) {
+          if (result
+              case Err(:final failure)
+              when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
