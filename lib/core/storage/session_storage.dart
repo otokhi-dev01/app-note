@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/network/access_token.dart';
 import 'package:Note/core/network/auth_diagnostics.dart';
+import 'package:Note/core/utils/attachment_url.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/core/error/exceptions.dart';
 
@@ -49,6 +50,7 @@ class SessionStorage extends GetxService {
   @override
   void onInit() {
     super.onInit();
+    unawaited(initAttachmentPathResolver());
     unawaited(ready);
   }
 

@@ -695,9 +695,61 @@ class NoteSyncRepository implements NoteRepository {
   List<Note> _upsertNote(List<Note> list, Note note) {
     final idx = list.indexWhere((n) => n.id == note.id);
     if (idx == -1) return [...list, note];
+
+    final existing = list[idx];
+    final mergedContent = note.content.map((incomingBlock) {
+      if (incomingBlock is AttachmentBlock) {
+        final matchingExisting = existing.content
+            .whereType<AttachmentBlock>()
+            .where(
+              (b) =>
+                  b.id == incomingBlock.id ||
+                  (incomingBlock.attachmentId != 0 &&
+                      b.attachmentId == incomingBlock.attachmentId),
+            )
+            .firstOrNull;
+
+        if (matchingExisting != null &&
+            (incomingBlock.localPath == null ||
+                incomingBlock.localPath!.isEmpty) &&
+            matchingExisting.localPath != null &&
+            matchingExisting.localPath!.isNotEmpty) {
+          return incomingBlock.copyWith(localPath: matchingExisting.localPath);
+        }
+      } else if (incomingBlock is DrawingBlock) {
+        final matchingExisting = existing.content
+            .whereType<DrawingBlock>()
+            .where((b) => b.id == incomingBlock.id)
+            .firstOrNull;
+
+        if (matchingExisting != null &&
+            (incomingBlock.localPath == null ||
+                incomingBlock.localPath!.isEmpty) &&
+            matchingExisting.localPath != null &&
+            matchingExisting.localPath!.isNotEmpty) {
+          return incomingBlock.copyWith(localPath: matchingExisting.localPath);
+        }
+      }
+      return incomingBlock;
+    }).toList();
+
+    final mergedNote = Note(
+      id: note.id,
+      folderId: note.folderId,
+      folderName: note.folderName,
+      title: note.title,
+      content: mergedContent,
+      isPinned: note.isPinned,
+      isArchived: note.isArchived,
+      isLocked: note.isLocked,
+      updatedAt: note.updatedAt,
+      deletedAt: note.deletedAt,
+      attachmentCount: note.attachmentCount,
+    );
+
     return [
       for (final n in list)
-        if (n.id == note.id) note else n,
+        if (n.id == note.id) mergedNote else n,
     ];
   }
 
@@ -882,7 +934,7 @@ class NoteSyncRepository implements NoteRepository {
   // ── persistence ───────────────────────────────────────────────────────
 
   List<Note> _readCache() {
-    final raw = _storage.read<List>(_cacheKey);
+    final raw = _storage.read<List>(_cacheKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_notes_cache_unknown') : null);
     if (raw == null) return <Note>[];
     return raw
         .whereType<Map>()
@@ -894,7 +946,7 @@ class NoteSyncRepository implements NoteRepository {
       _storage.write(_cacheKey, notes.map(_noteToJson).toList());
 
   List<_NoteOp> _readQueue() {
-    final raw = _storage.read<List>(_queueKey);
+    final raw = _storage.read<List>(_queueKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_notes_queue_unknown') : null);
     if (raw == null) return <_NoteOp>[];
     return raw
         .whereType<Map>()

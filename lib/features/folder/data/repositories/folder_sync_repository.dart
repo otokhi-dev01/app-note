@@ -451,7 +451,7 @@ class FolderSyncRepository implements FolderRepository {
   // ── persistence ───────────────────────────────────────────────────────
 
   List<Folder> _readCache() {
-    final raw = _storage.read<List>(_cacheKey);
+    final raw = _storage.read<List>(_cacheKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_folders_cache_unknown') : null);
     if (raw == null) return <Folder>[];
     return raw
         .whereType<Map>()
@@ -463,7 +463,7 @@ class FolderSyncRepository implements FolderRepository {
       _storage.write(_cacheKey, folders.map(_folderToJson).toList());
 
   List<_FolderOp> _readQueue() {
-    final raw = _storage.read<List>(_queueKey);
+    final raw = _storage.read<List>(_queueKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_folders_queue_unknown') : null);
     if (raw == null) return <_FolderOp>[];
     return raw
         .whereType<Map>()
@@ -485,7 +485,7 @@ class FolderSyncRepository implements FolderRepository {
   /// `folderId` even after the folder itself has long since synced and left
   /// the pending queue.
   Map<int, int> _readTempMap() {
-    final raw = _storage.read<Map>(_tempMapKey);
+    final raw = _storage.read<Map>(_tempMapKey) ?? (_uid != 'unknown' ? _storage.read<Map>('account_folders_temp_map_unknown') : null);
     if (raw == null) return <int, int>{};
     return raw.map((k, v) => MapEntry(int.parse(k.toString()), v as int));
   }

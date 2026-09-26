@@ -1,7 +1,19 @@
+import 'dart:io';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/session_storage.dart';
+
+String? _cachedDocumentsPath;
+
+/// Initialize or update cached documents path
+Future<void> initAttachmentPathResolver() async {
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    _cachedDocumentsPath = dir.path;
+  } catch (_) {}
+}
 
 /// Resolves an attachment's stored path/URL into something a network image
 /// widget can actually load.
@@ -48,13 +60,55 @@ String? normalizeAttachmentUrl(String? value) {
 }
 
 /// Turns a stored local path into a filesystem path `File()` can open —
-/// strips a `file://` prefix if present.
+/// strips a `file://` prefix if present and re-roots if sandbox container path changed.
 String? normalizeLocalPath(String? value) {
   if (value == null || value.trim().isEmpty) return null;
-  final path = value.trim();
-  if (!path.startsWith('file://')) return path;
-  final uri = Uri.tryParse(path);
-  return uri?.toFilePath();
+  var path = value.trim();
+  if (path.startsWith('file://')) {
+    final uri = Uri.tryParse(path);
+    path = uri?.toFilePath() ?? path;
+  }
+  path = path.replaceAll('\\', '/');
+
+  if (File(path).existsSync()) return path;
+
+  // If path doesn't exist and we have a cached documents path, try re-rooting
+  if (_cachedDocumentsPath != null) {
+    for (final folder in [
+      'attachments',
+      'profile_images',
+      'scans',
+      'audios',
+      'documents',
+      'pdf_source_images',
+    ]) {
+      final marker = '/$folder/';
+      final index = path.indexOf(marker);
+      if (index != -1) {
+        final rel = path.substring(index + 1);
+        final candidate = '$_cachedDocumentsPath/$rel';
+        if (File(candidate).existsSync()) return candidate;
+      }
+    }
+    // Also try filename matching across attachment and media folders
+    final segments = path.split('/');
+    if (segments.isNotEmpty) {
+      final fileName = segments.last;
+      for (final folder in [
+        'attachments',
+        'profile_images',
+        'scans',
+        'audios',
+        'documents',
+        'pdf_source_images',
+      ]) {
+        final candidate = '$_cachedDocumentsPath/$folder/$fileName';
+        if (File(candidate).existsSync()) return candidate;
+      }
+    }
+  }
+
+  return path;
 }
 
 /// The header a direct request to an attachment URL needs to authenticate.
