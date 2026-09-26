@@ -41,3 +41,4 @@ flutter:
         pluginClass: CunningDocumentScannerPlugin
       ios:
         pluginClass: CunningDocumentScannerPlugin
+        minimum_os_version: '16.0'

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "identity_ocr",
-    platforms: [.iOS("13.0")],
+    platforms: [.iOS("16.0")],
     products: [.library(name: "identity-ocr", targets: ["identity_ocr"])],
     dependencies: [
         .package(name: "FlutterFramework", path: "../FlutterFramework"),
