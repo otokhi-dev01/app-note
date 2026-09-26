@@ -259,34 +259,38 @@ present in this app, so this method is not exposed in the recovery UI.
 
 ### Authenticated session recovery
 
-An authenticated 401 triggers one shared recovery attempt through Chat. The
-original request is retried only when recovery produces a refreshed token, at
-most once. A valid account session alone does not retry a Note request with the
-same rejected token. There are no delayed replication-lag retries.
-Chat Swagger requires `POST /api/auth/refresh-token` with JSON
-`{"refreshToken":"..."}`. Login now parses and securely persists the refresh
-token alongside the access token, and renewal saves rotated tokens before
-retrying. Profile edits retain it; sign-out removes both tokens. The previous
-empty POST caused HTTP 400 and could never renew a session.
+Login remains on Chat (`POST https://chat.piisiit.com/api/auth/login`); notes
+use `https://note.piisiit.com/api/note`. Access tokens live under `token` in
+FlutterSecureStorage. GetStorage continues to hold preferences and local data.
 
-Older saved sessions without a refresh token skip that POST and check the
-documented authenticated `GET /api/auth/sessions` endpoint. If the account
-rejects the session, the app returns to login; one new sign-in is needed to
-obtain any refresh token issued by the backend. Timeouts and server failures
-preserve credentials. Failed recovery and Note-only rejections of newly issued
-tokens back off for 30 seconds instead of repeatedly refreshing. A valid Chat
-session rejected by Note still requires checking the Note server's token
-validation. `test/session_recovery_test.dart` covers renewal, rotation, restart,
-concurrent 401s, legacy sessions, failures, and sign-out during refresh. Successful
-live renewal still needs verification with an authenticated test account; Swagger
-does not specify the successful login/refresh response bodies.
+Login prefers explicit `accessToken` / `AccessToken` / `access_token` fields
+before legacy `token` fields. Session save and restore trim outer whitespace
+and remove existing Bearer prefixes without changing the JWT bytes. Dio removes
+all previous authorization headers and sends exactly `Authorization: Bearer
+<raw-token>` to the configured account/Note services. Requests wait for pending
+session writes so an account change cannot mix old tokens with a new session.
 
-For a persistent 401, debug builds emit `[API] Auth diagnostics:` with JWT
-issuer/audience metadata, token-format checks, device-clock validity checks,
-and a category derived from `WWW-Authenticate`. This is diagnostic decoding,
-not signature verification. Tokens, user claims, and raw authentication error
-descriptions are omitted. `[API] Account recovery:` reports Chat's recovery
-outcome. These two lines help identify the rejection without sharing credentials.
+Chat's public Swagger confirms `POST /api/auth/refresh-token` with JSON
+`{"refreshToken":"..."}` (checked 2026-09-26). A protected 401 may share one
+refresh attempt and retry once, only when renewal produces a different access
+token. No refresh is sent without a saved refresh token or configured endpoint;
+404/405 disables further refresh calls for that client. Temporary refresh
+outages preserve the session and back off for 30 seconds. Signature, issuer,
+and audience rejections go directly to login, without refreshing or replaying.
+
+A terminal 401 deletes only the secure-storage `token` key and redirects to
+login. Other persisted keys and GetStorage data remain intact; retained user
+and refresh metadata cannot restore a session without an access token. A login
+401 never clears an existing session. Old in-flight requests cannot clear or
+retry under a newer login. Explicit user logout still removes the three session
+keys (`token`, `refresh_token`, `user`) without erasing unrelated records.
+
+Debug diagnostics show token presence/length, formatting repairs, JWT syntax,
+issuer/audience, device-clock expiry, and a classified server rejection. They
+never print complete tokens, headers, user claims, or raw error bodies. These
+checks do not verify JWT signatures. See [the authentication verification
+procedure](docs/note-auth-validation.md) for clearing an old token, signing in,
+checking HTTP 200, and investigating a persistent backend signature rejection.
 
 ## Getting Started
 

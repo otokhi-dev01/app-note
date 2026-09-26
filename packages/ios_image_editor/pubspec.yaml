@@ -16,3 +16,4 @@ flutter:
     platforms:
       ios:
         pluginClass: IOSImageEditorPlugin
+        minimum_os_version: '16.0'

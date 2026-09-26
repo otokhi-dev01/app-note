@@ -7,7 +7,7 @@ class NoteNavigation {
   NoteNavigation._();
 
   static Future<T?>? toDetail<T>(Note note) {
-    if (note.id <= 0) {
+    if (note.id == 0) {
       AppSnackbar.error('Cannot open note', 'This note has an invalid ID.');
       return null;
     }

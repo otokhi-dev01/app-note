@@ -1,34 +1,44 @@
 import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response, FormData;
 import 'package:Note/core/constants/app_constants.dart';
+import 'package:Note/core/network/access_token.dart';
 import 'package:Note/core/network/auth_diagnostics.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 
-/// Owns the configured [Dio] instance: base URL, timeouts, auth header
-/// injection, logging, and 401 handling.
-///
-/// Datasources are the only things that touch this. Nothing above the data
-/// layer should import Dio.
+/// HTTP transport with normalized credentials and bounded session recovery.
 class ApiClient extends GetxService {
-  late Dio _dio;
+  /// Chat documents this endpoint. Pass null for a server without refresh.
+  ApiClient({this.refreshTokenEndpoint = AppConstants.refreshTokenEndpoint});
 
-  /// In-flight silent-refresh attempt, shared by every request that 401s
-  /// around the same moment so they don't each fire their own refresh call.
+  final String? refreshTokenEndpoint;
+  bool _refreshEndpointAvailable = true;
+  late Dio _dio;
   Future<_RefreshResult>? _refreshFuture;
-  String? _recoveryToken;
+  int? _recoveryRevision;
   _RefreshResult? _lastRecovery;
   DateTime? _retryRecoveryAfter;
 
-  /// Base URL for the Note API. Override with
-  /// `--dart-define=PIISIIT_NOTE_BASE_URL=https://...`
   static const String baseUrl = String.fromEnvironment(
     'PIISIIT_NOTE_BASE_URL',
     defaultValue: AppConstants.noteBaseUrl,
   );
+
   Dio get dio => _dio;
+
+  bool _isAccountOrNote(RequestOptions request) =>
+      request.uri.origin == Uri.parse(baseUrl).origin ||
+      request.uri.origin == Uri.parse(AppConstants.baseUrl).origin;
+
+  bool _requiresAuth(RequestOptions request) =>
+      request.extra['requiresAuth'] != false &&
+      // Protect login even when a caller forgets requiresAuth: false.
+      request.uri.path != '/api/auth/login' &&
+      request.uri.path != '/api/auth/register';
+
   @override
   void onInit() {
     super.onInit();
@@ -47,158 +57,215 @@ class ApiClient extends GetxService {
       InterceptorsWrapper(
         onRequest: (options, handler) async {
           final session = Get.find<SessionStorage>();
-          if (options.extra['requiresAuth'] != false) await session.ready;
+          final authenticated =
+              _requiresAuth(options) && _isAccountOrNote(options);
+          if (authenticated) {
+            await session.ready;
+            int waitingRevision;
+            do {
+              waitingRevision = session.revision;
+              await session.waitForPendingWrites();
+            } while (waitingRevision != session.revision);
+            final retryRevision = options.extra['authRetrySessionRevision'];
+            if (retryRevision != null && retryRevision != session.revision) {
+              return handler.reject(
+                DioException(
+                  requestOptions: options,
+                  type: DioExceptionType.cancel,
+                  message:
+                      'The session changed before the request could retry.',
+                ),
+              );
+            }
+          }
           for (final key
               in options.headers.keys
                   .where((key) => key.toLowerCase() == 'authorization')
                   .toList()) {
             options.headers.remove(key);
           }
-          if (options.extra['requiresAuth'] != false && session.isLoggedIn) {
-            options.headers['Authorization'] = 'Bearer ${session.token.value}';
+          if (authenticated) {
+            final normalized = AccessToken.normalize(session.token.value);
+            options.extra['authSessionRevision'] = session.revision;
+            if (normalized.value.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer ${normalized.value}';
+            }
+            if (kDebugMode && options.extra['isTokenRefresh'] != true) {
+              debugPrint(
+                '[API] Request token: ${AuthDiagnostics.describeToken(session.token.value)}',
+              );
+            }
           }
-          return handler.next(options);
+          handler.next(options);
         },
         onResponse: (response, handler) {
-          return handler.next(response);
+          if (kDebugMode) {
+            final request = response.requestOptions;
+            debugPrint(
+              '[API] ${request.method} ${request.uri.origin}${request.uri.path} status=${response.statusCode}',
+            );
+          }
+          handler.next(response);
         },
-        onError: (e, handler) async {
-          final request = e.requestOptions;
-          if (kDebugMode && !_isSensitiveEndpoint(request.path)) {
+        onError: (error, handler) async {
+          var failure = error;
+          final request = error.requestOptions;
+          final challenges =
+              error.response?.headers['www-authenticate'] ?? const <String>[];
+          if (kDebugMode) {
             debugPrint(
               '[API] ${request.method} ${request.uri.origin}${request.uri.path} '
-              'status=${e.response?.statusCode} type=${e.type.name} '
+              'status=${error.response?.statusCode} type=${error.type.name} '
               'authorizationAttached=${request.headers.containsKey('Authorization')}',
             );
-            if (e.response?.statusCode == 401) {
+            if (error.response?.statusCode == 401) {
               debugPrint(
-                '[API] Auth diagnostics: ${AuthDiagnostics.describe(authorization: request.headers['Authorization']?.toString(), challenges: e.response?.headers['www-authenticate'] ?? const [])}',
+                '[API] Auth diagnostics: ${AuthDiagnostics.describe(authorization: request.headers['Authorization']?.toString(), challenges: challenges)}',
               );
-            } else {
-              _printErrorResponse(e.response?.data);
             }
           }
-          // Recovery requests and the one permitted retry cannot recurse.
+
+          // The outer request owns recovery and invalidation for its one retry.
           if (request.extra['isTokenRefresh'] == true ||
-              request.extra['authRetried'] == true) {
-            return handler.next(e);
+              request.extra['authRetried'] == true ||
+              error.response?.statusCode != 401 ||
+              !_requiresAuth(request) ||
+              !_isAccountOrNote(request)) {
+            return handler.next(error);
           }
-          final isNoteRequest = request.uri.origin == Uri.parse(baseUrl).origin;
-          final isChatRequest =
-              request.uri.origin == Uri.parse(AppConstants.baseUrl).origin;
-          final isUnauthorized =
-              e.response?.statusCode == 401 &&
-              request.extra['requiresAuth'] != false &&
-              (isNoteRequest || isChatRequest);
-          if (isUnauthorized) {
-            final session = Get.find<SessionStorage>();
-            final tokenBeforeRecovery = session.token.value;
-            // A public/early request has no session to revoke. In particular,
-            // never erase persisted credentials because it ran before restore.
-            if (request.headers['Authorization'] == null ||
-                tokenBeforeRecovery == null ||
-                tokenBeforeRecovery.isEmpty) {
-              return handler.next(e);
-            }
-            final alreadyRefreshed =
-                request.headers['Authorization'] !=
-                'Bearer $tokenBeforeRecovery';
-            final refreshResult = alreadyRefreshed
-                ? _RefreshResult.refreshed
-                : await _tryRefreshSession(tokenBeforeRecovery);
-            if (kDebugMode) {
+
+          final session = Get.find<SessionStorage>();
+          final revision = request.extra['authSessionRevision'];
+          // An old account's response must never revoke or replay as a new one.
+          // A locked keystore also isn't evidence that saved credentials failed.
+          if (session.restoreFailed.value || revision != session.revision) {
+            return handler.next(error);
+          }
+          final token = AccessToken.normalize(session.token.value).value;
+          final reason = AuthDiagnostics.serverReason(challenges);
+          if (_isValidationMismatch(reason)) {
+            _logValidationMismatch(reason);
+            if (!kDebugMode) {
+              await _invalidateSession(session, session.revision);
+            } else {
               debugPrint(
-                '[API] Account recovery: ${refreshResult.name}; '
-                'requestingService=${isNoteRequest ? 'Note' : 'Chat'}',
+                '[API] [DEBUG MODE] Skipping session invalidation for $reason to allow backend debugging.',
               );
             }
-            if (refreshResult == _RefreshResult.refreshed) {
-              final retryToken = session.token.value;
-              try {
-                final targetBaseUrl = isNoteRequest ? baseUrl : AppConstants.baseUrl;
-                final retried = await _dio.fetch(
-                  request.copyWith(
-                    baseUrl: targetBaseUrl,
-                    data: request.data is FormData
-                        ? (request.data as FormData).clone()
-                        : request.data,
-                    extra: {...request.extra, 'authRetried': true},
-                  ),
-                );
-                return handler.resolve(retried);
-              } on DioException catch (retryError) {
-                e = retryError;
-                if (e.response?.statusCode == 401 &&
-                    session.token.value == retryToken) {
-                  if (isChatRequest) {
-                    _forceSignOut();
-                  } else {
-                    // Chat issued the renewed token, but Note rejected it.
-                    // Retrying the same token cannot fix service authorization.
-                    _recoveryToken = retryToken;
-                    _lastRecovery = _RefreshResult.accountValid;
-                    _retryRecoveryAfter = DateTime.now().add(
-                      const Duration(seconds: 30),
-                    );
-                  }
-                }
-              }
-            } else if (refreshResult == _RefreshResult.rejected &&
-                session.token.value == tokenBeforeRecovery) {
-              _forceSignOut();
-            }
+            return handler.next(error);
           }
-          return handler.next(e);
+          if (token.isEmpty || request.headers['Authorization'] == null) {
+            await _invalidateSession(session, session.revision);
+            return handler.next(error);
+          }
+
+          final recovery = await _tryRefreshSession(
+            session,
+            token,
+            session.revision,
+          );
+          if (recovery == _RefreshResult.refreshed) {
+            if (session.revision != (revision as int) + 1) {
+              return handler.next(error);
+            }
+            final retryRevision = session.revision;
+            try {
+              final response = await _dio.fetch(
+                request.copyWith(
+                  data: request.data is FormData
+                      ? (request.data as FormData).clone()
+                      : request.data,
+                  extra: {
+                    ...request.extra,
+                    'authRetried': true,
+                    'authRetrySessionRevision': retryRevision,
+                  },
+                ),
+              );
+              return handler.resolve(response);
+            } on DioException catch (retryError) {
+              failure = retryError;
+              if (retryError.response?.statusCode == 401) {
+                final retryReason = AuthDiagnostics.serverReason(
+                  retryError.response?.headers['www-authenticate'] ?? const [],
+                );
+                if (_isValidationMismatch(retryReason)) {
+                  _logValidationMismatch(retryReason);
+                }
+                await _invalidateSession(session, retryRevision);
+              }
+            }
+          } else if (recovery == _RefreshResult.rejected) {
+            await _invalidateSession(session, revision as int);
+          }
+          handler.next(failure);
         },
       ),
     );
   }
 
-  /// Clears the session and sends the user to `/login`.
-  ///
-  /// `clearSession()` updates `SessionStorage.token`/`.user` synchronously
-  /// before its first `await`, so callers (and tests) can rely on the
-  /// session already reading as signed-out the moment this method returns —
-  /// that's why it's fired off with `unawaited` rather than deferred onto a
-  /// new event-loop turn, which would delay that visible effect for no
-  /// reason.
-  ///
-  /// `Get.offAllNamed`, by contrast, throws synchronously when there's no
-  /// navigator mounted yet (a real possibility this early in a request's
-  /// lifecycle, and always true in a headless test). Called directly from
-  /// `onError` without this guard, that throw would skip `handler.next(e)`
-  /// entirely and Dio would surface a generic, unrelated connection error to
-  /// the caller instead of the real 401 — replacing a clear "your session
-  /// expired" with a confusing "could not reach the server" — so only this
-  /// part gets caught.
-  void _forceSignOut() {
-    unawaited(Get.find<SessionStorage>().clearSession());
-    try {
-      unawaited(Get.offAllNamed('/login'));
-    } catch (error) {
-      if (kDebugMode) debugPrint('[API] Post-401 navigation failed: $error');
+  bool _isValidationMismatch(String reason) =>
+      reason == 'signature_rejected' ||
+      reason == 'issuer_rejected' ||
+      reason == 'audience_rejected';
+
+  void _logValidationMismatch(String reason) {
+    if (kDebugMode) {
+      debugPrint(
+        '[API] Token validation failed: $reason. If a fresh login repeats '
+        'this failure, check backend signing keys, algorithm, issuer, audience '
+        'and production environment.',
+      );
     }
   }
 
-  /// Share recovery for a token and briefly back off after a failed attempt.
-  /// A newly signed-in account must never consume an older account's recovery.
-  Future<_RefreshResult> _tryRefreshSession(String token) {
-    if (_recoveryToken == token) {
+  Future<void> _invalidateSession(
+    SessionStorage session,
+    int expectedRevision,
+  ) async {
+    if (session.revision != expectedRevision) return;
+    try {
+      // Synchronously invalidates observables; only the token key is deleted.
+      await session.invalidateToken();
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('[API] Token removal failed: ${error.runtimeType}');
+      }
+    }
+    // Do not redirect a new login completed while deletion was pending.
+    if (session.revision != expectedRevision + 1 || session.isLoggedIn) return;
+    if (kDebugMode) {
+      debugPrint('[API] Access token invalidated; sign-in required.');
+    }
+    try {
+      if (Get.currentRoute != '/login') unawaited(Get.offAllNamed('/login'));
+    } catch (error) {
+      // Headless tests/early startup may have no navigator. Preserve the 401.
+      if (kDebugMode) {
+        debugPrint(
+          '[API] Post-401 navigation unavailable: ${error.runtimeType}',
+        );
+      }
+    }
+  }
+
+  Future<_RefreshResult> _tryRefreshSession(
+    SessionStorage session,
+    String token,
+    int revision,
+  ) {
+    if (_recoveryRevision == revision) {
       if (_refreshFuture != null) return _refreshFuture!;
       if (_retryRecoveryAfter?.isAfter(DateTime.now()) == true) {
         return Future.value(_lastRecovery!);
       }
     }
-    _recoveryToken = token;
+    _recoveryRevision = revision;
     _lastRecovery = null;
     _retryRecoveryAfter = null;
-    final session = Get.find<SessionStorage>();
-    final future = _recoverSession(session, token).then((result) {
-      if (_recoveryToken == token) _refreshFuture = null;
-      if (session.token.value != token && result != _RefreshResult.refreshed) {
-        return _RefreshResult.unreachable;
-      }
-      if (_recoveryToken == token) {
+    final future = _recoverSession(session, token, revision).then((result) {
+      if (_recoveryRevision == revision) {
+        _refreshFuture = null;
         if (result != _RefreshResult.refreshed) {
           _lastRecovery = result;
           _retryRecoveryAfter = DateTime.now().add(const Duration(seconds: 30));
@@ -212,120 +279,72 @@ class ApiClient extends GetxService {
 
   Future<_RefreshResult> _recoverSession(
     SessionStorage session,
-    String currentToken,
+    String token,
+    int revision,
   ) async {
     final refreshToken = session.refreshToken.value;
-    if (refreshToken == null || refreshToken.isEmpty) {
-      // Older app versions saved only the access token. Never send an empty
-      // refresh request or substitute the access token for a refresh token.
-      return _verifySession(currentToken);
+    final endpoint = refreshTokenEndpoint;
+    if (!_refreshEndpointAvailable ||
+        endpoint == null ||
+        endpoint.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      return _RefreshResult.rejected;
     }
     try {
       final response = await _dio.post(
-        '${AppConstants.authBaseUrl}${AppConstants.refreshTokenEndpoint}',
+        '${AppConstants.authBaseUrl}$endpoint',
         data: {'refreshToken': refreshToken},
         options: Options(
           extra: {'isTokenRefresh': true, 'requiresAuth': false},
         ),
       );
+      if (session.revision != revision) return _RefreshResult.unreachable;
       final auth = AuthResponse.fromJson(
         Map<String, dynamic>.from(
           response.data is Map ? response.data as Map : {},
         ),
         statusCode: response.statusCode,
       );
-      if (session.token.value != currentToken ||
-          session.refreshToken.value != refreshToken) {
-        return _RefreshResult.unreachable;
-      }
-      if (!auth.isSuccess || auth.token.trim().isEmpty) {
-        return await _verifySession(currentToken);
+      final renewed = AccessToken.normalize(auth.token).value;
+      if (!auth.isSuccess || renewed.isEmpty || renewed == token) {
+        return _RefreshResult.rejected;
       }
       await session.saveSession(
         auth.token,
         session.user.value ?? auth.user,
-        // Some servers rotate refresh tokens; others return only access tokens.
         refreshToken: auth.refreshToken.isEmpty
             ? refreshToken
             : auth.refreshToken,
       );
+      if (session.revision != revision + 1) return _RefreshResult.unreachable;
+      // saveSession uses a revision guard, so a late refresh cannot resurrect a
+      // signed-out account or overwrite a new login.
       return _RefreshResult.refreshed;
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (session.token.value != currentToken) {
-        return _RefreshResult.unreachable;
-      }
+    } on DioException catch (error) {
+      if (session.revision != revision) return _RefreshResult.unreachable;
+      final status = error.response?.statusCode;
       if (kDebugMode) {
         debugPrint(
-          '[API] Token refresh failed (status=$status, type=${e.type.name}).',
+          '[API] Token refresh failed: status=$status type=${error.type.name}',
         );
       }
-      if (status == 401 || status == 403) return _RefreshResult.rejected;
-      if (status == 400 || status == 404 || status == 405) {
-        return _verifySession(currentToken);
+      if (status == 404 || status == 405) _refreshEndpointAvailable = false;
+      if (status == 400 ||
+          status == 401 ||
+          status == 403 ||
+          status == 404 ||
+          status == 405) {
+        return _RefreshResult.rejected;
       }
       return _RefreshResult.unreachable;
-    } catch (e) {
+    } catch (error) {
       if (kDebugMode) {
-        debugPrint('[API] Could not save renewed session: ${e.runtimeType}');
+        debugPrint('[API] Session renewal unavailable: ${error.runtimeType}');
       }
       return _RefreshResult.unreachable;
     }
   }
-
-  Future<_RefreshResult> _verifySession(String expectedToken) async {
-    try {
-      final response = await _dio.get(
-        '${AppConstants.authBaseUrl}${AppConstants.sessionsEndpoint}',
-        options: Options(extra: {'isTokenRefresh': true}),
-      );
-      if (Get.find<SessionStorage>().token.value != expectedToken) {
-        return _RefreshResult.unreachable;
-      }
-      final body = response.data;
-      if (body is! Map || (body['success'] ?? body['Success']) == false) {
-        return _RefreshResult.unreachable;
-      }
-      if (kDebugMode) {
-        debugPrint(
-          '[API] Account session is valid; the requesting service rejected access.',
-        );
-      }
-      return _RefreshResult.accountValid;
-    } on DioException catch (e) {
-      return e.response?.statusCode == 401 || e.response?.statusCode == 403
-          ? _RefreshResult.rejected
-          : _RefreshResult.unreachable;
-    } catch (_) {
-      return _RefreshResult.unreachable;
-    }
-  }
-
-  bool _isSensitiveEndpoint(String path) =>
-      path.contains('/api/auth/') || Uri.parse(path).path == '/upload-document';
-  void _printErrorResponse(Object? data) {
-    if (!kDebugMode || data == null) return;
-    final String text = data.toString();
-    const int maxLength = 1000;
-    debugPrint(
-      text.length > maxLength
-          ? '${text.substring(0, maxLength)}... [truncated]'
-          : text,
-    );
-  }
 }
 
-/// Outcome of [ApiClient._tryRefreshSession].
-enum _RefreshResult {
-  /// Got a fresh token; the caller should retry the original request.
-  refreshed,
-
-  /// The account server explicitly rejected the session (401 or 403).
-  rejected,
-
-  /// Chat accepts the account, but another service rejected the request.
-  accountValid,
-
-  /// Recovery could not produce a token; the session was not rejected.
-  unreachable,
-}
+enum _RefreshResult { refreshed, rejected, unreachable }

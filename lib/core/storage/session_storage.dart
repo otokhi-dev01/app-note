@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-
+import 'package:Note/core/network/access_token.dart';
+import 'package:Note/core/network/auth_diagnostics.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/core/error/exceptions.dart';
 
@@ -34,6 +34,17 @@ class SessionStorage extends GetxService {
   final refreshToken = RxnString();
 
   bool get isLoggedIn => token.value?.isNotEmpty == true;
+  int get revision => _revision;
+
+  /// Requests must not pair old credentials with an in-progress login's
+  /// revision. Include writes queued while an earlier write is settling.
+  Future<void> waitForPendingWrites() async {
+    while (true) {
+      final pending = _pendingWrite;
+      await pending;
+      if (identical(pending, _pendingWrite)) return;
+    }
+  }
 
   @override
   void onInit() {
@@ -49,18 +60,34 @@ class SessionStorage extends GetxService {
     try {
       await _pendingWrite;
       final savedToken = await _storage.read(key: 'token');
+      final normalized = AccessToken.normalize(savedToken);
       final savedRefreshToken = await _storage.read(key: 'refresh_token');
       final userJson = await _storage.read(key: 'user');
-      final savedUser = userJson == null
+      final savedUser = userJson == null || normalized.value.isEmpty
           ? null
           : UserData.fromJson(jsonDecode(userJson));
       if (revision != _revision) return;
+      // Repair legacy values once, without touching any other storage key.
+      if (savedToken != null && savedToken != normalized.value) {
+        await _serializeWrite(() async {
+          if (revision != _revision) return;
+          if (normalized.value.isEmpty) {
+            await _storage.delete(key: 'token');
+          } else {
+            await _storage.write(key: 'token', value: normalized.value);
+          }
+        });
+        if (revision != _revision) return;
+      }
+      if (kDebugMode) {
+        debugPrint(
+          '[SESSION] Restored token: ${AuthDiagnostics.describeToken(savedToken)}',
+        );
+      }
       restoreFailed.value = false;
       user.value = savedUser;
-      refreshToken.value = savedRefreshToken;
-      token.value = savedToken == null || savedToken.isEmpty
-          ? null
-          : savedToken;
+      refreshToken.value = normalized.value.isEmpty ? null : savedRefreshToken;
+      token.value = normalized.value.isEmpty ? null : normalized.value;
     } catch (e) {
       // A temporarily unavailable keystore is not proof of sign-out. Keep
       // saved credentials intact and let the splash screen offer a retry.
@@ -78,6 +105,18 @@ class SessionStorage extends GetxService {
     UserData userData, {
     String? refreshToken,
   }) {
+    final normalized = AccessToken.normalize(newToken);
+    final rawToken = normalized.value;
+    if (rawToken.isEmpty) {
+      throw const StorageException(
+        'The server returned an empty sign-in token.',
+      );
+    }
+    if (kDebugMode) {
+      debugPrint(
+        '[SESSION] Saving token: ${AuthDiagnostics.describeToken(newToken)}',
+      );
+    }
     final newRefreshToken = refreshToken == null || refreshToken.isEmpty
         ? null
         : refreshToken;
@@ -96,8 +135,8 @@ class SessionStorage extends GetxService {
         } else {
           await _storage.write(key: 'refresh_token', value: newRefreshToken);
         }
-        await _storage.write(key: 'token', value: newToken);
-        if (await _storage.read(key: 'token') != newToken ||
+        await _storage.write(key: 'token', value: rawToken);
+        if (await _storage.read(key: 'token') != rawToken ||
             await _storage.read(key: 'refresh_token') != newRefreshToken ||
             await _storage.read(key: 'user') != encodedUser) {
           throw const StorageException(
@@ -127,8 +166,19 @@ class SessionStorage extends GetxService {
       restoreFailed.value = false;
       user.value = userData;
       this.refreshToken.value = newRefreshToken;
-      token.value = newToken;
+      token.value = rawToken;
     });
+  }
+
+  /// A terminal 401 invalidates only the access-token key. Retained account
+  /// metadata and refresh credentials cannot restore a session without it.
+  Future<void> invalidateToken() async {
+    _revision++;
+    token.value = null;
+    refreshToken.value = null;
+    user.value = null;
+    restoreFailed.value = false;
+    await _serializeWrite(() => _storage.delete(key: 'token'));
   }
 
   Future<void> clearSession() async {

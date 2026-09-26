@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart' as dio;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/network/api_client.dart';
+import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
@@ -198,6 +200,125 @@ void main() {
       expect(adapter.requests, hasLength(4));
     },
   );
+
+  test(
+    'Login persists the normalized access token and sends one Bearer prefix',
+    () async {
+      final rawToken =
+          '${base64Url.encode(utf8.encode('{"alg":"HS256"}'))}.'
+          '${base64Url.encode(utf8.encode('{"iss":"PiisiitChat","aud":"PiisiitClient"}'))}.'
+          '${base64Url.encode(utf8.encode('test-signature'))}';
+      adapter.respond = (request) {
+        if (request.uri.path == '/api/auth/login') {
+          return _json({
+            'success': true,
+            'data': {
+              'token': 'wrong-generic-token',
+              'accessToken': '  bEaReR Bearer $rawToken \n',
+              'refreshToken': 'separate-refresh',
+            },
+          });
+        }
+        expect(request.uri.host, 'note.piisiit.com');
+        expect(request.headers['Authorization'], 'Bearer $rawToken');
+        expect(
+          request.headers.keys.where(
+            (key) => key.toLowerCase() == 'authorization',
+          ),
+          hasLength(1),
+        );
+        return _json({'data': []});
+      };
+      final output = <String>[];
+      final originalPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) {
+        if (message != null) output.add(message);
+      };
+      addTearDown(() => debugPrint = originalPrint);
+      final result = await login(params);
+      expect(result.valueOrNull?.token, rawToken);
+      expect(stored['token'], rawToken);
+      expect(stored['refresh_token'], 'separate-refresh');
+      final response = await Get.find<ApiClient>().dio.get(
+        '/api/note',
+        options: dio.Options(
+          headers: {
+            'authorization': 'Bearer stale',
+            'Authorization': 'Bearer Bearer stale',
+          },
+        ),
+      );
+      expect(response.statusCode, 200);
+      expect(output.join('\n'), contains('"bearerPrefixRemoved":true'));
+      expect(output.join('\n'), contains('"duplicateBearerPrefix":true'));
+      expect(output.join('\n'), isNot(contains(rawToken)));
+      expect(output.join('\n'), isNot(contains('separate-refresh')));
+    },
+  );
+
+  test('Prefix-only login token cannot create a session', () async {
+    adapter.respond = (_) =>
+        _json({'success': true, 'accessToken': ' Bearer bearer '});
+    expect(
+      (await login(params)).failureOrNull?.message,
+      contains('did not return a sign-in token'),
+    );
+    expect(session.isLoggedIn, isFalse);
+    expect(stored, isEmpty);
+  });
+
+  test(
+    'Requests wait for a new login write before choosing token and revision',
+    () async {
+      expect((await login(params)).isOk, isTrue);
+      final started = Completer<void>();
+      final release = Completer<void>();
+      overrideStorage = (call) async {
+        if (call.method == 'write' && call.arguments['key'] == 'token') {
+          started.complete();
+          await release.future;
+        }
+        return storage(call);
+      };
+      adapter.respond = (request) {
+        if (request.uri.path == '/api/auth/login') {
+          return _json({'success': true, 'accessToken': 'second-access'});
+        }
+        expect(request.headers['Authorization'], 'Bearer second-access');
+        expect(request.extra['authSessionRevision'], session.revision);
+        return _json({'data': []});
+      };
+      final signingIn = login(params);
+      await started.future;
+      final reading = Get.find<ApiClient>().dio.get('/api/note');
+      await Future<void>.delayed(Duration.zero);
+      expect(adapter.requests.where((r) => r.uri.path == '/api/note'), isEmpty);
+      release.complete();
+      expect((await signingIn).isOk, isTrue);
+      expect((await reading).statusCode, 200);
+      expect(stored['token'], 'second-access');
+    },
+  );
+
+  test('Server error bodies cannot echo credentials into debug logs', () async {
+    final output = <String>[];
+    final originalPrint = debugPrint;
+    debugPrint = (message, {wrapWidth}) {
+      if (message != null) output.add(message);
+    };
+    addTearDown(() => debugPrint = originalPrint);
+    const echoedSecret =
+        'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJwcml2YXRlIn0.c2VjcmV0';
+    adapter.respond = (_) =>
+        _json({'message': 'Server exception: $echoedSecret'}, 500);
+    try {
+      await Get.find<ApiClient>().dio.get('/api/note');
+      fail('Expected HTTP 500');
+    } on dio.DioException catch (error) {
+      ApiErrorParser.toException(error);
+    }
+    expect(output.join('\n'), isNot(contains(echoedSecret)));
+  });
 
   test(
     'Registration and authenticated account operations stay on Chat',

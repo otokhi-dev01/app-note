@@ -1,59 +1,112 @@
-# Note API rejects a Chat-validated token
+# Note authentication verification
 
-Status: backend fix required; not applied or deployed from this Flutter repository.
+Client normalization, access-token selection, and terminal-401 handling are
+implemented in this Flutter repository. A deployed backend signing-key problem
+has not been fixed or verified here; backend source/configuration and a live
+authenticated test account were not available.
 
-The failing `POST https://note.piisiit.com/api/folder/save` reports a signature
-rejection. The same app session is accepted by Chat (`accountValid`). Client
-diagnostics show issuer `PiisiitChat`, audience `PiisiitClient`, no surrounding
-whitespace, no duplicate Bearer prefix, and no expiry by the device clock.
-The exact server exception and deployed configuration still need inspection.
+## Actual request and storage path
 
-Keep login, registration, refresh, and account operations on Chat. Note, folder,
-and attachment requests continue using the logged-in user's bearer token.
+`AuthController.login` → `Login` → `AuthRepositoryImpl` →
+`AuthRemoteDataSource` → `ApiClient` sends login to
+`POST https://chat.piisiit.com/api/auth/login`. The repository persists the
+response through `SessionStorage`; Note requests use the same raw access token
+at `https://note.piisiit.com/api/note`. There are no classes named `ApiService`,
+`AuthService`, or `SessionService` in this checkout; the classes above perform
+those roles.
 
-## Required backend investigation and change
+The user confirmed keeping Chat login and FlutterSecureStorage. Only the raw
+access token is saved under `token`; GetStorage holds preferences/local data,
+not a second credential copy. Explicit access-token fields take precedence over
+legacy generic token fields. Refresh and ID token fields are never used as the
+access token. Empty/non-string access-token candidates are ignored.
 
-Inspect the authentication scheme used by Note's protected routes, its JWT
-validation code, and the effective deployment configuration (including overrides
-and all running instances). Configure the scheme to validate Chat access tokens:
+Chat's public Swagger was checked on 2026-09-26: it documents login and
+`POST /api/auth/refresh-token` with a `refreshToken` request field. Its successful
+response schema does not specify token fields, so live response selection still
+needs verification with a test account. Automated fixtures cover supported
+response envelopes and the complete login → persistence → Note request flow.
 
-| Validation setting | Intended value |
+## Clear the old token and check a fresh login
+
+1. Restart the app with the updated code. Existing stored Bearer prefixes and
+   outer whitespace are normalized during session restore.
+2. To explicitly remove the old access token, run this once from a development
+   action/debugger after app initialization:
+
+   ```dart
+   await Get.find<SessionStorage>().invalidateToken();
+   Get.offAllNamed('/login');
+   ```
+
+   This synchronizes in-memory state and deletes only `token` from secure
+   storage. Do not call `GetStorage().erase()` or secure-storage `deleteAll()`.
+3. Sign in through the normal login screen. Check that login reports HTTP 200
+   and `[SESSION] Saving token` reports `tokenExists: true`. The persisted value
+   and the `AuthSession` returned by login have no Bearer prefix. A prefix-only
+   response is rejected as a missing token.
+4. Open the notes list, or call the same configured client in a development
+   action after login:
+
+   ```dart
+   final response = await Get.find<ApiClient>().dio.get('/api/note');
+   debugPrint('Notes HTTP status: ${response.statusCode}');
+   ```
+
+5. Verify the debug log contains
+   `GET https://note.piisiit.com/api/note status=200`. The interceptor sends
+   exactly one `Authorization: Bearer <raw-token>` header. Do not print the
+   token or the complete request headers to inspect this.
+
+Automated tests verify HTTP 200 through a fake HTTP adapter. That result is not
+proof the deployed Note server accepts a newly issued token.
+
+## What a 401 now does
+
+Login/public endpoint failures leave existing credentials untouched. A protected
+request with no token redirects to login without an invented refresh request.
+When a saved refresh token and configured endpoint exist, ordinary protected
+401s share a single refresh attempt and retry at most once with a changed token.
+`ApiClient(refreshTokenEndpoint: null)` disables refresh; a refresh 404/405 also
+disables further attempts for that client. A refresh outage keeps credentials
+and applies a short cooldown.
+
+A signature/issuer/audience rejection, absent refresh credentials, rejected
+renewal, or another 401 after renewal invalidates the access token and redirects
+to login. Only the `token` key is deleted. Retained account/refresh metadata is
+not loaded into an authenticated session without that key. Notes, preferences,
+identity records, and encryption keys remain intact. Old requests and pending
+refreshes cannot overwrite a newer login or resurrect a signed-out session.
+
+Diagnostics distinguish missing, malformed, expired, not-yet-valid, duplicated
+Bearer prefixes, and server signature rejection. JWT decoding supplies metadata
+only; it does not authenticate the token. Logs omit tokens, signatures, user
+claims, raw response bodies, and raw authentication challenge descriptions.
+
+## If a fresh login still reports `signature_rejected`
+
+This is probably a backend JWT configuration problem. The provided logs show
+issuer `PiisiitChat`, audience `PiisiitClient`, and Note rejecting the signature
+while the earlier client reported Chat's account as valid. Neither those logs
+nor JWT decoding reveal the backend verification key or exact configuration.
+
+Compare the authentication issuer and every deployed Note instance:
+
+| Setting | Backend verification required |
 | --- | --- |
-| Accepted issuer | `PiisiitChat` |
-| Accepted audience | `PiisiitClient` |
-| Verification key | Key corresponding to Chat's actual token-signing key |
-| Signature algorithm | Algorithm actually used and permitted by Chat |
-| Signature and lifetime checks | Enabled |
+| Signing/verification key | For HMAC, identical secret bytes and decoding convention; for asymmetric JWTs, the public key corresponding to Chat's private signing key |
+| Algorithm | Actual signing algorithm matches Note's permitted algorithms |
+| Issuer | Note accepts the intended `PiisiitChat` issuer |
+| Audience | Note accepts the intended `PiisiitClient` audience |
+| Environment | Both services use the intended production issuer and keys; inspect deployment overrides, rotation/key IDs, and all instances |
 
-These are semantic settings, not confirmed configuration property names. The
-backend source is needed to make the exact patch.
+The backend source and effective deployment configuration are needed to check
+these values. No secret values should be copied into Flutter or diagnostic logs.
+Changing issuer/audience alone cannot repair a mismatched signing key. Retain
+signature, issuer, audience, expiration, and ownership validation. This follows
+Microsoft's [JWT bearer validation guidance](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/configure-jwt-bearer-authentication).
 
-For HMAC tokens, the validator needs the exact same secret bytes and decoding
-convention as the issuer. For asymmetric tokens, use Chat's trusted public
-verification keys or authenticated key-discovery configuration. Check missing,
-stale, or incorrectly decoded keys and rotation/key-ID handling. Match settings
-across Note instances. Updating issuer/audience alone will not repair a
-signature rejection. Keep keys in backend secret configuration, never Flutter.
-
-Retain signature, issuer, audience, lifetime, and authorization checks. Do not
-bypass authentication or replace the user's token with a shared sample token.
-After signature validation succeeds, confirm Note maps Chat's authenticated user
-and session claims correctly and enforces folder/note ownership.
-
-This follows Microsoft's [JWT bearer validation guidance](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/configure-jwt-bearer-authentication),
-which requires signature, issuer, audience, and expiration validation.
-
-## Verification after applying the backend fix
-
-Use a test account to log in through Chat, then send its unchanged bearer token
-to Note. Verify note/folder reads, create and update a disposable test folder,
-and test a disposable attachment through the normal application flow. A folder
-save with `code: 200` and `data: null` is successful.
-
-Confirm tampered, expired, wrong-issuer, and wrong-audience tokens are rejected,
-and that a different user cannot access the test account's records. Check every
-deployed instance. Do not log credentials or put signing secrets in tests.
-
-The Flutter regression `Note signature rejection does not replay a folder save
-or revoke a valid Chat session` reproduces the observed failure and protects the
-valid session. Passing this test does not mean the backend rejection is fixed.
+After applying a backend fix, log in through Chat and send the unchanged token
+to Note. Confirm HTTP 200 for note/folder reads, then verify tampered, expired,
+wrong-issuer, and wrong-audience tokens still fail and cross-account access is
+rejected. Perform this check against every deployed instance.

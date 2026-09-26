@@ -51,10 +51,10 @@ class ApiErrorParser {
       if (!_looksLikeInternalError(message)) return message;
       // The backend leaked a raw server-side exception (a stack trace, a
       // database/ORM error, ...) instead of a message meant for an end user.
-      // Never show that verbatim; log it for debugging and fall back to a
-      // generic message instead.
+      // Never show or log that verbatim: the server could echo credentials.
+      // Record only that details were suppressed and use a generic message.
       if (kDebugMode) {
-        debugPrint('[API] Suppressed internal-looking error message: $message');
+        debugPrint('[API] Suppressed internal server error details.');
       }
     }
     return fallback ?? 'Something went wrong.';
@@ -111,9 +111,11 @@ class ApiErrorParser {
             path.startsWith('/api/folder/') ||
             path == '/api/note' ||
             path.startsWith('/api/note/');
-        final requiresAuth = error.requestOptions.extra['requiresAuth'] != false;
+        final requiresAuth =
+            error.requestOptions.extra['requiresAuth'] != false;
         final fallback = switch (status) {
-          400 => 'The server rejected the request (400). Please check your input or contact support.',
+          400 =>
+            'The server rejected the request (400). Please check your input or contact support.',
           401 when !requiresAuth => 'Invalid account or password.',
           401 when isNoteRequest =>
             'The notes server could not authorize this request (401).',

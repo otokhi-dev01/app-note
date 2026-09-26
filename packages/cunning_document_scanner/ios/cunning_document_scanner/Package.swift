@@ -5,7 +5,7 @@ let package = Package(
     name: "cunning_document_scanner",
     defaultLocalization: "en",
     platforms: [
-        .iOS("13.0")
+        .iOS("16.0")
     ],
     products: [
         .library(name: "cunning-document-scanner", targets: ["cunning_document_scanner"])

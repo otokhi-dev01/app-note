@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/error/guard.dart';
 import 'package:Note/core/error/result.dart';
+import 'package:Note/core/network/access_token.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
@@ -115,7 +116,8 @@ class AuthRepositoryImpl implements AuthRepository {
         statusCode: response.code,
       );
     }
-    if (response.token.trim().isEmpty) {
+    final rawToken = AccessToken.normalize(response.token).value;
+    if (rawToken.isEmpty) {
       throw const ServerException(
         'The account server did not return a sign-in token. Please try again.',
       );
@@ -125,6 +127,6 @@ class AuthRepositoryImpl implements AuthRepository {
       response.user,
       refreshToken: response.refreshToken,
     );
-    return AuthSession(token: response.token, user: response.user);
+    return AuthSession(token: rawToken, user: response.user);
   }
 }
