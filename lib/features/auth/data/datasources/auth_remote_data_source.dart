@@ -26,23 +26,29 @@ class AuthRemoteDataSource extends GetxService {
         password,
       );
 
-  Future<AuthResponse> register(String account, String password) =>
-      _submitCredentials(
-        '${AppConstants.authBaseUrl}${AppConstants.registerEndpoint}',
-        account,
-        password,
-      );
+  Future<AuthResponse> register(
+    String account,
+    String password, {
+    String? confirmPassword,
+  }) => _submitCredentials(
+    '${AppConstants.authBaseUrl}${AppConstants.registerEndpoint}',
+    account,
+    password,
+    confirmPassword: confirmPassword,
+  );
 
   Future<AuthResponse> _submitCredentials(
     String url,
     String account,
-    String password,
-  ) async {
+    String password, {
+    String? confirmPassword,
+  }) async {
     try {
       final device = await _deviceService.read();
       final request = AuthCredentialsRequest(
         account: account,
         password: password,
+        confirmPassword: confirmPassword,
         clientDeviceId: device.clientDeviceId,
         appVersion: device.appVersion,
         deviceName: device.deviceName,

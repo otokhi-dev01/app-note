@@ -5,6 +5,7 @@ import 'package:Note/features/auth/domain/entities/auth_session.dart';
 class AuthCredentialsRequest {
   final String account;
   final String password;
+  final String? confirmPassword;
   final String clientDeviceId;
   final String appVersion;
   final String deviceName;
@@ -14,6 +15,7 @@ class AuthCredentialsRequest {
   const AuthCredentialsRequest({
     required this.account,
     required this.password,
+    this.confirmPassword,
     required this.clientDeviceId,
     required this.appVersion,
     required this.deviceName,
@@ -32,6 +34,19 @@ class AuthCredentialsRequest {
     'Phone': account,
     'password': password,
     'Password': password,
+    if (confirmPassword != null && confirmPassword!.isNotEmpty) ...{
+      'confirmPassword': confirmPassword,
+      'ConfirmPassword': confirmPassword,
+      'passwordConfirmation': confirmPassword,
+      'PasswordConfirmation': confirmPassword,
+      'confirm_password': confirmPassword,
+    } else ...{
+      'confirmPassword': password,
+      'ConfirmPassword': password,
+      'passwordConfirmation': password,
+      'PasswordConfirmation': password,
+      'confirm_password': password,
+    },
     'clientDeviceId': clientDeviceId,
     'ClientDeviceId': clientDeviceId,
     'appVersion': appVersion,
