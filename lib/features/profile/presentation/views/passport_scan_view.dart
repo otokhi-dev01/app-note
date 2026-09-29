@@ -1,11 +1,10 @@
 import 'dart:io';
-
-import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Note/features/profile/presentation/widgets/passport_scanner.dart';
+import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/features/profile/presentation/controllers/passport_scan_controller.dart';
-import 'package:Note/features/profile/presentation/views/identity_camera_view.dart';
 import 'package:Note/features/profile/presentation/widgets/identity_flow_widgets.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
@@ -17,10 +16,8 @@ class PassportScanView extends GetView<PassportScanController> {
     return Obx(() {
       return switch (controller.currentStep.value) {
         PassportScanStep.main => _buildMainStep(context),
-        PassportScanStep.scanning => IdentityCameraView(
-          passportMode: true,
-          onFrontCaptured: controller.onPassportCaptured,
-          onBackCaptured: (_) {}, // Not used in passport mode
+        PassportScanStep.scanning => PassportScanner(
+          onScan: controller.onPassportScanned,
           onCancel: controller.onCancelCamera,
         ),
         PassportScanStep.processing => _buildProcessingStep(context),

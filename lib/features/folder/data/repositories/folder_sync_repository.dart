@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
@@ -52,15 +51,16 @@ class FolderSyncRepository implements FolderRepository {
 
   bool _isOfflineOrAuthFailure(AppFailure failure) {
     if (failure is NetworkFailure) return true;
-    if (kDebugMode) {
-      if (failure is UnauthorizedFailure) return true;
-      if (failure is ServerFailure && failure.statusCode == 401) return true;
-    }
+    if (failure is UnauthorizedFailure) return true;
+    if (failure is ServerFailure && failure.statusCode == 401) return true;
     return false;
   }
 
   @override
   Future<Result<FolderBundle>> getFolders() async {
+    if (!_session.isLoggedIn) {
+      return Ok(_bundle(_readCache()));
+    }
     await flushPending();
 
     final result = await _remote.getFolders();

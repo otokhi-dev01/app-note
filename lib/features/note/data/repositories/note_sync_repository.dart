@@ -52,15 +52,16 @@ class NoteSyncRepository implements NoteRepository {
 
   bool _isOfflineOrAuthFailure(AppFailure failure) {
     if (failure is NetworkFailure) return true;
-    if (kDebugMode) {
-      if (failure is UnauthorizedFailure) return true;
-      if (failure is ServerFailure && failure.statusCode == 401) return true;
-    }
+    if (failure is UnauthorizedFailure) return true;
+    if (failure is ServerFailure && failure.statusCode == 401) return true;
     return false;
   }
 
   @override
   Future<Result<NoteBundle>> getNotes({int? folderId}) async {
+    if (!_session.isLoggedIn) {
+      return Ok(_bundle(_readCache(), folderId));
+    }
     await flushPending();
 
     final result = await _remote.getNotes(folderId: folderId);

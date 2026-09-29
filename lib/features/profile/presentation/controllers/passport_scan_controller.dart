@@ -51,6 +51,36 @@ class PassportScanController extends GetxController {
     _processPassport(path);
   }
 
+  void onPassportScanned(dynamic result) async {
+    currentStep.value = PassportScanStep.processing;
+    isLoading.value = true;
+    try {
+      final passportCard = PassportCard(
+        passportNumber: result?.passportNumber ?? result?.documentNumber ?? '',
+        fullName: '${result?.givenNames ?? ''} ${result?.surname ?? ''}'.trim(),
+        dateOfBirth: result?.dateOfBirth ?? '',
+        gender: result?.gender ?? '',
+        nationality: result?.nationality ?? '',
+        expiryDate: result?.expiryDate ?? '',
+        issuingCountry: result?.issuingCountry ?? '',
+        mrzLines: result?.mrzLines is List ? List<String>.from(result.mrzLines) : [],
+        imagePath: result?.imagePath,
+      );
+      passport.value = passportCard;
+      await Get.find<ProfileController>().savePassportInformation(passportCard);
+      currentStep.value = PassportScanStep.main;
+    } catch (e) {
+      debugPrint('[PASSPORT SCANNER ERROR] $e');
+      AppSnackbar.error(
+        'identity_scan_failed_title'.tr,
+        'identity_scan_failed_generic_message'.tr,
+      );
+      currentStep.value = PassportScanStep.main;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<void> _processPassport(String path) async {
     currentStep.value = PassportScanStep.processing;
     isLoading.value = true;
