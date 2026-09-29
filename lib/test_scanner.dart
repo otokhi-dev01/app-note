@@ -1,1 +1,0 @@
-// test scanner file removed
