@@ -145,13 +145,7 @@ class ApiClient extends GetxService {
           final reason = AuthDiagnostics.serverReason(challenges);
           if (_isValidationMismatch(reason)) {
             _logValidationMismatch(reason);
-            if (!kDebugMode) {
-              await _invalidateSession(session, session.revision);
-            } else {
-              debugPrint(
-                '[API] [DEBUG MODE] Skipping session invalidation for $reason to allow backend debugging.',
-              );
-            }
+            debugPrint('[API] Skipping session invalidation for $reason.');
             return handler.next(error);
           }
           if (token.isEmpty || request.headers['Authorization'] == null) {

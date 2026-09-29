@@ -52,10 +52,8 @@ class NoteSyncRepository implements NoteRepository {
 
   bool _isOfflineOrAuthFailure(AppFailure failure) {
     if (failure is NetworkFailure) return true;
-    if (kDebugMode) {
-      if (failure is UnauthorizedFailure) return true;
-      if (failure is ServerFailure && failure.statusCode == 401) return true;
-    }
+    if (failure is UnauthorizedFailure) return true;
+    if (failure is ServerFailure && failure.statusCode == 401) return true;
     return false;
   }
 
