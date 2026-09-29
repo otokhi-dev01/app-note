@@ -61,6 +61,9 @@ class FolderSyncRepository implements FolderRepository {
 
   @override
   Future<Result<FolderBundle>> getFolders() async {
+    if (!_session.isLoggedIn) {
+      return Ok(_bundle(_readCache()));
+    }
     await flushPending();
 
     final result = await _remote.getFolders();

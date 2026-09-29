@@ -61,6 +61,9 @@ class NoteSyncRepository implements NoteRepository {
 
   @override
   Future<Result<NoteBundle>> getNotes({int? folderId}) async {
+    if (!_session.isLoggedIn) {
+      return Ok(_bundle(_readCache(), folderId));
+    }
     await flushPending();
 
     final result = await _remote.getNotes(folderId: folderId);
