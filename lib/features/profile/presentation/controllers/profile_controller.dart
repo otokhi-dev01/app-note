@@ -132,14 +132,18 @@ class ProfileController extends GetxController {
     final user = _session.user.value;
     final isGuest = isGuestMode.value && user == null;
     final apiName = user?.fullName?.trim() ?? '';
+    final extraName = _extras.username.trim();
     final guestName = _extras.guestName.trim();
 
     userName.value = isGuest
         ? (guestName.isNotEmpty ? guestName : 'guest_label'.tr)
-        : (apiName.isNotEmpty ? apiName : 'default_user_name'.tr);
+        : (extraName.isNotEmpty ? extraName : (apiName.isNotEmpty ? apiName : 'default_user_name'.tr));
+    final apiPhone = user?.phone?.trim() ?? '';
+    final extraPhone = _extras.phone.trim();
+
     userPhone.value = isGuest
         ? 'not_signed_in'.tr
-        : (user?.phone?.trim() ?? '');
+        : (extraPhone.isNotEmpty ? extraPhone : apiPhone);
 
     // The avatar is stored as a path relative to the documents directory
     // so it survives app container UUID changes on iOS. Resolve it to a real
