@@ -340,7 +340,7 @@ const Map<String, String> enUS = {
   'field_required': 'Required',
 
   'document_upload_title': 'Upload Identity Document',
-  'document_review_upload': 'Review & Upload Document',
+  'document_review_upload': 'Review',
   'document_upload_description':
       'Review your document details. Upload sends these details and any selected images to your signed-in account. Fields marked * are required.',
   'document_type': 'Document Type',
@@ -431,11 +431,11 @@ const Map<String, String> enUS = {
       'Review the recognized details in your profile. You can edit any missing or incorrect fields.',
   'identity_view_profile': 'View Profile Details',
   'identity_save_profile': 'Save to Profile Details',
-  'identity_edit_details': 'Review & Upload Document',
+  'identity_edit_details': 'Review',
   'identity_save_details': 'Save card details',
   'identity_missing_fields_hint':
       'Review the scanned details. Enter or correct any text the camera could not read. Changes save to this card and Profile Details.',
-  'identity_not_read': 'Not read — tap Review & Upload Document',
+  'identity_not_read': 'Not read — tap Review',
   'identity_birth_place_khmer': 'Place of birth (Khmer)',
   'identity_birth_place_english': 'Place of birth (English)',
   'identity_address_khmer': 'Place of now (Khmer)',

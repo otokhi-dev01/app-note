@@ -22,8 +22,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
   /// this local-only behavior. Swap this to use `UserRemoteDataSource` once
   /// the real update mechanism is confirmed with the backend team.
   @override
-  Future<Result<AuthUser>> updateName(String fullName) =>
-      _patchLocal((user) => user.copyWith(fullName: fullName));
+  Future<Result<AuthUser>> updateName(String fullName) async {
+    ProfileExtrasStorage().username = fullName;
+    return _patchLocal((user) => user.copyWith(fullName: fullName));
+  }
 
   /// The image-upload endpoint exists server-side, but the avatar is still
   /// stored and resolved as a local file throughout the app (see

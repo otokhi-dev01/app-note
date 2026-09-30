@@ -338,7 +338,7 @@ const Map<String, String> kmKH = {
   'field_required': 'ចាំបាច់',
 
   'document_upload_title': 'ផ្ទុកឯកសារអត្តសញ្ញាណ',
-  'document_review_upload': 'ពិនិត្យ និងផ្ទុកឯកសារ',
+  'document_review_upload': 'ពិនិត្យ',
   'document_upload_description':
       'ពិនិត្យព័ត៌មានឯកសាររបស់អ្នក។ ការផ្ទុកនឹងផ្ញើព័ត៌មាន និងរូបភាពដែលបានជ្រើសរើសទៅគណនីរបស់អ្នក។ វាលដែលមាន * ត្រូវតែបំពេញ។',
   'document_type': 'ប្រភេទឯកសារ',
@@ -429,11 +429,11 @@ const Map<String, String> kmKH = {
       'ពិនិត្យព័ត៌មានដែលបានស្កេនក្នុងប្រវត្តិរូប។ អ្នកអាចកែសម្រួលព័ត៌មានដែលខ្វះ ឬមិនត្រឹមត្រូវ។',
   'identity_view_profile': 'មើលព័ត៌មានលម្អិតប្រវត្តិរូប',
   'identity_save_profile': 'រក្សាទុកក្នុងព័ត៌មានលម្អិតប្រវត្តិរូប',
-  'identity_edit_details': 'ពិនិត្យ និងផ្ទុកឯកសារឡើង',
+  'identity_edit_details': 'ពិនិត្យ',
   'identity_save_details': 'រក្សាទុកព័ត៌មានអត្តសញ្ញាណប័ណ្ណ',
   'identity_missing_fields_hint':
       'ពិនិត្យ និងកែសម្រួលព័ត៌មានដែលស្កេនមិនច្បាស់។ ការផ្លាស់ប្តូរនឹងរក្សាទុកក្នុងអត្តសញ្ញាណប័ណ្ណ និងប្រវត្តិរូប។',
-  'identity_not_read': 'មិនអាចអានបាន — ចុចពិនិត្យ និងផ្ទុកឯកសារឡើង',
+  'identity_not_read': 'មិនអាចអានបាន — ចុចពិនិត្យ',
   'identity_birth_place_khmer': 'ទីកន្លែងកំណើត (ខ្មែរ)',
   'identity_birth_place_english': 'ទីកន្លែងកំណើត (អង់គ្លេស)',
   'identity_address_khmer': 'អាសយដ្ឋានបច្ចុប្បន្ន (ខ្មែរ)',

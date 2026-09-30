@@ -56,6 +56,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
   int _cameraCount = 0;
   bool _picking = false;
   bool _hasFront = false;
+  // ignore: unused_field
   bool _automatic = true;
   String? _candidate;
   int _matches = 0;
@@ -795,34 +796,10 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
                   ),
                 ),
               ),
-            Positioned(
-              top: 14,
-              left: 16,
-              right: 16,
-              child: Center(child: _darkPill('identity_place_card_hint'.tr)),
-            ),
             Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 26),
                 child: AspectRatio(aspectRatio: ratio, child: _guideFrame()),
-              ),
-            ),
-            Positioned(
-              bottom: 14,
-              left: 16,
-              right: 16,
-              child: Center(
-                child: _darkPill(
-                  (_busy
-                          ? (widget.singleSideFront != null
-                                ? 'identity_checking_capture'
-                                : 'identity_hint_flip_back')
-                          : _ready && _automatic
-                          ? 'identity_auto_detecting'
-                          : 'identity_manual_capture')
-                      .tr,
-                  muted: true,
-                ),
               ),
             ),
           ],
@@ -878,24 +855,7 @@ class _IdentityCameraViewState extends State<IdentityCameraView>
     );
   }
 
-  Widget _darkPill(String text, {bool muted = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: muted ? 0.4 : 0.55),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: muted ? Colors.white70 : Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
+
 
   Widget _hintBar() {
     return Row(
