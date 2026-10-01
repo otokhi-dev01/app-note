@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
@@ -136,7 +138,10 @@ class LoginView extends GetView<AuthController> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
+          colors: [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ],
         ),
       ),
     );
@@ -201,26 +206,7 @@ class LoginView extends GetView<AuthController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  CustomGlassTextField(
-                    controller: controller.accountController,
-                    placeholder: 'username_email_phone_hint'.tr,
-                    height: 56,
-                    borderRadius: 18,
-                    textInputAction: TextInputAction.next,
-                    prefixIcon: Icon(
-                      CupertinoIcons.person_fill,
-                      size: 20,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                    ),
-                    textStyle: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                    placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.6,
-                      ),
-                    ),
-                  ),
+                  AccountInputField(controller: controller.accountController),
                   const SizedBox(height: 14),
                   Obx(
                     () => CustomGlassTextField(
@@ -234,9 +220,7 @@ class LoginView extends GetView<AuthController> {
                       prefixIcon: Icon(
                         CupertinoIcons.lock_fill,
                         size: 20,
-                        color: theme.colorScheme.primary.withValues(
-                          alpha: 0.8,
-                        ),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
                       ),
                       suffixIcon: Icon(
                         controller.isPasswordVisible.value
@@ -268,7 +252,8 @@ class LoginView extends GetView<AuthController> {
                               child: Obx(
                                 () => Checkbox(
                                   value: controller.rememberMe.value,
-                                  onChanged: (_) => controller.toggleRememberMe(),
+                                  onChanged: (_) =>
+                                      controller.toggleRememberMe(),
                                   activeColor: theme.colorScheme.primary,
                                   visualDensity: VisualDensity.compact,
                                   materialTapTargetSize:
@@ -342,6 +327,45 @@ class LoginView extends GetView<AuthController> {
                                 fontWeight: FontWeight.w700,
                                 fontSize: 17,
                               ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Obx(
+                    () => CustomGlassButton(
+                      semanticLabel: 'sign_in_with_google'.tr,
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : controller.loginWithGoogle,
+                      minHeight: 56,
+                      borderRadius: 26,
+                      style: lg.GlassButtonStyle.prominent,
+                      glassColor: theme.colorScheme.surface,
+                      foregroundColor: theme.colorScheme.onSurface,
+                      child: controller.isLoading.value
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const FaIcon(
+                                  FontAwesomeIcons.google,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    'sign_in_with_google'.tr,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                     ),
                   ),

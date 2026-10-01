@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
@@ -42,10 +43,23 @@ class RegisterView extends GetView<AuthController> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
+                        CustomGlassButton(
+                          semanticLabel: MaterialLocalizations.of(
+                            context,
+                          ).backButtonTooltip,
                           onPressed: () => Get.back(),
-                          icon: const Icon(CupertinoIcons.back),
-                          color: theme.colorScheme.onSurface,
+                          width: 44,
+                          height: 44,
+                          shape: GlassShape.circle,
+                          blur: 10,
+                          opacity: 0.15,
+                          thickness: 8,
+                          foregroundColor: theme.colorScheme.onSurface,
+                          padding: EdgeInsets.zero,
+                          child: const Icon(
+                            CupertinoIcons.chevron_left,
+                            size: 23,
+                          ),
                         ),
                         const LanguageToggleButton(),
                       ],
@@ -129,7 +143,10 @@ class RegisterView extends GetView<AuthController> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
+          colors: [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ],
         ),
       ),
     );
@@ -180,147 +197,163 @@ class RegisterView extends GetView<AuthController> {
     final theme = Theme.of(context);
 
     return CustomGlassContainer(
-      borderRadius: 28,
-      blur: 35,
-      opacity: 0.12,
-      thickness: 16,
-      showGlow: true,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(28),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CustomGlassTextField(
-                controller: controller.accountController,
-                placeholder: 'username_email_phone_hint'.tr,
-                height: 56,
-                borderRadius: 18,
-                textInputAction: TextInputAction.next,
-                prefixIcon: Icon(
-                  CupertinoIcons.person_fill,
-                  size: 20,
-                  color: theme.colorScheme.primary.withValues(alpha: 0.8),
-                ),
-                textStyle: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-                placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.6,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Obx(
-                () => CustomGlassTextField(
-                  controller: controller.passwordController,
-                  placeholder: 'password_label'.tr,
-                  obscureText: !controller.isPasswordVisible.value,
-                  height: 56,
-                  borderRadius: 18,
-                  textInputAction: TextInputAction.next,
-                  prefixIcon: Icon(
-                    CupertinoIcons.lock_fill,
-                    size: 20,
-                    color: theme.colorScheme.primary.withValues(
-                      alpha: 0.8,
-                    ),
-                  ),
-                  suffixIcon: Icon(
-                    controller.isPasswordVisible.value
-                        ? CupertinoIcons.eye_slash_fill
-                        : CupertinoIcons.eye_fill,
-                    size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  onSuffixTap: controller.togglePasswordVisibility,
-                  textStyle: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Obx(
-                () => CustomGlassTextField(
-                  controller: controller.confirmPasswordController,
-                  placeholder: 'confirm_password_label'.tr,
-                  obscureText: !controller.isConfirmPasswordVisible.value,
-                  height: 56,
-                  borderRadius: 18,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => controller.register(),
-                  prefixIcon: Icon(
-                    CupertinoIcons.lock_fill,
-                    size: 20,
-                    color: theme.colorScheme.primary.withValues(
-                      alpha: 0.8,
-                    ),
-                  ),
-                  suffixIcon: Icon(
-                    controller.isConfirmPasswordVisible.value
-                        ? CupertinoIcons.eye_slash_fill
-                        : CupertinoIcons.eye_fill,
-                    size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  onSuffixTap: controller.toggleConfirmPasswordVisibility,
-                  textStyle: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.6,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              Obx(
-                () => CustomGlassButton(
-                  semanticLabel: 'sign_up_button'.tr,
-                  onPressed: controller.isLoading.value
-                      ? null
-                      : controller.register,
-                  minHeight: 56,
-                  borderRadius: 26,
-                  style: lg.GlassButtonStyle.prominent,
-                  glassColor: theme.colorScheme.primary,
-                  glowColor: theme.colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  child: controller.isLoading.value
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          "sign_up_button".tr,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
-                          ),
+          borderRadius: 28,
+          blur: 35,
+          opacity: 0.12,
+          thickness: 16,
+          showGlow: true,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 26, 20, 26),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AccountInputField(controller: controller.accountController),
+                  const SizedBox(height: 14),
+                  Obx(
+                    () => CustomGlassTextField(
+                      controller: controller.passwordController,
+                      placeholder: 'password_label'.tr,
+                      obscureText: !controller.isPasswordVisible.value,
+                      height: 56,
+                      borderRadius: 18,
+                      textInputAction: TextInputAction.next,
+                      prefixIcon: Icon(
+                        CupertinoIcons.lock_fill,
+                        size: 20,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                      ),
+                      suffixIcon: Icon(
+                        controller.isPasswordVisible.value
+                            ? CupertinoIcons.eye_slash_fill
+                            : CupertinoIcons.eye_fill,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      onSuffixTap: controller.togglePasswordVisibility,
+                      textStyle: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.6,
                         ),
-                ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Obx(
+                    () => CustomGlassTextField(
+                      controller: controller.confirmPasswordController,
+                      placeholder: 'confirm_password_label'.tr,
+                      obscureText: !controller.isConfirmPasswordVisible.value,
+                      height: 56,
+                      borderRadius: 18,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => controller.register(),
+                      prefixIcon: Icon(
+                        CupertinoIcons.lock_fill,
+                        size: 20,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                      ),
+                      suffixIcon: Icon(
+                        controller.isConfirmPasswordVisible.value
+                            ? CupertinoIcons.eye_slash_fill
+                            : CupertinoIcons.eye_fill,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      onSuffixTap: controller.toggleConfirmPasswordVisibility,
+                      textStyle: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Obx(
+                    () => CustomGlassButton(
+                      semanticLabel: 'sign_up_button'.tr,
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : controller.register,
+                      minHeight: 56,
+                      borderRadius: 26,
+                      style: lg.GlassButtonStyle.prominent,
+                      glassColor: theme.colorScheme.primary,
+                      glowColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      child: controller.isLoading.value
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              "sign_up_button".tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Obx(
+                    () => CustomGlassButton(
+                      semanticLabel: 'sign_in_with_google'.tr,
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : controller.loginWithGoogle,
+                      minHeight: 56,
+                      borderRadius: 26,
+                      style: lg.GlassButtonStyle.prominent,
+                      glassColor: theme.colorScheme.surface,
+                      foregroundColor: theme.colorScheme.onSurface,
+                      child: controller.isLoading.value
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const FaIcon(
+                                  FontAwesomeIcons.google,
+                                  size: 18,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    'sign_in_with_google'.tr,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    )
-    .animate()
-    .fadeIn(delay: 380.ms, duration: 450.ms)
-    .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic);
+        )
+        .animate()
+        .fadeIn(delay: 380.ms, duration: 450.ms)
+        .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic);
   }
 
   Widget _buildLoginRow(BuildContext context) {
@@ -356,4 +389,3 @@ class RegisterView extends GetView<AuthController> {
     ).animate().fadeIn(delay: 550.ms);
   }
 }
-

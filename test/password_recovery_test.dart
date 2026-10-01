@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
@@ -158,15 +158,24 @@ void main() {
     () async {
       final verify = Get.find<VerifySecurityAnswers>();
       final answers = [
-        SecurityAnswer(questionId: questionData[0]['id']!, answer: ' Phnom Penh '),
+        SecurityAnswer(
+          questionId: questionData[0]['id']!,
+          answer: ' Phnom Penh ',
+        ),
         SecurityAnswer(questionId: questionData[1]['id']!, answer: ' Teacher '),
-        SecurityAnswer(questionId: questionData[2]['id']!, answer: ' Nickname '),
+        SecurityAnswer(
+          questionId: questionData[2]['id']!,
+          answer: ' Nickname ',
+        ),
       ];
       for (final params in [
         VerifySecurityAnswersParams(account: '', answers: answers),
         const VerifySecurityAnswersParams(account: 'someone', answers: []),
         VerifySecurityAnswersParams(account: 'someone', answers: [answers[0]]),
-        VerifySecurityAnswersParams(account: 'someone', answers: [answers[0], answers[1]]),
+        VerifySecurityAnswersParams(
+          account: 'someone',
+          answers: [answers[0], answers[1]],
+        ),
         VerifySecurityAnswersParams(
           account: 'someone',
           answers: [
@@ -432,6 +441,49 @@ void main() {
   }
 
   testWidgets(
+    'Google recovery opens the official page without a Note reset request',
+    (tester) async {
+      final launches = <MethodCall>[];
+      var opens = false;
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        launches.add(call);
+        return opens;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      await mount(tester);
+      await press(tester, 'Recover Google account');
+      expect(
+        find.text('Could not open Google account recovery. Please try again.'),
+        findsOneWidget,
+      );
+      opens = true;
+      await press(tester, 'Recover Google account');
+      expect(launches, hasLength(2));
+      expect(
+        launches.last.arguments['url'],
+        'https://accounts.google.com/signin/recovery',
+      );
+      expect(launches.last.arguments['useSafariVC'], isFalse);
+      expect(launches.last.arguments['useWebView'], isFalse);
+      expect(adapter.requests, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Recovery sends the selected phone country code', (tester) async {
+    await mount(tester);
+    await tester.enterText(find.byType(EditableText).first, '12345678');
+    await tester.pump();
+    expect(find.text('+855'), findsOneWidget);
+    await press(tester, 'Send Request');
+    expect(adapter.requests.single.data, {'account': '+85512345678'});
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
     'Security question loading retries and verified answers continue to password reset',
     (tester) async {
       var loadFails = true;
@@ -462,7 +514,10 @@ void main() {
       await press(tester, 'Use Security Questions');
       expect(find.text('Please enter your account.'), findsOneWidget);
       expect(adapter.requests, isEmpty);
-      await tester.enterText(find.byType(EditableText).first, 'someone@example.com');
+      await tester.enterText(
+        find.byType(EditableText).first,
+        'someone@example.com',
+      );
       await press(tester, 'Use Security Questions');
       expect(find.text('Questions unavailable'), findsOneWidget);
       loadFails = false;
@@ -522,7 +577,10 @@ void main() {
         return _json({'success': true});
       };
       await mount(tester);
-      await tester.enterText(find.byType(EditableText).first, 'someone@example.com');
+      await tester.enterText(
+        find.byType(EditableText).first,
+        'someone@example.com',
+      );
       await press(tester, 'Send Request');
       expect(find.text('Verification Code'), findsOneWidget);
       await tester.enterText(find.byType(EditableText).first, '012345');

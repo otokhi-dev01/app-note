@@ -1,11 +1,12 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-
+import 'package:Note/features/auth/data/services/google_sign_in_service.dart';
 import 'package:Note/core/error/result.dart';
+import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
@@ -20,18 +21,24 @@ import 'package:Note/core/controllers/encryption_controller.dart';
 class AuthController extends GetxController {
   final Login _login;
   final Register _register;
+  final GoogleLogin _googleLogin;
+  final GoogleSignInService _googleSignIn;
 
-  AuthController({required Login login, required Register register})
-    : _login = login,
-      _register = register;
+  AuthController({
+    required Login login,
+    required Register register,
+    required GoogleLogin googleLogin,
+    GoogleSignInService? googleSignIn,
+  }) : _login = login,
+       _register = register,
+       _googleLogin = googleLogin,
+       _googleSignIn = googleSignIn ?? GoogleSignInService();
 
   final _storage = GetStorage();
   final _guestMode = Get.find<GuestModeService>();
-
-  final accountController = TextEditingController();
+  final accountController = AccountInputController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
   final isConfirmPasswordVisible = false.obs;
@@ -86,7 +93,7 @@ class AuthController extends GetxController {
   Future<void> login() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
-    final account = accountController.text.trim();
+    final account = accountController.account;
 
     isLoading.value = true;
     try {
@@ -119,6 +126,47 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> loginWithGoogle() async {
+    if (isLoading.value || isClosed) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    isLoading.value = true;
+    try {
+      final idToken = await _googleSignIn.signInIdToken();
+      if (isClosed || idToken == null) return;
+
+      final result = await _googleLogin(idToken);
+      if (isClosed) return;
+
+      switch (result) {
+        case Ok():
+          if (kDebugMode) {
+            debugPrint('[AUTH] Google login successful. Setting up E2EE...');
+          }
+          _guestMode.disable();
+          AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
+          unawaited(Get.find<EncryptionController>().setupForCurrentUser());
+          await _replaceAuthStack(Routes.FOLDER);
+        case Err(:final failure):
+          AppSnackbar.failure('login_failed_title'.tr, failure);
+      }
+    } on PlatformException catch (e) {
+      if (isClosed || e.code == 'sign_in_canceled') return;
+      AppSnackbar.error(
+        'login_failed_title'.tr,
+        (e.code == 'google_not_configured'
+                ? 'google_sign_in_unavailable'
+                : 'google_sign_in_failed')
+            .tr,
+      );
+    } catch (_) {
+      if (!isClosed) {
+        AppSnackbar.error('login_failed_title'.tr, 'google_sign_in_failed'.tr);
+      }
+    } finally {
+      if (!isClosed) isLoading.value = false;
+    }
+  }
+
   Future<void> register() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
@@ -127,7 +175,7 @@ class AuthController extends GetxController {
     try {
       final result = await _register(
         RegisterParams(
-          account: accountController.text.trim(),
+          account: accountController.account,
           password: passwordController.text,
           confirmPassword: confirmPasswordController.text,
         ),
@@ -165,7 +213,7 @@ class AuthController extends GetxController {
     if (isLoading.value) return;
     await Get.toNamed(
       Routes.FORGOT_PASSWORD,
-      arguments: {'initialAccount': accountController.text.trim()},
+      arguments: {'initialAccount': accountController.account},
     );
   }
 

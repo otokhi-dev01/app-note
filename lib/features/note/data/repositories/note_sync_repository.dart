@@ -1,9 +1,6 @@
 import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:path_provider/path_provider.dart';
-
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/storage/session_storage.dart';
@@ -482,9 +479,9 @@ class NoteSyncRepository implements NoteRepository {
             title: remapped.title ?? '',
             content: remapped.content!,
           );
-          if (result
-              case Err(:final failure)
-              when _isOfflineOrAuthFailure(failure)) {
+          if (result case Err(
+            :final failure,
+          ) when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
@@ -495,9 +492,9 @@ class NoteSyncRepository implements NoteRepository {
             isArchived: remapped.isArchived,
             isLocked: remapped.isLocked,
           );
-          if (result
-              case Err(:final failure)
-              when _isOfflineOrAuthFailure(failure)) {
+          if (result case Err(
+            :final failure,
+          ) when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
@@ -506,9 +503,9 @@ class NoteSyncRepository implements NoteRepository {
             remapped.id,
             remapped.isDelete!,
           );
-          if (result
-              case Err(:final failure)
-              when _isOfflineOrAuthFailure(failure)) {
+          if (result case Err(
+            :final failure,
+          ) when _isOfflineOrAuthFailure(failure)) {
             offline = true;
             stillQueued.add(remapped);
           }
@@ -935,7 +932,11 @@ class NoteSyncRepository implements NoteRepository {
   // ── persistence ───────────────────────────────────────────────────────
 
   List<Note> _readCache() {
-    final raw = _storage.read<List>(_cacheKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_notes_cache_unknown') : null);
+    final raw =
+        _storage.read<List>(_cacheKey) ??
+        (_uid != 'unknown'
+            ? _storage.read<List>('account_notes_cache_unknown')
+            : null);
     if (raw == null) return <Note>[];
     return raw
         .whereType<Map>()
@@ -947,7 +948,11 @@ class NoteSyncRepository implements NoteRepository {
       _storage.write(_cacheKey, notes.map(_noteToJson).toList());
 
   List<_NoteOp> _readQueue() {
-    final raw = _storage.read<List>(_queueKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_notes_queue_unknown') : null);
+    final raw =
+        _storage.read<List>(_queueKey) ??
+        (_uid != 'unknown'
+            ? _storage.read<List>('account_notes_queue_unknown')
+            : null);
     if (raw == null) return <_NoteOp>[];
     return raw
         .whereType<Map>()

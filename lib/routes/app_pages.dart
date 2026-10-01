@@ -143,6 +143,7 @@ class AppPages {
     GetPage(
       name: Routes.FORGOT_PASSWORD,
       page: () => const ForgotPasswordView(),
+      binding: AuthBinding(),
     ),
     GetPage(
       name: Routes.NOTE_PREFERENCES,

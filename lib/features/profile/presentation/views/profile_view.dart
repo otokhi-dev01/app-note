@@ -8,6 +8,7 @@ import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 /// The user's profile and account details.
 ///
@@ -105,23 +106,7 @@ class ProfileView extends GetView<ProfileController> {
         padding: EdgeInsets.zero,
         child: const Icon(CupertinoIcons.chevron_left, size: 23),
       ),
-      actions: [
-        // A guest's name is saved on-device the same way a signed-in
-        // account's is (see ProfileController._saveUserName) — no reason
-        // to hide the edit action just because there's no server account.
-        CustomGlassButton(
-          semanticLabel: 'edit_name_title'.tr,
-          onPressed: controller.updateUserName,
-          width: 44,
-          height: 44,
-          shape: GlassShape.circle,
-          blur: 10,
-          opacity: 0.15,
-          thickness: 8,
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.pencil, size: 19),
-        ),
-      ],
+      actions: const [LanguageToggleButton()],
       title: 'profile_title'.tr,
     );
   }
@@ -332,8 +317,6 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildDetailsCard(BuildContext context) {
     return Obx(() {
-      final isGuest = controller.isGuestMode.value;
-
       return _buildSurfaceCard(
         context,
         children: [
@@ -375,17 +358,15 @@ class ProfileView extends GetView<ProfileController> {
                 : controller.userEmail.value,
             onTap: controller.updateEmail,
           ),
-          // Phone stays read-only and unset for a guest — it comes from
-          // signing in, which is the one thing a guest hasn't done.
           _buildDetailRow(
             context,
             icon: CupertinoIcons.phone_fill,
             iconColor: _iosGreen,
             label: 'phone_label'.tr,
             value: controller.userPhone.value.isEmpty
-                ? 'not_available'.tr
+                ? 'not_set'.tr
                 : controller.userPhone.value,
-            onTap: isGuest ? null : controller.updatePhone,
+            onTap: controller.updatePhone,
           ),
         ],
       );
@@ -401,6 +382,14 @@ class ProfileView extends GetView<ProfileController> {
         children: [
           _buildDetailRow(
             context,
+            icon: CupertinoIcons.lock_rotation,
+            iconColor: _iosOrange,
+            label: 'forgot_password_title'.tr,
+            value: '',
+            onTap: isGuest ? null : controller.requestForgotPassword,
+          ),
+          _buildDetailRow(
+            context,
             icon: CupertinoIcons.person_fill,
             iconColor: _iosBlue,
             label: 'full_name_label'.tr,
@@ -413,9 +402,9 @@ class ProfileView extends GetView<ProfileController> {
             iconColor: _iosGreen,
             label: 'phone_label'.tr,
             value: controller.userPhone.value.isEmpty
-                ? 'not_available'.tr
+                ? 'not_set'.tr
                 : controller.userPhone.value,
-            onTap: isGuest ? null : controller.updatePhone,
+            onTap: controller.updatePhone,
           ),
           _buildDetailRow(
             context,
@@ -431,11 +420,11 @@ class ProfileView extends GetView<ProfileController> {
             context,
             icon: CupertinoIcons.briefcase_fill,
             iconColor: _iosIndigo,
-            label: 'job_bio_label'.tr,
+            label: 'job_label'.tr,
             value: controller.userJob.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userJob.value,
-            onTap: controller.updateJobAndBio,
+            onTap: controller.updateJob,
           ),
           _buildDetailRow(
             context,
@@ -477,7 +466,7 @@ class ProfileView extends GetView<ProfileController> {
                 : controller.userMotherName.value,
             onTap: controller.updateMotherName,
           ),
-          _buildJobBioRow(context),
+          // _buildJobBioRow(context),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.paintbrush_fill,
@@ -485,9 +474,10 @@ class ProfileView extends GetView<ProfileController> {
             label: 'color_label'.tr,
             trailing: _ProfileColorValue(
               color: controller.userColor,
-              label:
-                  controller.userColorHex.value ??
-                  FolderAppearance.defaultColorValue,
+              label: FolderAppearance.colorNameFor(
+                controller.userColorHex.value ??
+                FolderAppearance.defaultColorValue,
+              ),
             ),
             onTap: controller.updateColor,
           ),
@@ -854,79 +844,7 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  Widget _buildJobBioRow(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasJob = controller.userJob.value.isNotEmpty;
-    final hasBio = controller.userBio.value.isNotEmpty;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          controller.updateJobAndBio();
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _fieldBadge(CupertinoIcons.briefcase_fill, _iosOrange),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'job_bio_label'.tr,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      hasJob ? controller.userJob.value : 'not_set'.tr,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Icon(
-                    CupertinoIcons.chevron_forward,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(
-                      alpha: 0.48,
-                    ),
-                  ),
-                ],
-              ),
-              if (hasBio) ...[
-                const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.only(left: 48, right: 20),
-                  child: Text(
-                    controller.userBio.value,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      height: 1.45,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _fieldBadge(IconData icon, Color color) {
     return CustomGlassContainer(

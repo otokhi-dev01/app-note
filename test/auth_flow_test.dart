@@ -15,6 +15,7 @@ import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
+import 'package:Note/features/auth/data/services/google_sign_in_service.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
 import 'package:Note/features/auth/domain/repositories/auth_repository.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
@@ -55,6 +56,28 @@ class _PendingLogin extends Login {
   Future<Result<AuthSession>> call(LoginParams params) => result.future;
 }
 
+class _FakeGoogleSignIn extends GoogleSignInService {
+  _FakeGoogleSignIn(this.result);
+  final Future<String?> Function() result;
+  int calls = 0;
+  @override
+  Future<String?> signInIdToken() {
+    calls++;
+    return result();
+  }
+}
+
+class _FakeGoogleLogin extends GoogleLogin {
+  _FakeGoogleLogin(this.result) : super(_NoopRepo());
+  final Result<AuthSession> result;
+  final received = <String>[];
+  @override
+  Future<Result<AuthSession>> call(String token) async {
+    received.add(token);
+    return result;
+  }
+}
+
 class _NoopRepo implements AuthRepository {
   const _NoopRepo();
   @override
@@ -83,12 +106,115 @@ void main() {
 
   tearDown(() => Get.reset());
 
+  for (final route in [Routes.LOGIN, Routes.REGISTER, Routes.FORGOT_PASSWORD]) {
+    testWidgets(
+      'Google configuration failure on $route leaves the app usable',
+      (tester) async {
+        await initialize();
+        final google = _FakeGoogleLogin(const Err(ValidationFailure('unused')));
+        final controller = Get.put(
+          AuthController(
+            login: _FakeLogin(const Err(ValidationFailure('unused'))),
+            register: _FakeRegister(okVoid),
+            googleLogin: google,
+          ),
+        );
+        await tester.pumpWidget(
+          GetMaterialApp(
+            scaffoldMessengerKey: AppSnackbar.messengerKey,
+            initialRoute: route,
+            getPages: AppPages.routes,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text('sign_in_with_google'.tr));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('sign_in_with_google'.tr));
+        await tester.pumpAndSettle();
+        expect(find.text('google_sign_in_unavailable'.tr), findsOneWidget);
+        expect(controller.isLoading.value, isFalse);
+        expect(google.received, isEmpty);
+        expect(Get.currentRoute, route);
+        expect(tester.takeException(), isNull);
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+      },
+    );
+  }
+
+  testWidgets('Google cancellation unlocks signup and retry opens notes', (
+    tester,
+  ) async {
+    await initialize();
+    String? token;
+    final signIn = _FakeGoogleSignIn(() async => token);
+    final google = _FakeGoogleLogin(
+      const Ok(AuthSession(token: 't', user: UserData())),
+    );
+    final controller = Get.put(
+      AuthController(
+        login: _FakeLogin(const Err(ValidationFailure('unused'))),
+        register: _FakeRegister(okVoid),
+        googleLogin: google,
+        googleSignIn: signIn,
+      ),
+    );
+    await tester.pumpWidget(
+      GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
+        initialRoute: Routes.REGISTER,
+        getPages: AppPages.routes,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('sign_in_with_google'.tr));
+    await tester.tap(find.text('sign_in_with_google'.tr));
+    await tester.pumpAndSettle();
+    expect(controller.isLoading.value, isFalse);
+    expect(google.received, isEmpty);
+    expect(Get.currentRoute, Routes.REGISTER);
+    token = 'verified-google-id-token';
+    await tester.tap(find.text('sign_in_with_google'.tr));
+    await tester.pumpAndSettle();
+    expect(google.received, ['verified-google-id-token']);
+    expect(Get.currentRoute, Routes.FOLDER);
+    expect(tester.takeException(), isNull);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Duplicate Google taps and results after disposal are ignored', (
+    tester,
+  ) async {
+    await initialize();
+    final pending = Completer<String?>();
+    final signIn = _FakeGoogleSignIn(() => pending.future);
+    final google = _FakeGoogleLogin(const Err(ValidationFailure('unused')));
+    final controller = Get.put(
+      AuthController(
+        login: _FakeLogin(const Err(ValidationFailure('unused'))),
+        register: _FakeRegister(okVoid),
+        googleLogin: google,
+        googleSignIn: signIn,
+      ),
+    );
+    final first = controller.loginWithGoogle();
+    await controller.loginWithGoogle();
+    expect(signIn.calls, 1);
+    controller.onDelete();
+    pending.complete('late-token');
+    await first;
+    expect(google.received, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   Future<AuthController> mountLogin(
     WidgetTester tester, {
     required Result<AuthSession> loginResult,
   }) async {
     final controller = Get.put(
       AuthController(
+        googleLogin: GoogleLogin(_NoopRepo()),
         login: _FakeLogin(loginResult),
         register: _FakeRegister(okVoid),
       ),
@@ -170,6 +296,7 @@ void main() {
     await initialize();
     final controller = Get.put(
       AuthController(
+        googleLogin: GoogleLogin(_NoopRepo()),
         login: _FakeLogin(const Err(ValidationFailure('unused'))),
         register: _FakeRegister(okVoid),
       ),
@@ -202,6 +329,7 @@ void main() {
       await initialize();
       final controller = Get.put(
         AuthController(
+          googleLogin: GoogleLogin(_NoopRepo()),
           login: _FakeLogin(const Err(ValidationFailure('unused'))),
           register: _FakeRegister(
             const Err(ValidationFailure('Passwords do not match.')),
@@ -239,7 +367,11 @@ void main() {
       final pending = _PendingLogin();
       final guest = Get.find<GuestModeService>()..enable();
       final controller = Get.put(
-        AuthController(login: pending, register: _FakeRegister(okVoid)),
+        AuthController(
+          login: pending,
+          register: _FakeRegister(okVoid),
+          googleLogin: GoogleLogin(_NoopRepo()),
+        ),
       );
       await tester.pumpWidget(
         GetMaterialApp(

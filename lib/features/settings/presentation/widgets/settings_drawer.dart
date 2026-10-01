@@ -95,6 +95,24 @@ class SettingsDrawer extends GetView<ProfileController> {
                           ),
                         );
                       }),
+                      Obx(
+                        () => controller.isGuestMode.value
+                            ? const SizedBox.shrink()
+                            : _buildRow(
+                                context,
+                                icon: CupertinoIcons.lock_rotation,
+                                iconColor: _iosOrange,
+                                title: 'forgot_password_title'.tr,
+                                onTap: () => _closeThenGo(
+                                  context,
+                                  Routes.FORGOT_PASSWORD,
+                                  arguments: {
+                                    'initialAccount': controller.userPhone.value,
+                                  },
+                                  reopenSettingsOnReturn: true,
+                                ),
+                              ),
+                      ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.bell_fill,
@@ -194,60 +212,43 @@ class SettingsDrawer extends GetView<ProfileController> {
                   ),
                   const SizedBox(height: 22),
                   _buildSectionLabel(context, 'section_support'.tr),
-                  Obx(
-                    () => _buildGroup(
-                      context,
-                      children: [
-                        if (!controller.isGuestMode.value)
-                          _buildRow(
-                            context,
-                            icon: CupertinoIcons.lock_rotation,
-                            iconColor: _iosOrange,
-                            title: 'forgot_password_title'.tr,
-                            onTap: () => _closeThenGo(
-                              context,
-                              Routes.FORGOT_PASSWORD,
-                              arguments: {
-                                'initialAccount': controller.userPhone.value,
-                              },
-                              reopenSettingsOnReturn: true,
-                            ),
-                          ),
-                        _buildRow(
+                  _buildGroup(
+                    context,
+                    children: [
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.question_circle_fill,
+                        iconColor: _iosBlue,
+                        title: 'help_center_title'.tr,
+                        onTap: () => _closeThenGo(
                           context,
-                          icon: CupertinoIcons.question_circle_fill,
-                          iconColor: _iosBlue,
-                          title: 'help_center_title'.tr,
-                          onTap: () => _closeThenGo(
-                            context,
-                            Routes.HELP_CENTER,
-                            reopenSettingsOnReturn: true,
-                          ),
+                          Routes.HELP_CENTER,
+                          reopenSettingsOnReturn: true,
                         ),
-                        _buildRow(
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.sun_max_fill,
+                        iconColor: _iosOrange,
+                        title: 'appearance_title'.tr,
+                        onTap: () => _closeThenGo(
                           context,
-                          icon: CupertinoIcons.sun_max_fill,
-                          iconColor: _iosOrange,
-                          title: 'appearance_title'.tr,
-                          onTap: () => _closeThenGo(
-                            context,
-                            Routes.APPEARANCE,
-                            reopenSettingsOnReturn: true,
-                          ),
+                          Routes.APPEARANCE,
+                          reopenSettingsOnReturn: true,
                         ),
-                        _buildRow(
+                      ),
+                      _buildRow(
+                        context,
+                        icon: CupertinoIcons.lock_shield_fill,
+                        iconColor: _iosGreen,
+                        title: 'privacy_security_title'.tr,
+                        onTap: () => _closeThenGo(
                           context,
-                          icon: CupertinoIcons.lock_shield_fill,
-                          iconColor: _iosGreen,
-                          title: 'privacy_security_title'.tr,
-                          onTap: () => _closeThenGo(
-                            context,
-                            Routes.PRIVACY_SECURITY,
-                            reopenSettingsOnReturn: true,
-                          ),
+                          Routes.PRIVACY_SECURITY,
+                          reopenSettingsOnReturn: true,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 22),
                   _buildSectionLabel(context, 'account_label'.tr),

@@ -3,6 +3,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
+import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
@@ -10,6 +15,7 @@ import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/auth/presentation/widgets/security_answers_form.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -22,7 +28,7 @@ class ForgotPasswordView extends StatefulWidget {
 enum _RecoveryStep { account, code, security, password, complete }
 
 class _ForgotPasswordViewState extends State<ForgotPasswordView> {
-  late final TextEditingController _accountController;
+  late final AccountInputController _accountController;
   final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
@@ -35,16 +41,15 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   List<SecurityAnswer> _answers = [];
   Timer? _resendTimer;
   int _resendSeconds = 0;
-  String get _account => _accountController.text.trim();
+  String get _account => _accountController.account;
 
   @override
   void initState() {
     super.initState();
     final arguments = Get.arguments;
     final values = arguments is Map ? arguments : {};
-    _accountController = TextEditingController(
-      text: values['initialAccount']?.toString() ?? '',
-    );
+    _accountController = AccountInputController()
+      ..text = values['initialAccount']?.toString() ?? '';
   }
 
   @override
@@ -67,6 +72,40 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       setState(() => _resendSeconds--);
       if (_resendSeconds == 0) timer.cancel();
     });
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+    try {
+      await Get.find<AuthController>().loginWithGoogle();
+    } catch (_) {
+      if (mounted) _errorText = 'google_sign_in_failed'.tr;
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _recoverGoogleAccount() async {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+      _errorText = null;
+    });
+    try {
+      final opened = await launchUrl(
+        Uri.https('accounts.google.com', '/signin/recovery'),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) _errorText = 'google_recovery_open_failed'.tr;
+    } catch (_) {
+      if (mounted) _errorText = 'google_recovery_open_failed'.tr;
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   Future<void> _useSecurityQuestions() async {
@@ -241,12 +280,14 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
             children: [
               _buildBackdrop(context),
               CustomScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   AppScreenSliverAppBar(
                     title: 'forgot_password_title'.tr,
                     centerTitle: true,
+                    actions: const [LanguageToggleButton()],
                     leading: CustomGlassButton(
                       semanticLabel: MaterialLocalizations.of(
                         context,
@@ -264,8 +305,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                       child: const Icon(CupertinoIcons.back, size: 23),
                     ),
                   ),
-                  SliverFillRemaining(
-                    hasScrollBody: false,
+                  SliverToBoxAdapter(
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: ConstrainedBox(
@@ -295,11 +335,12 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                               Center(
                                 child: Text(
                                   "forgot_password_title".tr,
-                                  style: theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 30,
-                                    color: theme.colorScheme.primary,
-                                  ),
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 30,
+                                        color: theme.colorScheme.primary,
+                                      ),
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -327,12 +368,16 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                       child: Container(
                                         width: 40,
                                         height: 4,
-                                        margin: const EdgeInsets.only(bottom: 24),
+                                        margin: const EdgeInsets.only(
+                                          bottom: 24,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: theme.dividerColor.withValues(
                                             alpha: 0.3,
                                           ),
-                                          borderRadius: BorderRadius.circular(2),
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -365,7 +410,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: _isSubmitting ? null : () => _submit(),
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : () => _submit(),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: theme.colorScheme.primary,
                                     foregroundColor: Colors.white,
@@ -395,21 +442,64 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                 ),
                               ),
                               const SizedBox(height: 12),
+                              if (_step == _RecoveryStep.account) ...[
+                                Text(
+                                  'google_recovery_description'.tr,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                CustomGlassButton(
+                                  semanticLabel: 'sign_in_with_google'.tr,
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _signInWithGoogle,
+                                  minHeight: 56,
+                                  borderRadius: 26,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const FaIcon(
+                                        FontAwesomeIcons.google,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text('sign_in_with_google'.tr),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _recoverGoogleAccount,
+                                  child: Text('recover_google_account'.tr),
+                                ),
+                              ],
                               if (_step == _RecoveryStep.account ||
                                   _step == _RecoveryStep.code)
                                 TextButton(
                                   onPressed: _isSubmitting
                                       ? null
                                       : _useSecurityQuestions,
-                                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
-                                  child: Text('recovery_use_security_questions'.tr),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: theme.colorScheme.primary,
+                                  ),
+                                  child: Text(
+                                    'recovery_use_security_questions'.tr,
+                                  ),
                                 ),
                               if (_step == _RecoveryStep.code)
                                 TextButton(
                                   onPressed: _isSubmitting || _resendSeconds > 0
                                       ? null
                                       : () => _submit(resend: true),
-                                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: theme.colorScheme.primary,
+                                  ),
                                   child: Text(
                                     _resendSeconds > 0
                                         ? 'recovery_resend_countdown'.trParams({
@@ -423,7 +513,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                   _step == _RecoveryStep.password)
                                 TextButton(
                                   onPressed: _isSubmitting ? null : _startOver,
-                                  style: TextButton.styleFrom(foregroundColor: theme.colorScheme.primary),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: theme.colorScheme.primary,
+                                  ),
                                   child: Text('recovery_start_over'.tr),
                                 ),
                             ],
@@ -471,7 +563,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
-          colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
+          colors: [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ],
         ),
       ),
     );
@@ -479,11 +574,14 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
 
   List<Widget> _buildFields(BuildContext context) => switch (_step) {
     _RecoveryStep.account => [
-      _field(
-        context,
+      AccountInputField(
         controller: _accountController,
-        label: 'username_email_phone_hint'.tr,
-        autofillHints: const [AutofillHints.username],
+        enabled: !_isSubmitting,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+        onChanged: (_) {
+          if (_errorText != null) setState(() => _errorText = null);
+        },
       ),
     ],
     _RecoveryStep.code => [
@@ -558,7 +656,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
         size: 20,
         color: theme.colorScheme.primary.withValues(alpha: 0.8),
       ),
-      textStyle: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+      textStyle: theme.textTheme.bodyLarge?.copyWith(
+        fontWeight: FontWeight.w500,
+      ),
       placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
       ),
