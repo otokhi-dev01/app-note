@@ -8,6 +8,7 @@ import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 
 /// The user's profile and account details.
 ///
@@ -105,23 +106,7 @@ class ProfileView extends GetView<ProfileController> {
         padding: EdgeInsets.zero,
         child: const Icon(CupertinoIcons.chevron_left, size: 23),
       ),
-      actions: [
-        // A guest's name is saved on-device the same way a signed-in
-        // account's is (see ProfileController._saveUserName) — no reason
-        // to hide the edit action just because there's no server account.
-        CustomGlassButton(
-          semanticLabel: 'edit_name_title'.tr,
-          onPressed: controller.updateUserName,
-          width: 44,
-          height: 44,
-          shape: GlassShape.circle,
-          blur: 10,
-          opacity: 0.15,
-          thickness: 8,
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.pencil, size: 19),
-        ),
-      ],
+      actions: const [LanguageToggleButton()],
       title: 'profile_title'.tr,
     );
   }

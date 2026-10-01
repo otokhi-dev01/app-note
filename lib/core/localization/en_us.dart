@@ -300,10 +300,13 @@ const Map<String, String> enUS = {
   'job_bio_label': 'Job',
   'color_label': 'Color',
   'edit_username_title': 'Edit User',
+  'edit_username_subtitle': 'This username appears on your profile.',
   'edit_username_hint': 'Enter a username',
   'edit_account_title': 'Edit Account',
+  'edit_account_subtitle': 'Update the account name shown on your profile.',
   'edit_account_hint': 'Enter an account name',
   'edit_email_title': 'Edit Email',
+  'edit_email_subtitle': 'Update the email shown on your profile.',
   'edit_email_hint': 'Enter your email',
   'edit_job_title': 'Edit Job',
   'edit_job_subtitle': 'Enter your occupation or job title.',
@@ -313,6 +316,7 @@ const Map<String, String> enUS = {
   'job_updated_message': 'Job updated',
   'job_update_failed_title': 'Could not update job',
   'edit_color_title': 'Choose a Color',
+  'edit_color_subtitle': 'Choose the accent color for your profile.',
   'not_set': 'Not set',
 
   // Profile — encrypted ID information

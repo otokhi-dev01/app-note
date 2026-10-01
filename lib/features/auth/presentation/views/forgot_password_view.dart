@@ -15,6 +15,7 @@ import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/auth/presentation/widgets/security_answers_form.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
@@ -286,6 +287,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                   AppScreenSliverAppBar(
                     title: 'forgot_password_title'.tr,
                     centerTitle: true,
+                    actions: const [LanguageToggleButton()],
                     leading: CustomGlassButton(
                       semanticLabel: MaterialLocalizations.of(
                         context,

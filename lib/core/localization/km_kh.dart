@@ -297,10 +297,13 @@ const Map<String, String> kmKH = {
   'job_bio_label': 'ការងារ',
   'color_label': 'ពណ៌',
   'edit_username_title': 'កែអ្នកប្រើ',
+  'edit_username_subtitle': 'ឈ្មោះអ្នកប្រើនេះនឹងបង្ហាញនៅលើប្រវត្តិរូបរបស់អ្នក។',
   'edit_username_hint': 'បញ្ចូលឈ្មោះអ្នកប្រើ',
   'edit_account_title': 'កែគណនី',
+  'edit_account_subtitle': 'កែប្រែឈ្មោះគណនីដែលបង្ហាញនៅលើប្រវត្តិរូបរបស់អ្នក។',
   'edit_account_hint': 'បញ្ចូលឈ្មោះគណនី',
   'edit_email_title': 'កែអ៊ីមែល',
+  'edit_email_subtitle': 'កែប្រែអ៊ីមែលដែលបង្ហាញនៅលើប្រវត្តិរូបរបស់អ្នក។',
   'edit_email_hint': 'បញ្ចូលអ៊ីមែលរបស់អ្នក',
   'edit_job_title': 'កែតួនាទីការងារ',
   'edit_job_subtitle': 'បញ្ចូលមុខរបរ ឬតួនាទីការងាររបស់អ្នក។',
@@ -310,6 +313,7 @@ const Map<String, String> kmKH = {
   'job_updated_message': 'តួនាទីការងារត្រូវបានធ្វើបច្ចុប្បន្នភាព',
   'job_update_failed_title': 'មិនអាចធ្វើបច្ចុប្បន្នភាពតួនាទីការងារបានទេ',
   'edit_color_title': 'ជ្រើសរើសពណ៌',
+  'edit_color_subtitle': 'ជ្រើសរើសពណ៌សម្រាប់ប្រវត្តិរូបរបស់អ្នក។',
   'not_set': 'មិនទាន់កំណត់',
 
   // Profile — encrypted ID information

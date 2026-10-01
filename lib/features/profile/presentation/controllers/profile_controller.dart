@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -19,7 +19,6 @@ import 'package:Note/features/profile/domain/entities/passport_card.dart';
 import 'package:Note/core/storage/profile_extras_storage.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
-import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_job_sheet.dart';
@@ -27,7 +26,8 @@ import 'package:Note/features/profile/presentation/widgets/edit_id_information_s
 import 'package:Note/features/profile/presentation/widgets/edit_passport_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_phone_sheet.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/features/profile/presentation/widgets/profile_text_editor.dart';
+import 'package:Note/features/profile/presentation/widgets/profile_color_editor.dart';
 
 class ProfileController extends GetxController {
   final UpdateUserName _updateUserName;
@@ -460,6 +460,9 @@ class ProfileController extends GetxController {
 
   Future<void> updateUsername() => _editTextField(
     title: 'edit_username_title'.tr,
+    label: 'username_label'.tr,
+    subtitle: 'edit_username_subtitle'.tr,
+    icon: CupertinoIcons.person_fill,
     hint: 'edit_username_hint'.tr,
     initialValue: userUsername.value,
     onSave: (value) {
@@ -470,6 +473,9 @@ class ProfileController extends GetxController {
 
   Future<void> updateAccount() => _editTextField(
     title: 'edit_account_title'.tr,
+    label: 'account_label'.tr,
+    subtitle: 'edit_account_subtitle'.tr,
+    icon: CupertinoIcons.person_crop_circle_fill,
     hint: 'edit_account_hint'.tr,
     initialValue: userAccount.value,
     onSave: (value) {
@@ -480,6 +486,9 @@ class ProfileController extends GetxController {
 
   Future<void> updateEmail() => _editTextField(
     title: 'edit_email_title'.tr,
+    label: 'email_label'.tr,
+    subtitle: 'edit_email_subtitle'.tr,
+    icon: CupertinoIcons.envelope_fill,
     hint: 'edit_email_hint'.tr,
     initialValue: userEmail.value,
     keyboardType: TextInputType.emailAddress,
@@ -746,44 +755,16 @@ class ProfileController extends GetxController {
     );
   }
 
-  /// A swatch picker sheet reusing [FolderAppearance.colors] — the same
-  /// palette folders pick from — rather than inventing a second one.
+  /// Opens a draft picker using the same palette as folders.
   Future<void> updateColor() async {
-    final context = Get.context;
-    if (context == null) return;
+    if (Get.context == null) return;
 
     await Get.to<void>(
       () => ProfileEditScreen(
         title: 'edit_color_title'.tr,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'edit_color_title'.tr,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Obx(
-                () => Wrap(
-                  spacing: 14,
-                  runSpacing: 14,
-                  children: [
-                    for (final hex in FolderAppearance.colors)
-                      _ProfileColorSwatch(
-                        hex: hex,
-                        selected: userColorHex.value == hex,
-                        onTap: () => selectColor(hex, closePicker: true),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        child: ProfileColorEditor(
+          initialColor: userColorHex.value,
+          onSave: selectColor,
         ),
       ),
     );
@@ -813,114 +794,41 @@ class ProfileController extends GetxController {
     );
   }
 
-  /// Shared single-line text-field sheet for the local-only fields — same
-  /// shape as [updateUserName]'s sheet, minus the network round trip.
+  /// Opens a focused editor for locally stored profile fields.
   Future<void> _editTextField({
     required String title,
     required String hint,
     required String initialValue,
     required ValueChanged<String> onSave,
+    String? label,
+    String? subtitle,
+    IconData icon = CupertinoIcons.person_fill,
     TextInputType? keyboardType,
   }) async {
-    final context = Get.context;
-    if (context == null) return;
+    if (Get.context == null) return;
 
-    final fieldController = TextEditingController(text: initialValue);
-    try {
-      await Get.to<void>(
-        () => ProfileEditScreen(
+    await Get.to<void>(
+      () => ProfileEditScreen(
+        title: title,
+        child: ProfileTextEditor(
           title: title,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                CustomGlassTextField(
-                  controller: fieldController,
-                  autofocus: true,
-                  placeholder: hint,
-                  keyboardType: keyboardType,
-                  textInputAction: TextInputAction.done,
-                  textStyle: Theme.of(context).textTheme.bodyLarge,
-                  useOwnLayer: false,
-                  onSubmitted: (_) {
-                    onSave(fieldController.text.trim());
-                    Get.back();
-                  },
-                  suffixIcon: const Icon(
-                    Icons.check_circle_rounded,
-                    color: IosSemanticColors.blue,
-                  ),
-                  onSuffixTap: () {
-                    onSave(fieldController.text.trim());
-                    Get.back();
-                  },
-                ),
-              ],
-            ),
-          ),
+          label: label ?? title,
+          subtitle: subtitle ?? hint,
+          hint: hint,
+          icon: icon,
+          initialValue: initialValue,
+          keyboardType: keyboardType,
+          onSave: (value) async {
+            onSave(value);
+            return true;
+          },
         ),
-      );
-    } finally {
-      fieldController.dispose();
-    }
+      ),
+    );
   }
 
   Future<void> logout() async {
     await Get.find<Logout>()(const NoParams());
     unawaited(Get.offAllNamed(Routes.ONBOARDING));
-  }
-}
-
-/// A tappable color circle for [ProfileController.updateColor]'s sheet —
-/// visually the same swatch as the folder color picker's, kept local to
-/// Profile since it's a different sheet context.
-class _ProfileColorSwatch extends StatelessWidget {
-  final String hex;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ProfileColorSwatch({
-    required this.hex,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = FolderAppearance.parseHex(hex);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-          border: Border.all(
-            color: selected ? Colors.white : Colors.transparent,
-            width: 3,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: selected ? 0.5 : 0),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: selected
-            ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
-            : null,
-      ),
-    );
   }
 }

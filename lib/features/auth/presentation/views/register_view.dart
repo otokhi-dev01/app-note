@@ -43,10 +43,23 @@ class RegisterView extends GetView<AuthController> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        IconButton(
+                        CustomGlassButton(
+                          semanticLabel: MaterialLocalizations.of(
+                            context,
+                          ).backButtonTooltip,
                           onPressed: () => Get.back(),
-                          icon: const Icon(CupertinoIcons.back),
-                          color: theme.colorScheme.onSurface,
+                          width: 44,
+                          height: 44,
+                          shape: GlassShape.circle,
+                          blur: 10,
+                          opacity: 0.15,
+                          thickness: 8,
+                          foregroundColor: theme.colorScheme.onSurface,
+                          padding: EdgeInsets.zero,
+                          child: const Icon(
+                            CupertinoIcons.chevron_left,
+                            size: 23,
+                          ),
                         ),
                         const LanguageToggleButton(),
                       ],
