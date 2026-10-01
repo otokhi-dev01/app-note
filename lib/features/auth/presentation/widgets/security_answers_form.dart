@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:Note/features/auth/domain/entities/security_question.dart';
 
 /// Answers only live in this form and are disposed when recovery leaves it.

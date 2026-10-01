@@ -99,14 +99,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Job & Career and Color open their editors for a guest', (
+  testWidgets('Job and Color open their editors for a guest', (
     tester,
   ) async {
     await mount(tester);
 
-    await tester.tap(find.text('Job & Career'));
+    await tester.tap(find.text('Job'));
     await tester.pumpAndSettle();
-    expect(find.text('Edit Job & Career'), findsWidgets);
+    expect(find.text('Edit Job'), findsWidgets);
     Get.back();
     await tester.pumpAndSettle();
 
@@ -119,15 +119,14 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Phone stays read-only for a guest — there is no phone without an account', (
+  testWidgets('Phone is editable for a user and opens the editor sheet', (
     tester,
   ) async {
     await mount(tester);
-    await tester.tap(find.text('Phone'));
+    await tester.tap(find.text('Phone').first);
     await tester.pumpAndSettle();
-    // No navigation should have happened: Profile's own title is still there.
-    expect(find.text('My Profile'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    expect(find.text('Phone'), findsWidgets);
+    expect(find.byType(EditableText), findsWidgets);
   });
 
   testWidgets('ID information editor opens for a guest under a stable key', (

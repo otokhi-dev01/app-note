@@ -22,10 +22,11 @@ import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/domain/usecases/profile_usecases.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
-import 'package:Note/features/profile/presentation/widgets/edit_job_bio_sheet.dart';
+import 'package:Note/features/profile/presentation/widgets/edit_job_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_id_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_passport_information_sheet.dart';
 import 'package:Note/features/profile/presentation/widgets/edit_name_sheet.dart';
+import 'package:Note/features/profile/presentation/widgets/edit_phone_sheet.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class ProfileController extends GetxController {
@@ -141,9 +142,9 @@ class ProfileController extends GetxController {
     final apiPhone = user?.phone?.trim() ?? '';
     final extraPhone = _extras.phone.trim();
 
-    userPhone.value = isGuest
-        ? 'not_signed_in'.tr
-        : (extraPhone.isNotEmpty ? extraPhone : apiPhone);
+    userPhone.value = extraPhone.isNotEmpty
+        ? extraPhone
+        : (isGuest ? '' : apiPhone);
 
     // The avatar is stored as a path relative to the documents directory
     // so it survives app container UUID changes on iOS. Resolve it to a real
@@ -558,36 +559,58 @@ class ProfileController extends GetxController {
     },
   );
 
-  Future<void> updatePhone() => _editTextField(
-    title: 'phone_label'.tr,
-    hint: 'phone_number_label'.tr,
-    initialValue: userPhone.value,
-    keyboardType: TextInputType.phone,
-    onSave: (value) {
-      _extras.phone = value;
-      userPhone.value = value;
-    },
-  );
-
-  /// One sheet for both fields since "job" and "bio" are always described
-  /// together in a single profile blurb rather than as separate settings.
-  Future<void> updateJobAndBio() async {
+  Future<void> updatePhone() async {
     final context = Get.context;
     if (context == null) return;
 
-    await EditJobBioSheet.show(
+    await EditPhoneSheet.show(
+      context: context,
+      initialPhone: userPhone.value,
+      onSave: _savePhone,
+    );
+  }
+
+  Future<bool> _savePhone(String phone) async {
+    final trimmed = phone.trim();
+    if (trimmed.isEmpty) {
+      AppSnackbar.failure(
+        'phone_update_failed_title'.tr,
+        const ValidationFailure('Please enter your phone number.'),
+      );
+      return false;
+    }
+
+    _extras.phone = trimmed;
+    userPhone.value = trimmed;
+    AppSnackbar.success('saved_title'.tr, 'phone_updated_message'.tr);
+    return true;
+  }
+
+  Future<void> updateJob() async {
+    final context = Get.context;
+    if (context == null) return;
+
+    await EditJobSheet.show(
       context: context,
       initialJob: userJob.value,
-      initialBio: userBio.value,
-      onSave: (job, bio) async {
-        _extras.job = job;
-        _extras.bio = bio;
-        userJob.value = job;
-        userBio.value = bio;
-        AppSnackbar.success('saved_title'.tr, 'profile_updated_message'.tr);
-        return true;
-      },
+      onSave: _saveJob,
     );
+  }
+
+  Future<bool> _saveJob(String job) async {
+    final trimmed = job.trim();
+    if (trimmed.isEmpty) {
+      AppSnackbar.failure(
+        'job_update_failed_title'.tr,
+        const ValidationFailure('Please enter your job.'),
+      );
+      return false;
+    }
+
+    _extras.job = trimmed;
+    userJob.value = trimmed;
+    AppSnackbar.success('saved_title'.tr, 'job_updated_message'.tr);
+    return true;
   }
 
   Future<void> updateIdInformation() async {
@@ -780,9 +803,13 @@ class ProfileController extends GetxController {
   Future<void> requestForgotPassword() async {
     if (isGuestMode.value) return;
 
+    final initialAccount = userPhone.value.isNotEmpty
+        ? userPhone.value
+        : userAccount.value;
+
     await Get.toNamed(
       Routes.FORGOT_PASSWORD,
-      arguments: {'initialAccount': userPhone.value},
+      arguments: {'initialAccount': initialAccount},
     );
   }
 

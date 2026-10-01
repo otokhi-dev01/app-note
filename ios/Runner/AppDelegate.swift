@@ -18,6 +18,24 @@ import Vision
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
 
+    let googleConfiguration = FlutterMethodChannel(
+      name: "com.kimchheang.pii_note/google_sign_in_config",
+      binaryMessenger: engineBridge.applicationRegistrar.messenger()
+    )
+    googleConfiguration.setMethodCallHandler { call, result in
+      guard call.method == "readConfiguration" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let info = Bundle.main.infoDictionary ?? [:]
+      let urlTypes = info["CFBundleURLTypes"] as? [[String: Any]] ?? []
+      result([
+        "clientId": info["NoteGoogleIOSClientID"] as? String ?? "",
+        "serverClientId": info["NoteGoogleServerClientID"] as? String ?? "",
+        "urlSchemes": urlTypes.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
+      ])
+    }
+
     let services = NativeMediaServices()
     services.register(with: engineBridge.applicationRegistrar.messenger())
     nativeMediaServices = services

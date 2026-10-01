@@ -332,8 +332,6 @@ class ProfileView extends GetView<ProfileController> {
 
   Widget _buildDetailsCard(BuildContext context) {
     return Obx(() {
-      final isGuest = controller.isGuestMode.value;
-
       return _buildSurfaceCard(
         context,
         children: [
@@ -375,17 +373,15 @@ class ProfileView extends GetView<ProfileController> {
                 : controller.userEmail.value,
             onTap: controller.updateEmail,
           ),
-          // Phone stays read-only and unset for a guest — it comes from
-          // signing in, which is the one thing a guest hasn't done.
           _buildDetailRow(
             context,
             icon: CupertinoIcons.phone_fill,
             iconColor: _iosGreen,
             label: 'phone_label'.tr,
             value: controller.userPhone.value.isEmpty
-                ? 'not_available'.tr
+                ? 'not_set'.tr
                 : controller.userPhone.value,
-            onTap: isGuest ? null : controller.updatePhone,
+            onTap: controller.updatePhone,
           ),
         ],
       );
@@ -401,6 +397,14 @@ class ProfileView extends GetView<ProfileController> {
         children: [
           _buildDetailRow(
             context,
+            icon: CupertinoIcons.lock_rotation,
+            iconColor: _iosOrange,
+            label: 'forgot_password_title'.tr,
+            value: '',
+            onTap: isGuest ? null : controller.requestForgotPassword,
+          ),
+          _buildDetailRow(
+            context,
             icon: CupertinoIcons.person_fill,
             iconColor: _iosBlue,
             label: 'full_name_label'.tr,
@@ -413,9 +417,9 @@ class ProfileView extends GetView<ProfileController> {
             iconColor: _iosGreen,
             label: 'phone_label'.tr,
             value: controller.userPhone.value.isEmpty
-                ? 'not_available'.tr
+                ? 'not_set'.tr
                 : controller.userPhone.value,
-            onTap: isGuest ? null : controller.updatePhone,
+            onTap: controller.updatePhone,
           ),
           _buildDetailRow(
             context,
@@ -431,11 +435,11 @@ class ProfileView extends GetView<ProfileController> {
             context,
             icon: CupertinoIcons.briefcase_fill,
             iconColor: _iosIndigo,
-            label: 'job_bio_label'.tr,
+            label: 'job_label'.tr,
             value: controller.userJob.value.isEmpty
                 ? 'not_set'.tr
                 : controller.userJob.value,
-            onTap: controller.updateJobAndBio,
+            onTap: controller.updateJob,
           ),
           _buildDetailRow(
             context,

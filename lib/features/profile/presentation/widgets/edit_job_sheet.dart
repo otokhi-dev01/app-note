@@ -7,76 +7,76 @@ import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
 
-/// A focused, compact profile-name editor.
-class EditNameSheet extends StatefulWidget {
-  final String initialName;
-  final Future<bool> Function(String name) onSave;
+/// A focused, compact profile job editor styled like [EditNameSheet].
+class EditJobSheet extends StatefulWidget {
+  final String initialJob;
+  final Future<bool> Function(String job) onSave;
 
-  const EditNameSheet({
+  const EditJobSheet({
     super.key,
-    required this.initialName,
+    required this.initialJob,
     required this.onSave,
   });
 
   static Future<void> show({
     required BuildContext context,
-    required String initialName,
-    required Future<bool> Function(String name) onSave,
+    required String initialJob,
+    required Future<bool> Function(String job) onSave,
   }) {
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => ProfileEditScreen(
-          title: 'edit_name_title'.tr,
-          child: EditNameSheet(initialName: initialName, onSave: onSave),
+          title: 'edit_job_title'.tr,
+          child: EditJobSheet(initialJob: initialJob, onSave: onSave),
         ),
       ),
     );
   }
 
   @override
-  State<EditNameSheet> createState() => _EditNameSheetState();
+  State<EditJobSheet> createState() => _EditJobSheetState();
 }
 
-class _EditNameSheetState extends State<EditNameSheet> {
-  static const _maxNameLength = 60;
+class _EditJobSheetState extends State<EditJobSheet> {
+  static const _maxJobLength = 80;
 
-  late final TextEditingController _nameController;
+  late final TextEditingController _jobController;
   bool _isSaving = false;
   bool _showRequiredError = false;
 
-  String get _trimmedName => _nameController.text.trim();
-  bool get _hasChanged => _trimmedName != widget.initialName.trim();
-  bool get _canSave => !_isSaving && _trimmedName.isNotEmpty && _hasChanged;
+  String get _trimmedJob => _jobController.text.trim();
+  bool get _hasChanged => _trimmedJob != widget.initialJob.trim();
+  bool get _canSave => !_isSaving && _trimmedJob.isNotEmpty && _hasChanged;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialName)
-      ..addListener(_handleNameChanged);
-    _nameController.selection = TextSelection.collapsed(
-      offset: _nameController.text.length,
+    _jobController = TextEditingController(text: widget.initialJob)
+      ..addListener(_handleJobChanged);
+    _jobController.selection = TextSelection.collapsed(
+      offset: _jobController.text.length,
     );
   }
 
   @override
   void dispose() {
-    _nameController
-      ..removeListener(_handleNameChanged)
+    _jobController
+      ..removeListener(_handleJobChanged)
       ..dispose();
     super.dispose();
   }
 
-  void _handleNameChanged() {
+  void _handleJobChanged() {
     if (!mounted) return;
     setState(() {
-      if (_trimmedName.isNotEmpty) _showRequiredError = false;
+      if (_trimmedJob.isNotEmpty) _showRequiredError = false;
     });
   }
 
   Future<void> _submit() async {
     if (_isSaving) return;
 
-    if (_trimmedName.isEmpty) {
+    if (_trimmedJob.isEmpty) {
       unawaited(HapticFeedback.mediumImpact());
       setState(() => _showRequiredError = true);
       return;
@@ -87,7 +87,7 @@ class _EditNameSheetState extends State<EditNameSheet> {
     FocusScope.of(context).unfocus();
     setState(() => _isSaving = true);
 
-    final saved = await widget.onSave(_trimmedName);
+    final saved = await widget.onSave(_trimmedJob);
     if (!mounted) return;
 
     if (saved) {
@@ -113,14 +113,14 @@ class _EditNameSheetState extends State<EditNameSheet> {
             _buildHeader(theme, scheme),
             const SizedBox(height: 20),
             Text(
-              'full_name_label'.tr,
+              'job_label'.tr,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: scheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            _buildNameField(theme, scheme),
+            _buildJobField(theme, scheme),
             const SizedBox(height: 20),
             _buildActions(context, scheme),
           ],
@@ -139,19 +139,19 @@ class _EditNameSheetState extends State<EditNameSheet> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: IosSemanticColors.blue.withValues(alpha: 0.12),
+                color: IosSemanticColors.indigo.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
-                CupertinoIcons.person_fill,
+                CupertinoIcons.briefcase_fill,
                 size: 20,
-                color: IosSemanticColors.blue,
+                color: IosSemanticColors.indigo,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'edit_name_title'.tr,
+                'edit_job_title'.tr,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -163,7 +163,7 @@ class _EditNameSheetState extends State<EditNameSheet> {
         ),
         const SizedBox(height: 8),
         Text(
-          'edit_name_subtitle'.tr,
+          'edit_job_subtitle'.tr,
           style: theme.textTheme.bodySmall?.copyWith(
             color: scheme.onSurfaceVariant,
             height: 1.45,
@@ -173,7 +173,7 @@ class _EditNameSheetState extends State<EditNameSheet> {
     );
   }
 
-  Widget _buildNameField(ThemeData theme, ColorScheme scheme) {
+  Widget _buildJobField(ThemeData theme, ColorScheme scheme) {
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
       borderSide: BorderSide(
@@ -182,13 +182,13 @@ class _EditNameSheetState extends State<EditNameSheet> {
     );
 
     return TextField(
-      controller: _nameController,
+      controller: _jobController,
       autofocus: true,
       enabled: !_isSaving,
-      maxLength: _maxNameLength,
+      maxLength: _maxJobLength,
       textCapitalization: TextCapitalization.words,
       textInputAction: TextInputAction.done,
-      inputFormatters: [LengthLimitingTextInputFormatter(_maxNameLength)],
+      inputFormatters: [LengthLimitingTextInputFormatter(_maxJobLength)],
       style: theme.textTheme.bodyLarge?.copyWith(
         color: scheme.onSurface,
         fontWeight: FontWeight.w500,
@@ -196,19 +196,19 @@ class _EditNameSheetState extends State<EditNameSheet> {
       cursorColor: IosSemanticColors.blue,
       onSubmitted: (_) => _submit(),
       decoration: InputDecoration(
-        hintText: 'edit_name_hint'.tr,
-        errorText: _showRequiredError ? 'name_required_message'.tr : null,
+        hintText: 'edit_job_hint'.tr,
+        errorText: _showRequiredError ? 'job_required_message'.tr : null,
         filled: true,
         fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 15,
         ),
-        suffixIcon: _nameController.text.isEmpty
+        suffixIcon: _jobController.text.isEmpty
             ? null
             : IconButton(
                 tooltip: 'clear_action'.tr,
-                onPressed: _isSaving ? null : _nameController.clear,
+                onPressed: _isSaving ? null : _jobController.clear,
                 icon: Icon(
                   CupertinoIcons.xmark_circle_fill,
                   size: 19,
@@ -281,7 +281,7 @@ class _EditNameSheetState extends State<EditNameSheet> {
             ),
           ),
           child: _isSaving
-              ? SizedBox.square(
+              ? const SizedBox.square(
                   dimension: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,

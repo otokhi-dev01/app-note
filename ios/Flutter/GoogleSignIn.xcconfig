@@ -1,0 +1,8 @@
+// Google Cloud OAuth client IDs for this app. See docs/google-sign-in.md.
+// Leave empty until real IDs are available; sign-in then shows an availability
+// message instead of entering an unconfigured native SDK.
+GOOGLE_IOS_CLIENT_ID =
+GOOGLE_SERVER_CLIENT_ID =
+// A valid inert scheme keeps unconfigured builds installable. Replace it with
+// the reversed iOS client ID when enabling Google sign-in.
+GOOGLE_REVERSED_CLIENT_ID = com.kimchheang.otokhi-note.google-unconfigured
