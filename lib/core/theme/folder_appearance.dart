@@ -178,6 +178,25 @@ class FolderAppearance {
     return parseHex(raw);
   }
 
+  static String colorNameFor(String? value) {
+    final hex = normalizeColor(value).toUpperCase();
+    return switch (hex) {
+      '#FF69B4' => 'Pink',
+      '#FF3B30' => 'Red',
+      '#FF9500' => 'Orange',
+      '#FFB703' => 'Amber',
+      '#FFCC00' => 'Yellow',
+      '#34C759' => 'Green',
+      '#00C7BE' => 'Teal',
+      '#32ADE6' => 'Cyan',
+      '#007AFF' => 'Blue',
+      '#5856D6' => 'Indigo',
+      '#AF52DE' => 'Purple',
+      '#8E8E93' => 'Gray',
+      _ => 'Custom',
+    };
+  }
+
   static Color parseHex(String value) {
     var hex = value.trim().replaceFirst('#', '');
     if (hex.length == 6) hex = 'FF$hex';
