@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
@@ -310,6 +311,45 @@ class RegisterView extends GetView<AuthController> {
                             fontWeight: FontWeight.bold,
                             fontSize: 17,
                           ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Obx(
+                () => CustomGlassButton(
+                  semanticLabel: 'sign_in_with_google'.tr,
+                  onPressed: controller.isLoading.value
+                      ? null
+                      : controller.loginWithGoogle,
+                  minHeight: 56,
+                  borderRadius: 26,
+                  style: lg.GlassButtonStyle.prominent,
+                  glassColor: theme.colorScheme.surface,
+                  foregroundColor: theme.colorScheme.onSurface,
+                  child: controller.isLoading.value
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const FaIcon(
+                              FontAwesomeIcons.google,
+                              size: 18,
+                              color: Colors.red,
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'sign_in_with_google'.tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                 ),
               ),

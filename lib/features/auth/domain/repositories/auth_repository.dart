@@ -15,6 +15,9 @@ abstract class AuthRepository {
     required String password,
   });
 
+  /// Authenticates using Google Sign-In ID token.
+  Future<Result<AuthSession>> googleLogin(String idToken);
+
   /// Sends a recovery code for a username, email, or phone number.
   Future<Result<void>> forgotPassword(String account);
 

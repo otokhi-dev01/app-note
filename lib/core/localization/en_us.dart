@@ -79,8 +79,9 @@ const Map<String, String> enUS = {
   'password_label': 'Password',
   'confirm_password_label': 'Confirm Password',
   'sign_in_button': 'Sign In',
+  'sign_in_with_google': 'Sign in with Google',
   'sign_up_button': 'Sign Up',
-  'welcome_piisiit': 'Welcome to PIISIIT',
+  'welcome_piisiit': 'Welcome to PII Note',
   'sign_in_subtitle': 'Sign in to your account',
 
   // Register

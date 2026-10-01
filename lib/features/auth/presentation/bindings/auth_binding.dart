@@ -12,6 +12,7 @@ class AuthBinding extends Bindings {
       () => AuthController(
         login: Get.find<Login>(),
         register: Get.find<Register>(),
+        googleLogin: Get.find<GoogleLogin>(),
       ),
       fenix: true,
     );

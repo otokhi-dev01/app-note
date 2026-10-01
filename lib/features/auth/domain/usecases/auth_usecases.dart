@@ -34,6 +34,22 @@ class LoginParams {
   const LoginParams({required this.account, required this.password});
 }
 
+class GoogleLogin extends UseCase<AuthSession, String> {
+  final AuthRepository _repository;
+
+  const GoogleLogin(this._repository);
+
+  @override
+  Future<Result<AuthSession>> call(String idToken) async {
+    if (idToken.trim().isEmpty) {
+      return const Err(
+        ValidationFailure('Google authentication token is empty.'),
+      );
+    }
+    return _repository.googleLogin(idToken.trim());
+  }
+}
+
 class Register extends UseCase<void, RegisterParams> {
   final AuthRepository _repository;
 

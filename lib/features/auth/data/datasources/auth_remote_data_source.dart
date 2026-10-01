@@ -37,6 +37,45 @@ class AuthRemoteDataSource extends GetxService {
     confirmPassword: confirmPassword,
   );
 
+  Future<AuthResponse> googleLogin(String idToken) async {
+    try {
+      final device = await _deviceService.read();
+      final body = {
+        'idToken': idToken,
+        'token': idToken,
+        'googleToken': idToken,
+        'clientDeviceId': device.clientDeviceId,
+        'appVersion': device.appVersion,
+        'deviceName': device.deviceName,
+        'platform': device.platform,
+        'deviceModel': device.deviceModel,
+      };
+      final url = '${AppConstants.authBaseUrl}${AppConstants.googleLoginEndpoint}';
+      if (kDebugMode) {
+        debugPrint('[AUTH] Calling Google Login: $url');
+      }
+      final response = await _api.dio.post(
+        url,
+        data: body,
+        options: dio.Options(
+          headers: {'Accept': '*/*', 'Content-Type': 'application/json'},
+          extra: {'requiresAuth': false},
+        ),
+      );
+      if (response.data is! Map) {
+        throw const ServerException(
+          'The account server returned an invalid response. Please try again.',
+        );
+      }
+      return AuthResponse.fromJson(
+        Map<String, dynamic>.from(response.data),
+        statusCode: response.statusCode,
+      );
+    } on dio.DioException catch (e) {
+      throw ApiErrorParser.toException(e);
+    }
+  }
+
   Future<AuthResponse> _submitCredentials(
     String url,
     String account,

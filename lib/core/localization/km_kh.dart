@@ -76,6 +76,7 @@ const Map<String, String> kmKH = {
   'password_label': 'ពាក្យសម្ងាត់',
   'confirm_password_label': 'បញ្ជាក់ពាក្យសម្ងាត់',
   'sign_in_button': 'ចូល',
+  'sign_in_with_google': 'ចូលជាមួយ Google',
   'sign_up_button': 'ចុះឈ្មោះ',
   'welcome_piisiit': 'សូមស្វាគមន៍មកកាន់ PIISIIT',
   'sign_in_subtitle': 'ចូលទៅកាន់គណនីរបស់អ្នក',
