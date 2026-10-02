@@ -284,14 +284,14 @@ void main() {
     );
     await tester.pumpAndSettle();
     final controller = Get.find<RegistrationController>();
-    controller.emailController.text = 'invalid-email';
+    controller.accountController.text = 'invalid@';
     controller.passwordController.text = 'strongpass';
     controller.confirmPasswordController.text = 'strongpass';
     await tester.ensureVisible(find.text('sign_up_button'.tr));
     await tester.tap(find.text('sign_up_button'.tr));
     await tester.pumpAndSettle();
     expect(find.byType(RegisterView), findsOneWidget);
-    expect(find.text('Please enter a valid email address.'), findsOneWidget);
+    expect(find.text('register_email_invalid'.tr), findsOneWidget);
     expect(controller.completed.value, isFalse);
     expect(tester.takeException(), isNull);
   });
@@ -309,15 +309,15 @@ void main() {
     );
     await tester.pumpAndSettle();
     final controller = Get.find<RegistrationController>();
-    controller.emailController.text = 'new@example.com';
+    controller.accountController.text = 'new@example.com';
     controller.passwordController.text = 'strongpass';
     controller.confirmPasswordController.text = 'different';
     await tester.ensureVisible(find.text('sign_up_button'.tr));
     await tester.tap(find.text('sign_up_button'.tr));
     await tester.pumpAndSettle();
     expect(find.byType(RegisterView), findsOneWidget);
-    expect(find.text('Passwords do not match.'), findsOneWidget);
-    expect(controller.emailController.text, 'new@example.com');
+    expect(find.text('register_password_mismatch'.tr), findsOneWidget);
+    expect(controller.accountController.text, 'new@example.com');
     expect(tester.takeException(), isNull);
   });
 

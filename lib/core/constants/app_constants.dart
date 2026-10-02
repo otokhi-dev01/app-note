@@ -13,6 +13,8 @@ class AppConstants {
 
   /// Auth Endpoints
   static const String registerEndpoint = "/register";
+  static const String signupSendOtpEndpoint = "/signup/send-otp";
+  static const String verifyEmailOtpEndpoint = "/verify-otp/email";
   static const String loginEndpoint = "/login";
   static const String googleLoginEndpoint = "/google-login";
   static const String logoutEndpoint = "/logout-current-device";

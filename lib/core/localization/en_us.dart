@@ -102,6 +102,33 @@ const Map<String, String> enUS = {
   'sign_in_subtitle': 'Sign in to your account',
 
   // Register
+  'register_account_required':
+      'Please enter your username, email or phone number.',
+  'register_account_type_invalid':
+      'Keep the same account type when correcting your details.',
+  'register_verification_email_description':
+      'Enter your email to receive a 6-digit verification code.',
+  'register_send_code': 'Send Code',
+  'register_email_label': 'Email',
+  'register_username_required': 'Please enter your username.',
+  'register_email_invalid': 'Please enter a valid email address.',
+  'register_confirm_required': 'Please confirm your password.',
+  'register_password_mismatch': 'Passwords do not match.',
+  'register_otp_title': 'Verify your email',
+  'register_otp_description':
+      'Enter the 6-digit code sent to your email. Check your inbox or spam folder.',
+  'register_otp_invalid': 'Please enter the 6-digit email code.',
+  'register_verify_create': 'Verify & Create Account',
+  'register_resend_otp': 'Resend Code',
+  'register_resend_countdown': 'Resend code in @seconds seconds',
+  'register_retry_countdown': 'Try again in @seconds seconds',
+  'register_edit_details': 'Edit Details',
+  'register_profile_title': 'Complete your profile',
+  'register_profile_description':
+      'Your account is created. Please check your details and try again to finish signup.',
+  'register_finish': 'Finish Sign Up',
+  'register_unexpected_error':
+      'Registration could not be completed. Please try again.',
   'register_title': 'Register',
   'register_create_account': 'Create your account',
   'register_subtitle': 'Sign up to get started',
@@ -122,11 +149,15 @@ const Map<String, String> enUS = {
   'recovery_password_desc': 'Choose a new password for your account.',
   'recovery_complete_desc':
       'Your password has been reset. Sign in with your new password.',
-  'recovery_verify_code': 'Verify Code',
+  'recovery_otp_title': 'OTP Verification',
+  'recovery_otp_description': 'Enter the verification code we have sent to',
+  'recovery_otp_countdown': 'You may resend OTP in @time min',
+  'recovery_otp_not_received': "Didn't receive OTP?",
+  'recovery_verify_code': 'Verify OTP',
   'recovery_reset_password': 'Reset Password',
   'recovery_code_label': 'Verification Code',
   'recovery_new_password': 'New Password',
-  'recovery_resend_code': 'Resend Code',
+  'recovery_resend_code': 'Resend OTP',
   'recovery_resend_countdown': 'Resend code in @seconds seconds',
   'recovery_start_over': 'Start Again',
   'recovery_unexpected_error':
