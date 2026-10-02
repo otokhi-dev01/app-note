@@ -35,7 +35,8 @@ Sending/resending and verification require an explicit success envelope. All
 steps reject invalid responses, explicit failures, error collections, and
 application error codes. The successful response schemas are not specified in
 Swagger; registration/profile saving retain the existing auth response parser.
-A live test is still required to confirm email delivery and actual response shapes.
+A live email signup API test on October 2, 2026 confirmed delivery and the
+response shapes used by the signup flow; see the verification results below.
 
 The OTP input supports paste and autofill, only accepts six digits, and preserves
 leading zeroes. Resending has a 60-second cooldown; HTTP 429 `Retry-After` blocks
@@ -70,3 +71,26 @@ account input and enter matching passwords. If prompted, provide an email you
 control. Enter the received code, confirm the Sign In screen, then log in and
 check the saved profile. Also test an incorrect/expired
 code and a taken username. Email delivery and OTP generation belong to the backend.
+
+## Live email signup API verification — October 2, 2026
+
+Using a unique Gmail alias controlled by the user, the live API test passed:
+
+- Signup OTP request: HTTP 200; the user received the code.
+- Email OTP verification: HTTP 200.
+- Account registration and profile saving: HTTP 200.
+- Login with the current app payload, including its field aliases: HTTP 200
+  with an access token and user ID.
+- Authenticated profile access: HTTP 200.
+- Test session logout with the documented `sessionId`: HTTP 200.
+
+The existing app logout method currently omits `sessionId`; a request without it
+returned HTTP 500 with `Session not found`. That app method still needs a payload
+correction. The test session was closed by looking up its device-specific session
+and including the required ID.
+
+An OTP request for an already registered address returned HTTP 500 with
+`Email is already registered`, rather than a validation status.
+
+Credentials are kept outside the repository. This was an API test, not a device
+UI test; username and phone signup paths remain covered by simulated API tests.
