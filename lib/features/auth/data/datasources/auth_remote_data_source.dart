@@ -1,11 +1,13 @@
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' hide Response;
+import 'package:uuid/uuid.dart';
 
 import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
+import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
 import 'package:Note/features/auth/data/services/registration_service.dart';
@@ -159,12 +161,92 @@ class AuthRemoteDataSource extends GetxService {
   /// out and must not be left stuck signed in locally over a network hiccup.
   Future<void> logout() async {
     try {
-      await _api.dio.post(
-        '${AppConstants.authBaseUrl}${AppConstants.logoutEndpoint}',
+      final session = Get.find<SessionStorage>();
+      await session.ready;
+      await session.waitForPendingWrites();
+      if (!session.isLoggedIn) return;
+      final revision = session.revision;
+      final device = await _deviceService.read();
+      final response = await _api.dio.get(
+        '${AppConstants.authBaseUrl}${AppConstants.sessionsEndpoint}',
+        options: dio.Options(extra: {'authRetrySessionRevision': revision}),
       );
+      final body = _readSessionResponse(response);
+      final rows = body['data'] ?? body['Data'];
+      if (rows is! List) {
+        throw const ServerException(
+          'The server returned an invalid session list.',
+        );
+      }
+      final matches = <String>{};
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final deviceId = row['deviceId'] ?? row['DeviceId'];
+        if (deviceId is! String ||
+            deviceId.toLowerCase() != device.clientDeviceId.toLowerCase()) {
+          continue;
+        }
+        final id = row['sessionId'] ?? row['SessionId'];
+        // The .NET server returns GUIDs; only the 128-bit GUID layout is
+        // required here, not a particular UUID version or variant.
+        if (id is! String || !Uuid.isValidUUIDFormat(fromString: id)) {
+          throw const ServerException(
+            'The server returned an invalid session ID.',
+          );
+        }
+        matches.add(id);
+      }
+      if (matches.isEmpty) {
+        throw const ServerException(
+          'Could not identify this device\'s session.',
+        );
+      }
+      // The account may change while the lookup is in flight. The transport
+      // also checks this revision immediately before attaching credentials.
+      final lookupRevision =
+          response.requestOptions.extra['authSessionRevision'];
+      if (lookupRevision != session.revision) {
+        throw const ServerException(
+          'The account changed before logout completed.',
+        );
+      }
+      var logoutRevision = lookupRevision;
+      // Repeated sign-ins can create several sessions for one installation.
+      // Revoke each matching record without touching another device's sessions.
+      for (final id in matches) {
+        final logoutResponse = await _api.dio.post(
+          '${AppConstants.authBaseUrl}${AppConstants.logoutEndpoint}',
+          data: {'sessionId': id},
+          options: dio.Options(
+            extra: {'authRetrySessionRevision': logoutRevision},
+          ),
+        );
+        _readSessionResponse(logoutResponse);
+        logoutRevision =
+            logoutResponse.requestOptions.extra['authSessionRevision'];
+        if (logoutRevision != session.revision) {
+          throw const ServerException(
+            'The account changed before logout completed.',
+          );
+        }
+      }
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);
     }
+  }
+
+  Map<dynamic, dynamic> _readSessionResponse(dio.Response<dynamic> response) {
+    final body = response.data;
+    if (body is! Map || (body['success'] ?? body['Success']) != true) {
+      throw ServerException(
+        ApiErrorParser.messageFrom(
+          body,
+          fallback: 'Could not revoke this session.',
+        ),
+        statusCode: response.statusCode,
+      );
+    }
+    return body;
   }
 
   /// Permanently deletes the account server-side — the backend must actually
