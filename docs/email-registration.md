@@ -84,10 +84,20 @@ Using a unique Gmail alias controlled by the user, the live API test passed:
 - Authenticated profile access: HTTP 200.
 - Test session logout with the documented `sessionId`: HTTP 200.
 
-The existing app logout method currently omits `sessionId`; a request without it
-returned HTTP 500 with `Session not found`. That app method still needs a payload
-correction. The test session was closed by looking up its device-specific session
-and including the required ID.
+The initial logout request omitted `sessionId` and returned HTTP 500 with
+`Session not found`. `AuthRemoteDataSource.logout` now automatically requests
+`GET /api/auth/sessions`, matches the installation's `clientDeviceId` to the
+response's `deviceId`, and sends each matching `sessionId` to logout. Repeated
+sign-ins can create several sessions for one installation; each is revoked
+once. The user does not need to supply an ID. Missing/invalid matches and
+explicit server failures are rejected; other devices are not selected. The existing
+repository still clears local credentials when server logout is unavailable.
+
+Automated logout tests cover automatic lookup, exact payload, multiple sessions
+for one device, server GUID formats, rejected responses, incorrect session
+matches, account changes during lookup, and local sign-out when the server is
+unavailable. A live Flutter data-layer test also passed login, automatic session
+lookup, revocation of all matching sessions, and local credential clearing.
 
 An OTP request for an already registered address returned HTTP 500 with
 `Email is already registered`, rather than a validation status.

@@ -8,10 +8,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/error/failures.dart';
+import 'package:Note/core/error/exceptions.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
@@ -31,15 +33,18 @@ class _Device implements AuthDeviceService {
 
 class _Adapter implements dio.HttpClientAdapter {
   final requests = <dio.RequestOptions>[];
-  dio.ResponseBody Function(dio.RequestOptions) respond = (_) => _json({
-    'Success': true,
-    'Message': 'Login successful',
-    'Data': {
-      'Token': 'test-session',
-      'RefreshToken': 'test-refresh',
-      'User': {'Id': 'test-user', 'FullName': 'Test User'},
-    },
-  });
+  FutureOr<dio.ResponseBody> Function(dio.RequestOptions) respond = (request) =>
+      request.uri.path == '/api/auth/sessions'
+      ? _sessions()
+      : _json({
+          'Success': true,
+          'Message': 'Login successful',
+          'Data': {
+            'Token': 'test-session',
+            'RefreshToken': 'test-refresh',
+            'User': {'Id': 'test-user', 'FullName': 'Test User'},
+          },
+        });
 
   @override
   Future<dio.ResponseBody> fetch(
@@ -54,6 +59,25 @@ class _Adapter implements dio.HttpClientAdapter {
   @override
   void close({bool force = false}) {}
 }
+
+const _logoutSessionId = '4a74b6de-a973-4b2d-971c-1868d18647da';
+const _clientDeviceId = 'fdffb4d7-e037-489f-aa84-a0ea82c138fe';
+
+dio.ResponseBody _sessions() => _json({
+  'success': true,
+  'data': [
+    {
+      'sessionId': '00d27d28-a5b6-4573-826b-9b47c1e92f91',
+      'deviceId': '6c3ce1c9-f933-4082-943f-2cdd777e793c',
+      'isOnline': true,
+    },
+    {
+      'sessionId': _logoutSessionId,
+      'deviceId': _clientDeviceId,
+      'isOnline': true,
+    },
+  ],
+});
 
 dio.ResponseBody _json(Object? data, [int status = 200]) =>
     dio.ResponseBody.fromString(
@@ -346,8 +370,180 @@ void main() {
         adapter.requests.last.headers['Authorization'],
         'Bearer test-session',
       );
+      expect(adapter.requests.last.data, {'sessionId': _logoutSessionId});
     },
   );
+
+  test(
+    'Logout looks up this device and sends its session ID automatically',
+    () async {
+      expect((await login(params)).isOk, isTrue);
+      final remote = AuthRemoteDataSource(
+        api: Get.find<ApiClient>(),
+        deviceService: _Device(),
+      );
+      await remote.logout();
+      final lookup = adapter.requests[1];
+      final logout = adapter.requests[2];
+      expect(lookup.method, 'GET');
+      expect(
+        lookup.uri.toString(),
+        'https://chat.piisiit.com/api/auth/sessions',
+      );
+      expect(lookup.headers['Authorization'], 'Bearer test-session');
+      expect(logout.method, 'POST');
+      expect(logout.data, {'sessionId': _logoutSessionId});
+      expect(logout.headers['Authorization'], 'Bearer test-session');
+    },
+  );
+
+  test('Logout rejects missing, invalid, or failed session lookups', () async {
+    expect((await login(params)).isOk, isTrue);
+    final remote = AuthRemoteDataSource(
+      api: Get.find<ApiClient>(),
+      deviceService: _Device(),
+    );
+    for (final body in [
+      {'success': true, 'data': []},
+      {
+        'success': true,
+        'data': [
+          {'deviceId': _clientDeviceId, 'sessionId': 'invalid'},
+        ],
+      },
+      {'success': false, 'message': 'Session lookup rejected', 'data': []},
+      {'success': true, 'data': {}},
+    ]) {
+      adapter.respond = (_) => _json(body);
+      await expectLater(remote.logout(), throwsA(isA<ServerException>()));
+    }
+    expect(
+      adapter.requests.where(
+        (r) => r.uri.path.endsWith('/logout-current-device'),
+      ),
+      isEmpty,
+    );
+  });
+
+  test('Logout revokes every session for this device once', () async {
+    expect((await login(params)).isOk, isTrue);
+    final remote = AuthRemoteDataSource(
+      api: Get.find<ApiClient>(),
+      deviceService: _Device(),
+    );
+    const secondId = '98d326d8-4174-4819-b5d7-600765d2ec59';
+    adapter.respond = (request) => _json({
+      'success': true,
+      if (request.uri.path.endsWith('/sessions'))
+        'data': [
+          {
+            'deviceId': 'other-device',
+            'sessionId': 'fd971103-8d3d-4262-b8b2-ae3dcc3c3e2b',
+          },
+          {
+            'deviceId': _clientDeviceId,
+            'sessionId': _logoutSessionId,
+            'isOnline': true,
+          },
+          {
+            'deviceId': _clientDeviceId,
+            'sessionId': secondId,
+            'isOnline': false,
+          },
+          {'deviceId': _clientDeviceId, 'sessionId': secondId},
+        ],
+    });
+    await remote.logout();
+    expect(
+      adapter.requests
+          .where((r) => r.uri.path.endsWith('/logout-current-device'))
+          .map((r) => r.data)
+          .toList(),
+      [
+        {'sessionId': _logoutSessionId},
+        {'sessionId': secondId},
+      ],
+    );
+  });
+
+  test('Logout rejects a failed HTTP-200 revocation response', () async {
+    expect((await login(params)).isOk, isTrue);
+    final remote = AuthRemoteDataSource(
+      api: Get.find<ApiClient>(),
+      deviceService: _Device(),
+    );
+    adapter.respond = (request) => request.uri.path.endsWith('/sessions')
+        ? _sessions()
+        : _json({'success': false, 'message': 'Revocation failed'});
+    await expectLater(remote.logout(), throwsA(isA<ServerException>()));
+    expect(adapter.requests.last.data, {'sessionId': _logoutSessionId});
+  });
+
+  test('Logout accepts server GUIDs with non-RFC variant bits', () async {
+    expect((await login(params)).isOk, isTrue);
+    final remote = AuthRemoteDataSource(
+      api: Get.find<ApiClient>(),
+      deviceService: _Device(),
+    );
+    const guid = '4a74b6de-a973-4b2d-071c-1868d18647da';
+    adapter.respond = (request) => _json({
+      'success': true,
+      if (request.uri.path.endsWith('/sessions'))
+        'data': [
+          {'deviceId': _clientDeviceId, 'sessionId': guid, 'isOnline': true},
+        ],
+    });
+    await remote.logout();
+    expect(adapter.requests.last.data, {'sessionId': guid});
+  });
+
+  test('Logout stops when the account changes during session lookup', () async {
+    expect((await login(params)).isOk, isTrue);
+    final remote = AuthRemoteDataSource(
+      api: Get.find<ApiClient>(),
+      deviceService: _Device(),
+    );
+    adapter.respond = (_) async {
+      await session.saveSession(
+        'new-account-token',
+        const UserData(id: 'new-user'),
+      );
+      return _sessions();
+    };
+    await expectLater(remote.logout(), throwsA(isA<ServerException>()));
+    expect(
+      adapter.requests.where(
+        (r) => r.uri.path.endsWith('/logout-current-device'),
+      ),
+      isEmpty,
+    );
+    expect(session.token.value, 'new-account-token');
+  });
+
+  test(
+    'Logout clears local credentials when server lookup is unavailable',
+    () async {
+      expect((await login(params)).isOk, isTrue);
+      final remote = AuthRemoteDataSource(
+        api: Get.find<ApiClient>(),
+        deviceService: _Device(),
+      );
+      adapter.respond = (_) => _json({'success': false}, 503);
+      final result = await AuthRepositoryImpl(remote, session).logout();
+      expect(result.isOk, isTrue);
+      expect(session.isLoggedIn, isFalse);
+      expect(stored, isEmpty);
+    },
+  );
+
+  test('Logout without a local session makes no server requests', () async {
+    final remote = AuthRemoteDataSource(
+      api: Get.find<ApiClient>(),
+      deviceService: _Device(),
+    );
+    await remote.logout();
+    expect(adapter.requests, isEmpty);
+  });
 
   test(
     'Live HTTP 500 invalid-credential envelope is an authentication rejection',
