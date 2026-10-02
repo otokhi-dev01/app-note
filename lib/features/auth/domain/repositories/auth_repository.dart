@@ -13,6 +13,7 @@ abstract class AuthRepository {
   Future<Result<void>> register({
     required String account,
     required String password,
+    String? confirmPassword,
   });
 
   /// Authenticates using Google Sign-In ID token.
@@ -23,6 +24,9 @@ abstract class AuthRepository {
 
   /// Exchanges a recovery code for a short-lived password reset token.
   Future<Result<String>> verifyPasswordOtp(String account, String otp);
+
+  /// Verifies Google identity for password recovery without signing in.
+  Future<Result<String>> verifyPasswordGoogle({required String idToken});
 
   Future<Result<List<SecurityQuestion>>> getSecurityQuestions();
 

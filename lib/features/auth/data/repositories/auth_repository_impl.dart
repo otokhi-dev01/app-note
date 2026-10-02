@@ -35,8 +35,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<void>> register({
     required String account,
     required String password,
+    String? confirmPassword,
   }) => guard(() async {
-    final response = await _remote.register(account, password);
+    final response = await _remote.register(
+      account,
+      password,
+      confirmPassword: confirmPassword,
+    );
     if (!response.isSuccess) {
       throw ServerException(
         response.message.isEmpty
@@ -54,6 +59,10 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<String>> verifyPasswordOtp(String account, String otp) =>
       guard(() => _remote.verifyPasswordOtp(account, otp));
+
+  @override
+  Future<Result<String>> verifyPasswordGoogle({required String idToken}) =>
+      guard(() => _remote.verifyPasswordGoogle(idToken: idToken));
 
   @override
   Future<Result<List<SecurityQuestion>>> getSecurityQuestions() =>

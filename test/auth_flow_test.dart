@@ -20,6 +20,7 @@ import 'package:Note/features/auth/domain/entities/auth_session.dart';
 import 'package:Note/features/auth/domain/repositories/auth_repository.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:Note/features/auth/presentation/controllers/registration_controller.dart';
 import 'package:Note/features/auth/presentation/views/login_view.dart';
 import 'package:Note/features/auth/presentation/views/register_view.dart';
 import 'package:Note/routes/app_pages.dart';
@@ -106,7 +107,7 @@ void main() {
 
   tearDown(() => Get.reset());
 
-  for (final route in [Routes.LOGIN, Routes.REGISTER, Routes.FORGOT_PASSWORD]) {
+  for (final route in [Routes.LOGIN]) {
     testWidgets(
       'Google configuration failure on $route leaves the app usable',
       (tester) async {
@@ -142,23 +143,10 @@ void main() {
     );
   }
 
-  testWidgets('Google cancellation unlocks signup and retry opens notes', (
+  testWidgets('Register offers email signup without Google sign-in', (
     tester,
   ) async {
     await initialize();
-    String? token;
-    final signIn = _FakeGoogleSignIn(() async => token);
-    final google = _FakeGoogleLogin(
-      const Ok(AuthSession(token: 't', user: UserData())),
-    );
-    final controller = Get.put(
-      AuthController(
-        login: _FakeLogin(const Err(ValidationFailure('unused'))),
-        register: _FakeRegister(okVoid),
-        googleLogin: google,
-        googleSignIn: signIn,
-      ),
-    );
     await tester.pumpWidget(
       GetMaterialApp(
         scaffoldMessengerKey: AppSnackbar.messengerKey,
@@ -167,20 +155,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('sign_in_with_google'.tr));
-    await tester.tap(find.text('sign_in_with_google'.tr));
-    await tester.pumpAndSettle();
-    expect(controller.isLoading.value, isFalse);
-    expect(google.received, isEmpty);
-    expect(Get.currentRoute, Routes.REGISTER);
-    token = 'verified-google-id-token';
-    await tester.tap(find.text('sign_in_with_google'.tr));
-    await tester.pumpAndSettle();
-    expect(google.received, ['verified-google-id-token']);
-    expect(Get.currentRoute, Routes.FOLDER);
+    expect(find.byType(RegisterView), findsOneWidget);
+    expect(Get.isRegistered<RegistrationController>(), isTrue);
+    expect(find.text('sign_in_with_google'.tr), findsNothing);
+    expect(find.text('sign_up_button'.tr), findsOneWidget);
     expect(tester.takeException(), isNull);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
   });
 
   testWidgets('Duplicate Google taps and results after disposal are ignored', (
@@ -292,15 +271,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Register navigates to Login on success', (tester) async {
+  testWidgets('Register requires a valid email before sending credentials', (
+    tester,
+  ) async {
     await initialize();
-    final controller = Get.put(
-      AuthController(
-        googleLogin: GoogleLogin(_NoopRepo()),
-        login: _FakeLogin(const Err(ValidationFailure('unused'))),
-        register: _FakeRegister(okVoid),
-      ),
-    );
     await tester.pumpWidget(
       GetMaterialApp(
         scaffoldMessengerKey: AppSnackbar.messengerKey,
@@ -309,56 +283,43 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-
-    controller.accountController.text = 'new@example.com';
+    final controller = Get.find<RegistrationController>();
+    controller.emailController.text = 'invalid-email';
     controller.passwordController.text = 'strongpass';
     controller.confirmPasswordController.text = 'strongpass';
-
+    await tester.ensureVisible(find.text('sign_up_button'.tr));
     await tester.tap(find.text('sign_up_button'.tr));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 4));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(LoginView), findsOneWidget);
+    expect(find.byType(RegisterView), findsOneWidget);
+    expect(find.text('Please enter a valid email address.'), findsOneWidget);
+    expect(controller.completed.value, isFalse);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'Register failure keeps the entered fields and shows on Register',
-    (tester) async {
-      await initialize();
-      final controller = Get.put(
-        AuthController(
-          googleLogin: GoogleLogin(_NoopRepo()),
-          login: _FakeLogin(const Err(ValidationFailure('unused'))),
-          register: _FakeRegister(
-            const Err(ValidationFailure('Passwords do not match.')),
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        GetMaterialApp(
-          scaffoldMessengerKey: AppSnackbar.messengerKey,
-          initialRoute: Routes.REGISTER,
-          getPages: AppPages.routes,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      controller.accountController.text = 'new@example.com';
-      controller.passwordController.text = 'strongpass';
-      controller.confirmPasswordController.text = 'different';
-
-      await tester.tap(find.text('sign_up_button'.tr));
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(RegisterView), findsOneWidget);
-      expect(controller.accountController.text, 'new@example.com');
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('Register validation failure keeps the entered fields', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
+        initialRoute: Routes.REGISTER,
+        getPages: AppPages.routes,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final controller = Get.find<RegistrationController>();
+    controller.emailController.text = 'new@example.com';
+    controller.passwordController.text = 'strongpass';
+    controller.confirmPasswordController.text = 'different';
+    await tester.ensureVisible(find.text('sign_up_button'.tr));
+    await tester.tap(find.text('sign_up_button'.tr));
+    await tester.pumpAndSettle();
+    expect(find.byType(RegisterView), findsOneWidget);
+    expect(find.text('Passwords do not match.'), findsOneWidget);
+    expect(controller.emailController.text, 'new@example.com');
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'A login response after the screen closes does not navigate or publish feedback',

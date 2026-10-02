@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
-import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:Note/features/auth/presentation/controllers/google_password_verification_controller.dart';
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/usecase/usecase.dart';
@@ -71,35 +70,32 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     });
   }
 
-  Future<void> _signInWithGoogle() async {
+  Future<void> _verifyWithGoogle() async {
     if (_isSubmitting) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       _isSubmitting = true;
       _errorText = null;
+      _notice = null;
     });
     try {
-      await Get.find<AuthController>().loginWithGoogle();
+      final result = await Get.find<GooglePasswordVerificationController>()
+          .verify();
+      if (!mounted) return;
+      switch (result) {
+        case Ok(:final value):
+          _resetToken = value;
+          _otpController.clear();
+          _resendTimer?.cancel();
+          _answers = [];
+          _step = _RecoveryStep.password;
+        case Err(:final failure):
+          _errorText = failure.message;
+        case null:
+          break;
+      }
     } catch (_) {
-      if (mounted) _errorText = 'google_sign_in_failed'.tr;
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _recoverGoogleAccount() async {
-    if (_isSubmitting) return;
-    setState(() {
-      _isSubmitting = true;
-      _errorText = null;
-    });
-    try {
-      final opened = await launchUrl(
-        Uri.https('accounts.google.com', '/signin/recovery'),
-        mode: LaunchMode.externalApplication,
-      );
-      if (!opened && mounted) _errorText = 'google_recovery_open_failed'.tr;
-    } catch (_) {
-      if (mounted) _errorText = 'google_recovery_open_failed'.tr;
+      if (mounted) _errorText = 'google_verification_failed'.tr;
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -231,16 +227,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     });
   }
 
-  String get _description => switch (_step) {
-    _RecoveryStep.account => 'forgot_password_desc'.tr,
-    _RecoveryStep.code => 'recovery_code_desc'.trParams({'account': _account}),
-    _RecoveryStep.security => 'recovery_security_desc'.trParams({
-      'account': _account,
-    }),
-    _RecoveryStep.password => 'recovery_password_desc'.tr,
-    _RecoveryStep.complete => 'recovery_complete_desc'.tr,
-  };
-
   String get _buttonLabel => switch (_step) {
     _RecoveryStep.account => 'send_reset_request'.tr,
     _RecoveryStep.code => 'recovery_verify_code'.tr,
@@ -342,16 +328,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                       ),
                                 ),
                               ),
-                              // const SizedBox(height: 12),
-                              // Text(
-                              //   _description,
-                              //   textAlign: TextAlign.center,
-                              //   style: theme.textTheme.bodyMedium?.copyWith(
-                              //     color: theme.colorScheme.onSurfaceVariant,
-                              //     height: 1.45,
-                              //     fontSize: 16,
-                              //   ),
-                              // ),
                               const SizedBox(height: 24),
                               CustomGlassContainer(
                                 borderRadius: 30,
@@ -415,7 +391,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                         ? null
                                         : () => _submit(),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: theme.colorScheme.primary,
+                                      backgroundColor:
+                                          theme.colorScheme.primary,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 16,
@@ -445,41 +422,35 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                               ],
                               const SizedBox(height: 12),
                               if (_step == _RecoveryStep.account) ...[
-                                // Text(
-                                //   'google_recovery_description'.tr,
-                                //   textAlign: TextAlign.center,
-                                //   style: theme.textTheme.bodyMedium?.copyWith(
-                                //     color: theme.colorScheme.onSurfaceVariant,
-                                //   ),
-                                // ),
-                                // const SizedBox(height: 12),
-                                // CustomGlassButton(
-                                //   semanticLabel: 'sign_in_with_google'.tr,
-                                //   onPressed: _isSubmitting
-                                //       ? null
-                                //       : _signInWithGoogle,
-                                //   minHeight: 56,
-                                //   borderRadius: 26,
-                                //   child: Row(
-                                //     mainAxisAlignment: MainAxisAlignment.center,
-                                //     children: [
-                                //       const FaIcon(
-                                //         FontAwesomeIcons.google,
-                                //         size: 18,
-                                //       ),
-                                //       const SizedBox(width: 10),
-                                //       Flexible(
-                                //         child: Text('sign_in_with_google'.tr),
-                                //       ),
-                                //     ],
-                                //   ),
-                                // ),
-                                // TextButton(
-                                //   onPressed: _isSubmitting
-                                //       ? null
-                                //       : _recoverGoogleAccount,
-                                //   child: Text('recover_google_account'.tr),
-                                // ),
+                                Text(
+                                  'google_verification_description'.tr,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                CustomGlassButton(
+                                  semanticLabel: 'verify_with_google'.tr,
+                                  onPressed: _isSubmitting
+                                      ? null
+                                      : _verifyWithGoogle,
+                                  minHeight: 56,
+                                  borderRadius: 26,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const FaIcon(
+                                        FontAwesomeIcons.google,
+                                        size: 18,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text('verify_with_google'.tr),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                               if (_step == _RecoveryStep.code)
                                 TextButton(
@@ -581,7 +552,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
               onPressed: _isSubmitting ? null : _useSecurityQuestions,
               style: TextButton.styleFrom(
                 foregroundColor: theme.colorScheme.primary,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
               ),
               child: Text(
                 'recovery_use_security_questions'.tr,
@@ -606,19 +580,19 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                 ),
                 child: _isSubmitting
                     ? const SizedBox.square(
-                  dimension: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : Text(
-                  _buttonLabel,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+                        _buttonLabel,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
               ),
             ),
           ],

@@ -71,6 +71,7 @@ class Register extends UseCase<void, RegisterParams> {
     return _repository.register(
       account: params.account.trim(),
       password: params.password,
+      confirmPassword: params.confirmPassword,
     );
   }
 }
@@ -127,6 +128,27 @@ class VerifyPasswordOtpParams {
   const VerifyPasswordOtpParams({required this.account, required this.otp});
 }
 
+/// Exchanges a Google ID token for proof authorizing password recovery.
+class VerifyPasswordGoogle extends UseCase<String, VerifyPasswordGoogleParams> {
+  final AuthRepository _repository;
+  const VerifyPasswordGoogle(this._repository);
+
+  @override
+  Future<Result<String>> call(VerifyPasswordGoogleParams params) async {
+    if (params.idToken.trim().isEmpty) {
+      return const Err(
+        ValidationFailure('Google authentication token is empty.'),
+      );
+    }
+    return _repository.verifyPasswordGoogle(idToken: params.idToken.trim());
+  }
+}
+
+class VerifyPasswordGoogleParams {
+  final String idToken;
+  const VerifyPasswordGoogleParams({required this.idToken});
+}
+
 class ResetPassword extends UseCase<void, ResetPasswordParams> {
   final AuthRepository _repository;
   const ResetPassword(this._repository);
@@ -176,9 +198,9 @@ class VerifySecurityAnswers
       );
     }
     if (params.answers.any(
-          (answer) =>
-              answer.questionId.trim().isEmpty || answer.answer.trim().isEmpty,
-        )) {
+      (answer) =>
+          answer.questionId.trim().isEmpty || answer.answer.trim().isEmpty,
+    )) {
       return const Err(
         ValidationFailure(
           'Select a question and enter its answer for each row.',

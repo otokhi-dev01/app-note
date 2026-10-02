@@ -141,6 +141,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => GoogleLogin(repo()), fenix: true);
     Get.lazyPut(() => ForgotPassword(repo()), fenix: true);
     Get.lazyPut(() => VerifyPasswordOtp(repo()), fenix: true);
+    Get.lazyPut(() => VerifyPasswordGoogle(repo()), fenix: true);
     Get.lazyPut(() => GetSecurityQuestions(repo()), fenix: true);
     Get.lazyPut(() => VerifySecurityAnswers(repo()), fenix: true);
     Get.lazyPut(() => ResetPassword(repo()), fenix: true);

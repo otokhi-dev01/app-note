@@ -16,6 +16,8 @@ import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
+import 'package:Note/features/auth/data/services/google_sign_in_service.dart';
+import 'package:Note/features/auth/presentation/controllers/google_password_verification_controller.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
 import 'package:Note/features/auth/presentation/views/forgot_password_view.dart';
@@ -37,6 +39,16 @@ class _UnusedDeviceService implements AuthDeviceService {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Recovery must not read device information');
+}
+
+class _GoogleIdentity extends GoogleSignInService {
+  Future<String?> Function() respond = () async => null;
+  int calls = 0;
+  @override
+  Future<String?> signInIdToken() {
+    calls++;
+    return respond();
+  }
 }
 
 class _Adapter implements dio.HttpClientAdapter {
@@ -72,6 +84,8 @@ void main() {
   late _Session session;
   late _Adapter adapter;
   late AuthRepositoryImpl repository;
+  late _GoogleIdentity googleIdentity;
+  late GooglePasswordVerificationController googleVerification;
 
   setUp(() {
     Get.testMode = true;
@@ -86,6 +100,14 @@ void main() {
     );
     Get.put(ForgotPassword(repository));
     Get.put(VerifyPasswordOtp(repository));
+    Get.put(VerifyPasswordGoogle(repository));
+    googleIdentity = _GoogleIdentity();
+    googleVerification = Get.put(
+      GooglePasswordVerificationController(
+        verify: Get.find<VerifyPasswordGoogle>(),
+        googleSignIn: googleIdentity,
+      ),
+    );
     Get.put(GetSecurityQuestions(repository));
     Get.put(VerifySecurityAnswers(repository));
     Get.put(ResetPassword(repository));
@@ -363,6 +385,25 @@ void main() {
   );
 
   test(
+    'Google verification sends only the Google ID token and returns reset proof',
+    () async {
+      adapter.respond = (_) => _json({
+        'success': true,
+        'data': {'resetToken': 'google-reset-token'},
+      });
+      final result = await Get.find<VerifyPasswordGoogle>()(
+        const VerifyPasswordGoogleParams(idToken: ' google-id-token '),
+      );
+      expect(result.valueOrNull, 'google-reset-token');
+      expect(
+        adapter.requests.single.uri.path,
+        '/api/auth/password/google/verify',
+      );
+      expect(adapter.requests.single.data, {'idToken': 'google-id-token'});
+    },
+  );
+
+  test(
     'Reset validates locally and clears the session only after server success',
     () async {
       final reset = Get.find<ResetPassword>();
@@ -440,38 +481,127 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('Google verification opens password reset without signing in', (
+    tester,
+  ) async {
+    googleIdentity.respond = () async => 'google-id-token';
+    adapter.respond = (request) => request.uri.path.endsWith('/google/verify')
+        ? _json({
+            'success': true,
+            'data': {'resetToken': 'google-proof'},
+          })
+        : _json({'success': true});
+    await mount(tester);
+    await press(tester, 'Verify with Google');
+    expect(find.text('New Password'), findsOneWidget);
+    expect(adapter.requests, hasLength(1));
+    expect(
+      adapter.requests.single.uri.path,
+      '/api/auth/password/google/verify',
+    );
+    expect(adapter.requests.single.data, {'idToken': 'google-id-token'});
+    expect(
+      adapter.requests.single.headers.containsKey('Authorization'),
+      isFalse,
+    );
+    expect(session.token.value, 'existing-session');
+    expect(session.cleared, isFalse);
+    expect(Get.currentRoute, Routes.FORGOT_PASSWORD);
+    await tester.enterText(find.byType(EditableText).at(0), 'new-password');
+    await tester.enterText(find.byType(EditableText).at(1), 'new-password');
+    await press(tester, 'Reset Password');
+    expect(adapter.requests.last.uri.path, '/api/auth/password/reset');
+    expect(adapter.requests.last.data['resetToken'], 'google-proof');
+    expect(session.cleared, isTrue);
+    await press(tester, 'Sign In');
+    expect(find.text('Login destination'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
-    'Google recovery opens the official page without a Note reset request',
+    'Google cancellation and missing configuration keep recovery usable',
     (tester) async {
-      final launches = <MethodCall>[];
-      var opens = false;
-      const channel = MethodChannel('plugins.flutter.io/url_launcher');
-      final messenger =
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-      messenger.setMockMethodCallHandler(channel, (call) async {
-        launches.add(call);
-        return opens;
-      });
-      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
       await mount(tester);
-      await press(tester, 'Recover Google account');
+      await press(tester, 'Verify with Google');
+      expect(adapter.requests, isEmpty);
+      expect(find.text('Send Request'), findsOneWidget);
+      googleIdentity.respond = () async =>
+          throw PlatformException(code: 'google_not_configured');
+      await press(tester, 'Verify with Google');
       expect(
-        find.text('Could not open Google account recovery. Please try again.'),
+        find.text(
+          'Google verification is not configured in this version. Please use email verification.',
+        ),
         findsOneWidget,
       );
-      opens = true;
-      await press(tester, 'Recover Google account');
-      expect(launches, hasLength(2));
-      expect(
-        launches.last.arguments['url'],
-        'https://accounts.google.com/signin/recovery',
-      );
-      expect(launches.last.arguments['useSafariVC'], isFalse);
-      expect(launches.last.arguments['useWebView'], isFalse);
       expect(adapter.requests, isEmpty);
-      expect(tester.takeException(), isNull);
+      expect(googleVerification.isLoading.value, isFalse);
+      expect(session.token.value, 'existing-session');
     },
   );
+
+  testWidgets(
+    'Google verification requires server reset proof and allows retry',
+    (tester) async {
+      googleIdentity.respond = () async => 'google-id-token';
+      adapter.respond = (_) => _json({'success': true});
+      await mount(tester);
+      await press(tester, 'Verify with Google');
+      expect(find.text('New Password'), findsNothing);
+      expect(find.text('Verify with Google'), findsOneWidget);
+      expect(session.cleared, isFalse);
+      adapter.respond = (_) => _json({
+        'success': false,
+        'message': 'Google verification rejected',
+      }, 400);
+      await press(tester, 'Verify with Google');
+      expect(find.text('Google verification rejected'), findsOneWidget);
+      expect(find.text('New Password'), findsNothing);
+      adapter.respond = (_) => _json({
+        'success': true,
+        'data': {'resetToken': 'retry-proof'},
+      });
+      await press(tester, 'Verify with Google');
+      expect(find.text('New Password'), findsOneWidget);
+      expect(session.token.value, 'existing-session');
+    },
+  );
+
+  test(
+    'Google verification blocks duplicates and ignores identity after disposal',
+    () async {
+      final pending = Completer<String?>();
+      googleIdentity.respond = () => pending.future;
+      final first = googleVerification.verify();
+      expect(await googleVerification.verify(), isNull);
+      expect(googleIdentity.calls, 1);
+      googleVerification.onDelete();
+      pending.complete('late-google-id-token');
+      expect(await first, isNull);
+      expect(adapter.requests, isEmpty);
+    },
+  );
+
+  test('Google verification ignores server proof after disposal', () async {
+    googleIdentity.respond = () async => 'google-id-token';
+    final received = Completer<void>();
+    final pending = Completer<dio.ResponseBody>();
+    adapter.respond = (_) {
+      received.complete();
+      return pending.future;
+    };
+    final first = googleVerification.verify();
+    await received.future;
+    googleVerification.onDelete();
+    pending.complete(
+      _json({
+        'success': true,
+        'data': {'resetToken': 'late-proof'},
+      }),
+    );
+    expect(await first, isNull);
+    expect(session.token.value, 'existing-session');
+  });
 
   testWidgets('Recovery sends the selected phone country code', (tester) async {
     await mount(tester);

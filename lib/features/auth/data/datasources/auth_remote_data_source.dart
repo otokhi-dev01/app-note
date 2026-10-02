@@ -8,6 +8,7 @@ import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
+import 'package:Note/features/auth/data/services/registration_service.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
 
 /// Raw `/api/auth` transport.
@@ -30,12 +31,16 @@ class AuthRemoteDataSource extends GetxService {
     String account,
     String password, {
     String? confirmPassword,
-  }) => _submitCredentials(
-    '${AppConstants.authBaseUrl}${AppConstants.registerEndpoint}',
-    account,
-    password,
-    confirmPassword: confirmPassword,
-  );
+  }) async {
+    try {
+      return await RegistrationService(
+        _api,
+        deviceService: _deviceService,
+      ).register(account: account, password: password);
+    } on RegistrationException catch (error) {
+      throw ServerException(error.message);
+    }
+  }
 
   Future<AuthResponse> googleLogin(String idToken) async {
     try {
@@ -50,7 +55,8 @@ class AuthRemoteDataSource extends GetxService {
         'platform': device.platform,
         'deviceModel': device.deviceModel,
       };
-      final url = '${AppConstants.authBaseUrl}${AppConstants.googleLoginEndpoint}';
+      final url =
+          '${AppConstants.authBaseUrl}${AppConstants.googleLoginEndpoint}';
       if (kDebugMode) {
         debugPrint('[AUTH] Calling Google Login: $url');
       }
@@ -188,6 +194,14 @@ class AuthRemoteDataSource extends GetxService {
     final response = await _passwordRequest(
       AppConstants.verifyPasswordOtpEndpoint,
       {'account': account, 'otp': otp},
+    );
+    return _readResetToken(response);
+  }
+
+  Future<String> verifyPasswordGoogle({required String idToken}) async {
+    final response = await _passwordRequest(
+      AppConstants.passwordGoogleVerifyEndpoint,
+      {'idToken': idToken},
     );
     return _readResetToken(response);
   }

@@ -328,7 +328,7 @@ void main() {
         deviceService: _Device(),
       );
       await remote.register('someone@example.com', 'password');
-      final registration = adapter.requests.single;
+      final registration = adapter.requests.first;
       expect(
         registration.uri.toString(),
         'https://chat.piisiit.com/api/auth/register',
