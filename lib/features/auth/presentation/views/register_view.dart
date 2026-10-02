@@ -92,7 +92,7 @@ class RegisterView extends GetView<AuthController> {
                                       _buildHeader(context),
                                       const SizedBox(height: 28),
                                       _buildFormCard(context),
-                                      const SizedBox(height: 22),
+                                      // const SizedBox(height: 10),
                                       _buildLoginRow(context),
                                     ],
                                   ),
@@ -307,45 +307,45 @@ class RegisterView extends GetView<AuthController> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Obx(
-                    () => CustomGlassButton(
-                      semanticLabel: 'sign_in_with_google'.tr,
-                      onPressed: controller.isLoading.value
-                          ? null
-                          : controller.loginWithGoogle,
-                      minHeight: 56,
-                      borderRadius: 26,
-                      style: lg.GlassButtonStyle.prominent,
-                      glassColor: theme.colorScheme.surface,
-                      foregroundColor: theme.colorScheme.onSurface,
-                      child: controller.isLoading.value
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const FaIcon(
-                                  FontAwesomeIcons.google,
-                                  size: 18,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(width: 10),
-                                Flexible(
-                                  child: Text(
-                                    'sign_in_with_google'.tr,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
+                  // const SizedBox(height: 12),
+                  // Obx(
+                  //   () => CustomGlassButton(
+                  //     semanticLabel: 'sign_in_with_google'.tr,
+                  //     onPressed: controller.isLoading.value
+                  //         ? null
+                  //         : controller.loginWithGoogle,
+                  //     minHeight: 56,
+                  //     borderRadius: 26,
+                  //     style: lg.GlassButtonStyle.prominent,
+                  //     glassColor: theme.colorScheme.surface,
+                  //     foregroundColor: theme.colorScheme.onSurface,
+                  //     child: controller.isLoading.value
+                  //         ? const SizedBox.square(
+                  //             dimension: 20,
+                  //             child: CircularProgressIndicator(strokeWidth: 2),
+                  //           )
+                  //         : Row(
+                  //             mainAxisAlignment: MainAxisAlignment.center,
+                  //             children: [
+                  //               const FaIcon(
+                  //                 FontAwesomeIcons.google,
+                  //                 size: 18,
+                  //                 color: Colors.red,
+                  //               ),
+                  //               const SizedBox(width: 10),
+                  //               Flexible(
+                  //                 child: Text(
+                  //                   'sign_in_with_google'.tr,
+                  //                   style: const TextStyle(
+                  //                     fontWeight: FontWeight.w700,
+                  //                     fontSize: 16,
+                  //                   ),
+                  //                 ),
+                  //               ),
+                  //             ],
+                  //           ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),

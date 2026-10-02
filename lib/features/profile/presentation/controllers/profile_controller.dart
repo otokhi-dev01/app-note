@@ -829,6 +829,6 @@ class ProfileController extends GetxController {
 
   Future<void> logout() async {
     await Get.find<Logout>()(const NoParams());
-    unawaited(Get.offAllNamed(Routes.ONBOARDING));
+    unawaited(Get.offAllNamed(Routes.LOGIN));
   }
 }

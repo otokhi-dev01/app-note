@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import 'package:Note/features/daily_note/presentation/daily_note_view.dart';
 import 'package:Note/features/splash/presentation/views/splash_view.dart';
 import 'package:Note/features/splash/presentation/bindings/splash_binding.dart';
-import 'package:Note/features/onboarding/presentation/views/onboarding_view.dart';
-import 'package:Note/features/onboarding/presentation/bindings/onboarding_binding.dart';
 import 'package:Note/features/auth/presentation/views/login_view.dart';
 import 'package:Note/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:Note/features/auth/presentation/views/register_view.dart';
@@ -49,11 +47,6 @@ class AppPages {
       name: Routes.SPLASH,
       page: () => const SplashView(),
       binding: SplashBinding(),
-    ),
-    GetPage(
-      name: Routes.ONBOARDING,
-      page: () => const OnboardingView(),
-      binding: OnboardingBinding(),
     ),
     GetPage(
       name: Routes.LOGIN,

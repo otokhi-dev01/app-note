@@ -74,20 +74,20 @@ class LoginView extends GetView<AuthController> {
                                       _buildHeader(context),
                                       const SizedBox(height: 28),
                                       _buildFormCard(context),
-                                      const SizedBox(height: 22),
-                                      _buildGuestButton(context),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        'login_guest_description'.tr,
-                                        textAlign: TextAlign.center,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                      ).animate().fadeIn(delay: 500.ms),
-                                      const SizedBox(height: 22),
+                                      // const SizedBox(height: 22),
+                                      // _buildGuestButton(context),
+                                      // const SizedBox(height: 10),
+                                      // Text(
+                                      //   'login_guest_description'.tr,
+                                      //   textAlign: TextAlign.center,
+                                      //   style: theme.textTheme.bodySmall
+                                      //       ?.copyWith(
+                                      //         color: theme
+                                      //             .colorScheme
+                                      //             .onSurfaceVariant,
+                                      //       ),
+                                      // ).animate().fadeIn(delay: 500.ms),
+                                      // const SizedBox(height: 22),
                                       _buildRegisterRow(context),
                                     ],
                                   ),
@@ -241,64 +241,24 @@ class LoginView extends GetView<AuthController> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Transform.translate(
-                              offset: const Offset(-6, 0),
-                              child: Obx(
-                                () => Checkbox(
-                                  value: controller.rememberMe.value,
-                                  onChanged: (_) =>
-                                      controller.toggleRememberMe(),
-                                  activeColor: theme.colorScheme.primary,
-                                  visualDensity: VisualDensity.compact,
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              child: GestureDetector(
-                                onTap: controller.toggleRememberMe,
-                                child: Text(
-                                  'remember_me'.tr,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                          ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: controller.forgotPassword,
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'forgot_password'.tr,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: controller.forgotPassword,
-                        style: TextButton.styleFrom(
-                          foregroundColor: theme.colorScheme.primary,
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          'forgot_password'.tr,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Obx(
@@ -330,45 +290,45 @@ class LoginView extends GetView<AuthController> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Obx(
-                    () => CustomGlassButton(
-                      semanticLabel: 'sign_in_with_google'.tr,
-                      onPressed: controller.isLoading.value
-                          ? null
-                          : controller.loginWithGoogle,
-                      minHeight: 56,
-                      borderRadius: 26,
-                      style: lg.GlassButtonStyle.prominent,
-                      glassColor: theme.colorScheme.surface,
-                      foregroundColor: theme.colorScheme.onSurface,
-                      child: controller.isLoading.value
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const FaIcon(
-                                  FontAwesomeIcons.google,
-                                  size: 18,
-                                  color: Colors.red,
-                                ),
-                                const SizedBox(width: 10),
-                                Flexible(
-                                  child: Text(
-                                    'sign_in_with_google'.tr,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
+                  // const SizedBox(height: 12),
+                  // Obx(
+                  //   () => CustomGlassButton(
+                  //     semanticLabel: 'sign_in_with_google'.tr,
+                  //     onPressed: controller.isLoading.value
+                  //         ? null
+                  //         : controller.loginWithGoogle,
+                  //     minHeight: 56,
+                  //     borderRadius: 26,
+                  //     style: lg.GlassButtonStyle.prominent,
+                  //     glassColor: theme.colorScheme.surface,
+                  //     foregroundColor: theme.colorScheme.onSurface,
+                  //     child: controller.isLoading.value
+                  //         ? const SizedBox.square(
+                  //             dimension: 20,
+                  //             child: CircularProgressIndicator(strokeWidth: 2),
+                  //           )
+                  //         : Row(
+                  //             mainAxisAlignment: MainAxisAlignment.center,
+                  //             children: [
+                  //               const FaIcon(
+                  //                 FontAwesomeIcons.google,
+                  //                 size: 18,
+                  //                 color: Colors.red,
+                  //               ),
+                  //               const SizedBox(width: 10),
+                  //               Flexible(
+                  //                 child: Text(
+                  //                   'sign_in_with_google'.tr,
+                  //                   style: const TextStyle(
+                  //                     fontWeight: FontWeight.w700,
+                  //                     fontSize: 16,
+                  //                   ),
+                  //                 ),
+                  //               ),
+                  //             ],
+                  //           ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
@@ -379,40 +339,40 @@ class LoginView extends GetView<AuthController> {
         .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic);
   }
 
-  Widget _buildGuestButton(BuildContext context) {
-    return Obx(
-      () => SizedBox(
-        width: double.infinity,
-        child: CustomGlassButton(
-          semanticLabel: 'onboarding_continue_guest'.tr,
-          onPressed: controller.isLoading.value
-              ? null
-              : controller.continueWithoutAccount,
-          minHeight: 52,
-          borderRadius: 26,
-          foregroundColor: AppTheme.folderPink,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.person_outline_rounded, size: 20),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'onboarding_continue_guest'.tr,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ).animate().fadeIn(delay: 450.ms);
-  }
+  // Widget _buildGuestButton(BuildContext context) {
+  //   return Obx(
+  //     () => SizedBox(
+  //       width: double.infinity,
+  //       child: CustomGlassButton(
+  //         semanticLabel: 'onboarding_continue_guest'.tr,
+  //         onPressed: controller.isLoading.value
+  //             ? null
+  //             : controller.continueWithoutAccount,
+  //         minHeight: 52,
+  //         borderRadius: 26,
+  //         foregroundColor: AppTheme.folderPink,
+  //         child: Row(
+  //           mainAxisAlignment: MainAxisAlignment.center,
+  //           children: [
+  //             const Icon(Icons.person_outline_rounded, size: 20),
+  //             const SizedBox(width: 8),
+  //             Flexible(
+  //               child: Text(
+  //                 'onboarding_continue_guest'.tr,
+  //                 maxLines: 1,
+  //                 overflow: TextOverflow.ellipsis,
+  //                 style: const TextStyle(
+  //                   fontWeight: FontWeight.w700,
+  //                   fontSize: 16,
+  //                 ),
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   ).animate().fadeIn(delay: 450.ms);
+  // }
 
   Widget _buildRegisterRow(BuildContext context) {
     final theme = Theme.of(context);
