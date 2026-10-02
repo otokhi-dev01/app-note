@@ -82,6 +82,13 @@ const Map<String, String> enUS = {
   'confirm_password_label': 'Confirm Password',
   'sign_in_button': 'Sign In',
   'sign_in_with_google': 'Sign in with Google',
+  'verify_with_google': 'Verify with Google',
+  'google_verification_description':
+      'Verify your linked Google account to reset your app password.',
+  'google_verification_unavailable':
+      'Google verification is not configured in this version. Please use email verification.',
+  'google_verification_failed':
+      'Could not verify with Google. Please try again.',
   'google_sign_in_unavailable':
       'Google sign-in is unavailable in this version. Please use another sign-in method.',
   'google_sign_in_failed': 'Could not sign in with Google. Please try again.',

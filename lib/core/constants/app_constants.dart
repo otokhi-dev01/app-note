@@ -24,6 +24,7 @@ class AppConstants {
   // Recovery Password
   static const String forgotPasswordEndpoint = "/password/forgot";
   static const String verifyPasswordOtpEndpoint = "/password/verify-otp";
+  static const String passwordGoogleVerifyEndpoint = "/password/google/verify";
   static const String resetPasswordEndpoint = "/password/reset";
   static const String securityQuestionsEndpoint =
       "/password/security-questions";

@@ -40,12 +40,6 @@ class AuthCredentialsRequest {
       'passwordConfirmation': confirmPassword,
       'PasswordConfirmation': confirmPassword,
       'confirm_password': confirmPassword,
-    } else ...{
-      'confirmPassword': password,
-      'ConfirmPassword': password,
-      'passwordConfirmation': password,
-      'PasswordConfirmation': password,
-      'confirm_password': password,
     },
     'clientDeviceId': clientDeviceId,
     'ClientDeviceId': clientDeviceId,

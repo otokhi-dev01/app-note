@@ -41,17 +41,17 @@ class SplashView extends GetView<SplashController> {
                       .fadeIn(duration: 600.ms)
                       .shimmer(delay: 1400.ms, duration: 1800.ms),
                   const SizedBox(height: 36),
-                  Text(
-                        "PII NOTE",
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontSize: 36,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(delay: 800.ms, duration: 800.ms)
-                      .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
+                  // Text(
+                  //       "PII NOTE",
+                  //       style: theme.textTheme.headlineLarge?.copyWith(
+                  //         fontSize: 36,
+                  //         letterSpacing: 1.5,
+                  //         fontWeight: FontWeight.w800,
+                  //       ),
+                  //     )
+                  //     .animate()
+                  //     .fadeIn(delay: 800.ms, duration: 800.ms)
+                  //     .slideY(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
                 ],
               ),
             ),

@@ -135,19 +135,19 @@ class SettingsDrawer extends GetView<ProfileController> {
                           reopenSettingsOnReturn: true,
                         ),
                       ),
-                      _buildRow(
-                        context,
-                        leading: _buildFlagIconBadge(
-                          LanguagePreferences().language.flag,
-                        ),
-                        title: 'language_title'.tr,
-                        trailingText: LanguagePreferences().language.label,
-                        onTap: () => _closeThenGo(
-                          context,
-                          Routes.LANGUAGE,
-                          reopenSettingsOnReturn: true,
-                        ),
-                      ),
+                      // _buildRow(
+                      //   context,
+                      //   leading: _buildFlagIconBadge(
+                      //     LanguagePreferences().language.flag,
+                      //   ),
+                      //   title: 'language_title'.tr,
+                      //   trailingText: LanguagePreferences().language.label,
+                      //   onTap: () => _closeThenGo(
+                      //     context,
+                      //     Routes.LANGUAGE,
+                      //     reopenSettingsOnReturn: true,
+                      //   ),
+                      // ),
                       _buildRow(
                         context,
                         icon: CupertinoIcons.sun_max_fill,
@@ -745,7 +745,7 @@ class SettingsDrawer extends GetView<ProfileController> {
 
   Future<void> _logout() async {
     await Get.find<Logout>()(const NoParams());
-    unawaited(Get.offAllNamed(Routes.ONBOARDING));
+    unawaited(Get.offAllNamed(Routes.LOGIN));
   }
 
   Future<void> _closeThenGo(

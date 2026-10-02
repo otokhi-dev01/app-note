@@ -39,7 +39,7 @@ class SplashController extends GetxController {
     } else if (_guestMode.isGuestMode.value) {
       unawaited(Get.offAllNamed(Routes.FOLDER));
     } else {
-      unawaited(Get.offAllNamed(Routes.ONBOARDING));
+      unawaited(Get.offAllNamed(Routes.LOGIN));
     }
   }
 

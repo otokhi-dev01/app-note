@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
@@ -26,9 +25,7 @@ class AccountController extends GetxController {
 
   Future<void> logout() async {
     await _logout(const NoParams());
-    // Show onboarding again on the next launch.
-    unawaited(GetStorage().write('isFirstTime', true));
-    unawaited(Get.offAllNamed(Routes.ONBOARDING));
+    unawaited(Get.offAllNamed(Routes.LOGIN));
   }
 
   /// Guest mode's way back to Welcome/Login — required so a device that
@@ -53,8 +50,7 @@ class AccountController extends GetxController {
     try {
       switch (await _deleteAccount(password)) {
         case Ok():
-          unawaited(GetStorage().write('isFirstTime', true));
-          unawaited(Get.offAllNamed(Routes.ONBOARDING));
+          unawaited(Get.offAllNamed(Routes.LOGIN));
           AppSnackbar.success(
             'account_deleted_title'.tr,
             'account_deleted_message'.tr,

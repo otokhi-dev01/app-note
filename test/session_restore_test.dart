@@ -113,10 +113,6 @@ void main() {
             page: () => const Scaffold(body: Text('Notes')),
           ),
           GetPage(
-            name: Routes.ONBOARDING,
-            page: () => const Scaffold(body: Text('Welcome')),
-          ),
-          GetPage(
             name: '/other',
             page: () => const Scaffold(body: Text('Other')),
           ),
@@ -174,12 +170,12 @@ void main() {
     },
   );
 
-  testWidgets('Fresh install still opens onboarding', (tester) async {
+  testWidgets('Fresh install opens login', (tester) async {
     stored.clear();
     await mount(tester);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
-    expect(Get.currentRoute, Routes.ONBOARDING);
+    expect(Get.currentRoute, Routes.LOGIN);
   });
 
   testWidgets('Guest choice still survives restart', (tester) async {

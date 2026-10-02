@@ -254,8 +254,14 @@ requests currently return a 500 error envelope, which the client surfaces as a
 failure without advancing to reset.
 
 `POST /api/auth/password/google/verify` is a separate recovery method requiring
-`{idToken}`. Google sign-in and its OAuth client configuration are not currently
-present in this app, so this method is not exposed in the recovery UI.
+`{idToken}`. The Forgot Password screen exposes **Verify with Google**:
+`GooglePasswordVerificationController` obtains an ID token through the existing
+Google sign-in service and exchanges it for a server reset token. It does not
+call `/google-login`, store a login session, or send an OTP/password to this
+verification endpoint. A missing reset token is treated as failure. Cancellation
+and missing OAuth configuration leave the other recovery methods available.
+Real-device verification requires the Google OAuth client IDs described in
+[Google setup](docs/google-sign-in.md); these are currently blank.
 
 ### Authenticated session recovery
 

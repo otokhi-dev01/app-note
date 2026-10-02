@@ -1,10 +1,9 @@
 import 'package:Note/features/profile/presentation/views/card_scan_view.dart';
 import 'package:get/get.dart';
+import 'package:Note/features/auth/presentation/bindings/registration_binding.dart';
 import 'package:Note/features/daily_note/presentation/daily_note_view.dart';
 import 'package:Note/features/splash/presentation/views/splash_view.dart';
 import 'package:Note/features/splash/presentation/bindings/splash_binding.dart';
-import 'package:Note/features/onboarding/presentation/views/onboarding_view.dart';
-import 'package:Note/features/onboarding/presentation/bindings/onboarding_binding.dart';
 import 'package:Note/features/auth/presentation/views/login_view.dart';
 import 'package:Note/features/auth/presentation/bindings/auth_binding.dart';
 import 'package:Note/features/auth/presentation/views/register_view.dart';
@@ -51,19 +50,14 @@ class AppPages {
       binding: SplashBinding(),
     ),
     GetPage(
-      name: Routes.ONBOARDING,
-      page: () => const OnboardingView(),
-      binding: OnboardingBinding(),
-    ),
-    GetPage(
       name: Routes.LOGIN,
       page: () => const LoginView(),
       binding: AuthBinding(),
     ),
     GetPage(
       name: Routes.REGISTER,
-      page: () => const RegisterView(),
-      binding: AuthBinding(),
+      page: () => const RegisterScreen(),
+      binding: RegistrationBinding(),
     ),
     GetPage(
       name: Routes.FOLDER,

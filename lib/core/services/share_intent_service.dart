@@ -51,7 +51,6 @@ class ShareIntentService {
   void onRouteChanged(String? route) {
     if (const {
       Routes.SPLASH,
-      Routes.ONBOARDING,
       Routes.LOGIN,
       Routes.REGISTER,
       Routes.FORGOT_PASSWORD,

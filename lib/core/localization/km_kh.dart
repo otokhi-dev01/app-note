@@ -79,6 +79,13 @@ const Map<String, String> kmKH = {
   'confirm_password_label': 'បញ្ជាក់ពាក្យសម្ងាត់',
   'sign_in_button': 'ចូល',
   'sign_in_with_google': 'ចូលជាមួយ Google',
+  'verify_with_google': 'ផ្ទៀងផ្ទាត់ជាមួយ Google',
+  'google_verification_description':
+      'ផ្ទៀងផ្ទាត់គណនី Google ដែលបានភ្ជាប់ ដើម្បីកំណត់ពាក្យសម្ងាត់កម្មវិធីឡើងវិញ។',
+  'google_verification_unavailable':
+      'ការផ្ទៀងផ្ទាត់ជាមួយ Google មិនទាន់បានកំណត់ក្នុងកំណែនេះទេ។ សូមប្រើការផ្ទៀងផ្ទាត់តាមអ៊ីមែល។',
+  'google_verification_failed':
+      'មិនអាចផ្ទៀងផ្ទាត់ជាមួយ Google បានទេ។ សូមព្យាយាមម្តងទៀត។',
   'google_sign_in_unavailable':
       'ការចូលជាមួយ Google មិនអាចប្រើបានក្នុងកំណែនេះទេ។ សូមប្រើវិធីចូលផ្សេង។',
   'google_sign_in_failed': 'មិនអាចចូលជាមួយ Google បានទេ។ សូមព្យាយាមម្តងទៀត។',

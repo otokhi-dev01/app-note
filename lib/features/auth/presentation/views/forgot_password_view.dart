@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
-import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:Note/features/auth/presentation/controllers/google_password_verification_controller.dart';
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/usecase/usecase.dart';
@@ -46,10 +45,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   @override
   void initState() {
     super.initState();
-    final arguments = Get.arguments;
-    final values = arguments is Map ? arguments : {};
-    _accountController = AccountInputController()
-      ..text = values['initialAccount']?.toString() ?? '';
+    _accountController = AccountInputController();
   }
 
   @override
@@ -74,35 +70,32 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     });
   }
 
-  Future<void> _signInWithGoogle() async {
+  Future<void> _verifyWithGoogle() async {
     if (_isSubmitting) return;
+    FocusScope.of(context).unfocus();
     setState(() {
       _isSubmitting = true;
       _errorText = null;
+      _notice = null;
     });
     try {
-      await Get.find<AuthController>().loginWithGoogle();
+      final result = await Get.find<GooglePasswordVerificationController>()
+          .verify();
+      if (!mounted) return;
+      switch (result) {
+        case Ok(:final value):
+          _resetToken = value;
+          _otpController.clear();
+          _resendTimer?.cancel();
+          _answers = [];
+          _step = _RecoveryStep.password;
+        case Err(:final failure):
+          _errorText = failure.message;
+        case null:
+          break;
+      }
     } catch (_) {
-      if (mounted) _errorText = 'google_sign_in_failed'.tr;
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _recoverGoogleAccount() async {
-    if (_isSubmitting) return;
-    setState(() {
-      _isSubmitting = true;
-      _errorText = null;
-    });
-    try {
-      final opened = await launchUrl(
-        Uri.https('accounts.google.com', '/signin/recovery'),
-        mode: LaunchMode.externalApplication,
-      );
-      if (!opened && mounted) _errorText = 'google_recovery_open_failed'.tr;
-    } catch (_) {
-      if (mounted) _errorText = 'google_recovery_open_failed'.tr;
+      if (mounted) _errorText = 'google_verification_failed'.tr;
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -234,16 +227,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     });
   }
 
-  String get _description => switch (_step) {
-    _RecoveryStep.account => 'forgot_password_desc'.tr,
-    _RecoveryStep.code => 'recovery_code_desc'.trParams({'account': _account}),
-    _RecoveryStep.security => 'recovery_security_desc'.trParams({
-      'account': _account,
-    }),
-    _RecoveryStep.password => 'recovery_password_desc'.tr,
-    _RecoveryStep.complete => 'recovery_complete_desc'.tr,
-  };
-
   String get _buttonLabel => switch (_step) {
     _RecoveryStep.account => 'send_reset_request'.tr,
     _RecoveryStep.code => 'recovery_verify_code'.tr,
@@ -285,7 +268,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                 physics: const BouncingScrollPhysics(),
                 slivers: [
                   AppScreenSliverAppBar(
-                    title: 'forgot_password_title'.tr,
+                    backgroundColor: Colors.transparent,
+                    shadow: const [],
+                    // title: 'forgot_password_title'.tr,
                     centerTitle: true,
                     actions: const [LanguageToggleButton()],
                     leading: CustomGlassButton(
@@ -343,16 +328,6 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                       ),
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                _description,
-                                textAlign: TextAlign.center,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  height: 1.45,
-                                  fontSize: 16,
-                                ),
-                              ),
                               const SizedBox(height: 24),
                               CustomGlassContainer(
                                 borderRadius: 30,
@@ -365,21 +340,21 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Center(
-                                      child: Container(
-                                        width: 40,
-                                        height: 4,
-                                        margin: const EdgeInsets.only(
-                                          bottom: 24,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: theme.dividerColor.withValues(
-                                            alpha: 0.3,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            2,
-                                          ),
-                                        ),
-                                      ),
+                                      // child: Container(
+                                      //   width: 40,
+                                      //   height: 4,
+                                      //   margin: const EdgeInsets.only(
+                                      //     bottom: 24,
+                                      //   ),
+                                      //   decoration: BoxDecoration(
+                                      //     color: theme.dividerColor.withValues(
+                                      //       alpha: 0.3,
+                                      //     ),
+                                      //     borderRadius: BorderRadius.circular(
+                                      //       2,
+                                      //     ),
+                                      //   ),
+                                      // ),
                                     ),
                                     ..._buildFields(context),
                                     if (_notice != null)
@@ -407,44 +382,48 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                 ),
                               ),
                               const SizedBox(height: 24),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: _isSubmitting
-                                      ? null
-                                      : () => _submit(),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.colorScheme.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
+                              if (_step != _RecoveryStep.account) ...[
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: _isSubmitting
+                                        ? null
+                                        : () => _submit(),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          theme.colorScheme.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
                                     ),
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30),
-                                    ),
+                                    child: _isSubmitting
+                                        ? const SizedBox.square(
+                                            dimension: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(
+                                            _buttonLabel,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 20,
+                                            ),
+                                          ),
                                   ),
-                                  child: _isSubmitting
-                                      ? const SizedBox.square(
-                                          dimension: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : Text(
-                                          _buttonLabel,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 20,
-                                          ),
-                                        ),
                                 ),
-                              ),
+                              ],
                               const SizedBox(height: 12),
                               if (_step == _RecoveryStep.account) ...[
                                 Text(
-                                  'google_recovery_description'.tr,
+                                  'google_verification_description'.tr,
                                   textAlign: TextAlign.center,
                                   style: theme.textTheme.bodyMedium?.copyWith(
                                     color: theme.colorScheme.onSurfaceVariant,
@@ -452,10 +431,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                 ),
                                 const SizedBox(height: 12),
                                 CustomGlassButton(
-                                  semanticLabel: 'sign_in_with_google'.tr,
+                                  semanticLabel: 'verify_with_google'.tr,
                                   onPressed: _isSubmitting
                                       ? null
-                                      : _signInWithGoogle,
+                                      : _verifyWithGoogle,
                                   minHeight: 56,
                                   borderRadius: 26,
                                   child: Row(
@@ -467,31 +446,12 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                       ),
                                       const SizedBox(width: 10),
                                       Flexible(
-                                        child: Text('sign_in_with_google'.tr),
+                                        child: Text('verify_with_google'.tr),
                                       ),
                                     ],
                                   ),
                                 ),
-                                TextButton(
-                                  onPressed: _isSubmitting
-                                      ? null
-                                      : _recoverGoogleAccount,
-                                  child: Text('recover_google_account'.tr),
-                                ),
                               ],
-                              if (_step == _RecoveryStep.account ||
-                                  _step == _RecoveryStep.code)
-                                TextButton(
-                                  onPressed: _isSubmitting
-                                      ? null
-                                      : _useSecurityQuestions,
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: theme.colorScheme.primary,
-                                  ),
-                                  child: Text(
-                                    'recovery_use_security_questions'.tr,
-                                  ),
-                                ),
                               if (_step == _RecoveryStep.code)
                                 TextButton(
                                   onPressed: _isSubmitting || _resendSeconds > 0
@@ -572,58 +532,113 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     );
   }
 
-  List<Widget> _buildFields(BuildContext context) => switch (_step) {
-    _RecoveryStep.account => [
-      AccountInputField(
-        controller: _accountController,
-        enabled: !_isSubmitting,
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _submit(),
-        onChanged: (_) {
-          if (_errorText != null) setState(() => _errorText = null);
-        },
-      ),
-    ],
-    _RecoveryStep.code => [
-      _field(
-        context,
-        controller: _otpController,
-        label: 'recovery_code_label'.tr,
-        autofillHints: const [AutofillHints.oneTimeCode],
-      ),
-    ],
-    _RecoveryStep.security => [
-      SecurityAnswersForm(
-        questions: _questions,
-        enabled: !_isSubmitting,
-        onChanged: (answers) {
-          _answers = answers;
-          if (_errorText != null) setState(() => _errorText = null);
-        },
-      ),
-    ],
-    _RecoveryStep.password => [
-      _field(
-        context,
-        controller: _passwordController,
-        label: 'recovery_new_password'.tr,
-        obscure: true,
-        autofillHints: const [AutofillHints.newPassword],
-        action: TextInputAction.next,
-      ),
-      const SizedBox(height: 16),
-      _field(
-        context,
-        controller: _confirmController,
-        label: 'confirm_password_hint'.tr,
-        obscure: true,
-        autofillHints: const [AutofillHints.newPassword],
-      ),
-    ],
-    _RecoveryStep.complete => [
-      const Center(child: Icon(Icons.check_circle_outline, size: 48)),
-    ],
-  };
+  List<Widget> _buildFields(BuildContext context) {
+    final theme = Theme.of(context);
+    return switch (_step) {
+      _RecoveryStep.account => [
+        AccountInputField(
+          controller: _accountController,
+          enabled: !_isSubmitting,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
+          onChanged: (_) {
+            if (_errorText != null) setState(() => _errorText = null);
+          },
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            TextButton(
+              onPressed: _isSubmitting ? null : _useSecurityQuestions,
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+              ),
+              child: Text(
+                'recovery_use_security_questions'.tr,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : () => _submit(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        _buttonLabel,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ],
+      _RecoveryStep.code => [
+        _field(
+          context,
+          controller: _otpController,
+          label: 'recovery_code_label'.tr,
+          autofillHints: const [AutofillHints.oneTimeCode],
+        ),
+      ],
+      _RecoveryStep.security => [
+        SecurityAnswersForm(
+          questions: _questions,
+          enabled: !_isSubmitting,
+          onChanged: (answers) {
+            _answers = answers;
+            if (_errorText != null) setState(() => _errorText = null);
+          },
+        ),
+      ],
+      _RecoveryStep.password => [
+        _field(
+          context,
+          controller: _passwordController,
+          label: 'recovery_new_password'.tr,
+          obscure: true,
+          autofillHints: const [AutofillHints.newPassword],
+          action: TextInputAction.next,
+        ),
+        const SizedBox(height: 16),
+        _field(
+          context,
+          controller: _confirmController,
+          label: 'confirm_password_hint'.tr,
+          obscure: true,
+          autofillHints: const [AutofillHints.newPassword],
+        ),
+      ],
+      _RecoveryStep.complete => [
+        const Center(child: Icon(Icons.check_circle_outline, size: 48)),
+      ],
+    };
+  }
 
   Widget _field(
     BuildContext context, {

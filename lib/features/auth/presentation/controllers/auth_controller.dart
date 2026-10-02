@@ -34,7 +34,6 @@ class AuthController extends GetxController {
        _googleLogin = googleLogin,
        _googleSignIn = googleSignIn ?? GoogleSignInService();
 
-  final _storage = GetStorage();
   final _guestMode = Get.find<GuestModeService>();
   final accountController = AccountInputController();
   final passwordController = TextEditingController();
@@ -42,21 +41,19 @@ class AuthController extends GetxController {
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
   final isConfirmPasswordVisible = false.obs;
-  final rememberMe = true.obs;
-
-  static const String _keyRememberMe = 'remember_me';
-  static const String _keySavedPhone = 'saved_phone';
-  static const String _keySavedAccount = 'saved_account';
 
   @override
   void onInit() {
     super.onInit();
-    _loadRememberMe();
+    // Clear legacy saved credentials if present
+    final storage = GetStorage();
+    storage.remove('remember_me');
+    storage.remove('saved_phone');
+    storage.remove('saved_account');
   }
 
   void togglePasswordVisibility() => isPasswordVisible.toggle();
   void toggleConfirmPasswordVisibility() => isConfirmPasswordVisible.toggle();
-  void toggleRememberMe() => rememberMe.toggle();
 
   Future<void> continueWithoutAccount() async {
     if (isLoading.value || isClosed) return;
@@ -80,16 +77,6 @@ class AuthController extends GetxController {
     unawaited(Get.offAllNamed(route));
   }
 
-  void _loadRememberMe() {
-    rememberMe.value = _storage.read(_keyRememberMe) ?? false;
-    if (rememberMe.value) {
-      accountController.text =
-          _storage.read(_keySavedAccount) ??
-          _storage.read(_keySavedPhone) ??
-          '';
-    }
-  }
-
   Future<void> login() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
@@ -106,11 +93,10 @@ class AuthController extends GetxController {
         case Ok():
           if (kDebugMode) {
             debugPrint(
-              '[AUTH] Login logic successful. Disable guest mode and persisting.',
+              '[AUTH] Login logic successful. Disable guest mode.',
             );
           }
           _guestMode.disable();
-          _persistRememberMe(account);
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
 
           // Setup E2EE. Shared unawaited handles the background task.
@@ -197,24 +183,9 @@ class AuthController extends GetxController {
     }
   }
 
-  void _persistRememberMe(String account) {
-    if (rememberMe.value) {
-      _storage.write(_keyRememberMe, true);
-      _storage.write(_keySavedAccount, account);
-      _storage.remove(_keySavedPhone);
-    } else {
-      _storage.write(_keyRememberMe, false);
-      _storage.remove(_keySavedPhone);
-      _storage.remove(_keySavedAccount);
-    }
-  }
-
   Future<void> forgotPassword() async {
     if (isLoading.value) return;
-    await Get.toNamed(
-      Routes.FORGOT_PASSWORD,
-      arguments: {'initialAccount': accountController.account},
-    );
+    await Get.toNamed(Routes.FORGOT_PASSWORD);
   }
 
   @override
