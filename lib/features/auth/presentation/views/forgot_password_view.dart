@@ -12,6 +12,7 @@ import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/auth/presentation/widgets/security_answers_form.dart';
+import 'package:Note/features/auth/presentation/widgets/password_otp_step.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
@@ -236,7 +237,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   };
 
   void _back() {
-    if (_step == _RecoveryStep.complete) {
+    if (_step == _RecoveryStep.code) {
+      _startOver();
+    } else if (_step == _RecoveryStep.complete) {
       unawaited(Get.offAllNamed(Routes.LOGIN));
     } else {
       Get.back();
@@ -247,6 +250,38 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    if (_step == _RecoveryStep.code) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop && !_isSubmitting) _back();
+        },
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: isDark
+              ? SystemUiOverlayStyle.light
+              : SystemUiOverlayStyle.dark,
+          child: Scaffold(
+            backgroundColor: isDark
+                ? theme.scaffoldBackgroundColor
+                : theme.colorScheme.surface,
+            body: PasswordOtpStep(
+              account: _account,
+              controller: _otpController,
+              resendSeconds: _resendSeconds,
+              isSubmitting: _isSubmitting,
+              errorText: _errorText,
+              onVerify: () => _submit(),
+              onResend: () => _submit(resend: true),
+              onBack: _back,
+              onCodeChanged: (_) {
+                if (_errorText != null) setState(() => _errorText = null);
+              },
+            ),
+          ),
+        ),
+      );
+    }
     return PopScope(
       canPop: !_isSubmitting && _step != _RecoveryStep.complete,
       onPopInvokedWithResult: (didPop, _) {
@@ -452,24 +487,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                   ),
                                 ),
                               ],
-                              if (_step == _RecoveryStep.code)
-                                TextButton(
-                                  onPressed: _isSubmitting || _resendSeconds > 0
-                                      ? null
-                                      : () => _submit(resend: true),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: theme.colorScheme.primary,
-                                  ),
-                                  child: Text(
-                                    _resendSeconds > 0
-                                        ? 'recovery_resend_countdown'.trParams({
-                                            'seconds': '$_resendSeconds',
-                                          })
-                                        : 'recovery_resend_code'.tr,
-                                  ),
-                                ),
-                              if (_step == _RecoveryStep.code ||
-                                  _step == _RecoveryStep.security ||
+                              if (_step == _RecoveryStep.security ||
                                   _step == _RecoveryStep.password)
                                 TextButton(
                                   onPressed: _isSubmitting ? null : _startOver,
@@ -599,11 +617,11 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
         ),
       ],
       _RecoveryStep.code => [
-        _field(
-          context,
+        OtpCodeField(
           controller: _otpController,
-          label: 'recovery_code_label'.tr,
-          autofillHints: const [AutofillHints.oneTimeCode],
+          enabled: !_isSubmitting,
+          hasError: _errorText != null,
+          onSubmitted: () => _submit(),
         ),
       ],
       _RecoveryStep.security => [

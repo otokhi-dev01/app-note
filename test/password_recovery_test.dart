@@ -21,6 +21,7 @@ import 'package:Note/features/auth/presentation/controllers/google_password_veri
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
 import 'package:Note/features/auth/presentation/views/forgot_password_view.dart';
+import 'package:Note/features/auth/presentation/widgets/password_otp_step.dart';
 import 'package:Note/routes/app_pages.dart';
 
 class _Session extends SessionStorage {
@@ -476,6 +477,7 @@ void main() {
   }
 
   Future<void> press(WidgetTester tester, String label) async {
+    await tester.pump();
     await tester.ensureVisible(find.text(label));
     await tester.tap(find.text(label));
     await tester.pumpAndSettle();
@@ -712,13 +714,21 @@ void main() {
         'someone@example.com',
       );
       await press(tester, 'Send Request');
-      expect(find.text('Verification Code'), findsOneWidget);
+      expect(find.text('OTP Verification'), findsOneWidget);
+      expect(find.text('someone@example.com'), findsOneWidget);
       await tester.enterText(find.byType(EditableText).first, '012345');
-      await press(tester, 'Verify Code');
+      await press(tester, 'Verify OTP');
       expect(find.text('Code is invalid'), findsOneWidget);
+      expect(adapter.requests.last.data, {
+        'account': 'someone@example.com',
+        'otp': '012345',
+      });
       expect(find.text('New Password'), findsNothing);
       invalidOtp = false;
-      await press(tester, 'Verify Code');
+      await tester.enterText(find.byType(EditableText).first, '654321');
+      await tester.pump();
+      expect(find.text('Code is invalid'), findsNothing);
+      await press(tester, 'Verify OTP');
       await tester.enterText(find.byType(EditableText).at(0), 'new-password');
       await tester.enterText(find.byType(EditableText).at(1), 'different');
       final beforeReset = adapter.requests.length;
@@ -761,14 +771,15 @@ void main() {
       expect(adapter.requests, hasLength(2));
       pending.complete(_json({'success': true}));
       await tester.pumpAndSettle();
-      expect(find.text('Resend code in 60 seconds'), findsOneWidget);
+      expect(find.text('You may resend OTP in 01:00 min'), findsOneWidget);
       await tester.pump(const Duration(seconds: 60));
       await tester.pumpAndSettle();
       adapter.respond = (_) => _json({'success': true});
-      await press(tester, 'Resend Code');
+      await press(tester, 'Resend OTP');
       expect(adapter.requests, hasLength(3));
       expect(adapter.requests.last.data, {'account': 'someone'});
-      await press(tester, 'Start Again');
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
       expect(find.text('Send Request'), findsOneWidget);
       expect(
         tester.widget<EditableText>(find.byType(EditableText)).controller.text,
@@ -778,4 +789,82 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+
+  testWidgets('OTP paste and deletion retain one complete numeric code', (
+    tester,
+  ) async {
+    await mount(tester);
+    await tester.enterText(find.byType(EditableText).first, 'someone');
+    await press(tester, 'Send Request');
+    final input = find.byType(EditableText);
+    await tester.enterText(input, '01 23a4567');
+    await tester.pumpAndSettle();
+    expect(tester.widget<EditableText>(input).controller.text, '012345');
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+      isNotNull,
+    );
+    await tester.enterText(input, '01234');
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+      isNull,
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(adapter.requests, hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('OTP fits a small screen with large Khmer text and a keyboard', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final code = TextEditingController(text: '012345');
+    addTearDown(code.dispose);
+    for (final brightness in Brightness.values) {
+      await tester.pumpWidget(
+        GetMaterialApp(
+          translations: AppTranslations(),
+          locale: const Locale('km', 'KH'),
+          theme: ThemeData(
+            brightness: brightness,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFFF69B4),
+              primary: const Color(0xFFFF69B4),
+              brightness: brightness,
+            ),
+          ),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              viewInsets: EdgeInsets.only(bottom: 240),
+              textScaler: TextScaler.linear(1.8),
+            ),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: PasswordOtpStep(
+              account: 'someone.with.a.long.email@example.com',
+              controller: code,
+              resendSeconds: 60,
+              isSubmitting: false,
+              onVerify: () {},
+              onResend: () {},
+              onBack: () {},
+              onCodeChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

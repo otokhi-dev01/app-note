@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:Note/core/constants/app_constants.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/network/api_error_parser.dart';
+import 'package:Note/core/network/access_token.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
 
@@ -20,6 +21,139 @@ class RegistrationService {
 
   final Dio _dio;
   final AuthDeviceService _deviceService;
+
+  /// Some register responses omit tokens. Authenticate only to complete the
+  /// profile; this temporary credential is never stored as an app session.
+  Future<String> loginForProfile({
+    required String account,
+    required String password,
+    CancelToken? cancelToken,
+  }) async {
+    final device = await _deviceService.read();
+    final cancellation = cancelToken?.cancelError;
+    if (cancellation != null) throw cancellation;
+    try {
+      final response = await _dio.post(
+        '${AppConstants.authBaseUrl}${AppConstants.loginEndpoint}',
+        data: {
+          'account': account.trim(),
+          'password': password,
+          'clientDeviceId': device.clientDeviceId,
+          'deviceName': device.deviceName,
+          'platform': device.platform,
+          'deviceModel': device.deviceModel,
+          'appVersion': device.appVersion,
+        },
+        cancelToken: cancelToken,
+        options: Options(extra: {'requiresAuth': false}),
+      );
+      final auth = _readAuthResponse(response);
+      final token = AccessToken.normalize(auth.token).value;
+      if (token.isEmpty) {
+        throw const RegistrationException(
+          'Your account was created, but profile setup could not be authorized. Please try again.',
+        );
+      }
+      return token;
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) rethrow;
+      throw _failure(
+        error.response?.data,
+        error.response?.statusCode,
+        retryAfter: int.tryParse(
+          error.response?.headers.value('retry-after') ?? '',
+        ),
+      );
+    }
+  }
+
+  Future<void> saveProfile({
+    required String token,
+    String? username,
+    required String email,
+    String? phone,
+    CancelToken? cancelToken,
+  }) async {
+    // Keep the new account's credential separate from any current app session.
+    // Shared auth interceptors intentionally strip caller-supplied credentials.
+    final profileClient = Dio(_dio.options.copyWith())
+      ..httpClientAdapter = _dio.httpClientAdapter;
+    try {
+      final response = await profileClient.post(
+        '${AppConstants.userApiUrl}/profile/save',
+        data: {
+          if (username != null && username.trim().isNotEmpty)
+            'username': username.trim(),
+          'email': email.trim(),
+          if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
+        },
+        cancelToken: cancelToken,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      _readAuthResponse(response);
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) rethrow;
+      throw _failure(
+        error.response?.data,
+        error.response?.statusCode,
+        retryAfter: int.tryParse(
+          error.response?.headers.value('retry-after') ?? '',
+        ),
+      );
+    }
+  }
+
+  Future<void> sendOtp({
+    required String email,
+    CancelToken? cancelToken,
+  }) async {
+    await _otpRequest(AppConstants.signupSendOtpEndpoint, {
+      'email': email.trim(),
+    }, cancelToken);
+  }
+
+  Future<void> verifyEmailOtp({
+    required String email,
+    required String otp,
+    CancelToken? cancelToken,
+  }) async {
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(otp.trim())) {
+      throw const RegistrationException('Please enter the 6-digit email code.');
+    }
+    await _otpRequest(AppConstants.verifyEmailOtpEndpoint, {
+      'email': email.trim(),
+      'otp': otp.trim(),
+    }, cancelToken);
+  }
+
+  Future<void> _otpRequest(
+    String endpoint,
+    Map<String, String> body,
+    CancelToken? cancelToken,
+  ) async {
+    try {
+      final response = await _dio.post(
+        '${AppConstants.authBaseUrl}$endpoint',
+        data: body,
+        cancelToken: cancelToken,
+        options: Options(extra: {'requiresAuth': false}),
+      );
+      final data = response.data;
+      if (data is! Map || (data['success'] ?? data['Success']) != true) {
+        throw _failure(data, response.statusCode);
+      }
+      _readAuthResponse(response);
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) rethrow;
+      throw _failure(
+        error.response?.data,
+        error.response?.statusCode,
+        retryAfter: int.tryParse(
+          error.response?.headers.value('retry-after') ?? '',
+        ),
+      );
+    }
+  }
 
   Future<AuthResponse> register({
     required String account,
@@ -44,27 +178,7 @@ class RegistrationService {
         cancelToken: cancelToken,
         options: Options(extra: {'requiresAuth': false}),
       );
-      final body = response.data;
-      if (body is! Map || body.isEmpty) {
-        throw const RegistrationException(
-          'The server returned an invalid registration response. Please try again.',
-        );
-      }
-      final auth = AuthResponse.fromJson(
-        Map<String, dynamic>.from(body),
-        statusCode: response.statusCode,
-      );
-      final errors =
-          body['errors'] ?? body['Errors'] ?? body['error'] ?? body['Error'];
-      final hasErrors =
-          errors != null &&
-          errors.toString().isNotEmpty &&
-          errors.toString() != '{}' &&
-          errors.toString() != '[]';
-      if (!auth.isSuccess || auth.code >= 400 || hasErrors) {
-        throw _failure(body, response.statusCode);
-      }
-      return auth;
+      return _readAuthResponse(response);
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) rethrow;
       throw _failure(
@@ -77,11 +191,36 @@ class RegistrationService {
     }
   }
 
+  AuthResponse _readAuthResponse(Response<dynamic> response) {
+    final body = response.data;
+    if (body is! Map || body.isEmpty) {
+      throw const RegistrationException(
+        'The server returned an invalid registration response. Please try again.',
+      );
+    }
+    final auth = AuthResponse.fromJson(
+      Map<String, dynamic>.from(body),
+      statusCode: response.statusCode,
+    );
+    final errors =
+        body['errors'] ?? body['Errors'] ?? body['error'] ?? body['Error'];
+    final hasErrors =
+        errors != null &&
+        errors.toString().isNotEmpty &&
+        errors.toString() != '{}' &&
+        errors.toString() != '[]';
+    if (!auth.isSuccess || auth.code >= 400 || hasErrors) {
+      throw _failure(body, response.statusCode);
+    }
+    return auth;
+  }
+
   RegistrationException _failure(dynamic body, int? status, {int? retryAfter}) {
     final fallback = switch (status) {
-      409 => 'This email is already registered. Please sign in.',
+      409 => 'These account details are already in use. Please check them.',
       429 => 'Too many attempts. Please wait before trying again.',
-      400 || 422 => 'Please check your email and password and try again.',
+      400 ||
+      422 => 'Please check your details or verification code and try again.',
       404 || 405 => 'Registration is unavailable. Please contact support.',
       null =>
         'Could not reach the server. Check your connection and try again.',

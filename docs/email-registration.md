@@ -1,89 +1,96 @@
-# Email registration using the Chat API
+# Signup with email OTP and profile details
 
-Signup now follows the published `POST https://chat.piisiit.com/api/auth/register`
-contract. The previous registration OTP endpoints were not available on the
-server. Following the request to use the existing API, signup now runs:
+The signup form uses the same single account input as login: **Username, Email
+or Phone**, followed by password and confirmation. Phone input automatically
+shows the country selector and is normalized exactly like login.
 
-**Email + password + confirmation → register → success message → login.**
+For email signup, the app sends a six-digit OTP to that address immediately.
+For username or phone signup, the next screen asks for an email to receive the
+OTP. Any valid email, including Gmail, can be used. Account creation follows
+successful verification.
 
-There is no registration OTP screen, OTP request, or automatic login in this flow.
-Google password recovery remains a separate feature.
+The [Chat Swagger schema](https://chat.piisiit.com/swagger/v1/swagger.json),
+checked on October 2, 2026, documents this flow:
 
-## Request
+1. `POST /api/auth/signup/send-otp` with `{email}`.
+2. `POST /api/auth/verify-otp/email` with `{email, otp}`.
+3. `POST /api/auth/register` with `{account, password, clientDeviceId,
+   deviceName, platform, deviceModel, appVersion}`. `account` is the selected
+   username, email, or normalized phone. Password confirmation is checked locally.
+4. `POST /api/users/profile/save` with the verified `email`, plus `username`
+   for username signup or `phone` for phone signup, authorized using the new
+   account's token. Unprovided fields are omitted from the payload.
+5. Clear temporary data and return to Sign In after all steps succeed.
 
-The current [Swagger schema](https://chat.piisiit.com/swagger/v1/swagger.json)
-requires `account`, `password`, and `clientDeviceId`. Optional device metadata
-is supplied by the existing `AuthDeviceService`:
+The register schema does not accept username or phone. Saving these through
+`/api/users/profile/save` uses the documented `SaveProfileRequest` instead of
+sending unsupported fields to register. If registration does not return an
+access token, the app temporarily calls `/api/auth/login` with the new account's
+credentials to authorize profile saving. It never stores these temporary tokens
+or changes an existing app session. The profile request uses an isolated Dio
+client sharing the transport adapter, so existing session interceptors cannot
+replace its temporary credential.
 
-```json
-{
-  "account": "person@example.com",
-  "password": "<password>",
-  "clientDeviceId": "<installation UUID>",
-  "deviceName": "<device name>",
-  "platform": "<platform>",
-  "deviceModel": "<model>",
-  "appVersion": "<app version>"
-}
-```
+Sending/resending and verification require an explicit success envelope. All
+steps reject invalid responses, explicit failures, error collections, and
+application error codes. The successful response schemas are not specified in
+Swagger; registration/profile saving retain the existing auth response parser.
+A live email signup API test on October 2, 2026 confirmed delivery and the
+response shapes used by the signup flow; see the verification results below.
 
-The form's email becomes `account` and is trimmed. Password contents are preserved
-exactly. Confirmation is validated locally. The form no longer asks for a name
-because the registration schema does not accept one. No field aliases, name,
-confirmation, OTP, or Google token are sent.
+The OTP input supports paste and autofill, only accepts six digits, and preserves
+leading zeroes. Resending has a 60-second cooldown; HTTP 429 `Retry-After` blocks
+attempts across the flow. Countdowns refresh when the app resumes. Editing the
+email resets verification. Duplicate submissions are locked and leaving the
+screen cancels in-flight work and discards late results.
 
-`RegistrationService` uses the shared `ApiClient.dio` with `requiresAuth: false`.
-The existing `AuthRemoteDataSource.register` delegates to this service too, so
-both registration entry points use the same payload. Login transport is unchanged.
+A retry after successful verification does not verify the same code twice.
+If profile saving fails after registration, the screen lets the user retry
+without recreating the account. Username/phone signup can also correct its
+account field while retaining the same account type. This
+recovery state and temporary credentials last only while the screen is open.
+If the user leaves before completing the profile, the account already exists.
 
-Responses use the existing `AuthResponse` parser. Non-JSON/empty responses,
-explicit failure envelopes, application error codes, and error collections are
-rejected. Swagger does not describe the successful response schema, so the parser
-retains the project's existing auth envelope compatibility. Any returned access
-or refresh token is ignored by signup; no session is stored.
-
-`RegistrationController` validates inputs, locks submission while obtaining device
-metadata or awaiting the server, reports errors inline, and respects HTTP 429
-`Retry-After` seconds (60 seconds when absent). It clears temporary input after
-success, shows the existing success snackbar, and replaces the auth navigation
-stack with Login. Closing the route cancels the request and suppresses late results.
-A cancellation after a request reaches the server cannot undo server-side creation.
-
-## Files
-
-- `lib/features/auth/presentation/views/register_view.dart`
-- `lib/features/auth/presentation/controllers/registration_controller.dart`
-- `lib/features/auth/presentation/bindings/registration_binding.dart`
-- `lib/features/auth/data/services/registration_service.dart`
-- `lib/features/auth/data/datasources/auth_remote_data_source.dart`
-- `lib/routes/app_pages.dart` and `app_routes.dart`
-- `test/email_registration_test.dart` and registration cases in `auth_flow_test.dart`
-
-The obsolete `EmailVerificationScreen` and its route were removed.
-
-## Test
+## Validation
 
 ```sh
+flutter analyze --no-pub lib/features/auth/data/services/registration_service.dart lib/features/auth/presentation/controllers/registration_controller.dart lib/features/auth/presentation/views/register_view.dart
 flutter test --no-pub test/email_registration_test.dart
 flutter test --no-pub test/auth_flow_test.dart --plain-name Register
 flutter test --no-pub test/login_integration_test.dart --plain-name 'Registration and authenticated account operations stay on Chat'
+flutter test --no-pub test/password_recovery_test.dart
 ```
 
-Automated tests use the real Dio interceptors with a fake HTTP adapter and device
-service. They check the exact documented payload, validation, rejected responses,
-duplicate submits, rate limiting, request cancellation, field cleanup, safe logs,
-and navigation without automatic login. They do not create a production account.
+Tests use fake HTTP/device services with the real app interceptors. They cover
+request order/payloads, local validation, invalid codes, resend, rate limiting,
+profile retries, duplicate submissions, cancellation, cleanup, session isolation,
+and secret-free logs. They do not create production accounts or send real email.
 
-For live testing:
+For live testing, choose a unique username, unused email, or valid phone as
+account input and enter matching passwords. If prompted, provide an email you
+control. Enter the received code, confirm the Sign In screen, then log in and
+check the saved profile. Also test an incorrect/expired
+code and a taken username. Email delivery and OTP generation belong to the backend.
 
-1. Open Sign Up. Enter an unused email address and matching passwords.
-2. Submit once. Check that the request targets `/api/auth/register`; no request
-   should target `/register/request`, `/register/verify`, or `/register/resend`.
-3. On success, confirm the success message and Login screen, then sign in manually.
-4. Try an existing email, invalid fields, and loss of network. Confirm errors stay
-   on the registration form and loading ends so the request can be retried.
-5. During a slow request, repeatedly tap Sign Up or submit from the keyboard.
-   Only one request should be sent.
+## Live email signup API verification — October 2, 2026
 
-No live account was created to validate this change. Production success still
-requires a live test with an unused email and password chosen by the tester.
+Using a unique Gmail alias controlled by the user, the live API test passed:
+
+- Signup OTP request: HTTP 200; the user received the code.
+- Email OTP verification: HTTP 200.
+- Account registration and profile saving: HTTP 200.
+- Login with the current app payload, including its field aliases: HTTP 200
+  with an access token and user ID.
+- Authenticated profile access: HTTP 200.
+- Test session logout with the documented `sessionId`: HTTP 200.
+
+The existing app logout method currently omits `sessionId`; a request without it
+returned HTTP 500 with `Session not found`. That app method still needs a payload
+correction. The test session was closed by looking up its device-specific session
+and including the required ID.
+
+An OTP request for an already registered address returned HTTP 500 with
+`Email is already registered`, rather than a validation status.
+
+Credentials are kept outside the repository. This was an API test, not a device
+UI test; username and phone signup paths remain covered by simulated API tests.

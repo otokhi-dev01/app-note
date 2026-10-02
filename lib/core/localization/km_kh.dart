@@ -99,6 +99,33 @@ const Map<String, String> kmKH = {
   'sign_in_subtitle': 'ចូលទៅកាន់គណនីរបស់អ្នក',
 
   // Register
+  'register_account_required':
+      'សូមបញ្ចូលឈ្មោះអ្នកប្រើ អ៊ីមែល ឬលេខទូរស័ព្ទរបស់អ្នក។',
+  'register_account_type_invalid':
+      'សូមរក្សាប្រភេទគណនីដដែលនៅពេលកែប្រែព័ត៌មានរបស់អ្នក។',
+  'register_verification_email_description':
+      'បញ្ចូលអ៊ីមែលរបស់អ្នកដើម្បីទទួលលេខកូដផ្ទៀងផ្ទាត់ ៦ ខ្ទង់។',
+  'register_send_code': 'ផ្ញើលេខកូដ',
+  'register_email_label': 'អ៊ីមែល',
+  'register_username_required': 'សូមបញ្ចូលឈ្មោះអ្នកប្រើរបស់អ្នក។',
+  'register_email_invalid': 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលត្រឹមត្រូវ។',
+  'register_confirm_required': 'សូមបញ្ជាក់ពាក្យសម្ងាត់របស់អ្នក។',
+  'register_password_mismatch': 'ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ។',
+  'register_otp_title': 'ផ្ទៀងផ្ទាត់អ៊ីមែលរបស់អ្នក',
+  'register_otp_description':
+      'បញ្ចូលលេខកូដ ៦ ខ្ទង់ដែលបានផ្ញើទៅអ៊ីមែលរបស់អ្នក។ សូមពិនិត្យប្រអប់សារ ឬថតសារឥតបានការ។',
+  'register_otp_invalid': 'សូមបញ្ចូលលេខកូដអ៊ីមែល ៦ ខ្ទង់។',
+  'register_verify_create': 'ផ្ទៀងផ្ទាត់ និងបង្កើតគណនី',
+  'register_resend_otp': 'ផ្ញើលេខកូដម្តងទៀត',
+  'register_resend_countdown': 'ផ្ញើលេខកូដម្តងទៀតក្នុង @seconds វិនាទី',
+  'register_retry_countdown': 'ព្យាយាមម្តងទៀតក្នុង @seconds វិនាទី',
+  'register_edit_details': 'កែប្រែព័ត៌មាន',
+  'register_profile_title': 'បំពេញប្រវត្តិរូបរបស់អ្នក',
+  'register_profile_description':
+      'គណនីរបស់អ្នកត្រូវបានបង្កើត។ សូមពិនិត្យព័ត៌មានរបស់អ្នក ហើយព្យាយាមម្តងទៀតដើម្បីបញ្ចប់ការចុះឈ្មោះ។',
+  'register_finish': 'បញ្ចប់ការចុះឈ្មោះ',
+  'register_unexpected_error':
+      'មិនអាចបញ្ចប់ការចុះឈ្មោះបានទេ។ សូមព្យាយាមម្តងទៀត។',
   'register_title': 'ចុះឈ្មោះ',
   'register_create_account': 'បង្កើតគណនីរបស់អ្នក',
   'register_subtitle': 'ចុះឈ្មោះដើម្បីចាប់ផ្តើម',
@@ -119,6 +146,10 @@ const Map<String, String> kmKH = {
   'recovery_complete_desc':
       'ពាក្យសម្ងាត់របស់អ្នកត្រូវបានកំណត់ឡើងវិញ។ សូមចូលដោយប្រើពាក្យសម្ងាត់ថ្មី។',
   'recovery_verify_code': 'ផ្ទៀងផ្ទាត់លេខកូដ',
+  'recovery_otp_title': 'ផ្ទៀងផ្ទាត់លេខកូដ OTP',
+  'recovery_otp_description': 'បញ្ចូលលេខកូដផ្ទៀងផ្ទាត់ដែលយើងបានផ្ញើទៅ',
+  'recovery_otp_countdown': 'អ្នកអាចផ្ញើ OTP ម្តងទៀតក្នុង @time នាទី',
+  'recovery_otp_not_received': 'មិនបានទទួល OTP មែនទេ?',
   'recovery_reset_password': 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
   'recovery_code_label': 'លេខកូដផ្ទៀងផ្ទាត់',
   'recovery_new_password': 'ពាក្យសម្ងាត់ថ្មី',
