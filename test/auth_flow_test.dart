@@ -190,11 +190,12 @@ void main() {
   Future<AuthController> mountLogin(
     WidgetTester tester, {
     required Result<AuthSession> loginResult,
+    _FakeLogin? login,
   }) async {
     final controller = Get.put(
       AuthController(
         googleLogin: GoogleLogin(_NoopRepo()),
-        login: _FakeLogin(loginResult),
+        login: login ?? _FakeLogin(loginResult),
         register: _FakeRegister(okVoid),
       ),
     );
@@ -207,6 +208,53 @@ void main() {
     );
     await tester.pumpAndSettle();
     return controller;
+  }
+
+  for (final username in ['name text', 'Nona11']) {
+    testWidgets('Signup prefills the exact username $username on login', (
+      tester,
+    ) async {
+      await initialize();
+      final signIn = _FakeLogin(
+        const Err(ValidationFailure('Test server rejection')),
+      );
+      final controller = await mountLogin(
+        tester,
+        loginResult: const Err(ValidationFailure('unused')),
+        login: signIn,
+      );
+      controller.accountController.text = 'previous-user';
+      controller.passwordController.text = 'previous-password';
+      controller.isPasswordVisible.value = true;
+      unawaited(Get.toNamed(Routes.REGISTER));
+      await tester.pumpAndSettle();
+      unawaited(
+        Get.offAllNamed(Routes.LOGIN, arguments: {'account': username}),
+      );
+      await tester.pumpAndSettle();
+      final login = Get.find<AuthController>();
+      expect(login.accountController.account, username);
+      expect(login.passwordController.text, isEmpty);
+      expect(login.isPasswordVisible.value, isFalse);
+      expect(login.isClosed, isFalse);
+      await tester.enterText(find.byType(EditableText).last, 'test-password');
+      unawaited(tester.binding.reassembleApplication());
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.LOGIN);
+      expect(login.accountController.account, username);
+      expect(login.passwordController.text, 'test-password');
+      await tester.ensureVisible(find.text('sign_in_button'.tr));
+      await tester.tap(find.text('sign_in_button'.tr));
+      await tester.pumpAndSettle();
+      expect(signIn.received?.account, username);
+      expect(signIn.received?.password, 'test-password');
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, 'edited name');
+      await tester.pumpAndSettle();
+      expect(login.accountController.account, 'edited name');
+      expect(tester.takeException(), isNull);
+    });
   }
 
   testWidgets(

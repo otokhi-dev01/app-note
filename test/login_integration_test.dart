@@ -180,6 +180,42 @@ void main() {
     },
   );
 
+  for (final username in ['name text', 'Nona11', 'សុខ ដារ៉ា']) {
+    test(
+      'Username $username stays identical between registration and login',
+      () async {
+        final remote = AuthRemoteDataSource(
+          api: Get.find<ApiClient>(),
+          deviceService: _Device(),
+        );
+        final success = adapter.respond;
+        String? registeredAccount;
+        adapter.respond = (request) {
+          final data = Map<String, dynamic>.from(request.data as Map);
+          expect(data.containsKey('email'), isFalse);
+          expect(data.containsKey('username'), isFalse);
+          expect(data.containsKey('phone'), isFalse);
+          expect(data.containsKey('Account'), isFalse);
+          if (request.uri.path.endsWith('/register')) {
+            registeredAccount = data['account'] as String;
+          } else {
+            expect(data['account'], registeredAccount);
+            expect(data['password'], 'test-password');
+          }
+          return success(request);
+        };
+        await remote.register(username, 'test-password');
+        final result = await login(
+          LoginParams(account: ' $username ', password: 'test-password'),
+        );
+        expect(result.isOk, isTrue);
+        expect(session.isLoggedIn, isTrue);
+        expect(registeredAccount, username);
+        expect(adapter.requests, hasLength(2));
+      },
+    );
+  }
+
   test(
     'Chat login supplies the bearer token for Note reads and folder saves',
     () async {

@@ -24,6 +24,15 @@ class _Session extends SessionStorage {
   Future<void> loadSession() async {}
 }
 
+class _NavigationObserver extends NavigatorObserver {
+  final pushed = <String?>[];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    pushed.add(route.settings.name);
+  }
+}
+
 const _deviceInfo = AuthDeviceInfo(
   clientDeviceId: 'fdffb4d7-e037-489f-aa84-a0ea82c138fe',
   deviceName: 'Test device',
@@ -76,9 +85,11 @@ void main() {
   late RegistrationController controller;
   late SessionStorage session;
   late DateTime now;
+  late _NavigationObserver navigation;
 
   setUp(() {
     Get.testMode = true;
+    navigation = _NavigationObserver();
     now = DateTime.utc(2026, 10, 2);
     session = Get.put<SessionStorage>(_Session());
     final api = Get.put(ApiClient());
@@ -96,6 +107,7 @@ void main() {
   Future<void> mount(WidgetTester tester) async {
     await tester.pumpWidget(
       GetMaterialApp(
+        navigatorObservers: [navigation],
         scaffoldMessengerKey: AppSnackbar.messengerKey,
         translations: AppTranslations(),
         locale: const Locale('en', 'US'),
@@ -127,6 +139,31 @@ void main() {
     await operation;
   }
 
+  Future<void> continueFromSuccess(
+    WidgetTester tester, {
+    bool emailVerified = false,
+  }) async {
+    expect(find.byType(RegistrationSuccess), findsOneWidget);
+    expect(
+      find.text(
+        emailVerified
+            ? 'Email successfully verified'
+            : 'Account created successfully',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Login destination'), findsNothing);
+    expect(session.isLoggedIn, isFalse);
+    unawaited(tester.binding.reassembleApplication());
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    expect(find.byType(RegistrationSuccess), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(find.byType(RegistrationSuccess), findsNothing);
+    expect(find.text('Login destination'), findsOneWidget);
+  }
+
   Future<void> dispose(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
     if (!controller.isClosed) controller.onDelete();
@@ -136,7 +173,7 @@ void main() {
 
   Future<void> sendCode(WidgetTester tester, {String? account}) async {
     fill();
-    if (account != null) controller.accountController.text = account;
+    controller.accountController.text = account ?? 'new@example.com';
     await finish(tester, controller.register());
     if (controller.isEmailStep.value) {
       controller.emailController.text = 'new@example.com';
@@ -146,9 +183,15 @@ void main() {
     expect(controller.completed.value, isFalse);
   }
 
-  for (final input in ['newuser', '012345678']) {
+  for (final input in [
+    'newuser',
+    'name text',
+    'Nona11',
+    'សុខ ដារ៉ា',
+    '012345678',
+  ]) {
     testWidgets(
-      'One account field supports $input with a separate email OTP step',
+      'Username or phone $input skips email verification and registers directly',
       (tester) async {
         await mount(tester);
         fill();
@@ -163,32 +206,34 @@ void main() {
           isPhone ? findsOneWidget : findsNothing,
         );
         await finish(tester, controller.register());
-        expect(controller.isEmailStep.value, isTrue);
-        expect(adapter.requests, isEmpty);
-        expect(find.byType(EditableText), findsOneWidget);
-        expect(find.text('Send Code'), findsOneWidget);
-        controller.emailController.text = 'bad-email';
-        await finish(tester, controller.register());
-        expect(controller.error.value, contains('email'));
-        expect(adapter.requests, isEmpty);
-        controller.emailController.text = ' verification@gmail.com ';
-        await finish(tester, controller.register());
-        expect(adapter.requests.single.data, {
-          'email': 'verification@gmail.com',
-        });
-        controller.otpController.text = '123456';
-        await finish(tester, controller.verifyAndRegister());
-        expect(adapter.requests[1].data, {
-          'email': 'verification@gmail.com',
-          'otp': '123456',
-        });
-        expect(adapter.requests[2].data['account'], account);
-        expect(adapter.requests.last.data, {
-          'email': 'verification@gmail.com',
-          if (isPhone) 'phone': '+855012345678' else 'username': 'newuser',
-        });
-        expect(find.text('Email successfully verified'), findsOneWidget);
-        expect(find.text('Login destination'), findsNothing);
+        expect(controller.isEmailStep.value, isFalse);
+        expect(controller.isOtpStep.value, isFalse);
+        expect(adapter.requests.map((r) => r.uri.path).toList(), [
+          '/api/auth/register',
+          if (isPhone) '/api/users/profile/save',
+        ]);
+        expect(adapter.requests[0].data['account'], account);
+        if (isPhone) {
+          expect(adapter.requests[1].data, {
+            'email': '855012345678@piisiit.com',
+            'phone': '+855012345678',
+          });
+        }
+        await continueFromSuccess(tester);
+        expect(controller.passwordController.text, isEmpty);
+        expect(find.text('Login destination'), findsOneWidget);
+        unawaited(tester.binding.reassembleApplication());
+        await tester.pumpAndSettle();
+        expect(Get.currentRoute, Routes.LOGIN);
+        expect(find.byType(RegisterScreen), findsNothing);
+        expect(Get.key.currentState!.canPop(), isFalse);
+        expect(controller.isClosed, isTrue);
+        expect(
+          navigation.pushed.where((route) => route == Routes.LOGIN),
+          hasLength(1),
+        );
+        expect(Get.arguments, {'account': account});
+        expect(adapter.requests, hasLength(isPhone ? 2 : 1));
         expect(session.isLoggedIn, isFalse);
         await dispose(tester);
       },
@@ -200,20 +245,105 @@ void main() {
     (tester) async {
       await mount(tester);
       fill();
-      controller.accountController.text = 'newuser';
+      controller.accountController.text = 'new@example.com';
       await finish(tester, controller.register());
-      expect(controller.isEmailStep.value, isTrue);
+      expect(controller.isOtpStep.value, isTrue);
       await tester.ensureVisible(find.text('Edit Details'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Edit Details'));
       await tester.pumpAndSettle();
-      expect(controller.isEmailStep.value, isFalse);
-      expect(controller.accountController.text, 'newuser');
+      expect(controller.isOtpStep.value, isFalse);
+      expect(controller.accountController.text, 'new@example.com');
       expect(find.byType(AccountInputField), findsOneWidget);
-      expect(adapter.requests, isEmpty);
+      expect(adapter.requests, hasLength(1));
       await dispose(tester);
     },
   );
+
+  testWidgets('Username symbols are rejected before any registration request', (
+    tester,
+  ) async {
+    await mount(tester);
+    for (final username in [
+      'name!',
+      'name_text',
+      'name.text',
+      'name/text',
+      'name#1',
+      'name🙂',
+      'name\ntext',
+    ]) {
+      fill();
+      controller.accountController.text = username;
+      await finish(tester, controller.register());
+      expect(controller.error.value, 'register_username_invalid'.tr);
+      expect(adapter.requests, isEmpty);
+      expect(controller.completed.value, isFalse);
+    }
+    await dispose(tester);
+  });
+
+  testWidgets('Username without a token skips profile and temporary login', (
+    tester,
+  ) async {
+    await mount(tester);
+    fill();
+    controller.accountController.text = 'name text';
+    adapter.respond = (request) => request.uri.path.endsWith('/register')
+        ? _json({'success': true})
+        : _json({'success': false, 'message': 'Profile unavailable'}, 500);
+    await finish(tester, controller.register());
+    expect(adapter.requests, hasLength(1));
+    expect(find.byType(RegistrationSuccess), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Login destination'), findsOneWidget);
+    expect(Get.arguments, {'account': 'name text'});
+    expect(session.isLoggedIn, isFalse);
+    await dispose(tester);
+  });
+
+  testWidgets(
+    'Successful signup opens login once despite repeated completion',
+    (tester) async {
+      await mount(tester);
+      fill();
+      controller.accountController.text = 'name text';
+      await finish(tester, controller.register());
+      await tester.tap(find.text('Done'));
+      controller.finishRegistration();
+      await tester.pumpAndSettle();
+      expect(find.text('Login destination'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pumpAndSettle();
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(Get.arguments, {'account': 'name text'});
+      expect(
+        navigation.pushed.where((route) => route == Routes.LOGIN),
+        hasLength(1),
+      );
+      expect(tester.takeException(), isNull);
+      await dispose(tester);
+    },
+  );
+
+  testWidgets('Unconfirmed registration cannot show success or open login', (
+    tester,
+  ) async {
+    await mount(tester);
+    fill();
+    controller.accountController.text = 'name text';
+    adapter.respond = (_) => _json({'message': 'Account could not be created'});
+    await finish(tester, controller.register());
+    expect(controller.completed.value, isFalse);
+    expect(find.byType(RegistrationSuccess), findsNothing);
+    expect(find.text('Login destination'), findsNothing);
+    expect(controller.error.value, 'Account could not be created');
+    controller.finishRegistration();
+    await tester.pumpAndSettle();
+    expect(find.text('Login destination'), findsNothing);
+    await dispose(tester);
+  });
 
   testWidgets('Signup validates username, email, phone and passwords locally', (
     tester,
@@ -297,7 +427,7 @@ void main() {
         adapter.requests.last.headers['Authorization'],
         'Bearer signup-token',
       );
-      expect(find.text('Email successfully verified'), findsOneWidget);
+      expect(find.byType(RegistrationSuccess), findsOneWidget);
       expect(find.text('Login destination'), findsNothing);
       expect(find.byType(EditableText), findsNothing);
       expect(controller.completed.value, isTrue);
@@ -313,12 +443,10 @@ void main() {
       expect(session.isLoggedIn, isFalse);
       await controller.register();
       expect(adapter.requests, hasLength(4));
-      await tester.pump(const Duration(seconds: 5));
-      expect(find.text('Email successfully verified'), findsOneWidget);
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
+      await continueFromSuccess(tester, emailVerified: true);
       expect(find.text('Login destination'), findsOneWidget);
       expect(find.text('Email successfully verified'), findsNothing);
+      expect(Get.arguments, {'account': 'new@example.com'});
       expect(Get.key.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
       await dispose(tester);
@@ -443,8 +571,8 @@ void main() {
         adapter.requests.where((r) => r.uri.path.endsWith('/register')),
         hasLength(2),
       );
-      expect(find.text('Email successfully verified'), findsOneWidget);
-      expect(find.text('Login destination'), findsNothing);
+      await continueFromSuccess(tester, emailVerified: true);
+      expect(find.text('Login destination'), findsOneWidget);
       await dispose(tester);
     },
   );
@@ -453,9 +581,9 @@ void main() {
     'Profile failure permits correction without recreating the account',
     (tester) async {
       await mount(tester);
-      await sendCode(tester, account: 'newuser');
+      await sendCode(tester, account: 'new@example.com');
       adapter.respond = (request) => request.uri.path.endsWith('/profile/save')
-          ? _json({'success': false, 'message': 'Username taken'}, 409)
+          ? _json({'success': false, 'message': 'Profile failed'}, 409)
           : _json({
               'success': true,
               'data': {'token': 'signup-token'},
@@ -466,15 +594,13 @@ void main() {
       expect(controller.completed.value, isFalse);
       expect(find.text('Complete your profile'), findsOneWidget);
       expect(find.text('Email successfully verified'), findsNothing);
-      expect(find.byType(EditableText), findsOneWidget);
-      expect(controller.error.value, 'Username taken');
-      controller.accountController.text = 'available-user';
+      expect(controller.error.value, 'Profile failed');
       adapter.respond = (_) => _json({
         'success': true,
         'data': {'token': 'retry-token'},
       });
       await finish(tester, controller.verifyAndRegister());
-      expect(adapter.requests.last.data['username'], 'available-user');
+      expect(adapter.requests.last.data['email'], 'new@example.com');
       expect(
         adapter.requests.last.headers['Authorization'],
         'Bearer retry-token',
@@ -487,9 +613,7 @@ void main() {
         adapter.requests.where((r) => r.uri.path.endsWith('/verify-otp/email')),
         hasLength(1),
       );
-      expect(find.text('Email successfully verified'), findsOneWidget);
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
+      await continueFromSuccess(tester, emailVerified: true);
       expect(find.text('Login destination'), findsOneWidget);
       expect(Get.key.currentState!.canPop(), isFalse);
       expect(session.isLoggedIn, isFalse);
@@ -497,7 +621,7 @@ void main() {
     },
   );
 
-  for (final account in ['new@example.com', 'newuser']) {
+  for (final account in ['new@example.com']) {
     testWidgets(
       'Tokenless signup for $account uses the original account for temporary login',
       (tester) async {
@@ -523,48 +647,63 @@ void main() {
         );
         expect(adapter.requests[3].data['account'], account);
         expect(session.isLoggedIn, isFalse);
-        expect(find.text('Email successfully verified'), findsOneWidget);
-        expect(find.text('Login destination'), findsNothing);
+        await continueFromSuccess(tester, emailVerified: true);
+        expect(find.text('Login destination'), findsOneWidget);
         await dispose(tester);
       },
     );
   }
 
   for (final locale in [const Locale('en', 'US'), const Locale('km', 'KH')]) {
-    testWidgets(
-      'Success fits compact dark screens with large text in $locale',
-      (tester) async {
-        tester.view.physicalSize = const Size(320, 568);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        var done = false;
-        await tester.pumpWidget(
-          GetMaterialApp(
-            translations: AppTranslations(),
-            locale: locale,
-            theme: ThemeData.dark(),
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: const TextScaler.linear(2)),
-              child: child!,
-            ),
-            home: Scaffold(
-              body: SafeArea(
-                child: RegistrationSuccess(onDone: () => done = true),
+    for (final emailVerified in [true, false]) {
+      testWidgets(
+        'Success fits compact dark screens with large text in $locale (email: $emailVerified)',
+        (tester) async {
+          tester.view.physicalSize = const Size(320, 568);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          var done = false;
+          await tester.pumpWidget(
+            GetMaterialApp(
+              translations: AppTranslations(),
+              locale: locale,
+              theme: ThemeData.dark(),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(2)),
+                child: child!,
+              ),
+              home: Scaffold(
+                body: SafeArea(
+                  child: RegistrationSuccess(
+                    onDone: () => done = true,
+                    emailVerified: emailVerified,
+                    account: 'name text',
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
-        await tester.tap(find.text('done_action'.tr));
-        await tester.pumpAndSettle();
-        expect(done, isTrue);
-        await dispose(tester);
-      },
-    );
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(
+            find.text(
+              (emailVerified
+                      ? 'register_verified_title'
+                      : 'register_created_title')
+                  .tr,
+            ),
+            findsOneWidget,
+          );
+          await tester.tap(find.text('done_action'.tr));
+          await tester.pumpAndSettle();
+          expect(done, isTrue);
+          await dispose(tester);
+        },
+      );
+    }
   }
 
   testWidgets('Rate limit blocks sends and refreshes on resume', (
@@ -643,6 +782,8 @@ void main() {
         {'success': false, 'message': 'Rejected'},
         {'Success': false, 'Code': 200, 'Message': 'Rejected'},
         {'code': 400, 'message': 'Rejected'},
+        {'message': 'Account could not be created'},
+        {'data': null},
         {
           'errors': {
             'account': ['Invalid account'],

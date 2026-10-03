@@ -4,25 +4,40 @@ The signup form uses the same single account input as login: **Username, Email
 or Phone**, followed by password and confirmation. Phone input automatically
 shows the country selector and is normalized exactly like login.
 
-For email signup, the app sends a six-digit OTP to that address immediately.
-For username or phone signup, the next screen asks for an email to receive the
-OTP. Any valid email, including Gmail, can be used. Account creation follows
-successful verification.
+Email signup sends a six-digit OTP before account creation. Username and phone
+signup skip email verification. Usernames accept letters (including Khmer),
+numbers, and spaces, with at least one letter; symbols and punctuation are
+rejected before any request. Outer whitespace is trimmed and internal spaces
+are preserved.
+
+Username signup completes after `/api/auth/register` succeeds. It does not
+create an email from the username or call temporary login/profile setup.
+It shows the glass success screen. Done opens Sign In with the exact username
+filled in and the password blank. Successful sign-in then opens the app.
+Phone signup retains its separate profile setup. Login submits the documented
+`account`, `password`, and device fields, without duplicating the account as
+email/username/phone aliases. API-mocked tests cover matching username values
+between registration and login; this is not live validation of existing accounts.
 
 The [Chat Swagger schema](https://chat.piisiit.com/swagger/v1/swagger.json),
 checked on October 2, 2026, documents this flow:
 
-1. `POST /api/auth/signup/send-otp` with `{email}`.
-2. `POST /api/auth/verify-otp/email` with `{email, otp}`.
+1. Email only: `POST /api/auth/signup/send-otp` with `{email}`.
+2. Email only: `POST /api/auth/verify-otp/email` with `{email, otp}`.
 3. `POST /api/auth/register` with `{account, password, clientDeviceId,
    deviceName, platform, deviceModel, appVersion}`. `account` is the selected
    username, email, or normalized phone. Password confirmation is checked locally.
-4. `POST /api/users/profile/save` with the verified `email`, plus `username`
-   for username signup or `phone` for phone signup, authorized using the new
-   account's token. Unprovided fields are omitted from the payload.
-5. Clear temporary data and show the email verification success screen after
-   all steps succeed. Done (or system back) opens Sign In and clears the signup
-   navigation history.
+4. Email/phone flows use `POST /api/users/profile/save`, authorized using the new
+   account's token. Username signup skips this step.
+5. Clear temporary data. After successful registration (and profile saving where
+   required), show the glass success screen. Email signup confirms verification;
+   username and phone signup confirm account creation. Done or system back opens
+   Sign In with the account filled in and replaces the signup stack. Repeated
+   completion cannot push duplicate login routes. Hot reload preserves the
+   success screen until Done, and preserves Sign In and any password entered
+   there afterward.
+6. Successful sign-in opens the app and removes the authentication screens from
+   the navigation stack. Failed sign-in stays on Sign In so the user can retry.
 
 The register schema does not accept username or phone. Saving these through
 `/api/users/profile/save` uses the documented `SaveProfileRequest` instead of
@@ -33,7 +48,9 @@ or changes an existing app session. The profile request uses an isolated Dio
 client sharing the transport adapter, so existing session interceptors cannot
 replace its temporary credential.
 
-Sending/resending and verification require an explicit success envelope. All
+Registration, sending/resending, and verification require an explicit boolean
+`success: true` (or `Success: true`) envelope. HTTP 200 alone and message-only
+or null-data responses without confirmation never show signup success. All
 steps reject invalid responses, explicit failures, error collections, and
 application error codes. The successful response schemas are not specified in
 Swagger; registration/profile saving retain the existing auth response parser.
@@ -70,7 +87,7 @@ and secret-free logs. They do not create production accounts or send real email.
 
 For live testing, choose a unique username, unused email, or valid phone as
 account input and enter matching passwords. If prompted, provide an email you
-control. Enter the received code, confirm the success screen, tap Done, then log in and
+control. Enter the received code, tap Done on the success screen, then sign in and
 check the saved profile. Also test an incorrect/expired
 code and a taken username. Email delivery and OTP generation belong to the backend.
 

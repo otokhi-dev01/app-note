@@ -37,6 +37,8 @@ class RegisterScreen extends GetView<RegistrationController> {
               child: Obx(() {
                 if (controller.completed.value) {
                   return RegistrationSuccess(
+                    emailVerified: controller.completedEmailVerified,
+                    account: controller.completedAccount,
                     onDone: controller.finishRegistration,
                   );
                 }

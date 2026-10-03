@@ -1,6 +1,17 @@
 import 'package:get/get.dart';
+
 class Validators {
   Validators._();
+
+  static String? username(String value) {
+    final name = value.trim();
+    if (name.isEmpty) return 'register_username_required'.tr;
+    if (!RegExp(r'^[\p{L}\p{M}\p{N} ]+$', unicode: true).hasMatch(name) ||
+        !RegExp(r'\p{L}', unicode: true).hasMatch(name)) {
+      return 'register_username_invalid'.tr;
+    }
+    return null;
+  }
 
   static String? phone(String value) {
     final trimmed = value.trim();

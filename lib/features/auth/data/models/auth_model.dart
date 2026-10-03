@@ -1,7 +1,7 @@
 import 'package:Note/core/utils/json_parsers.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
 
-/// Login and registration share the same credentials and device payload.
+/// The documented login credentials and device payload.
 class AuthCredentialsRequest {
   final String account;
   final String password;
@@ -25,32 +25,15 @@ class AuthCredentialsRequest {
 
   Map<String, dynamic> toJson() => {
     'account': account,
-    'Account': account,
-    'email': account,
-    'Email': account,
-    'username': account,
-    'Username': account,
-    'phone': account,
-    'Phone': account,
     'password': password,
-    'Password': password,
     if (confirmPassword != null && confirmPassword!.isNotEmpty) ...{
       'confirmPassword': confirmPassword,
-      'ConfirmPassword': confirmPassword,
-      'passwordConfirmation': confirmPassword,
-      'PasswordConfirmation': confirmPassword,
-      'confirm_password': confirmPassword,
     },
     'clientDeviceId': clientDeviceId,
-    'ClientDeviceId': clientDeviceId,
     'appVersion': appVersion,
-    'AppVersion': appVersion,
     'deviceName': deviceName,
-    'DeviceName': deviceName,
     'platform': platform,
-    'Platform': platform,
     'deviceModel': deviceModel,
-    'DeviceModel': deviceModel,
   };
 }
 
