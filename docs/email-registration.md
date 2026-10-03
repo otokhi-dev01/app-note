@@ -20,7 +20,9 @@ checked on October 2, 2026, documents this flow:
 4. `POST /api/users/profile/save` with the verified `email`, plus `username`
    for username signup or `phone` for phone signup, authorized using the new
    account's token. Unprovided fields are omitted from the payload.
-5. Clear temporary data and return to Sign In after all steps succeed.
+5. Clear temporary data and show the email verification success screen after
+   all steps succeed. Done (or system back) opens Sign In and clears the signup
+   navigation history.
 
 The register schema does not accept username or phone. Saving these through
 `/api/users/profile/save` uses the documented `SaveProfileRequest` instead of
@@ -68,7 +70,7 @@ and secret-free logs. They do not create production accounts or send real email.
 
 For live testing, choose a unique username, unused email, or valid phone as
 account input and enter matching passwords. If prompted, provide an email you
-control. Enter the received code, confirm the Sign In screen, then log in and
+control. Enter the received code, confirm the success screen, tap Done, then log in and
 check the saved profile. Also test an incorrect/expired
 code and a taken username. Email delivery and OTP generation belong to the backend.
 

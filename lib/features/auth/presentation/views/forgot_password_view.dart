@@ -7,6 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
 import 'package:Note/features/auth/presentation/controllers/google_password_verification_controller.dart';
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
+import 'package:Note/features/auth/presentation/widgets/auth_success.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
@@ -198,6 +199,11 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
         switch (result) {
           case Ok():
             _resetToken = null;
+            _resendTimer?.cancel();
+            _answers = [];
+            _questions = [];
+            _accountController.clear();
+            _otpController.clear();
             _passwordController.clear();
             _confirmController.clear();
             _step = _RecoveryStep.complete;
@@ -251,6 +257,27 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    if (_step == _RecoveryStep.complete) {
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        child: Scaffold(
+          backgroundColor: theme.scaffoldBackgroundColor,
+          body: Stack(
+            children: [
+              _buildBackdrop(context),
+              SafeArea(
+                child: AuthSuccess(
+                  title: 'recovery_complete_title'.tr,
+                  description: 'recovery_complete_desc'.tr,
+                  onDone: _back,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_step == _RecoveryStep.code) {
       return PopScope(
         canPop: false,
@@ -283,12 +310,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       );
     }
     return PopScope(
-      canPop: !_isSubmitting && _step != _RecoveryStep.complete,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && !_isSubmitting && _step == _RecoveryStep.complete) {
-          _back();
-        }
-      },
+      canPop: !_isSubmitting,
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
         child: Scaffold(
@@ -652,9 +674,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
           autofillHints: const [AutofillHints.newPassword],
         ),
       ],
-      _RecoveryStep.complete => [
-        const Center(child: Icon(Icons.check_circle_outline, size: 48)),
-      ],
+      _RecoveryStep.complete => const [],
     };
   }
 

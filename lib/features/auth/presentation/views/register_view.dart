@@ -10,6 +10,7 @@ import 'package:Note/features/auth/presentation/controllers/registration_control
 import 'package:Note/shared/widgets/app_logo.dart';
 import 'package:Note/features/auth/presentation/widgets/password_otp_step.dart';
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
+import 'package:Note/features/auth/presentation/widgets/registration_success.dart';
 
 class RegisterScreen extends GetView<RegistrationController> {
   const RegisterScreen({super.key});
@@ -33,88 +34,96 @@ class RegisterScreen extends GetView<RegistrationController> {
           children: [
             _buildBackdrop(context),
             SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomGlassButton(
-                          semanticLabel: MaterialLocalizations.of(
-                            context,
-                          ).backButtonTooltip,
-                          onPressed: () {
-                            if (controller.isLoading.value) return;
-                            if ((controller.isOtpStep.value ||
-                                    controller.isEmailStep.value) &&
-                                !controller.accountCreated.value) {
-                              controller.editDetails();
-                            } else {
-                              Get.back();
-                            }
-                          },
-                          width: 44,
-                          height: 44,
-                          shape: GlassShape.circle,
-                          blur: 10,
-                          opacity: 0.15,
-                          thickness: 8,
-                          foregroundColor: theme.colorScheme.onSurface,
-                          padding: EdgeInsets.zero,
-                          child: const Icon(
-                            CupertinoIcons.chevron_left,
-                            size: 23,
-                          ),
-                        ),
-                        const LanguageToggleButton(),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight,
+              child: Obx(() {
+                if (controller.completed.value) {
+                  return RegistrationSuccess(
+                    onDone: controller.finishRegistration,
+                  );
+                }
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          CustomGlassButton(
+                            semanticLabel: MaterialLocalizations.of(
+                              context,
+                            ).backButtonTooltip,
+                            onPressed: () {
+                              if (controller.isLoading.value) return;
+                              if ((controller.isOtpStep.value ||
+                                      controller.isEmailStep.value) &&
+                                  !controller.accountCreated.value) {
+                                controller.editDetails();
+                              } else {
+                                Get.back();
+                              }
+                            },
+                            width: 44,
+                            height: 44,
+                            shape: GlassShape.circle,
+                            blur: 10,
+                            opacity: 0.15,
+                            thickness: 8,
+                            foregroundColor: theme.colorScheme.onSurface,
+                            padding: EdgeInsets.zero,
+                            child: const Icon(
+                              CupertinoIcons.chevron_left,
+                              size: 23,
                             ),
-                            child: Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 460,
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    24,
-                                    0,
-                                    24,
-                                    24,
+                          ),
+                          const LanguageToggleButton(),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 460,
                                   ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      _buildHeader(context),
-                                      const SizedBox(height: 28),
-                                      _buildFormCard(context),
-                                      // const SizedBox(height: 10),
-                                      _buildLoginRow(context),
-                                    ],
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      24,
+                                      0,
+                                      24,
+                                      24,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        _buildHeader(context),
+                                        const SizedBox(height: 28),
+                                        _buildFormCard(context),
+                                        // const SizedBox(height: 10),
+                                        _buildLoginRow(context),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                );
+              }),
             ),
           ],
         ),

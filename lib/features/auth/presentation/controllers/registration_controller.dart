@@ -5,7 +5,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/network/access_token.dart';
 import 'package:Note/core/utils/validators.dart';
 import 'package:Note/features/auth/data/services/registration_service.dart';
@@ -224,10 +223,12 @@ class RegistrationController extends GetxController
       if (isClosed) return;
       completed.value = true;
       clearTemporaryData();
-      AppSnackbar.success('success_title'.tr, 'register_success_message'.tr);
-      await WidgetsBinding.instance.endOfFrame;
-      if (!isClosed) unawaited(Get.offAllNamed(Routes.LOGIN));
     });
+  }
+
+  void finishRegistration() {
+    if (!completed.value || isClosed) return;
+    unawaited(Get.offAllNamed(Routes.LOGIN));
   }
 
   void editDetails() {

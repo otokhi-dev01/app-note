@@ -16,6 +16,7 @@ import 'package:Note/features/auth/data/services/registration_service.dart';
 import 'package:Note/features/auth/presentation/controllers/registration_controller.dart';
 import 'package:Note/features/auth/presentation/views/register_view.dart';
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
+import 'package:Note/features/auth/presentation/widgets/registration_success.dart';
 import 'package:Note/routes/app_pages.dart';
 
 class _Session extends SessionStorage {
@@ -186,7 +187,8 @@ void main() {
           'email': 'verification@gmail.com',
           if (isPhone) 'phone': '+855012345678' else 'username': 'newuser',
         });
-        expect(find.text('Login destination'), findsOneWidget);
+        expect(find.text('Email successfully verified'), findsOneWidget);
+        expect(find.text('Login destination'), findsNothing);
         expect(session.isLoggedIn, isFalse);
         await dispose(tester);
       },
@@ -295,7 +297,9 @@ void main() {
         adapter.requests.last.headers['Authorization'],
         'Bearer signup-token',
       );
-      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('Email successfully verified'), findsOneWidget);
+      expect(find.text('Login destination'), findsNothing);
+      expect(find.byType(EditableText), findsNothing);
       expect(controller.completed.value, isTrue);
       for (final field in [
         controller.accountController,
@@ -309,6 +313,13 @@ void main() {
       expect(session.isLoggedIn, isFalse);
       await controller.register();
       expect(adapter.requests, hasLength(4));
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.text('Email successfully verified'), findsOneWidget);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('Email successfully verified'), findsNothing);
+      expect(Get.key.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
       await dispose(tester);
     },
@@ -432,7 +443,8 @@ void main() {
         adapter.requests.where((r) => r.uri.path.endsWith('/register')),
         hasLength(2),
       );
-      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('Email successfully verified'), findsOneWidget);
+      expect(find.text('Login destination'), findsNothing);
       await dispose(tester);
     },
   );
@@ -453,6 +465,7 @@ void main() {
       expect(controller.accountCreated.value, isTrue);
       expect(controller.completed.value, isFalse);
       expect(find.text('Complete your profile'), findsOneWidget);
+      expect(find.text('Email successfully verified'), findsNothing);
       expect(find.byType(EditableText), findsOneWidget);
       expect(controller.error.value, 'Username taken');
       controller.accountController.text = 'available-user';
@@ -474,7 +487,11 @@ void main() {
         adapter.requests.where((r) => r.uri.path.endsWith('/verify-otp/email')),
         hasLength(1),
       );
+      expect(find.text('Email successfully verified'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       expect(find.text('Login destination'), findsOneWidget);
+      expect(Get.key.currentState!.canPop(), isFalse);
       expect(session.isLoggedIn, isFalse);
       await dispose(tester);
     },
@@ -506,7 +523,45 @@ void main() {
         );
         expect(adapter.requests[3].data['account'], account);
         expect(session.isLoggedIn, isFalse);
-        expect(find.text('Login destination'), findsOneWidget);
+        expect(find.text('Email successfully verified'), findsOneWidget);
+        expect(find.text('Login destination'), findsNothing);
+        await dispose(tester);
+      },
+    );
+  }
+
+  for (final locale in [const Locale('en', 'US'), const Locale('km', 'KH')]) {
+    testWidgets(
+      'Success fits compact dark screens with large text in $locale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        var done = false;
+        await tester.pumpWidget(
+          GetMaterialApp(
+            translations: AppTranslations(),
+            locale: locale,
+            theme: ThemeData.dark(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: SafeArea(
+                child: RegistrationSuccess(onDone: () => done = true),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text('done_action'.tr));
+        await tester.pumpAndSettle();
+        expect(done, isTrue);
         await dispose(tester);
       },
     );

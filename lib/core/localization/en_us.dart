@@ -137,6 +137,9 @@ const Map<String, String> enUS = {
   'login_link': 'Sign in',
   'success_title': 'Success',
   'register_success_message': 'Account created successfully! Please log in.',
+  'register_verified_title': 'Email successfully verified',
+  'register_verified_description':
+      'Your account is ready. Sign in to start capturing your ideas.',
   'register_failed_title': 'Registration Failed',
 
   // Forgot password sheet
@@ -147,6 +150,7 @@ const Map<String, String> enUS = {
       'If the account exists, a verification code has been sent.',
   'recovery_code_desc': 'Enter the verification code sent for @account.',
   'recovery_password_desc': 'Choose a new password for your account.',
+  'recovery_complete_title': 'Password changed successfully',
   'recovery_complete_desc':
       'Your password has been reset. Sign in with your new password.',
   'recovery_otp_title': 'OTP Verification',
