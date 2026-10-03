@@ -75,6 +75,8 @@ const Map<String, String> enUS = {
   'welcome_title': 'Welcome',
   'login_success_message': 'Login successful!',
   'login_failed_title': 'Login Failed',
+  'session_rejected_message':
+      'Your session could not be verified. Please sign in again. If this keeps happening, contact support.',
   'country_code': 'Country code',
   'search_country': 'Search country',
   'username_email_phone_hint': 'Username, Email or Phone',

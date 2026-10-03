@@ -13,15 +13,15 @@ class AuthBinding extends Bindings {
       ),
       fenix: true,
     );
-    // Keep the existing login and password recovery controller available.
-    // Email registration uses its own route-scoped RegistrationBinding.
-    Get.lazyPut(
+    // LoginView resolves once in initState and keeps its own instance. A stack
+    // replacement can briefly contain two login routes; closing the old one
+    // must not close the new screen's controller and silently ignore its taps.
+    Get.create(
       () => AuthController(
         login: Get.find<Login>(),
         register: Get.find<Register>(),
         googleLogin: Get.find<GoogleLogin>(),
       ),
-      fenix: true,
     );
   }
 }

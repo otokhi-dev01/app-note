@@ -232,7 +232,10 @@ void main() {
           navigation.pushed.where((route) => route == Routes.LOGIN),
           hasLength(1),
         );
-        expect(Get.arguments, {'account': account});
+        expect(Get.arguments, {
+          'account': account,
+          if (isPhone) 'countryCode': 'KH',
+        });
         expect(adapter.requests, hasLength(isPhone ? 2 : 1));
         expect(session.isLoggedIn, isFalse);
         await dispose(tester);

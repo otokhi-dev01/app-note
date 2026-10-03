@@ -12,9 +12,16 @@ import 'package:Note/features/auth/presentation/controllers/auth_controller.dart
 import 'package:Note/shared/widgets/app_logo.dart';
 
 class LoginView extends StatefulWidget {
-  const LoginView({super.key, this.initialAccount});
+  const LoginView({
+    super.key,
+    this.initialAccount,
+    this.initialCountryCode,
+    this.sessionRejected = false,
+  });
 
   final String? initialAccount;
+  final String? initialCountryCode;
+  final bool sessionRejected;
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -32,7 +39,10 @@ class _LoginViewState extends State<LoginView> {
       // The previous login route may still listen during the transition.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        controller.accountController.text = account.trim();
+        controller.accountController.setAccount(
+          account,
+          countryCode: widget.initialCountryCode,
+        );
         controller.passwordController.clear();
         controller.confirmPasswordController.clear();
         controller.isPasswordVisible.value = false;
@@ -230,6 +240,18 @@ class _LoginViewState extends State<LoginView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (widget.sessionRejected) ...[
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        'session_rejected_message'.tr,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
                   AccountInputField(controller: controller.accountController),
                   const SizedBox(height: 14),
                   Obx(

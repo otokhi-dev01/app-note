@@ -232,7 +232,11 @@ class ApiClient extends GetxService {
       debugPrint('[API] Access token invalidated; sign-in required.');
     }
     try {
-      if (Get.currentRoute != '/login') unawaited(Get.offAllNamed('/login'));
+      if (Get.currentRoute != '/login') {
+        unawaited(
+          Get.offAllNamed('/login', arguments: {'sessionRejected': true}),
+        );
+      }
     } catch (error) {
       // Headless tests/early startup may have no navigator. Preserve the 401.
       if (kDebugMode) {

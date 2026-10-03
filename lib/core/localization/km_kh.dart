@@ -72,6 +72,8 @@ const Map<String, String> kmKH = {
   'welcome_title': 'សូមស្វាគមន៍',
   'login_success_message': 'ចូលដោយជោគជ័យ!',
   'login_failed_title': 'ការចូលបានបរាជ័យ',
+  'session_rejected_message':
+      'មិនអាចផ្ទៀងផ្ទាត់វគ្គចូលរបស់អ្នកបានទេ។ សូមចូលម្តងទៀត។ ប្រសិនបើបញ្ហានេះនៅតែបន្ត សូមទាក់ទងផ្នែកជំនួយ។',
   'country_code': 'លេខកូដប្រទេស',
   'search_country': 'ស្វែងរកប្រទេស',
   'username_email_phone_hint': 'ឈ្មោះអ្នកប្រើប្រាស់ អ៊ីមែល ឬលេខទូរស័ព្ទ',

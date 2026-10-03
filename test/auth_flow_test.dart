@@ -1,17 +1,21 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:intl_phone_field/country_picker_dialog.dart';
 
 import 'package:Note/core/di/injector.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
+import 'package:Note/core/localization/app_translations.dart';
+import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
@@ -86,6 +90,24 @@ class _NoopRepo implements AuthRepository {
       Future.value(const Err(ValidationFailure('unused')));
 }
 
+class _RejectedSessionAdapter implements dio.HttpClientAdapter {
+  @override
+  Future<dio.ResponseBody> fetch(
+    dio.RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async => dio.ResponseBody.fromString(
+    '{}',
+    401,
+    headers: {
+      dio.Headers.contentTypeHeader: ['application/json'],
+    },
+  );
+
+  @override
+  void close({bool force = false}) {}
+}
+
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -128,10 +150,10 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.ensureVisible(find.text('sign_in_with_google'.tr));
+        // The Google button is hidden; exercise the controller's failure path.
+        final signingIn = controller.loginWithGoogle();
         await tester.pumpAndSettle();
-        await tester.tap(find.text('sign_in_with_google'.tr));
-        await tester.pumpAndSettle();
+        await signingIn;
         expect(find.text('google_sign_in_unavailable'.tr), findsOneWidget);
         expect(controller.isLoading.value, isFalse);
         expect(google.received, isEmpty);
@@ -210,10 +232,13 @@ void main() {
     return controller;
   }
 
-  for (final username in ['name text', 'Nona11']) {
-    testWidgets('Signup prefills the exact username $username on login', (
-      tester,
-    ) async {
+  for (final (account, countryCode, displayedAccount) in [
+    ('name text', null, 'name text'),
+    ('Nona11', null, 'Nona11'),
+    ('+8550968734812', 'KH', '0968734812'),
+    ('+447700900123', 'GB', '7700900123'),
+  ]) {
+    testWidgets('Signup prefills account $account on login', (tester) async {
       await initialize();
       final signIn = _FakeLogin(
         const Err(ValidationFailure('Test server rejection')),
@@ -229,11 +254,21 @@ void main() {
       unawaited(Get.toNamed(Routes.REGISTER));
       await tester.pumpAndSettle();
       unawaited(
-        Get.offAllNamed(Routes.LOGIN, arguments: {'account': username}),
+        Get.offAllNamed(
+          Routes.LOGIN,
+          arguments: {
+            'account': account,
+            'countryCode': ?countryCode,
+          },
+        ),
       );
       await tester.pumpAndSettle();
       final login = Get.find<AuthController>();
-      expect(login.accountController.account, username);
+      expect(login.accountController.account, account);
+      expect(login.accountController.text, displayedAccount);
+      if (countryCode != null) {
+        expect(login.accountController.country.code, countryCode);
+      }
       expect(login.passwordController.text, isEmpty);
       expect(login.isPasswordVisible.value, isFalse);
       expect(login.isClosed, isFalse);
@@ -241,12 +276,12 @@ void main() {
       unawaited(tester.binding.reassembleApplication());
       await tester.pumpAndSettle();
       expect(Get.currentRoute, Routes.LOGIN);
-      expect(login.accountController.account, username);
+      expect(login.accountController.account, account);
       expect(login.passwordController.text, 'test-password');
       await tester.ensureVisible(find.text('sign_in_button'.tr));
       await tester.tap(find.text('sign_in_button'.tr));
       await tester.pumpAndSettle();
-      expect(signIn.received?.account, username);
+      expect(signIn.received?.account, account);
       expect(signIn.received?.password, 'test-password');
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
@@ -256,6 +291,147 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets(
+    'Phone login uses manual country selection without detecting the prefix',
+    (tester) async {
+      await initialize();
+      final signIn = _FakeLogin(
+        const Err(ValidationFailure('Test server rejection')),
+      );
+      await mountLogin(
+        tester,
+        loginResult: const Err(ValidationFailure('unused')),
+        login: signIn,
+      );
+      for (final (number, expected) in [
+        ('0968734812', '+8550968734812'),
+        ('+85512345678', '+85512345678'),
+        ('+447700900123', '+447700900123'),
+      ]) {
+        await tester.enterText(find.byType(EditableText).first, number);
+        await tester.enterText(find.byType(EditableText).last, 'test-password');
+        await tester.pump();
+        expect(
+          find.byKey(const ValueKey('account-country-picker')),
+          findsOneWidget,
+        );
+        expect(find.text('+855'), findsOneWidget);
+        await tester.ensureVisible(find.text('sign_in_button'.tr));
+        await tester.tap(find.text('sign_in_button'.tr));
+        await tester.pumpAndSettle();
+        expect(signIn.received?.account, expected);
+        expect(signIn.received?.password, 'test-password');
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const ValueKey('account-country-picker')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(CountryPickerDialog),
+          matching: find.byType(TextField),
+        ),
+        'United Kingdom',
+      );
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ListTile, 'United Kingdom'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).first, '7700900123');
+      await tester.pump();
+      expect(find.text('+44'), findsOneWidget);
+      await tester.tap(find.text('sign_in_button'.tr));
+      await tester.pumpAndSettle();
+      expect(signIn.received?.account, '+447700900123');
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Login binding remains usable after signup replaces the stack', (
+    tester,
+  ) async {
+    final signIn = _FakeLogin(
+      const Err(ValidationFailure('Test server rejection')),
+    );
+    Get.put<Login>(signIn, permanent: true);
+    await initialize();
+    await tester.pumpWidget(
+      GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
+        initialRoute: Routes.LOGIN,
+        getPages: AppPages.routes,
+      ),
+    );
+    await tester.pumpAndSettle();
+    unawaited(Get.toNamed(Routes.REGISTER));
+    await tester.pumpAndSettle();
+    unawaited(Get.offAllNamed(Routes.LOGIN, arguments: {'account': 'newuser'}));
+    await tester.pumpAndSettle();
+    // Inspect the controller held by the visible view, rather than resolving
+    // a new instance from the binding after the old route has been deleted.
+    final field = tester.widget<EditableText>(find.byType(EditableText).first);
+    expect(field.controller.text, 'newuser');
+    await tester.enterText(find.byType(EditableText).last, 'test-password');
+    await tester.ensureVisible(find.text('sign_in_button'.tr));
+    await tester.tap(find.text('sign_in_button'.tr));
+    await tester.pumpAndSettle();
+    expect(signIn.received?.account, 'newuser');
+    expect(signIn.received?.password, 'test-password');
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Rejected session returns to login with a visible explanation', (
+    tester,
+  ) async {
+    final signIn = _FakeLogin(
+      const Err(ValidationFailure('Test server rejection')),
+    );
+    Get.put<Login>(signIn, permanent: true);
+    await initialize();
+    final session = Get.find<SessionStorage>();
+    await session.saveSession('rejected-token', const UserData(id: 'new-user'));
+    final api = Get.find<ApiClient>();
+    api.dio.httpClientAdapter = _RejectedSessionAdapter();
+    await tester.pumpWidget(
+      GetMaterialApp(
+        scaffoldMessengerKey: AppSnackbar.messengerKey,
+        translations: AppTranslations(),
+        locale: const Locale('en', 'US'),
+        initialRoute: Routes.FOLDER,
+        getPages: [
+          GetPage(
+            name: Routes.FOLDER,
+            page: () => const Scaffold(body: Text('Signed-in app')),
+          ),
+          AppPages.routes.firstWhere((page) => page.name == Routes.LOGIN),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    final request = expectLater(
+      api.dio.get('/api/folder'),
+      throwsA(isA<dio.DioException>()),
+    );
+    await tester.pumpAndSettle();
+    await request;
+    await tester.pumpAndSettle();
+    expect(session.isLoggedIn, isFalse);
+    expect(Get.currentRoute, Routes.LOGIN);
+    expect(find.text('session_rejected_message'.tr), findsOneWidget);
+    await tester.enterText(find.byType(EditableText).first, 'newuser');
+    await tester.enterText(find.byType(EditableText).last, 'test-password');
+    await tester.ensureVisible(find.text('sign_in_button'.tr));
+    await tester.tap(find.text('sign_in_button'.tr));
+    await tester.pumpAndSettle();
+    expect(signIn.received?.account, 'newuser');
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'Successful login clears the form stack and disables guest mode',

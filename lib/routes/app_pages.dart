@@ -54,7 +54,12 @@ class AppPages {
       page: () {
         final args = Get.arguments;
         final account = args is Map ? args['account'] : null;
-        return LoginView(initialAccount: account is String ? account : null);
+        final countryCode = args is Map ? args['countryCode'] : null;
+        return LoginView(
+          initialAccount: account is String ? account : null,
+          initialCountryCode: countryCode is String ? countryCode : null,
+          sessionRejected: args is Map && args['sessionRejected'] == true,
+        );
       },
       binding: AuthBinding(),
     ),

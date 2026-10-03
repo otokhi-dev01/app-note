@@ -5,6 +5,13 @@ implemented in this Flutter repository. A deployed backend signing-key problem
 has not been fixed or verified here; backend source/configuration and a live
 authenticated test account were not available.
 
+When a terminal 401 redirects to Sign In, the screen now explains that the
+session could not be verified. Opening the app and immediately returning to
+Sign In means a protected request invalidated the saved session; it does not
+prove registration or the credential login failed. The `[API]` status and
+authentication diagnostic lines identify the rejected request. The message and
+route-controller fix do not repair a deployed backend token-validation problem.
+
 ## Actual request and storage path
 
 `AuthController.login` → `Login` → `AuthRepositoryImpl` →

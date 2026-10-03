@@ -34,6 +34,7 @@ class RegistrationController extends GetxController
   final error = ''.obs;
   final completed = false.obs;
   String? _completedAccount;
+  String? _completedPhoneCountry;
   bool _completedEmailVerified = false;
   bool _openingLogin = false;
 
@@ -159,9 +160,13 @@ class RegistrationController extends GetxController
 
   void _completeRegistration() {
     final account = _registrationAccount;
+    final phoneCountry = _isPhoneAccount
+        ? accountController.country.code
+        : null;
     final emailVerified = _isEmailAccount && _emailVerified;
     clearTemporaryData();
     _completedAccount = account;
+    _completedPhoneCountry = phoneCountry;
     _completedEmailVerified = emailVerified;
     completed.value = true;
   }
@@ -286,7 +291,14 @@ class RegistrationController extends GetxController
     if (!completed.value || isClosed || _openingLogin) return;
     _openingLogin = true;
     unawaited(
-      Get.offAllNamed(Routes.LOGIN, arguments: {'account': _completedAccount}),
+      Get.offAllNamed(
+        Routes.LOGIN,
+        arguments: {
+          'account': _completedAccount,
+          if (_completedPhoneCountry != null)
+            'countryCode': _completedPhoneCountry,
+        },
+      ),
     );
   }
 
@@ -360,6 +372,7 @@ class RegistrationController extends GetxController
 
   void clearTemporaryData() {
     _completedAccount = null;
+    _completedPhoneCountry = null;
     _completedEmailVerified = false;
     _openingLogin = false;
     _timer?.cancel();

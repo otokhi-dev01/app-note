@@ -9,7 +9,7 @@ import 'package:Note/features/auth/presentation/controllers/account_input_contro
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 
 void main() {
-  test('Account values preserve text and add a phone prefix only once', () {
+  test('Phone country changes only after a manual selection', () {
     final controller = AccountInputController();
     addTearDown(controller.dispose);
     expect(controller.text, isEmpty);
@@ -21,11 +21,14 @@ void main() {
     expect(controller.text, '12 345-678');
 
     controller.text = '+44 (7700) 900123';
-    expect(controller.country.code, 'GB');
+    expect(controller.country.code, 'KH');
     expect(controller.account, '+447700900123');
+    controller.selectCountry(countries.firstWhere((c) => c.code == 'GB'));
+    expect(controller.country.code, 'GB');
+    expect(controller.text, '+44 (7700) 900123');
 
     controller.text = '+855 12345678';
-    expect(controller.country.code, 'KH');
+    expect(controller.country.code, 'GB');
     expect(controller.account, '+85512345678');
 
     controller.text = '12345678';
@@ -86,13 +89,24 @@ void main() {
     await tester.tap(picker);
     await tester.pumpAndSettle();
     expect(find.byType(CountryPickerDialog), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'United Kingdom');
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(CountryPickerDialog),
+        matching: find.byType(TextField),
+      ),
+      'United Kingdom',
+    );
     await tester.pump();
     await tester.tap(find.widgetWithText(ListTile, 'United Kingdom'));
     await tester.pumpAndSettle();
     expect(find.text('+44'), findsOneWidget);
     expect(controller.text, '7700900123');
     expect(controller.account, '+447700900123');
+
+    await tester.enterText(input, '+855 12345678');
+    await tester.pump();
+    expect(find.text('+44'), findsOneWidget);
+    expect(controller.country.code, 'GB');
 
     controller.clear();
     await tester.pump();
