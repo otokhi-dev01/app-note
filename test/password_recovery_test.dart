@@ -515,8 +515,12 @@ void main() {
     expect(adapter.requests.last.uri.path, '/api/auth/password/reset');
     expect(adapter.requests.last.data['resetToken'], 'google-proof');
     expect(session.cleared, isTrue);
-    await press(tester, 'Sign In');
+    expect(find.text('Password changed successfully'), findsOneWidget);
+    expect(find.byType(EditableText), findsNothing);
+    expect(find.text('Login destination'), findsNothing);
+    await press(tester, 'Done');
     expect(find.text('Login destination'), findsOneWidget);
+    expect(Get.key.currentState!.canPop(), isFalse);
     expect(tester.takeException(), isNull);
   });
 
@@ -680,8 +684,11 @@ void main() {
         adapter.requests.any((r) => r.uri.path.endsWith('/forgot')),
         isFalse,
       );
-      await press(tester, 'Sign In');
+      expect(find.text('Password changed successfully'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       expect(find.text('Login destination'), findsOneWidget);
+      expect(Get.key.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
     },
   );
@@ -738,14 +745,25 @@ void main() {
       await tester.enterText(find.byType(EditableText).at(1), 'new-password');
       await press(tester, 'Reset Password');
       expect(find.text('Reset token expired'), findsOneWidget);
+      expect(find.text('Password changed successfully'), findsNothing);
       expect(session.cleared, isFalse);
       expiredToken = false;
       await press(tester, 'Reset Password');
       expect(session.cleared, isTrue);
       expect(find.byType(TextField), findsNothing);
       expect(adapter.requests.last.data['resetToken'], 'verified-proof');
-      await press(tester, 'Sign In');
+      expect(find.text('Password changed successfully'), findsOneWidget);
+      expect(
+        find.text(
+          'Your password has been reset. Sign in with your new password.',
+        ),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 5));
+      expect(find.text('Login destination'), findsNothing);
+      await press(tester, 'Done');
       expect(find.text('Login destination'), findsOneWidget);
+      expect(Get.key.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
     },
   );

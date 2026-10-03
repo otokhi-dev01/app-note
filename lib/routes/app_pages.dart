@@ -51,7 +51,11 @@ class AppPages {
     ),
     GetPage(
       name: Routes.LOGIN,
-      page: () => const LoginView(),
+      page: () {
+        final args = Get.arguments;
+        final account = args is Map ? args['account'] : null;
+        return LoginView(initialAccount: account is String ? account : null);
+      },
       binding: AuthBinding(),
     ),
     GetPage(

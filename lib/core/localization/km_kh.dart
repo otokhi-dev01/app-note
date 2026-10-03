@@ -108,6 +108,8 @@ const Map<String, String> kmKH = {
   'register_send_code': 'ផ្ញើលេខកូដ',
   'register_email_label': 'អ៊ីមែល',
   'register_username_required': 'សូមបញ្ចូលឈ្មោះអ្នកប្រើរបស់អ្នក។',
+  'register_username_invalid':
+      'សូមប្រើអក្សរ លេខ និងដកឃ្លាសម្រាប់ឈ្មោះអ្នកប្រើ។ មិនអនុញ្ញាតឱ្យប្រើនិមិត្តសញ្ញាទេ។',
   'register_email_invalid': 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលត្រឹមត្រូវ។',
   'register_confirm_required': 'សូមបញ្ជាក់ពាក្យសម្ងាត់របស់អ្នក។',
   'register_password_mismatch': 'ពាក្យសម្ងាត់មិនត្រូវគ្នាទេ។',
@@ -134,6 +136,12 @@ const Map<String, String> kmKH = {
   'login_link': 'ចូល',
   'success_title': 'ជោគជ័យ',
   'register_success_message': 'បង្កើតគណនីដោយជោគជ័យ! សូមចូល។',
+  'register_verified_title': 'បានផ្ទៀងផ្ទាត់អ៊ីមែលដោយជោគជ័យ',
+  'register_created_title': 'បានបង្កើតគណនីដោយជោគជ័យ',
+  'register_created_description':
+      'ចូលដោយប្រើ @account ដើម្បីចាប់ផ្តើមកត់ត្រាគំនិតរបស់អ្នក។',
+  'register_verified_description':
+      'គណនីរបស់អ្នករួចរាល់ហើយ។ ចូលដើម្បីចាប់ផ្តើមកត់ត្រាគំនិតរបស់អ្នក។',
   'register_failed_title': 'ការចុះឈ្មោះបានបរាជ័យ',
 
   // Forgot password sheet
@@ -143,6 +151,7 @@ const Map<String, String> kmKH = {
   'recovery_code_sent': 'ប្រសិនបើមានគណនី លេខកូដផ្ទៀងផ្ទាត់ត្រូវបានផ្ញើ។',
   'recovery_code_desc': 'បញ្ចូលលេខកូដផ្ទៀងផ្ទាត់ដែលបានផ្ញើសម្រាប់ @account។',
   'recovery_password_desc': 'ជ្រើសរើសពាក្យសម្ងាត់ថ្មីសម្រាប់គណនីរបស់អ្នក។',
+  'recovery_complete_title': 'បានប្តូរពាក្យសម្ងាត់ដោយជោគជ័យ',
   'recovery_complete_desc':
       'ពាក្យសម្ងាត់របស់អ្នកត្រូវបានកំណត់ឡើងវិញ។ សូមចូលដោយប្រើពាក្យសម្ងាត់ថ្មី។',
   'recovery_verify_code': 'ផ្ទៀងផ្ទាត់លេខកូដ',

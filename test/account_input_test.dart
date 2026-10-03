@@ -24,8 +24,13 @@ void main() {
     expect(controller.country.code, 'GB');
     expect(controller.account, '+447700900123');
 
+    controller.text = '+855 12345678';
+    expect(controller.country.code, 'KH');
+    expect(controller.account, '+85512345678');
+
+    controller.text = '12345678';
     controller.selectCountry(countries.firstWhere((c) => c.code == 'KH'));
-    expect(controller.account, '+8557700900123');
+    expect(controller.account, '+85512345678');
 
     for (final account in ['123name', '123@example.com', ' name ']) {
       controller.text = account;

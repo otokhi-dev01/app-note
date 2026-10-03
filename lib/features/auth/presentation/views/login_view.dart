@@ -4,17 +4,41 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
 import 'package:Note/routes/app_pages.dart';
-import 'package:Note/core/theme/app_theme.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:Note/shared/widgets/app_logo.dart';
 
-class LoginView extends GetView<AuthController> {
-  const LoginView({super.key});
+class LoginView extends StatefulWidget {
+  const LoginView({super.key, this.initialAccount});
+
+  final String? initialAccount;
+
+  @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  late final AuthController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<AuthController>();
+    final account = widget.initialAccount;
+    if (account != null && account.trim().isNotEmpty) {
+      // The previous login route may still listen during the transition.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        controller.accountController.text = account.trim();
+        controller.passwordController.clear();
+        controller.confirmPasswordController.clear();
+        controller.isPasswordVisible.value = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

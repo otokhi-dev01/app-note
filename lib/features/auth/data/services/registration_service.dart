@@ -70,7 +70,7 @@ class RegistrationService {
   Future<void> saveProfile({
     required String token,
     String? username,
-    required String email,
+    String? email,
     String? phone,
     CancelToken? cancelToken,
   }) async {
@@ -84,7 +84,7 @@ class RegistrationService {
         data: {
           if (username != null && username.trim().isNotEmpty)
             'username': username.trim(),
-          'email': email.trim(),
+          if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
           if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
         },
         cancelToken: cancelToken,
@@ -178,6 +178,12 @@ class RegistrationService {
         cancelToken: cancelToken,
         options: Options(extra: {'requiresAuth': false}),
       );
+      // A transport-level 200 is not evidence that the account was created.
+      // In particular, message-only/null-data bodies must never unlock success.
+      final body = response.data;
+      if (body is! Map || (body['success'] ?? body['Success']) != true) {
+        throw _failure(body, response.statusCode);
+      }
       return _readAuthResponse(response);
     } on DioException catch (error) {
       if (CancelToken.isCancel(error)) rethrow;
