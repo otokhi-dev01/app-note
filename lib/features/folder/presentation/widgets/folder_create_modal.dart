@@ -542,7 +542,7 @@ class _FolderCreateModalState extends State<FolderCreateModal>
         textInputAction: TextInputAction.done,
         onSubmitted: (_) => c.save(),
         height: 56,
-        borderRadius: 18,
+        borderRadius: 20,
         textStyle: TextStyle(
           color: colors.primaryText,
           fontSize: 17,

@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl_phone_field/countries.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class AccountInputField extends StatelessWidget {
   const AccountInputField({
@@ -127,64 +127,101 @@ class AccountInputField extends StatelessWidget {
             // switching modes preserves its focus, selection, and keyboard.
             if (isPhone)
               Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: CustomGlassButton(
+                padding: const EdgeInsets.only(right: 10),
+                child: Semantics(
                   key: const ValueKey('account-country-picker'),
-                  onPressed: enabled ? () => _pickCountry(context) : null,
-                  semanticLabel:
+                  button: true,
+                  enabled: enabled,
+                  excludeSemantics: true,
+                  onTap: enabled ? () => _pickCountry(context) : null,
+                  label:
                       '${'country_code'.tr}: ${country.localizedName(Get.locale?.languageCode ?? 'en')}, +${country.fullCountryCode}',
-                  height: 56,
-                  minHeight: 56,
-                  borderRadius: 18,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  foregroundColor: theme.colorScheme.onSurface,
-                  glowColor: theme.colorScheme.primary,
-                  textStyle: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(country.flag, style: const TextStyle(fontSize: 22)),
-                      const SizedBox(width: 6),
-                      Text('+${country.fullCountryCode}'),
-                      const SizedBox(width: 6),
-                      Icon(
-                        CupertinoIcons.chevron_down,
-                        size: 12,
-                        color: theme.colorScheme.primary,
+                  child: GlassInputSurface(
+                    height: 56,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        onTap: enabled ? () => _pickCountry(context) : null,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                country.flag,
+                                style: const TextStyle(fontSize: 22),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '+${country.fullCountryCode}',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 14,
+                                color: Color(0xFFFF5EA8),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               )
             else
               const SizedBox.shrink(),
             Expanded(
-              child: CustomGlassTextField(
-                controller: controller,
-                enabled: enabled,
-                placeholder: isPhone
-                    ? 'phone_number_hint'.tr
-                    : 'username_email_phone_hint'.tr,
+              child: GlassInputSurface(
                 height: 56,
-                borderRadius: 18,
-                textInputAction: textInputAction,
-                onSubmitted: onSubmitted,
-                onChanged: onChanged,
-                prefixIcon: isPhone
-                    ? null
-                    : Icon(
-                        CupertinoIcons.person_fill,
-                        size: 20,
-                        color: theme.colorScheme.primary.withValues(alpha: 0.8),
+                child: TextField(
+                  controller: controller,
+                  enabled: enabled,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textInputAction: textInputAction,
+                  onSubmitted: onSubmitted,
+                  onChanged: onChanged,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText:
+                        (isPhone
+                                ? 'phone_number_hint'
+                                : 'username_email_phone_hint')
+                            .tr,
+                    hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
                       ),
-                textStyle: theme.textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
-                placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(
-                    alpha: 0.6,
+                    ),
+                    prefixIcon: isPhone
+                        ? null
+                        : Icon(
+                            CupertinoIcons.person_fill,
+                            size: 20,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.8,
+                            ),
+                          ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    filled: false,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 17,
+                    ),
                   ),
                 ),
               ),

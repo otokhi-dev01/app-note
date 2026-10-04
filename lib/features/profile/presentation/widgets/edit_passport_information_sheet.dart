@@ -9,6 +9,7 @@ import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/domain/entities/passport_card.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 typedef SavePassportInformation = Future<void> Function(PassportCard passport);
 
@@ -366,27 +367,37 @@ class _EditPassportInformationSheetState extends State<EditPassportInformationSh
     TextCapitalization textCapitalization = TextCapitalization.none,
     String? errorText,
   }) {
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      autofocus: autofocus,
-      enabled: !_isSaving,
-      maxLength: maxLength,
-      textCapitalization: textCapitalization,
-      textInputAction: action,
-      onSubmitted: onSubmitted,
-      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      decoration: InputDecoration(
-        hintText: hint,
-        errorText: errorText,
-        counterText: '',
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        border: _border(scheme),
-        enabledBorder: _border(scheme),
-        focusedBorder: _border(scheme).copyWith(
-          borderSide: const BorderSide(color: IosSemanticColors.blue, width: 1.5),
+    return GlassInputSurface(
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        autofocus: autofocus,
+        enabled: !_isSaving,
+        maxLength: maxLength,
+        textCapitalization: textCapitalization,
+        textInputAction: action,
+        onSubmitted: onSubmitted,
+        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+        decoration: glassInputDecoration(
+          InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            counterText: '',
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            border: _border(scheme),
+            enabledBorder: _border(scheme),
+            focusedBorder: _border(scheme).copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.blue,
+                width: 1.5,
+              ),
+            ),
+          ),
         ),
       ),
     );

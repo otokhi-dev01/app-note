@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 /// A focused, compact profile phone number editor styled like [EditNameSheet].
 class EditPhoneSheet extends StatefulWidget {
@@ -181,66 +182,70 @@ class _EditPhoneSheetState extends State<EditPhoneSheet> {
       ),
     );
 
-    return TextField(
-      controller: _phoneController,
-      autofocus: true,
-      enabled: !_isSaving,
-      maxLength: _maxPhoneLength,
-      keyboardType: TextInputType.phone,
-      textInputAction: TextInputAction.done,
-      inputFormatters: [
-        LengthLimitingTextInputFormatter(_maxPhoneLength),
-        FilteringTextInputFormatter.allow(RegExp(r'[\d\+\-\s\(\)]')),
-      ],
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: scheme.onSurface,
-        fontWeight: FontWeight.w500,
-      ),
-      cursorColor: IosSemanticColors.blue,
-      onSubmitted: (_) => _submit(),
-      decoration: InputDecoration(
-        hintText: 'edit_phone_hint'.tr,
-        errorText: _showRequiredError ? 'phone_required_message'.tr : null,
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
-        ),
-        suffixIcon: _phoneController.text.isEmpty
-            ? null
-            : IconButton(
-                tooltip: 'clear_action'.tr,
-                onPressed: _isSaving ? null : _phoneController.clear,
-                icon: Icon(
-                  CupertinoIcons.xmark_circle_fill,
-                  size: 19,
-                  color: IosSemanticColors.gray,
-                ),
-              ),
-        counterStyle: theme.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-        errorStyle: theme.textTheme.labelSmall?.copyWith(
-          color: IosSemanticColors.red,
+    return GlassInputSurface(
+      child: TextField(
+        controller: _phoneController,
+        autofocus: true,
+        enabled: !_isSaving,
+        maxLength: _maxPhoneLength,
+        keyboardType: TextInputType.phone,
+        textInputAction: TextInputAction.done,
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(_maxPhoneLength),
+          FilteringTextInputFormatter.allow(RegExp(r'[\d\+\-\s\(\)]')),
+        ],
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurface,
           fontWeight: FontWeight.w500,
         ),
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.blue,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: const BorderSide(color: IosSemanticColors.red),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.red,
-            width: 1.5,
+        cursorColor: IosSemanticColors.blue,
+        onSubmitted: (_) => _submit(),
+        decoration: glassInputDecoration(
+          InputDecoration(
+            hintText: 'edit_phone_hint'.tr,
+            errorText: _showRequiredError ? 'phone_required_message'.tr : null,
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            suffixIcon: _phoneController.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'clear_action'.tr,
+                    onPressed: _isSaving ? null : _phoneController.clear,
+                    icon: Icon(
+                      CupertinoIcons.xmark_circle_fill,
+                      size: 19,
+                      color: IosSemanticColors.gray,
+                    ),
+                  ),
+            counterStyle: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            errorStyle: theme.textTheme.labelSmall?.copyWith(
+              color: IosSemanticColors.red,
+              fontWeight: FontWeight.w500,
+            ),
+            border: border,
+            enabledBorder: border,
+            disabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.blue,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: border.copyWith(
+              borderSide: const BorderSide(color: IosSemanticColors.red),
+            ),
+            focusedErrorBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.red,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ),

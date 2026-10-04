@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 /// A focused, compact profile job editor styled like [EditNameSheet].
 class EditJobSheet extends StatefulWidget {
@@ -181,63 +182,67 @@ class _EditJobSheetState extends State<EditJobSheet> {
       ),
     );
 
-    return TextField(
-      controller: _jobController,
-      autofocus: true,
-      enabled: !_isSaving,
-      maxLength: _maxJobLength,
-      textCapitalization: TextCapitalization.words,
-      textInputAction: TextInputAction.done,
-      inputFormatters: [LengthLimitingTextInputFormatter(_maxJobLength)],
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: scheme.onSurface,
-        fontWeight: FontWeight.w500,
-      ),
-      cursorColor: IosSemanticColors.blue,
-      onSubmitted: (_) => _submit(),
-      decoration: InputDecoration(
-        hintText: 'edit_job_hint'.tr,
-        errorText: _showRequiredError ? 'job_required_message'.tr : null,
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
-        ),
-        suffixIcon: _jobController.text.isEmpty
-            ? null
-            : IconButton(
-                tooltip: 'clear_action'.tr,
-                onPressed: _isSaving ? null : _jobController.clear,
-                icon: Icon(
-                  CupertinoIcons.xmark_circle_fill,
-                  size: 19,
-                  color: IosSemanticColors.gray,
-                ),
-              ),
-        counterStyle: theme.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-        errorStyle: theme.textTheme.labelSmall?.copyWith(
-          color: IosSemanticColors.red,
+    return GlassInputSurface(
+      child: TextField(
+        controller: _jobController,
+        autofocus: true,
+        enabled: !_isSaving,
+        maxLength: _maxJobLength,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        inputFormatters: [LengthLimitingTextInputFormatter(_maxJobLength)],
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurface,
           fontWeight: FontWeight.w500,
         ),
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.blue,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: const BorderSide(color: IosSemanticColors.red),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.red,
-            width: 1.5,
+        cursorColor: IosSemanticColors.blue,
+        onSubmitted: (_) => _submit(),
+        decoration: glassInputDecoration(
+          InputDecoration(
+            hintText: 'edit_job_hint'.tr,
+            errorText: _showRequiredError ? 'job_required_message'.tr : null,
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            suffixIcon: _jobController.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'clear_action'.tr,
+                    onPressed: _isSaving ? null : _jobController.clear,
+                    icon: Icon(
+                      CupertinoIcons.xmark_circle_fill,
+                      size: 19,
+                      color: IosSemanticColors.gray,
+                    ),
+                  ),
+            counterStyle: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            errorStyle: theme.textTheme.labelSmall?.copyWith(
+              color: IosSemanticColors.red,
+              fontWeight: FontWeight.w500,
+            ),
+            border: border,
+            enabledBorder: border,
+            disabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.blue,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: border.copyWith(
+              borderSide: const BorderSide(color: IosSemanticColors.red),
+            ),
+            focusedErrorBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.red,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ),

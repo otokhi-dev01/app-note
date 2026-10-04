@@ -1,8 +1,15 @@
 # Signup with email OTP and profile details
 
 The signup form uses the same single account input as login: **Username, Email
-or Phone**, followed by password and confirmation. Phone input automatically
-shows the country selector and is normalized exactly like login.
+or Phone**, followed by password and confirmation. Phone input shows a manual
+country selector beside the number field on both signup and Sign In. Cambodia
+(`+855`) is the initial selection; typing or pasting a number never detects or
+changes the selected country. Selecting another country leaves the entered
+number intact. Local numbers are submitted with the selected prefix; an explicit
+international number is submitted with its existing prefix only once.
+After phone signup, Sign In restores the chosen country explicitly and displays
+only the local number in the editable field. The server still receives the full
+registered number with the country prefix once.
 
 Email signup sends a six-digit OTP before account creation. Username and phone
 signup skip email verification. Usernames accept letters (including Khmer),
@@ -18,6 +25,11 @@ Phone signup retains its separate profile setup. Login submits the documented
 `account`, `password`, and device fields, without duplicating the account as
 email/username/phone aliases. API-mocked tests cover matching username values
 between registration and login; this is not live validation of existing accounts.
+
+Each login route now creates its own auth controller. Previously, replacing the
+signup stack could reuse the original login route's controller, then close it
+when that route was removed. The visible Sign In button silently ignored taps.
+A regression test uses the real route bindings to cover this transition.
 
 The [Chat Swagger schema](https://chat.piisiit.com/swagger/v1/swagger.json),
 checked on October 2, 2026, documents this flow:

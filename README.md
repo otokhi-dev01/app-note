@@ -2,6 +2,9 @@
 
 A new Flutter project.
 
+For teammates copying the authentication implementation, see the
+[authentication team handoff guide](docs/authentication-team-handoff.md).
+
 ## API servers
 
 Folders, notes, and attachments use `https://note.piisiit.com`. Folder creation

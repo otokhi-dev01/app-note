@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/storage/language_preferences.dart';
 import 'package:Note/core/usecase/usecase.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
@@ -682,23 +681,6 @@ class SettingsDrawer extends GetView<ProfileController> {
     );
   }
 
-  /// Same badge shell as [_buildGlassIconBadge], but for the Language row's
-  /// flag glyph — a neutral tint instead of a solid color, since the flag
-  /// already carries its own colors.
-  Widget _buildFlagIconBadge(String flag) {
-    return CustomGlassContainer(
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      blur: 12,
-      opacity: 0.3,
-      thickness: 8,
-      refractiveIndex: 1.1,
-      glassColor: _iosGray.withValues(alpha: 0.18),
-      alignment: Alignment.center,
-      child: Text(flag, style: const TextStyle(fontSize: 20)),
-    );
-  }
 
   Widget _buildGlassAvatarBadge(
     BuildContext context, {

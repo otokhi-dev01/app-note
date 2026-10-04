@@ -35,6 +35,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
   final _confirmController = TextEditingController();
   _RecoveryStep _step = _RecoveryStep.account;
   bool _isSubmitting = false;
+  bool _isGoogleVerifying = false;
   String? _errorText;
   String? _resetToken;
   String? _notice;
@@ -77,6 +78,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     FocusScope.of(context).unfocus();
     setState(() {
       _isSubmitting = true;
+      _isGoogleVerifying = true;
       _errorText = null;
       _notice = null;
     });
@@ -99,7 +101,12 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
     } catch (_) {
       if (mounted) _errorText = 'google_verification_failed'.tr;
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+          _isGoogleVerifying = false;
+        });
+      }
     }
   }
 
@@ -459,7 +466,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                         borderRadius: BorderRadius.circular(30),
                                       ),
                                     ),
-                                    child: _isSubmitting
+                                    child: _isSubmitting && !_isGoogleVerifying
                                         ? const SizedBox.square(
                                             dimension: 20,
                                             child: CircularProgressIndicator(
@@ -497,10 +504,18 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const FaIcon(
-                                        FontAwesomeIcons.google,
-                                        size: 18,
-                                      ),
+                                      if (_isGoogleVerifying)
+                                        const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      else
+                                        const FaIcon(
+                                          FontAwesomeIcons.google,
+                                          size: 18,
+                                        ),
                                       const SizedBox(width: 10),
                                       Flexible(
                                         child: Text('verify_with_google'.tr),
@@ -618,7 +633,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-                child: _isSubmitting
+                child: _isSubmitting && !_isGoogleVerifying
                     ? const SizedBox.square(
                         dimension: 20,
                         child: CircularProgressIndicator(
@@ -715,7 +730,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
       placeholderStyle: theme.textTheme.bodyMedium?.copyWith(
         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
       ),
-      borderRadius: 18,
+      borderRadius: 20,
       height: 56,
     );
   }

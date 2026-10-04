@@ -8,24 +8,29 @@ class AccountInputController extends TextEditingController {
   bool get isPhoneInput =>
       RegExp(r'^\+?[0-9][0-9\s().-]*$').hasMatch(text.trim());
 
-  Country? get _internationalCountry {
-    if (!isPhoneInput || !text.trim().startsWith('+')) return null;
-    final digits = text.replaceAll(RegExp(r'\D'), '');
-    Country? match;
-    for (final country in countries) {
-      if (digits.startsWith(country.fullCountryCode) &&
-          (match == null ||
-              country.fullCountryCode.length > match.fullCountryCode.length ||
-              (country.fullCountryCode == match.fullCountryCode &&
-                  const ['US', 'GB', 'RU'].contains(country.code)))) {
-        match = country;
+  /// Country changes only through an explicit picker selection.
+  Country get country => _country;
+
+  /// Restores a registered account without repeating the selected dial code
+  /// inside the editable phone field. The country comes from explicit metadata,
+  /// never from inspecting the number's prefix.
+  void setAccount(String account, {String? countryCode}) {
+    if (countryCode != null) {
+      for (final candidate in countries) {
+        if (candidate.code == countryCode) {
+          _country = candidate;
+          break;
+        }
       }
     }
-    if (match?.fullCountryCode == _country.fullCountryCode) return _country;
-    return match;
+    final input = account.trim();
+    final prefix = '+${country.fullCountryCode}';
+    final phone = RegExp(r'^\+?[0-9][0-9\s().-]*$').hasMatch(input);
+    final number = input.startsWith(prefix)
+        ? input.substring(prefix.length).trimLeft()
+        : input;
+    text = phone && number.isNotEmpty ? number : input;
   }
-
-  Country get country => _internationalCountry ?? _country;
 
   String get account {
     final input = text.trim();
@@ -37,19 +42,7 @@ class AccountInputController extends TextEditingController {
   }
 
   void selectCountry(Country country) {
-    final previous = _internationalCountry;
     _country = country;
-    if (previous != null) {
-      final digits = text.replaceAll(RegExp(r'\D'), '');
-      final updated =
-          '+${country.fullCountryCode}'
-          '${digits.substring(previous.fullCountryCode.length)}';
-      value = TextEditingValue(
-        text: updated,
-        selection: TextSelection.collapsed(offset: updated.length),
-      );
-    } else {
-      notifyListeners();
-    }
+    notifyListeners();
   }
 }

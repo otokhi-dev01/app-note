@@ -1600,7 +1600,11 @@ void main() {
         'ភ្នំពេញ',
       );
       final save = find.widgetWithText(FilledButton, 'identity_save_details');
-      await tester.ensureVisible(save);
+      await tester.scrollUntilVisible(
+        save,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(save);
       await tester.pumpAndSettle();
       expect(saved?.placeOfBirthKhmer, 'កណ្ដាល');

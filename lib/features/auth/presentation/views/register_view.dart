@@ -307,7 +307,7 @@ class RegisterScreen extends GetView<RegistrationController> {
                             placeholder: 'password_label'.tr,
                             obscureText: !controller.isPasswordVisible.value,
                             height: 56,
-                            borderRadius: 18,
+                            borderRadius: 20,
                             textInputAction: TextInputAction.next,
                             prefixIcon: Icon(
                               CupertinoIcons.lock_fill,
@@ -342,7 +342,7 @@ class RegisterScreen extends GetView<RegistrationController> {
                             obscureText:
                                 !controller.isConfirmPasswordVisible.value,
                             height: 56,
-                            borderRadius: 18,
+                            borderRadius: 20,
                             textInputAction: TextInputAction.done,
                             onSubmitted: (_) => controller.register(),
                             prefixIcon: Icon(

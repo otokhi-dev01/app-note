@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/widgets/profile_editor_controls.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 /// Shared editor for profile text fields, with explicit Save and Cancel.
 class ProfileTextEditor extends StatefulWidget {
@@ -148,65 +149,69 @@ class _ProfileTextEditorState extends State<ProfileTextEditor> {
       ),
     );
 
-    return TextField(
-      controller: _fieldController,
-      autofocus: true,
-      enabled: !_isSaving,
-      maxLength: widget.maxLength,
-      textCapitalization: widget.textCapitalization,
-      keyboardType: widget.keyboardType,
-      autocorrect: widget.textCapitalization != TextCapitalization.none,
-      textInputAction: TextInputAction.done,
-      inputFormatters: [LengthLimitingTextInputFormatter(widget.maxLength)],
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: scheme.onSurface,
-        fontWeight: FontWeight.w500,
-      ),
-      cursorColor: IosSemanticColors.blue,
-      onSubmitted: (_) => _submit(),
-      decoration: InputDecoration(
-        hintText: widget.hint,
-        errorText: _showRequiredError ? widget.requiredMessage : null,
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
-        ),
-        suffixIcon: _fieldController.text.isEmpty
-            ? null
-            : IconButton(
-                tooltip: 'clear_action'.tr,
-                onPressed: _isSaving ? null : _fieldController.clear,
-                icon: Icon(
-                  CupertinoIcons.xmark_circle_fill,
-                  size: 19,
-                  color: IosSemanticColors.gray,
-                ),
-              ),
-        counterStyle: theme.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-        errorStyle: theme.textTheme.labelSmall?.copyWith(
-          color: IosSemanticColors.red,
+    return GlassInputSurface(
+      child: TextField(
+        controller: _fieldController,
+        autofocus: true,
+        enabled: !_isSaving,
+        maxLength: widget.maxLength,
+        textCapitalization: widget.textCapitalization,
+        keyboardType: widget.keyboardType,
+        autocorrect: widget.textCapitalization != TextCapitalization.none,
+        textInputAction: TextInputAction.done,
+        inputFormatters: [LengthLimitingTextInputFormatter(widget.maxLength)],
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurface,
           fontWeight: FontWeight.w500,
         ),
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.blue,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: const BorderSide(color: IosSemanticColors.red),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.red,
-            width: 1.5,
+        cursorColor: IosSemanticColors.blue,
+        onSubmitted: (_) => _submit(),
+        decoration: glassInputDecoration(
+          InputDecoration(
+            hintText: widget.hint,
+            errorText: _showRequiredError ? widget.requiredMessage : null,
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            suffixIcon: _fieldController.text.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'clear_action'.tr,
+                    onPressed: _isSaving ? null : _fieldController.clear,
+                    icon: Icon(
+                      CupertinoIcons.xmark_circle_fill,
+                      size: 19,
+                      color: IosSemanticColors.gray,
+                    ),
+                  ),
+            counterStyle: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            errorStyle: theme.textTheme.labelSmall?.copyWith(
+              color: IosSemanticColors.red,
+              fontWeight: FontWeight.w500,
+            ),
+            border: border,
+            enabledBorder: border,
+            disabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.blue,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: border.copyWith(
+              borderSide: const BorderSide(color: IosSemanticColors.red),
+            ),
+            focusedErrorBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.red,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ),

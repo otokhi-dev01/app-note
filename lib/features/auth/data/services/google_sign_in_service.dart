@@ -29,6 +29,17 @@ class GoogleSignInService {
       value != null &&
       RegExp(r'^[a-zA-Z0-9-]+\.apps\.googleusercontent\.com$').hasMatch(value);
 
+  static PlatformException _configurationError(List<String> missing) {
+    if (kDebugMode) {
+      debugPrint('[GOOGLE] Configuration incomplete: ${missing.join(', ')}');
+    }
+    return PlatformException(
+      code: 'google_not_configured',
+      message: 'Google OAuth configuration is incomplete.',
+      details: {'missing': missing},
+    );
+  }
+
   Future<String?> signInIdToken() async {
     String? clientId;
     String? serverClientId;
@@ -39,20 +50,27 @@ class GoogleSignInService {
           'readConfiguration',
         );
       } on MissingPluginException {
-        throw PlatformException(code: 'google_not_configured');
+        throw _configurationError(['nativeConfigurationBridge']);
       }
-      clientId = config?['clientId'] as String?;
-      serverClientId = config?['serverClientId'] as String?;
+      clientId = (config?['clientId'] as String?)?.trim();
+      serverClientId = (config?['serverClientId'] as String?)?.trim();
       final schemes = config?['urlSchemes'] as List<dynamic>? ?? [];
-      if (!_validClientId(clientId) ||
-          !_validClientId(serverClientId) ||
-          !schemes.contains(clientId!.split('.').reversed.join('.'))) {
-        throw PlatformException(code: 'google_not_configured');
+      final missing = <String>[
+        if (!_validClientId(clientId)) 'iosClientId',
+        if (!_validClientId(serverClientId)) 'serverClientId',
+        if (_validClientId(clientId) &&
+            !schemes.contains(clientId!.split('.').reversed.join('.')))
+          'callbackScheme',
+      ];
+      if (missing.isNotEmpty) {
+        throw _configurationError(missing);
       }
     } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      serverClientId = const String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+      serverClientId = const String.fromEnvironment(
+        'GOOGLE_SERVER_CLIENT_ID',
+      ).trim();
       if (!_validClientId(serverClientId)) {
-        throw PlatformException(code: 'google_not_configured');
+        throw _configurationError(['serverClientId']);
       }
     } else {
       throw PlatformException(code: 'google_not_configured');

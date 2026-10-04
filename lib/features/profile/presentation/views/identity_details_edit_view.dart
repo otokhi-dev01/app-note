@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class IdentityDetailsEditView extends StatefulWidget {
   const IdentityDetailsEditView({
@@ -74,16 +75,20 @@ class _IdentityDetailsEditViewState extends State<IdentityDetailsEditView> {
               Text('identity_missing_fields_hint'.tr),
               const SizedBox(height: 20),
               for (var i = 0; i < _fields.length; i++) ...[
-                TextField(
-                  key: ValueKey(labels[i]),
-                  controller: _fields[i],
-                  enabled: !_saving,
-                  minLines: 1,
-                  maxLines: i == 0 ? 1 : 3,
-                  maxLength: i == 0 ? 100 : 240,
-                  decoration: InputDecoration(
-                    labelText: labels[i].tr,
-                    border: const OutlineInputBorder(),
+                GlassInputSurface(
+                  child: TextField(
+                    key: ValueKey(labels[i]),
+                    controller: _fields[i],
+                    enabled: !_saving,
+                    minLines: 1,
+                    maxLines: i == 0 ? 1 : 3,
+                    maxLength: i == 0 ? 100 : 240,
+                    decoration: glassInputDecoration(
+                      InputDecoration(
+                        labelText: labels[i].tr,
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

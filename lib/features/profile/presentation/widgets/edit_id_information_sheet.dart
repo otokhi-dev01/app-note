@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 typedef SaveIdInformation =
     Future<bool> Function(
@@ -110,12 +111,12 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
       ..addListener(_handleChanged);
     _nameController = TextEditingController(text: widget.initialName)
       ..addListener(_handleChanged);
-    _placeOfBirthController =
-        TextEditingController(text: widget.initialPlaceOfBirth)
-          ..addListener(_handleChanged);
-    _currentAddressController =
-        TextEditingController(text: widget.initialCurrentAddress)
-          ..addListener(_handleChanged);
+    _placeOfBirthController = TextEditingController(
+      text: widget.initialPlaceOfBirth,
+    )..addListener(_handleChanged);
+    _currentAddressController = TextEditingController(
+      text: widget.initialCurrentAddress,
+    )..addListener(_handleChanged);
     _nameFocusNode = FocusNode();
     _placeOfBirthFocusNode = FocusNode();
     _currentAddressFocusNode = FocusNode();
@@ -354,44 +355,48 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
     String? errorText,
   }) {
     final border = _border(scheme);
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      autofocus: autofocus,
-      enabled: !_isSaving,
-      maxLength: maxLength,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      textInputAction: action,
-      inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
-      onSubmitted: onSubmitted,
-      style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-      decoration: InputDecoration(
-        hintText: hint,
-        errorText: errorText,
-        counterText: '',
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
-        ),
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.blue,
-            width: 1.5,
-          ),
-        ),
-        errorBorder: border.copyWith(
-          borderSide: const BorderSide(color: IosSemanticColors.red),
-        ),
-        focusedErrorBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.red,
-            width: 1.5,
+    return GlassInputSurface(
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        autofocus: autofocus,
+        enabled: !_isSaving,
+        maxLength: maxLength,
+        keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
+        textInputAction: action,
+        inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
+        onSubmitted: onSubmitted,
+        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+        decoration: glassInputDecoration(
+          InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            counterText: '',
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            border: border,
+            enabledBorder: border,
+            disabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.blue,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: border.copyWith(
+              borderSide: const BorderSide(color: IosSemanticColors.red),
+            ),
+            focusedErrorBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.red,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ),
@@ -467,7 +472,9 @@ class _EditIdInformationSheetState extends State<EditIdInformationSheet> {
           ),
         ),
         child: Text(
-          expiryDate == null ? 'id_expiry_date_hint'.tr : _formatDate(expiryDate),
+          expiryDate == null
+              ? 'id_expiry_date_hint'.tr
+              : _formatDate(expiryDate),
           style: theme.textTheme.bodyLarge?.copyWith(
             color: expiryDate == null
                 ? scheme.onSurfaceVariant

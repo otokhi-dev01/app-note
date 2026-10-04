@@ -92,9 +92,7 @@ class AuthController extends GetxController {
       switch (result) {
         case Ok():
           if (kDebugMode) {
-            debugPrint(
-              '[AUTH] Login logic successful. Disable guest mode.',
-            );
+            debugPrint('[AUTH] Login logic successful. Disable guest mode.');
           }
           _guestMode.disable();
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
