@@ -28,17 +28,43 @@ import Vision
         return
       }
       let info = Bundle.main.infoDictionary ?? [:]
-      let urlTypes = info["CFBundleURLTypes"] as? [[String: Any]] ?? []
-      result([
-        "clientId": info["NoteGoogleIOSClientID"] as? String ?? "",
-        "serverClientId": info["NoteGoogleServerClientID"] as? String ?? "",
-        "urlSchemes": urlTypes.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
-      ])
+      let googleData = Bundle.main.url(forResource: "GoogleService-Info", withExtension: "plist")
+        .flatMap { try? Data(contentsOf: $0) }
+      let googleInfo = googleData.flatMap {
+        (try? PropertyListSerialization.propertyList(from: $0, format: nil)) as? [String: Any]
+      } ?? [:]
+      result(GoogleOAuthConfiguration.resolve(info: info, googleInfo: googleInfo))
     }
 
     let services = NativeMediaServices()
     services.register(with: engineBridge.applicationRegistrar.messenger())
     nativeMediaServices = services
+  }
+}
+
+/// Empty custom build settings must not hide standard Google configuration.
+enum GoogleOAuthConfiguration {
+  static func resolve(info: [String: Any], googleInfo: [String: Any] = [:]) -> [String: Any] {
+    func clientID(_ candidates: Any?...) -> String {
+      for candidate in candidates {
+        guard let value = candidate as? String else { continue }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.range(
+          of: #"^[a-zA-Z0-9-]+\.apps\.googleusercontent\.com$"#,
+          options: .regularExpression
+        ) != nil {
+          return trimmed
+        }
+      }
+      return ""
+    }
+    let urlTypes = info["CFBundleURLTypes"] as? [[String: Any]] ?? []
+    return [
+      "clientId": clientID(info["NoteGoogleIOSClientID"], info["GIDClientID"], googleInfo["CLIENT_ID"]),
+      "serverClientId": clientID(info["NoteGoogleServerClientID"], info["GIDServerClientID"]),
+      // A callback must actually be registered in the built app's Info.plist.
+      "urlSchemes": urlTypes.flatMap { $0["CFBundleURLSchemes"] as? [String] ?? [] }
+    ]
   }
 }
 

@@ -260,7 +260,7 @@ class _LoginViewState extends State<LoginView> {
                       placeholder: 'password_label'.tr,
                       obscureText: !controller.isPasswordVisible.value,
                       height: 56,
-                      borderRadius: 18,
+                      borderRadius: 20,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => controller.login(),
                       prefixIcon: Icon(

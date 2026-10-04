@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Theme;
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
+import 'package:Note/shared/widgets/glass_input_surface.dart';
+export 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class CustomGlassTextField extends StatelessWidget {
   final TextEditingController? controller;
@@ -61,7 +64,7 @@ class CustomGlassTextField extends StatelessWidget {
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     this.iconSpacing = 12,
     this.iconAlignment = CrossAxisAlignment.center,
-    this.borderRadius = 18,
+    this.borderRadius = 20,
     this.height,
     this.minHeight,
     this.maxHeight,
@@ -73,13 +76,10 @@ class CustomGlassTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return lg.GlassTextField(
+    final theme = Theme.of(context);
+    final field = CupertinoTextField(
       controller: controller,
       focusNode: focusNode,
-      placeholder: placeholder,
-      prefixIcon: prefixIcon,
-      suffixIcon: suffixIcon,
-      onSuffixTap: onSuffixTap,
       obscureText: obscureText,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
@@ -92,19 +92,65 @@ class CustomGlassTextField extends StatelessWidget {
       onChanged: onChanged,
       onSubmitted: onSubmitted,
       inputFormatters: inputFormatters,
-      onTapOutside: onTapOutside,
-      textStyle: textStyle,
-      placeholderStyle: placeholderStyle,
-      padding: padding,
-      iconSpacing: iconSpacing,
-      iconAlignment: iconAlignment,
-      height: height,
-      minHeight: minHeight,
-      maxHeight: maxHeight,
-      bottom: bottom,
-      shape: lg.LiquidRoundedSuperellipse(borderRadius: borderRadius),
-      useOwnLayer: useOwnLayer,
-      quality: quality,
+      onTapOutside:
+          onTapOutside ?? (_) => FocusManager.instance.primaryFocus?.unfocus(),
+      style: theme.textTheme.bodyLarge
+          ?.copyWith(color: theme.colorScheme.onSurface)
+          .merge(textStyle),
+      placeholder: placeholder,
+      placeholderStyle: theme.textTheme.bodyMedium
+          ?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+          )
+          .merge(placeholderStyle),
+      padding: EdgeInsets.zero,
+      decoration: null,
+    );
+    final row = Row(
+      crossAxisAlignment: height != null
+          ? CrossAxisAlignment.center
+          : iconAlignment,
+      children: [
+        if (prefixIcon != null) ...[prefixIcon!, SizedBox(width: iconSpacing)],
+        Expanded(child: field),
+        if (suffixIcon != null) ...[
+          SizedBox(width: iconSpacing),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled ? onSuffixTap : null,
+            child: suffixIcon,
+          ),
+        ],
+      ],
+    );
+    final resolvedPadding = padding.resolve(Directionality.of(context));
+    Widget content = height != null
+        ? Padding(
+            padding: EdgeInsets.only(
+              left: resolvedPadding.left,
+              right: resolvedPadding.right,
+            ),
+            child: Align(alignment: Alignment.center, child: row),
+          )
+        : Padding(padding: padding, child: row);
+    if (bottom != null) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(child: content),
+          bottom!,
+        ],
+      );
+    }
+    return TextFieldTapRegion(
+      child: GlassInputSurface(
+        borderRadius: borderRadius,
+        height: height,
+        minHeight: minHeight,
+        maxHeight: maxHeight,
+        child: content,
+      ),
     );
   }
 }

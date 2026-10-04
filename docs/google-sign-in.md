@@ -43,6 +43,19 @@ by Google's native initialization. Empty or
 unresolved configuration displays an availability message instead of risking an
 iOS exception. Rebuild the app after changing these settings; hot reload is insufficient.
 
+The configuration bridge also accepts standard `GIDClientID` and
+`GIDServerClientID` values in the app's `Info.plist`. If the custom iOS client ID
+and `GIDClientID` are absent, it can read `CLIENT_ID` from a
+`GoogleService-Info.plist` included in the Runner app bundle. A Web client ID and
+the matching callback URL scheme must still be configured; adding the downloaded
+plist alone does not enable backend verification. Empty or unresolved custom
+settings do not mask valid standard settings.
+
+If verification reports that it is unavailable, check the Flutter debug console
+for `[GOOGLE] Configuration incomplete`. It identifies a missing `iosClientId`,
+`serverClientId`, `callbackScheme`, or `nativeConfigurationBridge` without printing
+credentials or tokens. Rebuilding with blank IDs will reproduce the same error.
+
 ## Android
 
 Register the Android package and signing certificate SHA fingerprints in the same

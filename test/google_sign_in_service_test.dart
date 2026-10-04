@@ -131,6 +131,39 @@ void main() {
     expect(await service.signInIdToken(), 'google-id-token');
   });
 
+  test('Whitespace around configured client IDs is ignored', () async {
+    config['clientId'] = ' $iosId\n';
+    config['serverClientId'] = ' $serverId ';
+    client.account = _Account('google-id-token');
+    expect(await service.signInIdToken(), 'google-id-token');
+  });
+
+  test(
+    'Configuration failures identify missing IDs and callback scheme',
+    () async {
+      for (final entry in [
+        (<String, dynamic>{}, ['iosClientId', 'serverClientId']),
+        ({...config, 'serverClientId': ''}, ['serverClientId']),
+        ({...config, 'urlSchemes': <String>[]}, ['callbackScheme']),
+      ]) {
+        final original = config;
+        config = entry.$1;
+        await expectLater(
+          service.signInIdToken(),
+          throwsA(
+            isA<PlatformException>().having(
+              (error) => error.details,
+              'configuration details',
+              {'missing': entry.$2},
+            ),
+          ),
+        );
+        config = original;
+      }
+      expect(creations, 0);
+    },
+  );
+
   test('An access token cannot substitute for a missing ID token', () async {
     client.account = _Account(null);
     await expectLater(

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:intl_phone_field/countries.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class AccountInputField extends StatelessWidget {
   const AccountInputField({
@@ -135,7 +136,8 @@ class AccountInputField extends StatelessWidget {
                   onTap: enabled ? () => _pickCountry(context) : null,
                   label:
                       '${'country_code'.tr}: ${country.localizedName(Get.locale?.languageCode ?? 'en')}, +${country.fullCountryCode}',
-                  child: _AccountInputSurface(
+                  child: GlassInputSurface(
+                    height: 56,
                     child: Material(
                       color: Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
@@ -176,7 +178,8 @@ class AccountInputField extends StatelessWidget {
             else
               const SizedBox.shrink(),
             Expanded(
-              child: _AccountInputSurface(
+              child: GlassInputSurface(
+                height: 56,
                 child: TextField(
                   controller: controller,
                   enabled: enabled,
@@ -226,47 +229,6 @@ class AccountInputField extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-/// Matching soft surfaces keep the country selector and number visually separate.
-class _AccountInputSurface extends StatelessWidget {
-  const _AccountInputSurface({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHigh
-            : const Color(0xFFF1F0F7),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.85),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.16 : 0.06),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
-          ),
-          if (!isDark)
-            BoxShadow(
-              color: Colors.white.withValues(alpha: 0.75),
-              blurRadius: 10,
-              offset: const Offset(-3, -3),
-            ),
-        ],
-      ),
-      child: child,
     );
   }
 }

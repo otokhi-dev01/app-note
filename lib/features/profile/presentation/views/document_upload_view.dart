@@ -9,6 +9,7 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
 import 'package:Note/features/profile/domain/entities/national_id_card.dart';
 import 'package:Note/features/profile/domain/usecases/identity_usecases.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class DocumentUploadView extends StatefulWidget {
   final NationalIdCard? initialCard;
@@ -172,35 +173,41 @@ class _DocumentUploadViewState extends State<DocumentUploadView> {
                   for (final key in _labels.keys)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16),
-                      child: TextFormField(
-                        key: ValueKey(key),
-                        controller: _fields[key],
-                        enabled: !_busy,
-                        keyboardType: _dates.contains(key)
-                            ? TextInputType.datetime
-                            : TextInputType.text,
-                        decoration: InputDecoration(
-                          labelText:
-                              '${_labels[key]!.tr}${key == 'DocumentType' || key == 'DocumentNumber' ? ' *' : ''}',
-                          hintText: _dates.contains(key) ? 'YYYY-MM-DD' : null,
-                          border: const OutlineInputBorder(),
-                        ),
-                        validator: (value) {
-                          final text = value?.trim() ?? '';
-                          if ((key == 'DocumentType' ||
-                                  key == 'DocumentNumber') &&
-                              text.isEmpty) {
-                            return 'document_required'.tr;
-                          }
-                          if (_dates.contains(key) && text.isNotEmpty) {
-                            try {
-                              DateFormat('yyyy-MM-dd').parseStrict(text);
-                            } on FormatException {
-                              return 'document_invalid_date'.tr;
+                      child: GlassInputSurface(
+                        child: TextFormField(
+                          key: ValueKey(key),
+                          controller: _fields[key],
+                          enabled: !_busy,
+                          keyboardType: _dates.contains(key)
+                              ? TextInputType.datetime
+                              : TextInputType.text,
+                          decoration: glassInputDecoration(
+                            InputDecoration(
+                              labelText:
+                                  '${_labels[key]!.tr}${key == 'DocumentType' || key == 'DocumentNumber' ? ' *' : ''}',
+                              hintText: _dates.contains(key)
+                                  ? 'YYYY-MM-DD'
+                                  : null,
+                              border: const OutlineInputBorder(),
+                            ),
+                          ),
+                          validator: (value) {
+                            final text = value?.trim() ?? '';
+                            if ((key == 'DocumentType' ||
+                                    key == 'DocumentNumber') &&
+                                text.isEmpty) {
+                              return 'document_required'.tr;
                             }
-                          }
-                          return null;
-                        },
+                            if (_dates.contains(key) && text.isNotEmpty) {
+                              try {
+                                DateFormat('yyyy-MM-dd').parseStrict(text);
+                              } on FormatException {
+                                return 'document_invalid_date'.tr;
+                              }
+                            }
+                            return null;
+                          },
+                        ),
                       ),
                     ),
                   _image(true),

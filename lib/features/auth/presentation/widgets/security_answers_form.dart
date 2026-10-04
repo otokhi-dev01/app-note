@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Note/features/auth/domain/entities/security_question.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 /// Answers only live in this form and are disposed when recovery leaves it.
 class SecurityAnswersForm extends StatefulWidget {
@@ -101,16 +102,18 @@ class _SecurityAnswersFormState extends State<SecurityAnswersForm> {
                         },
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: row.controller,
-                  enabled: widget.enabled && row.questionId != null,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  decoration: InputDecoration(
-                    labelText: 'recovery_security_answer'.tr,
+                GlassInputSurface(
+                  child: TextField(
+                    controller: row.controller,
+                    enabled: widget.enabled && row.questionId != null,
+                    obscureText: true,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    decoration: glassInputDecoration(
+                      InputDecoration(labelText: 'recovery_security_answer'.tr),
+                    ),
+                    onChanged: (_) => _notify(),
                   ),
-                  onChanged: (_) => _notify(),
                 ),
                 if (_rows.length > 3)
                   Align(

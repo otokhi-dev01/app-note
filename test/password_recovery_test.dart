@@ -23,6 +23,7 @@ import 'package:Note/features/auth/domain/entities/security_question.dart';
 import 'package:Note/features/auth/presentation/views/forgot_password_view.dart';
 import 'package:Note/features/auth/presentation/widgets/password_otp_step.dart';
 import 'package:Note/routes/app_pages.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
 
 class _Session extends SessionStorage {
   bool cleared = false;
@@ -482,6 +483,40 @@ void main() {
     await tester.tap(find.text(label));
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'Google verification shows progress on its button and blocks duplicate taps',
+    (tester) async {
+      final pending = Completer<String?>();
+      googleIdentity.respond = () => pending.future;
+      await mount(tester);
+      final googleButton = find.widgetWithText(
+        CustomGlassButton,
+        'Verify with Google',
+      );
+      await tester.ensureVisible(googleButton);
+      await tester.tap(googleButton);
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: googleButton,
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Send Request'), findsOneWidget);
+      await tester.tap(googleButton);
+      expect(googleIdentity.calls, 1);
+      expect(adapter.requests, isEmpty);
+      pending.complete(null);
+      await tester.pumpAndSettle();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(
+        tester.widget<CustomGlassButton>(googleButton).onPressed,
+        isNotNull,
+      );
+    },
+  );
 
   testWidgets('Google verification opens password reset without signing in', (
     tester,

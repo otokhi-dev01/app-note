@@ -7,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:Note/features/daily_note/data/daily_note_store.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class DailyNoteEditor extends StatefulWidget {
   final DailyNoteStore store;
@@ -316,18 +317,22 @@ class _DailyNoteEditorState extends State<DailyNoteEditor> {
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(height: 20),
-              TextFormField(
-                key: const ValueKey('daily-note-title'),
-                controller: _title,
-                enabled: !_busy,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'daily_title_field'.tr,
-                  border: const OutlineInputBorder(),
+              GlassInputSurface(
+                child: TextFormField(
+                  key: const ValueKey('daily-note-title'),
+                  controller: _title,
+                  enabled: !_busy,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: glassInputDecoration(
+                    InputDecoration(
+                      labelText: 'daily_title_field'.tr,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'daily_title_required'.tr
+                      : null,
                 ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'daily_title_required'.tr
-                    : null,
               ),
               const SizedBox(height: 16),
               Row(
@@ -356,16 +361,20 @@ class _DailyNoteEditorState extends State<DailyNoteEditor> {
                 ],
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _body,
-                enabled: !_busy,
-                minLines: 3,
-                maxLines: 6,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: 'daily_body'.tr,
-                  alignLabelWithHint: true,
-                  border: const OutlineInputBorder(),
+              GlassInputSurface(
+                child: TextFormField(
+                  controller: _body,
+                  enabled: !_busy,
+                  minLines: 3,
+                  maxLines: 6,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: glassInputDecoration(
+                    InputDecoration(
+                      labelText: 'daily_body'.tr,
+                      alignLabelWithHint: true,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

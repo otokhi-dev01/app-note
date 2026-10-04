@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/ios_semantic_colors.dart';
 import 'package:Note/features/profile/presentation/views/profile_edit_screen.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 /// Two-field profile editor using the same dialog language as Edit Name.
 class EditJobBioSheet extends StatefulWidget {
@@ -215,41 +216,45 @@ class _EditJobBioSheetState extends State<EditJobBioSheet> {
       ),
     );
 
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      autofocus: autofocus,
-      enabled: !_isSaving,
-      minLines: minLines,
-      maxLines: maxLines,
-      maxLength: maxLength,
-      textCapitalization: textCapitalization,
-      textInputAction: textInputAction,
-      inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
-      onSubmitted: onSubmitted,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: scheme.onSurface,
-        fontWeight: FontWeight.w500,
-      ),
-      cursorColor: IosSemanticColors.blue,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 15,
+    return GlassInputSurface(
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        autofocus: autofocus,
+        enabled: !_isSaving,
+        minLines: minLines,
+        maxLines: maxLines,
+        maxLength: maxLength,
+        textCapitalization: textCapitalization,
+        textInputAction: textInputAction,
+        inputFormatters: [LengthLimitingTextInputFormatter(maxLength)],
+        onSubmitted: onSubmitted,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: scheme.onSurface,
+          fontWeight: FontWeight.w500,
         ),
-        counterStyle: theme.textTheme.labelSmall?.copyWith(
-          color: scheme.onSurfaceVariant,
-        ),
-        border: border,
-        enabledBorder: border,
-        disabledBorder: border,
-        focusedBorder: border.copyWith(
-          borderSide: const BorderSide(
-            color: IosSemanticColors.blue,
-            width: 1.5,
+        cursorColor: IosSemanticColors.blue,
+        decoration: glassInputDecoration(
+          InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 15,
+            ),
+            counterStyle: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+            border: border,
+            enabledBorder: border,
+            disabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: const BorderSide(
+                color: IosSemanticColors.blue,
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ),

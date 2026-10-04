@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:Note/features/profile/presentation/widgets/card_flow_widgets.dart';
 import 'package:Note/features/profile/presentation/controllers/credit_card_controller.dart';
 import 'package:Note/features/profile/presentation/views/card_camera_view.dart';
+import 'package:Note/shared/widgets/glass_input_surface.dart';
 
 class CardScanView extends GetView<CreditCardController> {
   const CardScanView({super.key});
@@ -404,11 +405,13 @@ class CardScanView extends GetView<CreditCardController> {
     TextEditingController controller, {
     required BuildContext context,
     TextInputType keyboardType = TextInputType.text,
-  }) => TextField(
-    controller: controller,
-    keyboardType: keyboardType,
-    style: const TextStyle(fontSize: 14),
-    decoration: _cardInputDecoration(context),
+  }) => GlassInputSurface(
+    child: TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 14),
+      decoration: glassInputDecoration(_cardInputDecoration(context)),
+    ),
   );
 
   Widget _buildDropdown(
@@ -503,20 +506,27 @@ class _CardSecurityFieldState extends State<_CardSecurityField> {
   bool _obscure = true;
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: widget.controller,
-    obscureText: _obscure,
-    keyboardType: TextInputType.number,
-    style: const TextStyle(fontSize: 14),
-    decoration: _cardInputDecoration(context).copyWith(
-      suffixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-      suffixIcon: IconButton(
-        tooltip: _obscure ? 'Show CVV' : 'Hide CVV',
-        onPressed: () => setState(() => _obscure = !_obscure),
-        icon: Icon(
-          _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
-          size: 18,
-          color: cardFlowMuted,
+  Widget build(BuildContext context) => GlassInputSurface(
+    child: TextField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      keyboardType: TextInputType.number,
+      style: const TextStyle(fontSize: 14),
+      decoration: glassInputDecoration(
+        _cardInputDecoration(context).copyWith(
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 44,
+          ),
+          suffixIcon: IconButton(
+            tooltip: _obscure ? 'Show CVV' : 'Hide CVV',
+            onPressed: () => setState(() => _obscure = !_obscure),
+            icon: Icon(
+              _obscure ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+              size: 18,
+              color: cardFlowMuted,
+            ),
+          ),
         ),
       ),
     ),
