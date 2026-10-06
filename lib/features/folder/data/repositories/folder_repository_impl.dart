@@ -72,21 +72,6 @@ class FolderRepositoryImpl implements FolderRepository {
       _throwIfSaveFailed(body);
 
       int savedId = _savedFolderId(body);
-      if (savedId == 0 && id == 0) {
-        try {
-          final response = await _remote.getFolders();
-          final match = response.folders
-              .where((f) => f.name == trimmed)
-              .toList()
-            ..sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
-          if (match.isNotEmpty) {
-            savedId = match.first.id;
-          }
-        } catch (_) {
-          // Ignore fetch error
-        }
-      }
-
       return savedId > 0 ? savedId : id;
     });
   }

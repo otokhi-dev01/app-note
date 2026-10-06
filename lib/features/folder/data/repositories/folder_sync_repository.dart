@@ -1,3 +1,4 @@
+import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:Note/core/storage/account_operation_queue.dart';
 import 'package:Note/core/error/failures.dart';
@@ -59,31 +60,36 @@ class FolderSyncRepository implements FolderRepository {
   bool _isOfflineFailure(AppFailure failure) => failure is NetworkFailure;
 
   @override
-  Future<Result<FolderBundle>> getFolders() => _operations.run(() async {
+  Future<Result<FolderBundle>> getFolders() async {
     if (!_session.isLoggedIn) {
       return Ok(_bundle(_readCache()));
     }
-    await flushPending();
+    return _operations.run(() async {
+      await flushPending();
 
-    _operations.check();
-    final result = await _remote.getFolders();
-    switch (result) {
-      case Ok(:final value):
-        var list = [...value.folders, ...value.trash];
-        // Anything still queued (a write made in the gap since flushPending
-        // above, or one that failed to flush for a non-network reason and
-        // was intentionally dropped — see flushPending) is re-applied on top
-        // of the fresh server snapshot so it isn't lost from this read.
-        for (final op in _readQueue()) {
-          list = _apply(list, op);
-        }
-        await _writeCache(list);
-        return Ok(_bundle(list));
-      case Err(:final failure):
-        if (!_isOfflineFailure(failure)) return Err(failure);
-        return Ok(_bundle(_readCache()));
-    }
-  });
+      _operations.check();
+      final result = await _remote.getFolders();
+      switch (result) {
+        case Ok(:final value):
+          var list = [...value.folders, ...value.trash];
+          // Anything still queued (a write made in the gap since flushPending
+          // above, or one that failed to flush for a non-network reason and
+          // was intentionally dropped — see flushPending) is re-applied on top
+          // of the fresh server snapshot so it isn't lost from this read.
+          for (final op in _readQueue()) {
+            list = _apply(list, op);
+          }
+          if (list.isEmpty) {
+            list = _readCache();
+          }
+          await _writeCache(list);
+          return Ok(_bundle(list));
+        case Err(:final failure):
+          if (!_isOfflineFailure(failure)) return Err(failure);
+          return Ok(_bundle(_readCache()));
+      }
+    });
+  }
 
   @override
   Future<Result<int>> saveFolder({
@@ -468,11 +474,34 @@ class FolderSyncRepository implements FolderRepository {
 
   List<Folder> _readCache() {
     final raw = _storage.read<List>(_cacheKey);
-    if (raw == null) return <Folder>[];
-    return raw
+    if (raw == null) {
+      final seeded = [_defaultFolder()];
+      _writeCache(seeded);
+      return seeded;
+    }
+    final parsed = raw
         .whereType<Map>()
         .map((m) => _folderFromJson(Map<String, dynamic>.from(m)))
         .toList();
+    if (parsed.isEmpty) {
+      final seeded = [_defaultFolder()];
+      _writeCache(seeded);
+      return seeded;
+    }
+    return parsed;
+  }
+
+  Folder _defaultFolder() {
+    final now = DateTime.now();
+    return Folder(
+      id: 0,
+      name: 'Notes',
+      iconName: FolderAppearance.defaultIconName,
+      colorValue: FolderAppearance.defaultColorValue,
+      sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
+    );
   }
 
   Future<void> _writeCache(List<Folder> folders) =>

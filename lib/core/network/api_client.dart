@@ -145,6 +145,7 @@ class ApiClient extends GetxService {
           final reason = AuthDiagnostics.serverReason(challenges);
           if (_isValidationMismatch(reason)) {
             _logValidationMismatch(reason);
+            await _invalidateSession(session, revision as int);
             return handler.next(error);
           }
           if (token.isEmpty || request.headers['Authorization'] == null) {

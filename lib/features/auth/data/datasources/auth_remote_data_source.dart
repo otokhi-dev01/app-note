@@ -141,10 +141,17 @@ class AuthRemoteDataSource extends GetxService {
         ?.toString()
         .trim();
     if (message != null && message.isNotEmpty) {
-      if (kDebugMode) {
-        debugPrint('[AUTH] Credential rejection: status=$statusCode, msg=$message');
+      final formatted = _formatAuthErrorMessage(message);
+      final lower = message.toLowerCase();
+      if (statusCode == 401 ||
+          statusCode == 403 ||
+          lower.contains('invalid credential') ||
+          lower.contains('invalid account')) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] Credential rejection: status=$statusCode, msg=$message');
+        }
+        throw UnauthorizedException(formatted);
       }
-      throw UnauthorizedException(_formatAuthErrorMessage(message));
     }
   }
 

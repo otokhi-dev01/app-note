@@ -1,6 +1,8 @@
+import 'package:Note/features/note/domain/entities/note_bundle.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
+import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/feedback/app_dialogs.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
@@ -205,17 +207,19 @@ class FolderController extends GetxController {
       final folderResult = await _getFolders(const NoParams());
       final noteResult = await _getNotes(const GetNotesParams());
 
+      final folderBundle = folderResult.valueOrNull ?? const FolderBundle();
+      final noteBundle = noteResult.valueOrNull ?? const NoteBundle();
+
       if (folderResult case Err(:final failure)) {
-        AppSnackbar.failure('Folders', failure);
-        return;
+        if (failure is! UnauthorizedFailure) {
+          AppSnackbar.failure('Folders', failure);
+        }
       }
       if (noteResult case Err(:final failure)) {
-        AppSnackbar.failure('Notes', failure);
-        return;
+        if (failure is! UnauthorizedFailure) {
+          AppSnackbar.failure('Notes', failure);
+        }
       }
-
-      final folderBundle = folderResult.valueOrNull!;
-      final noteBundle = noteResult.valueOrNull!;
 
       // The server's per-folder note counts drift, so derive them from the
       // notes we just fetched instead of trusting the folder payload.
@@ -224,8 +228,20 @@ class FolderController extends GetxController {
         counts[note.folderId] = (counts[note.folderId] ?? 0) + 1;
       }
 
+      final activeFolders = folderBundle.folders.isEmpty
+          ? [
+              Folder(
+                id: 0,
+                name: 'Notes',
+                iconName: FolderAppearance.defaultIconName,
+                colorValue: FolderAppearance.defaultColorValue,
+                sortOrder: 0,
+              ),
+            ]
+          : folderBundle.folders;
+
       folders.assignAll([
-        for (final f in folderBundle.folders)
+        for (final f in activeFolders)
           Folder(
             id: f.id,
             parentId: f.parentId,

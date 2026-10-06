@@ -71,8 +71,13 @@ class AuthController extends GetxController {
   Future<void> _replaceAuthStack(String route) async {
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
+    try {
+      await SystemChannels.textInput.invokeMethod('TextInput.hide');
+    } catch (_) {}
     if (isClosed) return;
     isLoading.value = false;
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (isClosed) return;
     await Get.offAllNamed(route);
   }
 
@@ -82,8 +87,8 @@ class AuthController extends GetxController {
     final account = accountController.account;
 
     final session = Get.find<SessionStorage>();
+    await session.clearSession();
     session.sessionRejected.value = false;
-    await session.invalidateToken();
 
     isLoading.value = true;
     try {
@@ -119,8 +124,8 @@ class AuthController extends GetxController {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final session = Get.find<SessionStorage>();
+    await session.clearSession();
     session.sessionRejected.value = false;
-    await session.invalidateToken();
 
     isLoading.value = true;
     try {

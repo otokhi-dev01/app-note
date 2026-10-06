@@ -61,43 +61,45 @@ class NoteSyncRepository implements NoteRepository {
   @override
   Future<Result<NoteBundle>> getNotes({
     int? folderId,
-  }) => _operations.run(() async {
+  }) async {
     if (!_session.isLoggedIn) {
       return Ok(_bundle(_readCache(), folderId));
     }
-    await flushPending();
+    return _operations.run(() async {
+      await flushPending();
 
-    _operations.check();
-    final result = await _remote.getNotes(folderId: folderId);
-    switch (result) {
-      case Ok(:final value):
-        var list = _readCache();
-        for (final n in [...value.notes, ...value.archive, ...value.trash]) {
-          list = _upsertNote(list, n);
-        }
-        if (folderId == null) {
-          // A full, unscoped fetch is authoritative for the whole account —
-          // drop any already-synced cache entries the server no longer
-          // reports. Anything still waiting to sync (a temp id) is never
-          // pruned; the server has never heard of it yet.
-          final freshIds = {
-            for (final n in [...value.notes, ...value.archive, ...value.trash])
-              n.id,
-          };
-          list = list
-              .where((n) => n.id < 0 || freshIds.contains(n.id))
-              .toList();
-        }
-        for (final op in _readQueue()) {
-          list = _apply(list, op);
-        }
-        await _writeCache(list);
-        return Ok(_bundle(list, folderId));
-      case Err(:final failure):
-        if (!_isOfflineFailure(failure)) return Err(failure);
-        return Ok(_bundle(_readCache(), folderId));
-    }
-  });
+      _operations.check();
+      final result = await _remote.getNotes(folderId: folderId);
+      switch (result) {
+        case Ok(:final value):
+          var list = _readCache();
+          for (final n in [...value.notes, ...value.archive, ...value.trash]) {
+            list = _upsertNote(list, n);
+          }
+          if (folderId == null) {
+            // A full, unscoped fetch is authoritative for the whole account —
+            // drop any already-synced cache entries the server no longer
+            // reports. Anything still waiting to sync (a temp id) is never
+            // pruned; the server has never heard of it yet.
+            final freshIds = {
+              for (final n in [...value.notes, ...value.archive, ...value.trash])
+                n.id,
+            };
+            list = list
+                .where((n) => n.id < 0 || freshIds.contains(n.id))
+                .toList();
+          }
+          for (final op in _readQueue()) {
+            list = _apply(list, op);
+          }
+          await _writeCache(list);
+          return Ok(_bundle(list, folderId));
+        case Err(:final failure):
+          if (!_isOfflineFailure(failure)) return Err(failure);
+          return Ok(_bundle(_readCache(), folderId));
+      }
+    });
+  }
 
   @override
   Future<Result<Note>> getNoteDetail(int id) => _operations.run(() async {
