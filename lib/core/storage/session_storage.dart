@@ -16,9 +16,15 @@ import 'package:Note/core/error/exceptions.dart';
 class SessionStorage extends GetxService {
   final _storage = const FlutterSecureStorage();
   int _revision = 0;
+  int _accountRevision = 0;
   Future<void>? _loading;
   late final Future<void> ready = loadSession();
   final restoreFailed = false.obs;
+  final sessionRejected = false.obs;
+
+  void markSessionRejected() {
+    sessionRejected.value = true;
+  }
   Future<void> _pendingWrite = Future.value();
 
   Future<void> _serializeWrite(Future<void> Function() action) {
@@ -36,6 +42,7 @@ class SessionStorage extends GetxService {
 
   bool get isLoggedIn => token.value?.isNotEmpty == true;
   int get revision => _revision;
+  int get accountRevision => _accountRevision;
 
   /// Requests must not pair old credentials with an in-progress login's
   /// revision. Include writes queued while an earlier write is settling.
@@ -87,6 +94,10 @@ class SessionStorage extends GetxService {
         );
       }
       restoreFailed.value = false;
+      if (user.value?.id != savedUser?.id ||
+          isLoggedIn != normalized.value.isNotEmpty) {
+        _accountRevision++;
+      }
       user.value = savedUser;
       refreshToken.value = normalized.value.isEmpty ? null : savedRefreshToken;
       token.value = normalized.value.isEmpty ? null : normalized.value;
@@ -123,6 +134,7 @@ class SessionStorage extends GetxService {
         ? null
         : refreshToken;
     final revision = ++_revision;
+    if (user.value?.id != userData.id || !isLoggedIn) _accountRevision++;
     return _serializeWrite(() async {
       if (revision != _revision) {
         throw const StorageException(
@@ -166,6 +178,7 @@ class SessionStorage extends GetxService {
       }
       // Token listeners must see the matching user and a persisted session.
       restoreFailed.value = false;
+      sessionRejected.value = false;
       user.value = userData;
       this.refreshToken.value = newRefreshToken;
       token.value = rawToken;
@@ -176,19 +189,23 @@ class SessionStorage extends GetxService {
   /// metadata and refresh credentials cannot restore a session without it.
   Future<void> invalidateToken() async {
     _revision++;
+    _accountRevision++;
     token.value = null;
     refreshToken.value = null;
     user.value = null;
     restoreFailed.value = false;
+    sessionRejected.value = true;
     await _serializeWrite(() => _storage.delete(key: 'token'));
   }
 
   Future<void> clearSession() async {
     _revision++;
+    _accountRevision++;
     token.value = null;
     refreshToken.value = null;
     user.value = null;
     restoreFailed.value = false;
+    sessionRejected.value = false;
     await _serializeWrite(() async {
       await _storage.delete(key: 'token');
       await _storage.delete(key: 'refresh_token');

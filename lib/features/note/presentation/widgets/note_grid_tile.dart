@@ -232,7 +232,7 @@ class _GridVisualPreview extends StatelessWidget {
     if (networkUrl != null) {
       return Image.network(
         networkUrl,
-        headers: attachmentAuthHeaders(),
+        headers: attachmentAuthHeaders(networkUrl),
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,

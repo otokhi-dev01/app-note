@@ -13,7 +13,9 @@ class RegistrationException implements Exception {
   final int? retryAfter;
 }
 
-/// The documented Chat registration endpoint. Never persists returned tokens.
+/// The documented Chat registration endpoint. Session persistence stays in the
+/// registration controller so this service remains usable in tests and other
+/// auth flows.
 class RegistrationService {
   RegistrationService(ApiClient api, {AuthDeviceService? deviceService})
     : _dio = api.dio,
@@ -22,8 +24,8 @@ class RegistrationService {
   final Dio _dio;
   final AuthDeviceService _deviceService;
 
-  /// Some register responses omit tokens. Authenticate only to complete the
-  /// profile; this temporary credential is never stored as an app session.
+  /// Some register responses omit tokens. Authenticate to obtain a credential
+  /// that can complete profile setup or open the app after signup.
   Future<String> loginForProfile({
     required String account,
     required String password,

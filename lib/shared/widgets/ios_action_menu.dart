@@ -45,17 +45,35 @@ class IOSActionMenu extends StatelessWidget {
     IOSMenuType type = IOSMenuType.popup,
     String? title,
     String? message,
-  }) {
+  }) async {
+    if (!context.mounted) return;
+    // Actions can outlive the menu's closing animation. Check the originating
+    // widget before invoking callbacks that may use its context.
+    final guardedActions = actions
+        .map(
+          (action) => IOSMenuAction(
+            label: action.label,
+            icon: action.icon,
+            color: action.color,
+            subtitle: action.subtitle,
+            isDestructive: action.isDestructive,
+            onTap: () {
+              if (context.mounted) action.onTap();
+            },
+          ),
+        )
+        .toList(growable: false);
     if (type == IOSMenuType.bottomSheet) {
-      return Get.bottomSheet(
-        IOSActionMenu(actions: actions, type: type, title: title),
+      await Get.bottomSheet<void>(
+        IOSActionMenu(actions: guardedActions, type: type, title: title),
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
       );
+      return;
     }
 
-    return Get.dialog(
-      IOSActionMenu(actions: actions, type: type, title: title),
+    await Get.dialog<void>(
+      IOSActionMenu(actions: guardedActions, type: type, title: title),
       barrierColor: Colors.black.withValues(alpha: 0.1),
     );
   }

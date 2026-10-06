@@ -1,5 +1,7 @@
 # App completeness and security review — 2026-10-04
 
+This is the historical review of commit `fef13d9`. Current fixes and validation results are tracked in [app-validation.md](app-validation.md). The old reproduction file asserts defective behavior and is retained as evidence; use `test/security_regression_test.dart` to verify the repaired behavior.
+
 **Result: the app is not ready for a production release.** Static analysis passes, but tests and both mobile build checks fail. Isolated checks confirm account isolation, deletion, and data-loss defects. This review adds documentation and synthetic-data reproductions; it does not change application behavior.
 
 Reviewed commit: `fef13d9`. Toolchain: Flutter 3.44.8, Dart 3.12.2. Review covered Flutter source, local storage, authentication, attachment handling, offline sync, native configuration, and hosted Dart dependency advisories. Priorities below are review judgments, not formal CVSS scores.

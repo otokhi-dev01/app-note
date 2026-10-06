@@ -5,6 +5,7 @@ import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/feedback/app_snackbar.dart';
@@ -12,6 +13,7 @@ import 'package:Note/core/localization/app_translations.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/data/services/auth_device_service.dart';
+import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/services/registration_service.dart';
 import 'package:Note/features/auth/presentation/controllers/registration_controller.dart';
 import 'package:Note/features/auth/presentation/views/register_view.dart';
@@ -22,6 +24,16 @@ import 'package:Note/routes/app_pages.dart';
 class _Session extends SessionStorage {
   @override
   Future<void> loadSession() async {}
+
+  @override
+  Future<void> saveSession(
+    String token,
+    UserData userData, {
+    String? refreshToken,
+  }) async {
+    this.token.value = token;
+    user.value = userData;
+  }
 }
 
 class _NavigationObserver extends NavigatorObserver {
@@ -89,6 +101,7 @@ void main() {
 
   setUp(() {
     Get.testMode = true;
+    FlutterSecureStorage.setMockInitialValues({});
     navigation = _NavigationObserver();
     now = DateTime.utc(2026, 10, 2);
     session = Get.put<SessionStorage>(_Session());
@@ -122,6 +135,10 @@ void main() {
             name: Routes.LOGIN,
             page: () => const Scaffold(body: Text('Login destination')),
           ),
+          GetPage(
+            name: Routes.FOLDER,
+            page: () => const Scaffold(body: Text('App destination')),
+          ),
         ],
       ),
     );
@@ -152,8 +169,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Login destination'), findsNothing);
-    expect(session.isLoggedIn, isFalse);
+    expect(find.text('App destination'), findsNothing);
+    expect(session.isLoggedIn, isTrue);
     unawaited(tester.binding.reassembleApplication());
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 5));
@@ -161,7 +178,7 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(find.byType(RegistrationSuccess), findsNothing);
-    expect(find.text('Login destination'), findsOneWidget);
+    expect(find.text('App destination'), findsOneWidget);
   }
 
   Future<void> dispose(WidgetTester tester) async {
@@ -221,23 +238,20 @@ void main() {
         }
         await continueFromSuccess(tester);
         expect(controller.passwordController.text, isEmpty);
-        expect(find.text('Login destination'), findsOneWidget);
+        expect(find.text('App destination'), findsOneWidget);
         unawaited(tester.binding.reassembleApplication());
         await tester.pumpAndSettle();
-        expect(Get.currentRoute, Routes.LOGIN);
+        expect(Get.currentRoute, Routes.FOLDER);
         expect(find.byType(RegisterScreen), findsNothing);
         expect(Get.key.currentState!.canPop(), isFalse);
         expect(controller.isClosed, isTrue);
         expect(
-          navigation.pushed.where((route) => route == Routes.LOGIN),
+          navigation.pushed.where((route) => route == Routes.FOLDER),
           hasLength(1),
         );
-        expect(Get.arguments, {
-          'account': account,
-          if (isPhone) 'countryCode': 'KH',
-        });
+        expect(Get.arguments, isNull);
         expect(adapter.requests, hasLength(isPhone ? 2 : 1));
-        expect(session.isLoggedIn, isFalse);
+        expect(session.isLoggedIn, isTrue);
         await dispose(tester);
       },
     );
@@ -286,7 +300,7 @@ void main() {
     await dispose(tester);
   });
 
-  testWidgets('Username without a token skips profile and temporary login', (
+  testWidgets('Username without a token uses temporary login for the app', (
     tester,
   ) async {
     await mount(tester);
@@ -294,20 +308,23 @@ void main() {
     controller.accountController.text = 'name text';
     adapter.respond = (request) => request.uri.path.endsWith('/register')
         ? _json({'success': true})
-        : _json({'success': false, 'message': 'Profile unavailable'}, 500);
+        : _json({
+            'success': true,
+            'data': {'accessToken': 'temporary-token'},
+          });
     await finish(tester, controller.register());
-    expect(adapter.requests, hasLength(1));
+    expect(adapter.requests, hasLength(2));
     expect(find.byType(RegistrationSuccess), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('Login destination'), findsOneWidget);
-    expect(Get.arguments, {'account': 'name text'});
-    expect(session.isLoggedIn, isFalse);
+    expect(find.text('App destination'), findsOneWidget);
+    expect(Get.arguments, isNull);
+    expect(session.isLoggedIn, isTrue);
     await dispose(tester);
   });
 
   testWidgets(
-    'Successful signup opens login once despite repeated completion',
+    'Successful signup opens the app once despite repeated completion',
     (tester) async {
       await mount(tester);
       fill();
@@ -316,13 +333,13 @@ void main() {
       await tester.tap(find.text('Done'));
       controller.finishRegistration();
       await tester.pumpAndSettle();
-      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
-      expect(find.text('Login destination'), findsOneWidget);
-      expect(Get.arguments, {'account': 'name text'});
+      expect(find.text('App destination'), findsOneWidget);
+      expect(Get.arguments, isNull);
       expect(
-        navigation.pushed.where((route) => route == Routes.LOGIN),
+        navigation.pushed.where((route) => route == Routes.FOLDER),
         hasLength(1),
       );
       expect(tester.takeException(), isNull);
@@ -330,7 +347,7 @@ void main() {
     },
   );
 
-  testWidgets('Unconfirmed registration cannot show success or open login', (
+  testWidgets('Unconfirmed registration cannot show success or open the app', (
     tester,
   ) async {
     await mount(tester);
@@ -340,11 +357,11 @@ void main() {
     await finish(tester, controller.register());
     expect(controller.completed.value, isFalse);
     expect(find.byType(RegistrationSuccess), findsNothing);
-    expect(find.text('Login destination'), findsNothing);
+    expect(find.text('App destination'), findsNothing);
     expect(controller.error.value, 'Account could not be created');
     controller.finishRegistration();
     await tester.pumpAndSettle();
-    expect(find.text('Login destination'), findsNothing);
+    expect(find.text('App destination'), findsNothing);
     await dispose(tester);
   });
 
@@ -431,7 +448,7 @@ void main() {
         'Bearer signup-token',
       );
       expect(find.byType(RegistrationSuccess), findsOneWidget);
-      expect(find.text('Login destination'), findsNothing);
+      expect(find.text('App destination'), findsNothing);
       expect(find.byType(EditableText), findsNothing);
       expect(controller.completed.value, isTrue);
       for (final field in [
@@ -443,13 +460,13 @@ void main() {
       ]) {
         expect(field.text, isEmpty);
       }
-      expect(session.isLoggedIn, isFalse);
+      expect(session.isLoggedIn, isTrue);
       await controller.register();
       expect(adapter.requests, hasLength(4));
       await continueFromSuccess(tester, emailVerified: true);
-      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsOneWidget);
       expect(find.text('Email successfully verified'), findsNothing);
-      expect(Get.arguments, {'account': 'new@example.com'});
+      expect(Get.arguments, isNull);
       expect(Get.key.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
       await dispose(tester);
@@ -575,7 +592,7 @@ void main() {
         hasLength(2),
       );
       await continueFromSuccess(tester, emailVerified: true);
-      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsOneWidget);
       await dispose(tester);
     },
   );
@@ -617,9 +634,9 @@ void main() {
         hasLength(1),
       );
       await continueFromSuccess(tester, emailVerified: true);
-      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsOneWidget);
       expect(Get.key.currentState!.canPop(), isFalse);
-      expect(session.isLoggedIn, isFalse);
+      expect(session.isLoggedIn, isTrue);
       await dispose(tester);
     },
   );
@@ -649,9 +666,9 @@ void main() {
           'Bearer temporary-token',
         );
         expect(adapter.requests[3].data['account'], account);
-        expect(session.isLoggedIn, isFalse);
+        expect(session.isLoggedIn, isTrue);
         await continueFromSuccess(tester, emailVerified: true);
-        expect(find.text('Login destination'), findsOneWidget);
+        expect(find.text('App destination'), findsOneWidget);
         await dispose(tester);
       },
     );

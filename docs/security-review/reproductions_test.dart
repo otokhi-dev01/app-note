@@ -94,7 +94,7 @@ void main() {
         normalizeAttachmentUrl('https://outside.example/private.jpg'),
         'https://outside.example/private.jpg',
       );
-      expect(attachmentAuthHeaders(), {
+      expect(attachmentAuthHeaders('https://outside.example/private.jpg'), {
         'Authorization': 'Bearer synthetic-token-A',
       });
       // Image.network passes these two outputs together in production.

@@ -16,6 +16,7 @@ Future<void> showCameraCaptureSheet(
   BuildContext context,
   NoteDetailController controller,
 ) async {
+  if (!context.mounted || controller.isClosed) return;
   final isVideo = await showCupertinoModalPopup<bool>(
     context: context,
     builder: (sheetContext) => CupertinoActionSheet(
@@ -32,11 +33,11 @@ Future<void> showCameraCaptureSheet(
       ],
       cancelButton: CupertinoActionSheetAction(
         onPressed: () => Navigator.pop(sheetContext),
-        child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+        child: Text(MaterialLocalizations.of(sheetContext).cancelButtonLabel),
       ),
     ),
   );
-  if (isVideo == null) return;
+  if (isVideo == null || !context.mounted || controller.isClosed) return;
 
   await controller.addAttachment(ImageSource.camera, isVideo: isVideo);
 }

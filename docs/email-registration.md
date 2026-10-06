@@ -18,9 +18,10 @@ rejected before any request. Outer whitespace is trimmed and internal spaces
 are preserved.
 
 Username signup completes after `/api/auth/register` succeeds. It does not
-create an email from the username or call temporary login/profile setup.
-It shows the glass success screen. Done opens Sign In with the exact username
-filled in and the password blank. Successful sign-in then opens the app.
+create an email from the username or call profile setup. If the register
+response has no access token, it uses the existing credentials once to open an
+authenticated session. It shows the glass success screen, and Done opens the
+app directly.
 Phone signup retains its separate profile setup. Login submits the documented
 `account`, `password`, and device fields, without duplicating the account as
 email/username/phone aliases. API-mocked tests cover matching username values
@@ -41,22 +42,20 @@ checked on October 2, 2026, documents this flow:
    username, email, or normalized phone. Password confirmation is checked locally.
 4. Email/phone flows use `POST /api/users/profile/save`, authorized using the new
    account's token. Username signup skips this step.
-5. Clear temporary data. After successful registration (and profile saving where
-   required), show the glass success screen. Email signup confirms verification;
-   username and phone signup confirm account creation. Done or system back opens
-   Sign In with the account filled in and replaces the signup stack. Repeated
-   completion cannot push duplicate login routes. Hot reload preserves the
-   success screen until Done, and preserves Sign In and any password entered
-   there afterward.
-6. Successful sign-in opens the app and removes the authentication screens from
-   the navigation stack. Failed sign-in stays on Sign In so the user can retry.
+5. Clear temporary data and persist the new session. After successful
+   registration (and profile saving where required), show the glass success
+   screen. Email signup confirms verification; username and phone signup
+   confirm account creation. Done or system back opens the app and replaces the
+   signup stack. Repeated completion cannot push duplicate app routes.
+6. The new session opens the app without requiring a second sign-in, and the
+   authentication screens are removed from the navigation stack.
 
 The register schema does not accept username or phone. Saving these through
 `/api/users/profile/save` uses the documented `SaveProfileRequest` instead of
 sending unsupported fields to register. If registration does not return an
 access token, the app temporarily calls `/api/auth/login` with the new account's
-credentials to authorize profile saving. It never stores these temporary tokens
-or changes an existing app session. The profile request uses an isolated Dio
+credentials to authorize profile saving. The resulting credential is stored as
+the new app session after registration completes. The profile request uses an isolated Dio
 client sharing the transport adapter, so existing session interceptors cannot
 replace its temporary credential.
 
@@ -99,8 +98,8 @@ and secret-free logs. They do not create production accounts or send real email.
 
 For live testing, choose a unique username, unused email, or valid phone as
 account input and enter matching passwords. If prompted, provide an email you
-control. Enter the received code, tap Done on the success screen, then sign in and
-check the saved profile. Also test an incorrect/expired
+control. Enter the received code and tap Done on the success screen to open the
+app, then check the saved profile. Also test an incorrect/expired
 code and a taken username. Email delivery and OTP generation belong to the backend.
 
 ## Live email signup API verification — October 2, 2026

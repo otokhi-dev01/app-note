@@ -176,8 +176,10 @@ class UserData extends AuthUser {
         (json['fullName'] ??
                 json['displayName'] ??
                 json['name'] ??
+                json['username'] ??
                 json['FullName'] ??
-                json['Name'])
+                json['Name'] ??
+                json['Username'])
             ?.toString(),
     phone: (json['phone'] ?? json['email'] ?? json['Phone'] ?? json['Email'])
         ?.toString(),

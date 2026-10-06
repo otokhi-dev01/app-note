@@ -35,7 +35,11 @@ class EncryptionController extends GetxController {
   /// Safe to call multiple times concurrently — overlapping calls share the
   /// same in-flight setup instead of racing separate key uploads.
   Future<void> setupForCurrentUser() {
-    return _setupFuture ??= _setup().whenComplete(() => _setupFuture = null);
+    return _setupFuture ??= _setup()
+        .catchError((e) {
+          isReady.value = false;
+        })
+        .whenComplete(() => _setupFuture = null);
   }
 
   Future<void> _setup() async {

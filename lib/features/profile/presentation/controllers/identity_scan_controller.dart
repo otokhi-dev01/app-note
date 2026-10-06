@@ -237,7 +237,7 @@ class IdentityScanController extends GetxController {
     }
   }
 
-  /// A null side exports the card as a PNG; otherwise exports the original side.
+  /// A null side exports a printable record; otherwise exports the original side.
   Future<void> onDownloadCard({bool? front}) async {
     final original = card.value;
     if (isLoading.value || isClosed || original == null) return;

@@ -137,13 +137,14 @@ const Map<String, String> kmKH = {
   'register_have_account': 'មានគណនីរួចហើយមែនទេ?',
   'login_link': 'ចូល',
   'success_title': 'ជោគជ័យ',
-  'register_success_message': 'បង្កើតគណនីដោយជោគជ័យ! សូមចូល។',
+  'register_success_message':
+      'បង្កើតគណនីដោយជោគជ័យ! ចុច រួចរាល់ ដើម្បីបើកកម្មវិធី។',
   'register_verified_title': 'បានផ្ទៀងផ្ទាត់អ៊ីមែលដោយជោគជ័យ',
   'register_created_title': 'បានបង្កើតគណនីដោយជោគជ័យ',
   'register_created_description':
-      'ចូលដោយប្រើ @account ដើម្បីចាប់ផ្តើមកត់ត្រាគំនិតរបស់អ្នក។',
+      'គណនីរបស់អ្នករួចរាល់ហើយ។ ចុច រួចរាល់ ដើម្បីចាប់ផ្តើមកត់ត្រាគំនិតរបស់អ្នក។',
   'register_verified_description':
-      'គណនីរបស់អ្នករួចរាល់ហើយ។ ចូលដើម្បីចាប់ផ្តើមកត់ត្រាគំនិតរបស់អ្នក។',
+      'គណនីរបស់អ្នករួចរាល់ហើយ។ ចុច រួចរាល់ ដើម្បីចាប់ផ្តើមកត់ត្រាគំនិតរបស់អ្នក។',
   'register_failed_title': 'ការចុះឈ្មោះបានបរាជ័យ',
 
   // Forgot password sheet

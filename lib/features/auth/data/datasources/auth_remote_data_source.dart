@@ -75,11 +75,13 @@ class AuthRemoteDataSource extends GetxService {
           'The account server returned an invalid response. Please try again.',
         );
       }
+      _checkCredentialRejection(response.data, response.statusCode);
       return AuthResponse.fromJson(
         Map<String, dynamic>.from(response.data),
         statusCode: response.statusCode,
       );
     } on dio.DioException catch (e) {
+      _checkCredentialRejection(e.response?.data, e.response?.statusCode);
       throw ApiErrorParser.toException(e);
     }
   }
@@ -121,39 +123,39 @@ class AuthRemoteDataSource extends GetxService {
           'The account server returned an invalid response. Please try again.',
         );
       }
-      if (url.endsWith(AppConstants.loginEndpoint)) {
-        _checkCredentialRejection(response.data, response.statusCode);
-      }
+      _checkCredentialRejection(response.data, response.statusCode);
       return AuthResponse.fromJson(
         Map<String, dynamic>.from(response.data),
         statusCode: response.statusCode,
       );
     } on dio.DioException catch (e) {
-      if (url.endsWith(AppConstants.loginEndpoint)) {
-        _checkCredentialRejection(e.response?.data, e.response?.statusCode);
-      }
+      _checkCredentialRejection(e.response?.data, e.response?.statusCode);
       throw ApiErrorParser.toException(e);
     }
   }
 
-  /// The live server currently labels invalid credentials as HTTP 500.
-  /// Match only its explicit credential rejection, never arbitrary 5xx errors.
+  /// The live server labels invalid credentials or auth errors in body envelopes.
   void _checkCredentialRejection(dynamic body, int? statusCode) {
     if (body is! Map || (body['success'] ?? body['Success']) == true) return;
     final message = (body['message'] ?? body['Message'])
         ?.toString()
-        .trim()
-        .toLowerCase();
-    if (message == 'invalid credential!' ||
-        message == 'invalid credentials!' ||
-        message == 'invalid account or password.') {
+        .trim();
+    if (message != null && message.isNotEmpty) {
       if (kDebugMode) {
-        debugPrint('[AUTH] Credential rejection: status=$statusCode');
+        debugPrint('[AUTH] Credential rejection: status=$statusCode, msg=$message');
       }
-      throw const UnauthorizedException(
-        'Invalid account or password. Please check your details and try again.',
-      );
+      throw UnauthorizedException(_formatAuthErrorMessage(message));
     }
+  }
+
+  static String _formatAuthErrorMessage(String msg) {
+    final lower = msg.toLowerCase();
+    if (lower == 'invalid credential!' ||
+        lower == 'invalid credentials!' ||
+        lower == 'invalid account or password.') {
+      return 'Invalid account or password. Please check your details and try again.';
+    }
+    return msg;
   }
 
   /// Revokes the current device's session server-side. Callers should still
@@ -256,10 +258,19 @@ class AuthRemoteDataSource extends GetxService {
   /// account.
   Future<void> deleteAccount(String password) async {
     try {
-      await _api.dio.post(
+      final response = await _api.dio.post(
         '${AppConstants.authBaseUrl}/delete-account',
         data: {'password': password},
       );
+      final data = response.data;
+      if (data is! Map || (data['success'] ?? data['Success']) != true) {
+        throw ServerException(
+          ApiErrorParser.messageFrom(
+            data,
+            fallback: 'The account could not be deleted. Please try again.',
+          ),
+        );
+      }
     } on dio.DioException catch (e) {
       throw ApiErrorParser.toException(e);
     }

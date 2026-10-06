@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
+import 'package:Note/core/storage/app_media_storage.dart';
 import 'package:Note/features/folder/data/repositories/local_folder_repository.dart';
 import 'package:Note/features/note/data/models/note_block_mapper.dart';
 import 'package:Note/features/note/domain/entities/note.dart';
@@ -66,7 +67,7 @@ class LocalNoteRepository implements NoteRepository {
     if (idResult case Err(:final failure)) return Err(failure);
     final confirmedId = idResult.valueOrNull!;
 
-    if (content != null && content.isNotEmpty) {
+    if (content != null) {
       final contentResult = await saveNoteContent(
         noteId: confirmedId,
         title: title,
@@ -217,8 +218,9 @@ class LocalNoteRepository implements NoteRepository {
   @override
   Future<Result<void>> emptyTrash() async {
     final all = _readAll();
+    final removedIds = all.where((n) => n.isDeleted).map((n) => n.id).toSet();
     for (final note in all.where((n) => n.isDeleted)) {
-      await _deleteAttachmentFiles(note);
+      await _deleteAttachmentFiles(note, removedIds: removedIds);
     }
     all.removeWhere((n) => n.isDeleted);
     await _writeAll(all);
@@ -288,20 +290,37 @@ class LocalNoteRepository implements NoteRepository {
   /// when an account is deleted or when guest data should not carry over to
   /// a signed-in session.
   Future<void> clear() async {
-    for (final note in _readAll()) {
-      await _deleteAttachmentFiles(note);
+    final all = _readAll();
+    final removedIds = all.map((note) => note.id).toSet();
+    for (final note in all) {
+      await _deleteAttachmentFiles(note, removedIds: removedIds);
     }
     await _storage.remove(_notesKey);
     await _storage.remove(_nextNoteIdKey);
     await _storage.remove(_nextAttachmentIdKey);
   }
 
-  Future<void> _deleteAttachmentFiles(Note note) async {
+  Future<void> _deleteAttachmentFiles(
+    Note note, {
+    Set<int> removedIds = const {},
+  }) async {
     for (final block in note.content.whereType<AttachmentBlock>()) {
       final path = block.localPath;
       if (path == null) continue;
-      final file = File(path);
-      if (file.existsSync()) await file.delete();
+      if (_readAll().any(
+        (other) =>
+            other.id != note.id &&
+            !removedIds.contains(other.id) &&
+            other.content.whereType<AttachmentBlock>().any(
+              (item) => item.localPath == path,
+            ),
+      )) {
+        continue;
+      }
+      await AppMediaStorage.deleteIfManaged(
+        path: path,
+        folder: 'guest_attachments',
+      );
     }
   }
 

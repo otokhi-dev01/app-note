@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:Note/core/storage/session_storage.dart';
+import 'package:Note/core/storage/guest_mode_service.dart';
 
 /// Profile fields the backend's user model has no columns for yet — only
 /// `fullName`, `phone`, and `profileImage` round-trip through the API today,
@@ -12,6 +16,24 @@ import 'package:get_storage/get_storage.dart';
 /// without account" guest gets the same on-device-only editing rather than
 /// being blocked from setting a name or photo entirely.
 class ProfileExtrasStorage {
+  ProfileExtrasStorage({SessionStorage? session}) : _session = session;
+
+  final SessionStorage? _session;
+
+  String _key(String key) {
+    final session =
+        _session ??
+        (Get.isRegistered<SessionStorage>()
+            ? Get.find<SessionStorage>()
+            : null);
+    final guest =
+        Get.isRegistered<GuestModeService>() &&
+        Get.find<GuestModeService>().isGuestMode.value;
+    final owner = guest ? null : session?.user.value?.id;
+    final encoded = base64Url.encode(utf8.encode(owner ?? 'guest'));
+    return '${key}_$encoded';
+  }
+
   static const _keyUsername = 'profile_extra_username';
   static const _keyAccount = 'profile_extra_account';
   static const _keyEmail = 'profile_extra_email';
@@ -32,30 +54,32 @@ class ProfileExtrasStorage {
 
   final _storage = GetStorage();
 
-  String get profileImagePath => _storage.read<String>(_keyProfileImage) ?? '';
-  set profileImagePath(String value) => _storage.write(_keyProfileImage, value);
+  String get profileImagePath =>
+      _storage.read<String>(_key(_keyProfileImage)) ?? '';
+  set profileImagePath(String value) =>
+      _storage.write(_key(_keyProfileImage), value);
 
-  String get username => _storage.read<String>(_keyUsername) ?? '';
-  set username(String value) => _storage.write(_keyUsername, value);
+  String get username => _storage.read<String>(_key(_keyUsername)) ?? '';
+  set username(String value) => _storage.write(_key(_keyUsername), value);
 
-  String get account => _storage.read<String>(_keyAccount) ?? '';
-  set account(String value) => _storage.write(_keyAccount, value);
+  String get account => _storage.read<String>(_key(_keyAccount)) ?? '';
+  set account(String value) => _storage.write(_key(_keyAccount), value);
 
-  String get email => _storage.read<String>(_keyEmail) ?? '';
-  set email(String value) => _storage.write(_keyEmail, value);
+  String get email => _storage.read<String>(_key(_keyEmail)) ?? '';
+  set email(String value) => _storage.write(_key(_keyEmail), value);
 
-  String get job => _storage.read<String>(_keyJob) ?? '';
-  set job(String value) => _storage.write(_keyJob, value);
+  String get job => _storage.read<String>(_key(_keyJob)) ?? '';
+  set job(String value) => _storage.write(_key(_keyJob), value);
 
-  String get bio => _storage.read<String>(_keyBio) ?? '';
-  set bio(String value) => _storage.write(_keyBio, value);
+  String get bio => _storage.read<String>(_key(_keyBio)) ?? '';
+  set bio(String value) => _storage.write(_key(_keyBio), value);
 
-  String? get colorHex => _storage.read<String>(_keyColorHex);
+  String? get colorHex => _storage.read<String>(_key(_keyColorHex));
   set colorHex(String? value) {
     if (value == null || value.isEmpty) {
-      _storage.remove(_keyColorHex);
+      _storage.remove(_key(_keyColorHex));
     } else {
-      _storage.write(_keyColorHex, value);
+      _storage.write(_key(_keyColorHex), value);
     }
   }
 
@@ -67,29 +91,35 @@ class ProfileExtrasStorage {
   String get guestImagePath => _storage.read<String>(_keyGuestImage) ?? '';
   set guestImagePath(String value) => _storage.write(_keyGuestImage, value);
 
-  String get phone => _storage.read<String>(_keyPhone) ?? '';
-  set phone(String value) => _storage.write(_keyPhone, value);
+  String get phone => _storage.read<String>(_key(_keyPhone)) ?? '';
+  set phone(String value) => _storage.write(_key(_keyPhone), value);
 
-  String get highSchool => _storage.read<String>(_keyHighSchool) ?? '';
-  set highSchool(String value) => _storage.write(_keyHighSchool, value);
+  String get highSchool => _storage.read<String>(_key(_keyHighSchool)) ?? '';
+  set highSchool(String value) => _storage.write(_key(_keyHighSchool), value);
 
   String get firstChildName =>
-      _storage.read<String>(_keyFirstChildName) ?? '';
+      _storage.read<String>(_key(_keyFirstChildName)) ?? '';
   set firstChildName(String value) =>
-      _storage.write(_keyFirstChildName, value);
+      _storage.write(_key(_keyFirstChildName), value);
 
-  String get fatherName => _storage.read<String>(_keyFatherName) ?? '';
-  set fatherName(String value) => _storage.write(_keyFatherName, value);
+  String get fatherName => _storage.read<String>(_key(_keyFatherName)) ?? '';
+  set fatherName(String value) => _storage.write(_key(_keyFatherName), value);
 
-  String get motherName => _storage.read<String>(_keyMotherName) ?? '';
-  set motherName(String value) => _storage.write(_keyMotherName, value);
+  String get motherName => _storage.read<String>(_key(_keyMotherName)) ?? '';
+  set motherName(String value) => _storage.write(_key(_keyMotherName), value);
 
-  String get favoriteColor => _storage.read<String>(_keyFavoriteColor) ?? '';
-  set favoriteColor(String value) => _storage.write(_keyFavoriteColor, value);
+  String get favoriteColor =>
+      _storage.read<String>(_key(_keyFavoriteColor)) ?? '';
+  set favoriteColor(String value) =>
+      _storage.write(_key(_keyFavoriteColor), value);
 
-  String get favoriteSong => _storage.read<String>(_keyFavoriteSong) ?? '';
-  set favoriteSong(String value) => _storage.write(_keyFavoriteSong, value);
+  String get favoriteSong =>
+      _storage.read<String>(_key(_keyFavoriteSong)) ?? '';
+  set favoriteSong(String value) =>
+      _storage.write(_key(_keyFavoriteSong), value);
 
-  String get favoriteFood => _storage.read<String>(_keyFavoriteFood) ?? '';
-  set favoriteFood(String value) => _storage.write(_keyFavoriteFood, value);
+  String get favoriteFood =>
+      _storage.read<String>(_key(_keyFavoriteFood)) ?? '';
+  set favoriteFood(String value) =>
+      _storage.write(_key(_keyFavoriteFood), value);
 }

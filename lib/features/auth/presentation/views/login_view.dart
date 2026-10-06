@@ -1,15 +1,16 @@
+import 'package:Note/core/storage/session_storage.dart';
+import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
+import 'package:Note/routes/app_pages.dart';
+import 'package:Note/shared/widgets/app_logo.dart';
+import 'package:Note/shared/widgets/glass_widgets.dart';
+import 'package:Note/shared/widgets/language_toggle_button.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:get/get.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart' as lg;
-import 'package:Note/features/auth/presentation/widgets/account_input_field.dart';
-import 'package:Note/routes/app_pages.dart';
-import 'package:Note/shared/widgets/glass_widgets.dart';
-import 'package:Note/shared/widgets/language_toggle_button.dart';
-import 'package:Note/features/auth/presentation/controllers/auth_controller.dart';
-import 'package:Note/shared/widgets/app_logo.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({
@@ -240,18 +241,27 @@ class _LoginViewState extends State<LoginView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (widget.sessionRejected) ...[
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        'session_rejected_message'.tr,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.error,
+                  Obx(() {
+                    final session = Get.find<SessionStorage>();
+                    if (!widget.sessionRejected && !session.sessionRejected.value) {
+                      return const SizedBox.shrink();
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            'session_rejected_message'.tr,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                  ],
+                        const SizedBox(height: 14),
+                      ],
+                    );
+                  }),
                   AccountInputField(controller: controller.accountController),
                   const SizedBox(height: 14),
                   Obx(

@@ -1,4 +1,5 @@
 import 'package:get_storage/get_storage.dart';
+import 'package:Note/core/storage/account_operation_queue.dart';
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/storage/session_storage.dart';
@@ -28,12 +29,18 @@ class FolderSyncRepository implements FolderRepository {
   final SessionStorage _session;
   final _storage = GetStorage();
 
+  late final _operations = AccountOperationQueue(_session);
+
   FolderSyncRepository(this._remote, this._session);
 
   /// Namespaced per signed-in account so switching accounts on one device
   /// never mixes caches, and so a stale cache can't survive as a different
   /// user's data.
-  String get _uid => _session.user.value?.id ?? 'unknown';
+  String get _uid {
+    _operations.check();
+    return _session.user.value?.id ?? 'unknown';
+  }
+
   String get _cacheKey => 'account_folders_cache_$_uid';
   String get _queueKey => 'account_folders_queue_$_uid';
   String get _nextIdKey => 'account_folders_next_id_$_uid';
@@ -49,20 +56,16 @@ class FolderSyncRepository implements FolderRepository {
   /// offline and has since synced.
   int resolveId(int id) => id >= 0 ? id : (_readTempMap()[id] ?? id);
 
-  bool _isOfflineOrAuthFailure(AppFailure failure) {
-    if (failure is NetworkFailure) return true;
-    if (failure is UnauthorizedFailure) return true;
-    if (failure is ServerFailure && failure.statusCode == 401) return true;
-    return false;
-  }
+  bool _isOfflineFailure(AppFailure failure) => failure is NetworkFailure;
 
   @override
-  Future<Result<FolderBundle>> getFolders() async {
+  Future<Result<FolderBundle>> getFolders() => _operations.run(() async {
     if (!_session.isLoggedIn) {
       return Ok(_bundle(_readCache()));
     }
     await flushPending();
 
+    _operations.check();
     final result = await _remote.getFolders();
     switch (result) {
       case Ok(:final value):
@@ -77,10 +80,10 @@ class FolderSyncRepository implements FolderRepository {
         await _writeCache(list);
         return Ok(_bundle(list));
       case Err(:final failure):
-        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
+        if (!_isOfflineFailure(failure)) return Err(failure);
         return Ok(_bundle(_readCache()));
     }
-  }
+  });
 
   @override
   Future<Result<int>> saveFolder({
@@ -90,7 +93,7 @@ class FolderSyncRepository implements FolderRepository {
     required String iconName,
     required String colorValue,
     int sortOrder = 0,
-  }) async {
+  }) => _operations.run(() async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
       return const Err(ValidationFailure('Folder name cannot be empty.'));
@@ -117,6 +120,7 @@ class FolderSyncRepository implements FolderRepository {
       return Ok(id);
     }
 
+    _operations.check();
     final result = await _remote.saveFolder(
       id: id,
       parentId: parentId,
@@ -142,7 +146,7 @@ class FolderSyncRepository implements FolderRepository {
         );
         return Ok(value);
       case Err(:final failure):
-        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
+        if (!_isOfflineFailure(failure)) return Err(failure);
         final assignedId = id == 0 ? _nextTempId() : id;
         await _writeCache(
           _apply(
@@ -167,55 +171,60 @@ class FolderSyncRepository implements FolderRepository {
         );
         return Ok(assignedId);
     }
-  }
+  });
 
   @override
-  Future<Result<void>> deleteRestoreFolder(int folderId, bool isDelete) async {
-    if (folderId < 0) {
-      await _writeCache(
-        _apply(
-          _readCache(),
-          _FolderOp.deleteRestore(id: folderId, isDelete: isDelete),
-        ),
-      );
-      _upsertDeleteRestore(folderId, isDelete);
-      return okVoid;
-    }
+  Future<Result<void>> deleteRestoreFolder(int folderId, bool isDelete) =>
+      _operations.run(() async {
+        if (folderId < 0) {
+          await _writeCache(
+            _apply(
+              _readCache(),
+              _FolderOp.deleteRestore(id: folderId, isDelete: isDelete),
+            ),
+          );
+          _upsertDeleteRestore(folderId, isDelete);
+          return okVoid;
+        }
 
-    final result = await _remote.deleteRestoreFolder(folderId, isDelete);
-    switch (result) {
-      case Ok():
-        await _writeCache(
-          _apply(
-            _readCache(),
-            _FolderOp.deleteRestore(id: folderId, isDelete: isDelete),
-          ),
-        );
-        return okVoid;
-      case Err(:final failure):
-        if (!_isOfflineOrAuthFailure(failure)) return Err(failure);
-        await _writeCache(
-          _apply(
-            _readCache(),
-            _FolderOp.deleteRestore(id: folderId, isDelete: isDelete),
-          ),
-        );
-        _upsertDeleteRestore(folderId, isDelete);
-        return okVoid;
-    }
-  }
+        _operations.check();
+        final result = await _remote.deleteRestoreFolder(folderId, isDelete);
+        switch (result) {
+          case Ok():
+            await _writeCache(
+              _apply(
+                _readCache(),
+                _FolderOp.deleteRestore(id: folderId, isDelete: isDelete),
+              ),
+            );
+            return okVoid;
+          case Err(:final failure):
+            if (!_isOfflineFailure(failure)) return Err(failure);
+            await _writeCache(
+              _apply(
+                _readCache(),
+                _FolderOp.deleteRestore(id: folderId, isDelete: isDelete),
+              ),
+            );
+            _upsertDeleteRestore(folderId, isDelete);
+            return okVoid;
+        }
+      });
 
   @override
-  Future<Result<void>> deleteFolderPermanently(int folderId) async {
-    if (folderId < 0) {
-      // Never reached the server — nothing to delete there. Forget it
-      // locally, cache and any queued ops for it alike.
-      await _writeCache(_readCache()..removeWhere((f) => f.id == folderId));
-      await _writeQueue(_readQueue()..removeWhere((op) => op.id == folderId));
-      return okVoid;
-    }
-    return _remote.deleteFolderPermanently(folderId);
-  }
+  Future<Result<void>> deleteFolderPermanently(int folderId) => _operations.run(
+    () async {
+      if (folderId < 0) {
+        // Never reached the server — nothing to delete there. Forget it
+        // locally, cache and any queued ops for it alike.
+        await _writeCache(_readCache()..removeWhere((f) => f.id == folderId));
+        await _writeQueue(_readQueue()..removeWhere((op) => op.id == folderId));
+        return okVoid;
+      }
+      _operations.check();
+      return _remote.deleteFolderPermanently(folderId);
+    },
+  );
 
   /// The display name for [folderId] — used by `NoteSyncRepository` so a
   /// note saved offline can show which folder it lives in without a network
@@ -238,61 +247,68 @@ class FolderSyncRepository implements FolderRepository {
   /// it later would only fail the same way again, and it must not block
   /// every op behind it forever.
   Future<void> flushPending() async {
-    final queue = _readQueue();
-    if (queue.isEmpty) return;
+    await _operations.run<void>(() async {
+      final queue = _readQueue();
+      if (queue.isEmpty) return okVoid;
 
-    final tempToReal = <int, int>{};
-    final stillQueued = <_FolderOp>[];
-    var offline = false;
+      final tempToReal = <int, int>{};
+      final stillQueued = <_FolderOp>[];
+      var offline = false;
 
-    for (final op in queue) {
-      final remapped = _remap(op, tempToReal);
-      if (offline) {
-        stillQueued.add(remapped);
-        continue;
+      for (final op in queue) {
+        _operations.check();
+        final remapped = _remap(op, tempToReal);
+        if (offline) {
+          stillQueued.add(remapped);
+          continue;
+        }
+
+        switch (remapped.type) {
+          case _FolderOpType.save:
+            _operations.check();
+            final result = await _remote.saveFolder(
+              id: remapped.id < 0 ? 0 : remapped.id,
+              parentId: remapped.parentId,
+              name: remapped.name!,
+              iconName: remapped.iconName!,
+              colorValue: remapped.colorValue!,
+              sortOrder: remapped.sortOrder!,
+            );
+            switch (result) {
+              case Ok(:final value):
+                if (remapped.id < 0) tempToReal[remapped.id] = value;
+              case Err(:final failure):
+                if (_isOfflineFailure(failure)) {
+                  offline = true;
+                  stillQueued.add(remapped);
+                }
+            }
+          case _FolderOpType.deleteRestore:
+            _operations.check();
+            final result = await _remote.deleteRestoreFolder(
+              remapped.id,
+              remapped.isDelete!,
+            );
+            if (result case Err(
+              :final failure,
+            ) when _isOfflineFailure(failure)) {
+              offline = true;
+              stillQueued.add(remapped);
+            }
+        }
       }
 
-      switch (remapped.type) {
-        case _FolderOpType.save:
-          final result = await _remote.saveFolder(
-            id: remapped.id < 0 ? 0 : remapped.id,
-            parentId: remapped.parentId,
-            name: remapped.name!,
-            iconName: remapped.iconName!,
-            colorValue: remapped.colorValue!,
-            sortOrder: remapped.sortOrder!,
-          );
-          switch (result) {
-            case Ok(:final value):
-              if (remapped.id < 0) tempToReal[remapped.id] = value;
-            case Err(:final failure):
-              if (_isOfflineOrAuthFailure(failure)) {
-                offline = true;
-                stillQueued.add(remapped);
-              }
-          }
-        case _FolderOpType.deleteRestore:
-          final result = await _remote.deleteRestoreFolder(
-            remapped.id,
-            remapped.isDelete!,
-          );
-          if (result
-              case Err(:final failure)
-              when _isOfflineOrAuthFailure(failure)) {
-            offline = true;
-            stillQueued.add(remapped);
-          }
+      await _writeQueue(stillQueued);
+      if (tempToReal.isNotEmpty) {
+        final remappedCache = _readCache()
+            .map((f) => _remapFolder(f, tempToReal))
+            .toList();
+        await _writeCache(remappedCache);
+        await _writeTempMap({..._readTempMap(), ...tempToReal});
       }
-    }
 
-    await _writeQueue(stillQueued);
-    if (tempToReal.isNotEmpty) {
-      final remappedCache = _readCache()
-          .map((f) => _remapFolder(f, tempToReal))
-          .toList();
-      await _writeCache(remappedCache);
-      await _writeTempMap({..._readTempMap(), ...tempToReal});
-    }
+      return okVoid;
+    });
   }
 
   // ── cache/queue mutation helpers ─────────────────────────────────────
@@ -451,7 +467,7 @@ class FolderSyncRepository implements FolderRepository {
   // ── persistence ───────────────────────────────────────────────────────
 
   List<Folder> _readCache() {
-    final raw = _storage.read<List>(_cacheKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_folders_cache_unknown') : null);
+    final raw = _storage.read<List>(_cacheKey);
     if (raw == null) return <Folder>[];
     return raw
         .whereType<Map>()
@@ -463,7 +479,7 @@ class FolderSyncRepository implements FolderRepository {
       _storage.write(_cacheKey, folders.map(_folderToJson).toList());
 
   List<_FolderOp> _readQueue() {
-    final raw = _storage.read<List>(_queueKey) ?? (_uid != 'unknown' ? _storage.read<List>('account_folders_queue_unknown') : null);
+    final raw = _storage.read<List>(_queueKey);
     if (raw == null) return <_FolderOp>[];
     return raw
         .whereType<Map>()
@@ -485,7 +501,7 @@ class FolderSyncRepository implements FolderRepository {
   /// `folderId` even after the folder itself has long since synced and left
   /// the pending queue.
   Map<int, int> _readTempMap() {
-    final raw = _storage.read<Map>(_tempMapKey) ?? (_uid != 'unknown' ? _storage.read<Map>('account_folders_temp_map_unknown') : null);
+    final raw = _storage.read<Map>(_tempMapKey);
     if (raw == null) return <int, int>{};
     return raw.map((k, v) => MapEntry(int.parse(k.toString()), v as int));
   }

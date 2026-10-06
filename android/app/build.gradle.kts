@@ -11,13 +11,19 @@ plugins {
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 
-if (!keystorePropertiesFile.exists()) {
-    throw GradleException(
-        "key.properties not found: ${keystorePropertiesFile.absolutePath}"
-    )
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
 }
 
-keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+val hasReleaseSigning = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+    .all { !keystoreProperties.getProperty(it).isNullOrBlank() }
+
+gradle.taskGraph.whenReady {
+    if (allTasks.any { it.project == project && it.name.contains("Release") } &&
+        !hasReleaseSigning) {
+        throw GradleException("Release builds require valid signing credentials in key.properties.")
+    }
+}
 
 android {
     namespace = "com.kimchheang.pii_note"
@@ -42,12 +48,12 @@ android {
         minSdk = flutter.minSdkVersion
         targetSdk = 36
 
-        versionCode = 2
-        versionName = "1.0.0"
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     signingConfigs {
-        create("release") {
+        if (hasReleaseSigning) create("release") {
             storeFile = file(
                 keystoreProperties["storeFile"].toString()
             )
@@ -59,7 +65,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
 
             isMinifyEnabled = true
             isShrinkResources = true

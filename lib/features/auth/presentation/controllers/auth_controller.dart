@@ -9,6 +9,7 @@ import 'package:Note/core/error/result.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
+import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/core/controllers/encryption_controller.dart';
@@ -57,30 +58,32 @@ class AuthController extends GetxController {
 
   Future<void> continueWithoutAccount() async {
     if (isLoading.value || isClosed) return;
+    Get.find<SessionStorage>().sessionRejected.value = false;
     isLoading.value = true;
     try {
       _guestMode.enable();
       await _replaceAuthStack(Routes.FOLDER);
     } finally {
-      if (!isClosed) isLoading.value = false;
+      isLoading.value = false;
     }
   }
 
   Future<void> _replaceAuthStack(String route) async {
     FocusManager.instance.primaryFocus?.unfocus();
-    // Let the current frame and its queued focus notifications finish while
-    // the old route's focus scope is still alive. Keep submission locked until
-    // navigation has been issued, and ignore responses to closed controllers.
-    await WidgetsBinding.instance.endOfFrame;
     FocusManager.instance.applyFocusChangesIfNeeded();
     if (isClosed) return;
-    unawaited(Get.offAllNamed(route));
+    isLoading.value = false;
+    await Get.offAllNamed(route);
   }
 
   Future<void> login() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final account = accountController.account;
+
+    final session = Get.find<SessionStorage>();
+    session.sessionRejected.value = false;
+    await session.invalidateToken();
 
     isLoading.value = true;
     try {
@@ -97,8 +100,10 @@ class AuthController extends GetxController {
           _guestMode.disable();
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
 
-          // Setup E2EE. Shared unawaited handles the background task.
-          unawaited(Get.find<EncryptionController>().setupForCurrentUser());
+          // Setup E2EE safely without blocking navigation
+          try {
+            unawaited(Get.find<EncryptionController>().setupForCurrentUser());
+          } catch (_) {}
 
           if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
           await _replaceAuthStack(Routes.FOLDER);
@@ -106,13 +111,17 @@ class AuthController extends GetxController {
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }
     } finally {
-      if (!isClosed) isLoading.value = false;
+      isLoading.value = false;
     }
   }
 
   Future<void> loginWithGoogle() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    final session = Get.find<SessionStorage>();
+    session.sessionRejected.value = false;
+    await session.invalidateToken();
+
     isLoading.value = true;
     try {
       final idToken = await _googleSignIn.signInIdToken();
@@ -128,7 +137,9 @@ class AuthController extends GetxController {
           }
           _guestMode.disable();
           AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
-          unawaited(Get.find<EncryptionController>().setupForCurrentUser());
+          try {
+            unawaited(Get.find<EncryptionController>().setupForCurrentUser());
+          } catch (_) {}
           await _replaceAuthStack(Routes.FOLDER);
         case Err(:final failure):
           AppSnackbar.failure('login_failed_title'.tr, failure);
@@ -147,7 +158,7 @@ class AuthController extends GetxController {
         AppSnackbar.error('login_failed_title'.tr, 'google_sign_in_failed'.tr);
       }
     } finally {
-      if (!isClosed) isLoading.value = false;
+      isLoading.value = false;
     }
   }
 
@@ -177,7 +188,7 @@ class AuthController extends GetxController {
           AppSnackbar.failure('register_failed_title'.tr, failure);
       }
     } finally {
-      if (!isClosed) isLoading.value = false;
+      isLoading.value = false;
     }
   }
 

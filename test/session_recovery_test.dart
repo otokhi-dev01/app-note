@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/session_storage.dart';
@@ -55,6 +57,21 @@ void main() {
   const refreshPath = '/api/auth/refresh-token';
   const sessionsPath = '/api/auth/sessions';
   const secureStorage = FlutterSecureStorage();
+
+  late Directory temporary;
+  setUpAll(() async {
+    temporary = await Directory.systemTemp.createTemp('session_recovery_');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/path_provider'),
+          (_) async => temporary.path,
+        );
+    await GetStorage.init();
+  });
+  tearDownAll(() async {
+    await GetStorage().erase();
+    await temporary.delete(recursive: true);
+  });
 
   setUp(() async {
     Get.testMode = true;
