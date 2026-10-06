@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -31,9 +32,10 @@ class NoteMediaContextMenu {
     required Widget preview,
     required List<NoteMediaMenuAction> actions,
     double previewHeight = 320,
-  }) {
-    Feedback.forLongPress(context);
-    return showGeneralDialog<void>(
+  }) async {
+    if (!context.mounted) return;
+    unawaited(Feedback.forLongPress(context));
+    await showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
@@ -43,6 +45,7 @@ class NoteMediaContextMenu {
         preview: preview,
         actions: actions,
         previewHeight: previewHeight,
+        sourceContext: context,
       ),
       transitionBuilder: (_, animation, _, child) {
         final curved = CurvedAnimation(
@@ -66,11 +69,13 @@ class _MediaContextMenuOverlay extends StatelessWidget {
   final Widget preview;
   final List<NoteMediaMenuAction> actions;
   final double previewHeight;
+  final BuildContext sourceContext;
 
   const _MediaContextMenuOverlay({
     required this.preview,
     required this.actions,
     required this.previewHeight,
+    required this.sourceContext,
   });
 
   @override
@@ -123,7 +128,10 @@ class _MediaContextMenuOverlay extends StatelessWidget {
                       const SizedBox(height: 24),
                       GestureDetector(
                         onTap: () {},
-                        child: _MediaActionCard(actions: actions),
+                        child: _MediaActionCard(
+                          actions: actions,
+                          sourceContext: sourceContext,
+                        ),
                       ),
                     ],
                   ),
@@ -139,8 +147,9 @@ class _MediaContextMenuOverlay extends StatelessWidget {
 
 class _MediaActionCard extends StatelessWidget {
   final List<NoteMediaMenuAction> actions;
+  final BuildContext sourceContext;
 
-  const _MediaActionCard({required this.actions});
+  const _MediaActionCard({required this.actions, required this.sourceContext});
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +165,9 @@ class _MediaActionCard extends StatelessWidget {
           ),
         );
       }
-      children.add(_MediaActionRow(action: actions[index]));
+      children.add(
+        _MediaActionRow(action: actions[index], sourceContext: sourceContext),
+      );
     }
 
     return ClipRRect(
@@ -182,8 +193,9 @@ class _MediaActionCard extends StatelessWidget {
 
 class _MediaActionRow extends StatelessWidget {
   final NoteMediaMenuAction action;
+  final BuildContext sourceContext;
 
-  const _MediaActionRow({required this.action});
+  const _MediaActionRow({required this.action, required this.sourceContext});
 
   @override
   Widget build(BuildContext context) {
@@ -202,9 +214,9 @@ class _MediaActionRow extends StatelessWidget {
         onTap: action.enabled
             ? () {
                 Navigator.pop(context);
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => action.onTap(),
-                );
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (sourceContext.mounted) action.onTap();
+                });
               }
             : null,
         child: SizedBox(

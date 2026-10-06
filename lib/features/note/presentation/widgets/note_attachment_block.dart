@@ -1159,7 +1159,7 @@ class _NetworkAttachmentImage extends StatelessWidget {
     return Image.network(
       url,
       key: ValueKey('network-$blockId-$url'),
-      headers: attachmentAuthHeaders(),
+      headers: attachmentAuthHeaders(url),
       width: double.infinity,
       height: naturalSize ? null : double.infinity,
       fit: naturalSize ? BoxFit.contain : BoxFit.cover,

@@ -23,15 +23,16 @@ class IdInformationStorage {
   Future<StoredIdInformation> read(String ownerKey) async {
     final snapshot = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
     if (snapshot != null) {
-      final profile = Map<String, dynamic>.from(
-        jsonDecode(snapshot)['profile'],
-      );
+      final data = jsonDecode(snapshot)['profile'];
+      final profile = data is Map
+          ? Map<String, dynamic>.from(data)
+          : <String, dynamic>{};
       return (
-        idNumber: profile['idNumber'] as String,
-        name: profile['name'] as String,
+        idNumber: profile['idNumber'] as String? ?? '',
+        name: profile['name'] as String? ?? '',
         dateOfBirth: DateTime.tryParse(profile['dateOfBirth'] ?? ''),
-        placeOfBirth: profile['placeOfBirth'] as String,
-        currentAddress: profile['currentAddress'] as String,
+        placeOfBirth: profile['placeOfBirth'] as String? ?? '',
+        currentAddress: profile['currentAddress'] as String? ?? '',
         expiryDate: DateTime.tryParse(profile['expiryDate'] ?? ''),
       );
     }
@@ -174,7 +175,7 @@ class IdInformationStorage {
 
   Future<NationalIdCard?> readCard(String ownerKey) async {
     final raw = await _storage.read(key: '${_prefix(ownerKey)}snapshot');
-    if (raw != null) {
+    if (raw != null && jsonDecode(raw)['card'] is Map) {
       final data = Map<String, dynamic>.from(jsonDecode(raw)['card']);
       return NationalIdCard.fromJson(
         data,
@@ -205,7 +206,7 @@ class IdInformationStorage {
             .map((entry) => Map<String, dynamic>.from(entry))
             .toList();
       }
-      return [snapshot];
+      return snapshot['card'] is Map ? [snapshot] : [];
     }
     final legacy = await readCard(ownerKey);
     if (legacy == null) return [];
@@ -277,24 +278,26 @@ class IdInformationStorage {
     entries.removeWhere((entry) => entry['card']['idNumber'] == idNumber);
     if (removed.isEmpty) return;
     if (entries.isEmpty) {
-      await delete(ownerKey);
-      return;
+      await _writeEntries(ownerKey, [], {});
+    } else {
+      final active = await readCard(ownerKey);
+      final selected = entries.firstWhere(
+        (entry) => entry['card']['idNumber'] == active?.idNumber,
+        orElse: () => entries.last,
+      );
+      await _writeEntries(ownerKey, entries, selected);
     }
-    final active = await readCard(ownerKey);
-    final selected = entries.firstWhere(
-      (entry) => entry['card']['idNumber'] == active?.idNumber,
-      orElse: () => entries.last,
-    );
-    await _writeEntries(ownerKey, entries, selected);
+    final passports = await readPassports(ownerKey);
     // Only remove images that no remaining card references.
     for (final entry in removed) {
       for (final side in ['frontImagePath', 'backImagePath']) {
         final path = entry['card'][side] as String?;
         if (entries.any(
-          (item) =>
-              item['card']['frontImagePath'] == path ||
-              item['card']['backImagePath'] == path,
-        )) {
+              (item) =>
+                  item['card']['frontImagePath'] == path ||
+                  item['card']['backImagePath'] == path,
+            ) ||
+            passports.any((passport) => passport.imagePath == path)) {
           continue;
         }
         await AppMediaStorage.deleteIfManaged(

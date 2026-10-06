@@ -33,7 +33,6 @@ class FolderView extends GetView<FolderController> {
               statusBarBrightness: Brightness.light,
             ),
       child: Scaffold(
-        key: settingsHostScaffoldKey,
         backgroundColor: theme.scaffoldBackgroundColor,
         extendBodyBehindAppBar: true,
         drawer: const SettingsDrawer(),

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:Note/core/network/api_client.dart';
+import 'package:Note/core/network/access_token.dart';
 import 'package:Note/core/storage/session_storage.dart';
 
 String? _cachedDocumentsPath;
@@ -117,9 +118,16 @@ String? normalizeLocalPath(String? value) {
 /// but `Image.network`/`NetworkImage` talk to the attachment host directly
 /// and skip that interceptor entirely — without this, a private attachment
 /// 401s and the image renders as permanently unavailable.
-Map<String, String>? attachmentAuthHeaders() {
+Map<String, String>? attachmentAuthHeaders(String url) {
+  final uri = Uri.tryParse(url);
+  if (uri == null ||
+      !['http', 'https'].contains(uri.scheme) ||
+      uri.origin != Uri.parse(ApiClient.baseUrl).origin ||
+      !Get.isRegistered<SessionStorage>()) {
+    return null;
+  }
   final session = Get.find<SessionStorage>();
-  final token = session.token.value;
-  if (!session.isLoggedIn || token == null) return null;
+  final token = AccessToken.normalize(session.token.value).value;
+  if (!session.isLoggedIn || token.isEmpty) return null;
   return {'Authorization': 'Bearer $token'};
 }

@@ -621,7 +621,7 @@ VideoPlayerController? _videoControllerFor(AttachmentBlock block) {
 
   return VideoPlayerController.networkUrl(
     uri,
-    httpHeaders: attachmentAuthHeaders() ?? const {},
+    httpHeaders: attachmentAuthHeaders(networkUrl!) ?? const {},
   );
 }
 

@@ -49,7 +49,7 @@ class ProfileController extends GetxController {
 
   final _picker = ImagePicker();
   final _guestMode = Get.find<GuestModeService>();
-  final _extras = ProfileExtrasStorage();
+  late final _extras = ProfileExtrasStorage(session: _session);
   final IdInformationStorage _idStorage;
 
   RxBool get isGuestMode => _guestMode.isGuestMode;
@@ -108,6 +108,9 @@ class ProfileController extends GetxController {
   }
 
   void _syncApiUser() async {
+    final revision = _session.accountRevision;
+    final guest = isGuestMode.value;
+    _loadProfileExtras();
     if (_loadedIdentityOwner != _idOwnerKey) {
       _loadedIdentityOwner = _idOwnerKey;
       identityCards.clear();
@@ -138,7 +141,9 @@ class ProfileController extends GetxController {
 
     userName.value = isGuest
         ? (guestName.isNotEmpty ? guestName : 'guest_label'.tr)
-        : (extraName.isNotEmpty ? extraName : (apiName.isNotEmpty ? apiName : 'default_user_name'.tr));
+        : (extraName.isNotEmpty
+              ? extraName
+              : (apiName.isNotEmpty ? apiName : 'default_user_name'.tr));
     final apiPhone = user?.phone?.trim() ?? '';
     final extraPhone = _extras.phone.trim();
 
@@ -155,6 +160,11 @@ class ProfileController extends GetxController {
         ? _extras.guestImagePath
         : (sessionImagePath.isNotEmpty ? sessionImagePath : extrasImagePath);
     final resolvedPath = await AppMediaStorage.resolve(savedPath);
+    if (isClosed ||
+        revision != _session.accountRevision ||
+        guest != isGuestMode.value) {
+      return;
+    }
     userImagePath.value =
         resolvedPath != null && File(resolvedPath).existsSync()
         ? resolvedPath
@@ -170,9 +180,11 @@ class ProfileController extends GetxController {
 
   String get formattedPassportDob => _formatDate(passportDob.value);
 
-  String get formattedPassportExpiryDate => _formatDate(passportExpiryDate.value);
+  String get formattedPassportExpiryDate =>
+      _formatDate(passportExpiryDate.value);
 
-  String get formattedPassportIssuedDate => _formatDate(passportIssuedDate.value);
+  String get formattedPassportIssuedDate =>
+      _formatDate(passportIssuedDate.value);
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';

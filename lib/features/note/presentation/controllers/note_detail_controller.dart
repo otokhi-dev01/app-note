@@ -255,6 +255,15 @@ class NoteDetailController extends GetxController {
 
   // --- Controller Management ---
 
+  // Navigation can close this controller before a queued editor callback runs.
+  // Do not restore focus or recreate controllers after their disposal.
+  void _afterFrame(void Function(Duration) callback) {
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      if (isClosed) return;
+      callback(timeStamp);
+    });
+  }
+
   quill.QuillController getQuillController(String blockId, String content) {
     return quillControllers.putIfAbsent(blockId, () {
       quill.Document doc;
@@ -373,7 +382,7 @@ class NoteDetailController extends GetxController {
     currentBlockStyle.value = nextBlock.style;
     blocks.refresh();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       final nextController = getQuillController(nextBlock.id, trailingJson);
       final selectionOffset = _isMarkedEmptyTextBlock(trailingDelta) ? 1 : 0;
       nextController.updateSelection(
@@ -546,7 +555,7 @@ class NoteDetailController extends GetxController {
         // Keep typing straight into the new item — same as every other
         // block-replacing mutation here (onChecklistItemEnter,
         // _exitChecklist) — instead of silently dropping the keyboard.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        _afterFrame((_) {
           getBlockFocusNode('${blockId}_${newItem.id}').requestFocus();
         });
       } else {
@@ -603,9 +612,7 @@ class NoteDetailController extends GetxController {
     addTextBlock();
     final created = blocks.whereType<TextBlock>().firstOrNull;
     if (created == null) return;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _focusTextBlockAtEnd(created),
-    );
+    _afterFrame((_) => _focusTextBlockAtEnd(created));
   }
 
   /// Gives the whole create-note canvas one predictable tap target. A fresh
@@ -630,7 +637,7 @@ class NoteDetailController extends GetxController {
   /// editor. A later requestFocus on that same node is therefore a no-op, so a
   /// canvas tap also asks the current text-input client to show the keyboard.
   void _showSoftwareKeyboardAfterFocus() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       if (FocusManager.instance.primaryFocus == null) return;
       unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.show'));
     });
@@ -648,9 +655,7 @@ class NoteDetailController extends GetxController {
     addTextBlock();
     final created = blocks.whereType<TextBlock>().lastOrNull;
     if (created == null) return;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _focusTextBlockAtEnd(created),
-    );
+    _afterFrame((_) => _focusTextBlockAtEnd(created));
   }
 
   /// Treats an image like an inline object in Apple Notes: tapping its left
@@ -683,7 +688,7 @@ class NoteDetailController extends GetxController {
     blocks.insert(insertIndex, textBlock);
     activeBlockIndex.value = insertIndex;
     blocks.refresh();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       _focusTextBlockAtStart(textBlock);
       _showSoftwareKeyboardAfterFocus();
     });
@@ -740,7 +745,7 @@ class NoteDetailController extends GetxController {
 
     if (blockIndex == 0) {
       deleteBlock(blockIndex);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      _afterFrame((_) {
         titleController.selection = TextSelection.collapsed(
           offset: titleController.text.length,
         );
@@ -753,7 +758,7 @@ class NoteDetailController extends GetxController {
     deleteBlock(blockIndex);
 
     if (previous is TextBlock) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      _afterFrame((_) {
         final previousQc = quillControllers[previous.id];
         if (previousQc == null) return;
         final end = previousQc.document.length - 1;
@@ -772,9 +777,7 @@ class NoteDetailController extends GetxController {
     final block = TextBlock(id: _generateId(), text: '', style: style);
     _insertBlock(block);
     if (requestFocus) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _focusTextBlockAtEnd(block),
-      );
+      _afterFrame((_) => _focusTextBlockAtEnd(block));
     }
   }
 
@@ -1097,7 +1100,7 @@ class NoteDetailController extends GetxController {
     blocks.refresh();
     addTextBlock();
     FocusManager.instance.primaryFocus?.unfocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       final previewContext = importedPdfPreviewKey.currentContext;
       if (previewContext == null || !previewContext.mounted) return;
       unawaited(
@@ -1940,7 +1943,7 @@ class NoteDetailController extends GetxController {
       ..insert(itemIndex + 1, newItem);
     blocks[blockIndex] = ChecklistBlock(id: block.id, items: newItems);
     blocks.refresh();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       getBlockFocusNode('${block.id}_${newItem.id}').requestFocus();
     });
   }
@@ -1953,7 +1956,7 @@ class NoteDetailController extends GetxController {
       final newBlock = TextBlock(id: block.id, text: '', style: 'body');
       blocks[blockIndex] = newBlock;
       blocks.refresh();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      _afterFrame((_) {
         getBlockFocusNode(newBlock.id).requestFocus();
       });
       return;
@@ -1964,7 +1967,7 @@ class NoteDetailController extends GetxController {
     final newBlock = TextBlock(id: _generateId(), text: '', style: 'body');
     blocks.insert(blockIndex + 1, newBlock);
     blocks.refresh();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       getBlockFocusNode(newBlock.id).requestFocus();
     });
   }
@@ -2025,7 +2028,7 @@ class NoteDetailController extends GetxController {
       final newBlock = TextBlock(id: block.id, text: '', style: 'body');
       blocks[blockIndex] = newBlock;
       blocks.refresh();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      _afterFrame((_) {
         getBlockFocusNode(newBlock.id).requestFocus();
       });
       return;
@@ -2046,7 +2049,7 @@ class NoteDetailController extends GetxController {
 
     final previousKey = '${block.id}_${previous.id}';
     final mergeOffset = previous.text.length;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _afterFrame((_) {
       final displayText = mergedText.isEmpty
           ? kChecklistItemPlaceholder
           : mergedText;
@@ -2980,6 +2983,7 @@ class NoteDetailController extends GetxController {
     isSearchVisible.toggle();
     if (isSearchVisible.value) {
       Future.delayed(const Duration(milliseconds: 300), () {
+        if (isClosed || !isSearchVisible.value) return;
         searchFocusNode.requestFocus();
       });
     } else {

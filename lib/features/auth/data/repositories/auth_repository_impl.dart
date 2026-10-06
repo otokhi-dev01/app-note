@@ -4,6 +4,7 @@ import 'package:Note/core/error/guard.dart';
 import 'package:Note/core/error/result.dart';
 import 'package:Note/core/network/access_token.dart';
 import 'package:Note/core/storage/session_storage.dart';
+import 'package:Note/core/storage/account_data_storage.dart';
 import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
@@ -102,8 +103,14 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<void>> deleteAccount({required String password}) =>
       guard(() async {
+        final owner = _session.user.value?.id;
+        final revision = _session.accountRevision;
         await _remote.deleteAccount(password);
-        await _session.clearSession();
+        // Stop in-flight account operations before removing their local data.
+        if (_session.accountRevision == revision) await _session.clearSession();
+        if (owner != null && owner.isNotEmpty) {
+          await AccountDataStorage.delete(owner);
+        }
       });
 
   @override

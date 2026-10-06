@@ -145,11 +145,12 @@ class ApiClient extends GetxService {
           final reason = AuthDiagnostics.serverReason(challenges);
           if (_isValidationMismatch(reason)) {
             _logValidationMismatch(reason);
-            debugPrint('[API] Skipping session invalidation for $reason.');
             return handler.next(error);
           }
           if (token.isEmpty || request.headers['Authorization'] == null) {
-            await _invalidateSession(session, session.revision);
+            if (token.isNotEmpty) {
+              await _invalidateSession(session, session.revision);
+            }
             return handler.next(error);
           }
 
@@ -185,8 +186,9 @@ class ApiClient extends GetxService {
                 );
                 if (_isValidationMismatch(retryReason)) {
                   _logValidationMismatch(retryReason);
+                } else {
+                  await _invalidateSession(session, retryRevision);
                 }
-                await _invalidateSession(session, retryRevision);
               }
             }
           } else if (recovery == _RefreshResult.rejected) {
@@ -217,8 +219,11 @@ class ApiClient extends GetxService {
     SessionStorage session,
     int expectedRevision,
   ) async {
+    final token = AccessToken.normalize(session.token.value).value;
+    if (token.isEmpty) return;
     if (session.revision != expectedRevision) return;
     try {
+      session.markSessionRejected();
       // Synchronously invalidates observables; only the token key is deleted.
       await session.invalidateToken();
     } catch (error) {
@@ -234,7 +239,7 @@ class ApiClient extends GetxService {
     try {
       if (Get.currentRoute != '/login') {
         unawaited(
-          Get.offAllNamed('/login', arguments: {'sessionRejected': true}),
+          Get.offAllNamed('/login'),
         );
       }
     } catch (error) {

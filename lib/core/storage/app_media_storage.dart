@@ -49,7 +49,8 @@ class AppMediaStorage {
     final directoryPrefix =
         '${documents.path}/$folder${Platform.pathSeparator}';
     final file = File(resolved);
-    if (file.absolute.path.startsWith(directoryPrefix) && file.existsSync()) {
+    final normalized = file.absolute.uri.normalizePath().toFilePath();
+    if (normalized.startsWith(directoryPrefix) && file.existsSync()) {
       await file.delete();
     }
   }

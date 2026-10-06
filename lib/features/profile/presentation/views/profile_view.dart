@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/theme/folder_appearance.dart';
 import 'package:Note/features/profile/presentation/controllers/profile_controller.dart';
+import 'package:Note/features/profile/presentation/widgets/identity_detail_fields.dart';
 import 'package:Note/routes/app_pages.dart';
 import 'package:Note/shared/widgets/glass_widgets.dart';
 import 'package:Note/shared/widgets/language_toggle_button.dart';
@@ -476,7 +477,7 @@ class ProfileView extends GetView<ProfileController> {
               color: controller.userColor,
               label: FolderAppearance.colorNameFor(
                 controller.userColorHex.value ??
-                FolderAppearance.defaultColorValue,
+                    FolderAppearance.defaultColorValue,
               ),
             ),
             onTap: controller.updateColor,
@@ -526,17 +527,53 @@ class ProfileView extends GetView<ProfileController> {
         (saved) => saved.idNumber == card?.idNumber,
       );
       final idNumber = card?.idNumber ?? controller.userIdNumber.value;
-      final dateOfBirth = card?.dateOfBirth ?? controller.formattedDateOfBirth;
+      final dateOfBirth = controller.formattedDateOfBirth.isNotEmpty
+          ? controller.formattedDateOfBirth
+          : card?.dateOfBirth ?? '';
       final placeOfBirth =
           card?.displayPlaceOfBirth ?? controller.userPlaceOfBirth.value;
       final currentAddress =
           card?.displayCurrentAddress ?? controller.userCurrentAddress.value;
-      final expiryDate = card?.expiryDate ?? controller.formattedIdExpiryDate;
+      final expiryDate = controller.formattedIdExpiryDate.isNotEmpty
+          ? controller.formattedIdExpiryDate
+          : card?.expiryDate ?? '';
 
       return _buildSurfaceCard(
         context,
         key: const ValueKey('profile_identity_information'),
         children: [
+          if (card != null &&
+              [
+                card.frontImagePath,
+                card.backImagePath,
+              ].any((path) => path != null && File(path).existsSync()))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  for (final (front, path) in [
+                    (true, card.frontImagePath),
+                    (false, card.backImagePath),
+                  ])
+                    if (path != null && File(path).existsSync())
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: AspectRatio(
+                            aspectRatio: 1.586,
+                            child: Image.file(
+                              File(path),
+                              key: ValueKey(
+                                'profile_identity_${front ? 'front' : 'back'}',
+                              ),
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                ],
+              ),
+            ),
           _buildDetailRow(
             context,
             icon: CupertinoIcons.shield_lefthalf_fill,
@@ -625,26 +662,26 @@ class ProfileView extends GetView<ProfileController> {
             wrapValue: true,
             onTap: edit,
           ),
-          // if (card != null) ...[
-          //   for (final field in identityAdditionalDetails(card))
-          //     _buildDetailRow(
-          //       context,
-          //       icon: CupertinoIcons.doc_text,
-          //       iconColor: _iosGray,
-          //       label: field.label,
-          //       value: field.value,
-          //       wrapValue: true,
-          //     ),
-          //   if (card.mrzLines.any((line) => line.isNotEmpty))
-          //     _buildDetailRow(
-          //       context,
-          //       icon: CupertinoIcons.doc_text,
-          //       iconColor: _iosGray,
-          //       label: 'identity_mrz_title'.tr,
-          //       value: card.mrzLines.join('\n'),
-          //       wrapValue: true,
-          //     ),
-          // ],
+          if (card != null) ...[
+            for (final field in identityAdditionalDetails(card))
+              _buildDetailRow(
+                context,
+                icon: CupertinoIcons.doc_text,
+                iconColor: _iosGray,
+                label: field.label,
+                value: field.value,
+                wrapValue: true,
+              ),
+            if (card.mrzLines.any((line) => line.isNotEmpty))
+              _buildDetailRow(
+                context,
+                icon: CupertinoIcons.doc_text,
+                iconColor: _iosGray,
+                label: 'identity_mrz_title'.tr,
+                value: card.mrzLines.join('\n'),
+                wrapValue: true,
+              ),
+          ],
         ],
       );
     });
@@ -843,8 +880,6 @@ class ProfileView extends GetView<ProfileController> {
       ),
     );
   }
-
-
 
   Widget _fieldBadge(IconData icon, Color color) {
     return CustomGlassContainer(

@@ -23,7 +23,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   /// the real update mechanism is confirmed with the backend team.
   @override
   Future<Result<AuthUser>> updateName(String fullName) async {
-    ProfileExtrasStorage().username = fullName;
+    ProfileExtrasStorage(session: _session).username = fullName;
     return _patchLocal((user) => user.copyWith(fullName: fullName));
   }
 
@@ -33,7 +33,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   /// deliberately rearchitected.
   @override
   Future<Result<AuthUser>> updateProfileImage(String imagePath) async {
-    ProfileExtrasStorage().profileImagePath = imagePath;
+    ProfileExtrasStorage(session: _session).profileImagePath = imagePath;
     return _patchLocal((user) => user.copyWith(profileImage: imagePath));
   }
 

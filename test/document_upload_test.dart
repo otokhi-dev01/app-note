@@ -6,13 +6,13 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/error/failures.dart';
 import 'package:Note/core/localization/app_translations.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/session_storage.dart';
-import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/profile/data/datasources/identity_remote_data_source.dart';
 import 'package:Note/features/profile/data/repositories/identity_repository_impl.dart';
 import 'package:Note/features/profile/domain/entities/identity_document.dart';
@@ -23,16 +23,6 @@ import 'package:Note/features/profile/presentation/views/document_upload_view.da
 class _Session extends SessionStorage {
   @override
   Future<void> loadSession() async {}
-  @override
-  Future<void> saveSession(
-    String newToken,
-    UserData userData, {
-    String? refreshToken,
-  }) async {
-    token.value = newToken;
-    this.refreshToken.value = refreshToken;
-    user.value = userData;
-  }
 }
 
 class _Adapter implements dio.HttpClientAdapter {
@@ -91,6 +81,7 @@ void main() {
 
   Future<void> initialize() async {
     Get.testMode = true;
+    FlutterSecureStorage.setMockInitialValues({});
     session = _Session();
     Get.put<SessionStorage>(session);
     await session.ready;

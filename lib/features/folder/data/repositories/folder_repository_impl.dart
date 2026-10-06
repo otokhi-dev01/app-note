@@ -69,39 +69,59 @@ class FolderRepositoryImpl implements FolderRepository {
         ),
       );
 
-      final code = asInt(body['code'] ?? body['Code'] ?? body['statusCode']);
-      final success = body['success'] ?? body['Success'] ?? body['status'];
-      final data = body['data'] ?? body['Data'];
+      _throwIfSaveFailed(body);
 
-      int savedId = 0;
-      if (data is Map) {
-        savedId = asInt(
-          data['FolderId'] ?? data['folderId'] ?? data['id'] ?? data['Id'],
-        );
-      } else if (data is num || data is String) {
-        // Some APIs return the ID directly as the 'data' field.
-        savedId = asInt(data);
-      }
-
-      if (savedId == 0) {
-        savedId = asInt(
-          body['FolderId'] ?? body['folderId'] ?? body['id'] ?? body['Id'],
-        );
-      }
-
-      final isSuccessBody = asBool(success) || 
-          (success is String && (success.toLowerCase() == 'success' || success.toLowerCase() == 'ok'));
-      
-      // If code is missing (0), we rely on isSuccessBody or savedId.
-      // If code is present, it must be a 2xx success.
-      final succeeded = (code >= 200 && code < 300) || isSuccessBody || savedId > 0;
-      
-      if (!succeeded) {
-        throw ServerException(ApiErrorParser.messageFrom(body));
+      int savedId = _savedFolderId(body);
+      if (savedId == 0 && id == 0) {
+        try {
+          final response = await _remote.getFolders();
+          final match = response.folders
+              .where((f) => f.name == trimmed)
+              .toList()
+            ..sort((a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)));
+          if (match.isNotEmpty) {
+            savedId = match.first.id;
+          }
+        } catch (_) {
+          // Ignore fetch error
+        }
       }
 
       return savedId > 0 ? savedId : id;
     });
+  }
+
+  static int _savedFolderId(Object? value) {
+    if (value is Map) {
+      final id = asInt(
+        value['FolderId'] ?? value['folderId'] ?? value['id'] ?? value['Id'],
+      );
+      if (id > 0) return id;
+      for (final key in ['data', 'Data', 'folder', 'Folder', 'result', 'Result']) {
+        final nestedId = _savedFolderId(value[key]);
+        if (nestedId > 0) return nestedId;
+      }
+      return 0;
+    }
+    if (value is List) {
+      return value.length == 1 ? _savedFolderId(value.single) : 0;
+    }
+    return value is int || value is String ? asInt(value) : 0;
+  }
+
+  static void _throwIfSaveFailed(Object? body) {
+    if (body is! Map) return;
+    final rawCode =
+        body['code'] ??
+        body['Code'] ??
+        body['statusCode'] ??
+        body['StatusCode'];
+    final code = rawCode == null ? null : asInt(rawCode);
+    final success = body['success'] ?? body['Success'];
+    if ((success != null && !asBool(success)) ||
+        (code != null && (code < 200 || code >= 300))) {
+      throw ServerException(ApiErrorParser.messageFrom(body), statusCode: code);
+    }
   }
 
   @override

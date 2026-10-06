@@ -58,7 +58,6 @@ class AppPages {
         return LoginView(
           initialAccount: account is String ? account : null,
           initialCountryCode: countryCode is String ? countryCode : null,
-          sessionRejected: args is Map && args['sessionRejected'] == true,
         );
       },
       binding: AuthBinding(),

@@ -149,7 +149,7 @@ class _AttachmentThumbnail extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
           networkUrl,
-          headers: attachmentAuthHeaders(),
+          headers: attachmentAuthHeaders(networkUrl),
           width: 44,
           height: 44,
           fit: BoxFit.cover,

@@ -104,6 +104,7 @@ class NoteMediaTitle extends StatelessWidget {
   }
 
   Future<void> _showEditor(BuildContext context, String title) async {
+    if (!context.mounted) return;
     final textController = TextEditingController(text: title);
     textController.selection = TextSelection.collapsed(offset: title.length);
 
@@ -131,7 +132,9 @@ class NoteMediaTitle extends StatelessWidget {
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+            child: Text(
+              MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+            ),
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
@@ -146,6 +149,8 @@ class NoteMediaTitle extends StatelessWidget {
     );
 
     textController.dispose();
-    if (updatedTitle != null && updatedTitle != title) onChanged(updatedTitle);
+    if (context.mounted && updatedTitle != null && updatedTitle != title) {
+      onChanged(updatedTitle);
+    }
   }
 }

@@ -450,14 +450,14 @@ class IdentityPreviewCard extends StatelessWidget {
                 ),
               ),
             ),
-            // IconButton(
-            //   key: ValueKey('identity_scan_$side'),
-            //   tooltip: scanLabel,
-            //   onPressed: onScan,
-            //   visualDensity: VisualDensity.compact,
-            //   color: theme.colorScheme.primary,
-            //   icon: const Icon(CupertinoIcons.camera_fill, size: 20),
-            // ),
+            IconButton(
+              key: ValueKey('identity_scan_$side'),
+              tooltip: 'identity_scan_$side'.tr,
+              onPressed: onScan,
+              visualDensity: VisualDensity.compact,
+              color: theme.colorScheme.primary,
+              icon: const Icon(CupertinoIcons.camera_fill, size: 20),
+            ),
             IconButton(
               key: ValueKey('identity_download_$side'),
               tooltip: 'identity_download_image'.tr,

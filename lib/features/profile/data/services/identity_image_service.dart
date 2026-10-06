@@ -177,27 +177,9 @@ abstract final class IdentityImageService {
         ],
       ),
     );
-    final pdfBytes = await document.save();
-    final pdfDoc = await pdfx.PdfDocument.openData(pdfBytes);
-    final page = await pdfDoc.getPage(1);
-    const renderWidth = 1600.0;
-    final rendered = await page.render(
-      width: renderWidth,
-      height: renderWidth * page.height / page.width,
-      format: pdfx.PdfPageImageFormat.png,
-      backgroundColor: '#FFFFFF',
-      forPrint: true,
-    );
-    await page.close();
-    await pdfDoc.close();
-
-    if (rendered == null) {
-      throw StateError('Could not render identity card PDF to image');
-    }
-
     return IdentityCardExport(
-      bytes: rendered.bytes,
-      fileName: 'identity_card.png',
+      bytes: await document.save(),
+      fileName: 'identity_card.pdf',
     );
   }
 
@@ -209,6 +191,36 @@ abstract final class IdentityImageService {
   /// Phones save directly to Photos/Gallery; desktop keeps the file dialog.
   static Future<String?> save(IdentityCardExport export) async {
     if (savesToPhotoLibrary) {
+      if (export.fileName.toLowerCase().endsWith('.pdf')) {
+        final document = await pdfx.PdfDocument.openData(export.bytes);
+        try {
+          final page = await document.getPage(1);
+          try {
+            const width = 1600.0;
+            final rendered = await page.render(
+              width: width,
+              height: width * page.height / page.width,
+              format: pdfx.PdfPageImageFormat.png,
+              backgroundColor: '#FFFFFF',
+              forPrint: true,
+            );
+            if (rendered == null) {
+              throw StateError('Could not render the identity record');
+            }
+            return await NativeMediaServices.savePhoto(
+              rendered.bytes,
+              export.fileName.replaceFirst(
+                RegExp(r'\.pdf$', caseSensitive: false),
+                '.png',
+              ),
+            );
+          } finally {
+            await page.close();
+          }
+        } finally {
+          await document.close();
+        }
+      }
       return NativeMediaServices.savePhoto(export.bytes, export.fileName);
     }
     return FilePicker.saveFile(

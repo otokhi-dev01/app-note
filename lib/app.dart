@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:get/get.dart';
 import 'package:Note/core/di/injector.dart';
 import 'package:Note/core/feedback/app_snackbar.dart';
@@ -27,6 +28,7 @@ class _NoteAppState extends State<NoteApp> {
     // Deferred to the first post-frame callback so GetX's navigator is
     // mounted before a cold-start share tries to push the note route.
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ShareIntentService.instance.start();
     });
   }
@@ -52,6 +54,8 @@ class _NoteAppState extends State<NoteApp> {
       translations: AppTranslations(),
       locale: LanguagePreferences().locale,
       fallbackLocale: const Locale('en', 'US'),
+      localizationsDelegates: FlutterQuillLocalizations.localizationsDelegates,
+      supportedLocales: const [Locale('en', 'US'), Locale('km', 'KH')],
     );
   }
 }

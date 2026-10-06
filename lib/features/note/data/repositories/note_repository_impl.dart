@@ -41,7 +41,7 @@ class NoteRepositoryImpl implements NoteRepository {
       noteId: noteId,
     );
 
-    if (content != null && content.isNotEmpty) {
+    if (content != null) {
       await _remote.saveNoteContent(
         noteId: confirmedId,
         title: title,

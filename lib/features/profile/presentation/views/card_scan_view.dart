@@ -381,7 +381,7 @@ class CardScanView extends GetView<CreditCardController> {
         ], context),
         const SizedBox(height: 40),
         const Spacer(),
-        _primaryAction('Photo', controller.onSaveCardPressed),
+        _primaryAction('Save Card', controller.onSaveCardPressed),
         const SizedBox(height: 8),
         TextButton(
           onPressed: controller.isLoading.value
