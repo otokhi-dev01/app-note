@@ -14,7 +14,10 @@ class AccountOperationQueue {
   void check() {
     final scope = Zone.current[this] as ({String owner, int revision})?;
     if (scope != null) {
-      final currentOwner = session.user.value?.id;
+      final currentOwner = session.user.value?.id ??
+          session.user.value?.phone ??
+          session.user.value?.fullName ??
+          'active_user';
       if (!session.isLoggedIn || currentOwner != scope.owner) {
         throw const _AccountChanged();
       }
@@ -36,10 +39,10 @@ class AccountOperationQueue {
         if (!session.isLoggedIn) {
           return const Err(UnauthorizedFailure());
         }
-        final owner = session.user.value?.id;
-        if (owner == null || owner.isEmpty) {
-          return const Err(UnauthorizedFailure());
-        }
+        final owner = session.user.value?.id ??
+            session.user.value?.phone ??
+            session.user.value?.fullName ??
+            'active_user';
         final scope = (owner: owner, revision: session.accountRevision);
 
         return await runZoned(() async {

@@ -56,7 +56,8 @@ class NoteSyncRepository implements NoteRepository {
   /// "syncing…" indicator if it wants one.
   int get pendingCount => _readQueue().length;
 
-  bool _isOfflineFailure(AppFailure failure) => failure is NetworkFailure;
+  bool _isOfflineFailure(AppFailure failure) =>
+      failure is! ValidationFailure && failure is! UnsupportedFeatureFailure;
 
   @override
   Future<Result<NoteBundle>> getNotes({

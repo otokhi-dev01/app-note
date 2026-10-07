@@ -57,7 +57,8 @@ class FolderSyncRepository implements FolderRepository {
   /// offline and has since synced.
   int resolveId(int id) => id >= 0 ? id : (_readTempMap()[id] ?? id);
 
-  bool _isOfflineFailure(AppFailure failure) => failure is NetworkFailure;
+  bool _isOfflineFailure(AppFailure failure) =>
+      failure is! ValidationFailure && failure is! UnsupportedFeatureFailure;
 
   @override
   Future<Result<FolderBundle>> getFolders() async {
