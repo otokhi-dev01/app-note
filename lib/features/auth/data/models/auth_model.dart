@@ -168,7 +168,16 @@ class UserData extends AuthUser {
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) => UserData(
-    id: (json['userId'] ?? json['id'] ?? json['UserId'] ?? json['Id'])
+    id: (json['userId'] ??
+            json['id'] ??
+            json['UserId'] ??
+            json['Id'] ??
+            json['account'] ??
+            json['Account'] ??
+            json['email'] ??
+            json['Email'] ??
+            json['username'] ??
+            json['Username'])
         ?.toString(),
     // 'displayName' is what GET /api/users/profile actually returns
     // (confirmed live); the rest are the auth-response spellings.
@@ -179,9 +188,16 @@ class UserData extends AuthUser {
                 json['username'] ??
                 json['FullName'] ??
                 json['Name'] ??
-                json['Username'])
+                json['Username'] ??
+                json['account'] ??
+                json['Account'])
             ?.toString(),
-    phone: (json['phone'] ?? json['email'] ?? json['Phone'] ?? json['Email'])
+    phone: (json['phone'] ??
+            json['email'] ??
+            json['Phone'] ??
+            json['Email'] ??
+            json['account'] ??
+            json['Account'])
         ?.toString(),
     deviceName: (json['deviceName'] ?? json['DeviceName'])?.toString(),
     deviceType: (json['deviceType'] ?? json['DeviceType'])?.toString(),

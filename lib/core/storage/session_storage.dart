@@ -150,13 +150,6 @@ class SessionStorage extends GetxService {
           await _storage.write(key: 'refresh_token', value: newRefreshToken);
         }
         await _storage.write(key: 'token', value: rawToken);
-        if (await _storage.read(key: 'token') != rawToken ||
-            await _storage.read(key: 'refresh_token') != newRefreshToken ||
-            await _storage.read(key: 'user') != encodedUser) {
-          throw const StorageException(
-            'The saved session could not be verified.',
-          );
-        }
       } catch (_) {
         token.value = null;
         this.refreshToken.value = null;

@@ -145,10 +145,13 @@ class ApiClient extends GetxService {
           final reason = AuthDiagnostics.serverReason(challenges);
           if (_isValidationMismatch(reason)) {
             _logValidationMismatch(reason);
+            if (_isAuthServer(request)) {
+              await _invalidateSession(session, revision as int);
+            }
             return handler.next(error);
           }
           if (token.isEmpty || request.headers['Authorization'] == null) {
-            if (token.isNotEmpty) {
+            if (token.isNotEmpty && _isAuthServer(request)) {
               await _invalidateSession(session, session.revision);
             }
             return handler.next(error);
@@ -186,19 +189,24 @@ class ApiClient extends GetxService {
                 );
                 if (_isValidationMismatch(retryReason)) {
                   _logValidationMismatch(retryReason);
-                } else {
+                } else if (_isAuthServer(request)) {
                   await _invalidateSession(session, retryRevision);
                 }
               }
             }
           } else if (recovery == _RefreshResult.rejected) {
-            await _invalidateSession(session, revision as int);
+            if (_isAuthServer(request)) {
+              await _invalidateSession(session, revision as int);
+            }
           }
           handler.next(failure);
         },
       ),
     );
   }
+
+  bool _isAuthServer(RequestOptions request) =>
+      request.uri.origin == Uri.parse(AppConstants.baseUrl).origin;
 
   bool _isValidationMismatch(String reason) =>
       reason == 'signature_rejected' ||

@@ -42,6 +42,7 @@ class AuthController extends GetxController {
   final isLoading = false.obs;
   final isPasswordVisible = false.obs;
   final isConfirmPasswordVisible = false.obs;
+  final errorMessage = ''.obs;
 
   @override
   void onInit() {
@@ -59,41 +60,46 @@ class AuthController extends GetxController {
   Future<void> continueWithoutAccount() async {
     if (isLoading.value || isClosed) return;
     Get.find<SessionStorage>().sessionRejected.value = false;
+    errorMessage.value = '';
     isLoading.value = true;
     try {
       _guestMode.enable();
-      await _replaceAuthStack(Routes.FOLDER);
+      _replaceAuthStack(Routes.FOLDER);
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 
-  Future<void> _replaceAuthStack(String route) async {
+  void _replaceAuthStack(String route) {
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
-    if (isClosed) return;
-    isLoading.value = false;
-    await Get.offAllNamed(route);
+    try {
+      SystemChannels.textInput.invokeMethod('TextInput.hide');
+    } catch (_) {}
+    unawaited(Get.offAllNamed(route));
   }
 
   Future<void> login() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    errorMessage.value = '';
     final account = accountController.account;
 
     final session = Get.find<SessionStorage>();
+    await session.clearSession();
     session.sessionRejected.value = false;
-    await session.invalidateToken();
 
     isLoading.value = true;
     try {
       final result = await _login(
         LoginParams(account: account, password: passwordController.text),
       );
-      if (isClosed) return;
 
       switch (result) {
         case Ok():
+          errorMessage.value = '';
           if (kDebugMode) {
             debugPrint('[AUTH] Login logic successful. Disable guest mode.');
           }
@@ -106,32 +112,36 @@ class AuthController extends GetxController {
           } catch (_) {}
 
           if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
-          await _replaceAuthStack(Routes.FOLDER);
+          _replaceAuthStack(Routes.FOLDER);
         case Err(:final failure):
+          errorMessage.value = failure.message;
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 
   Future<void> loginWithGoogle() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    errorMessage.value = '';
     final session = Get.find<SessionStorage>();
+    await session.clearSession();
     session.sessionRejected.value = false;
-    await session.invalidateToken();
 
     isLoading.value = true;
     try {
       final idToken = await _googleSignIn.signInIdToken();
-      if (isClosed || idToken == null) return;
+      if (idToken == null) return;
 
       final result = await _googleLogin(idToken);
-      if (isClosed) return;
 
       switch (result) {
         case Ok():
+          errorMessage.value = '';
           if (kDebugMode) {
             debugPrint('[AUTH] Google login successful. Setting up E2EE...');
           }
@@ -140,31 +150,36 @@ class AuthController extends GetxController {
           try {
             unawaited(Get.find<EncryptionController>().setupForCurrentUser());
           } catch (_) {}
-          await _replaceAuthStack(Routes.FOLDER);
+          _replaceAuthStack(Routes.FOLDER);
         case Err(:final failure):
+          errorMessage.value = failure.message;
           AppSnackbar.failure('login_failed_title'.tr, failure);
       }
     } on PlatformException catch (e) {
-      if (isClosed || e.code == 'sign_in_canceled') return;
-      AppSnackbar.error(
-        'login_failed_title'.tr,
-        (e.code == 'google_not_configured'
-                ? 'google_sign_in_unavailable'
-                : 'google_sign_in_failed')
-            .tr,
-      );
+      if (e.code == 'sign_in_canceled') return;
+      final msg = (e.code == 'google_not_configured'
+              ? 'google_sign_in_unavailable'
+              : 'google_sign_in_failed')
+          .tr;
+      errorMessage.value = msg;
+      AppSnackbar.error('login_failed_title'.tr, msg);
     } catch (_) {
       if (!isClosed) {
-        AppSnackbar.error('login_failed_title'.tr, 'google_sign_in_failed'.tr);
+        final msg = 'google_sign_in_failed'.tr;
+        errorMessage.value = msg;
+        AppSnackbar.error('login_failed_title'.tr, msg);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 
   Future<void> register() async {
     if (isLoading.value || isClosed) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    errorMessage.value = '';
 
     isLoading.value = true;
     try {
@@ -175,20 +190,23 @@ class AuthController extends GetxController {
           confirmPassword: confirmPasswordController.text,
         ),
       );
-      if (isClosed) return;
 
       switch (result) {
         case Ok():
+          errorMessage.value = '';
           AppSnackbar.success(
             'success_title'.tr,
             'register_success_message'.tr,
           );
-          await _replaceAuthStack(Routes.LOGIN);
+          _replaceAuthStack(Routes.LOGIN);
         case Err(:final failure):
+          errorMessage.value = failure.message;
           AppSnackbar.failure('register_failed_title'.tr, failure);
       }
     } finally {
-      isLoading.value = false;
+      if (!isClosed) {
+        isLoading.value = false;
+      }
     }
   }
 

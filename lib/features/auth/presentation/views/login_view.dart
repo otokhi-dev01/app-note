@@ -262,7 +262,10 @@ class _LoginViewState extends State<LoginView> {
                       ],
                     );
                   }),
-                  AccountInputField(controller: controller.accountController),
+                  AccountInputField(
+                    controller: controller.accountController,
+                    onChanged: (_) => controller.errorMessage.value = '',
+                  ),
                   const SizedBox(height: 14),
                   Obx(
                     () => CustomGlassTextField(
@@ -273,6 +276,7 @@ class _LoginViewState extends State<LoginView> {
                       borderRadius: 20,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => controller.login(),
+                      onChanged: (_) => controller.errorMessage.value = '',
                       prefixIcon: Icon(
                         CupertinoIcons.lock_fill,
                         size: 20,
@@ -316,7 +320,27 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 14),
+                  Obx(() {
+                    if (controller.errorMessage.value.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          controller.errorMessage.value,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                  const SizedBox(height: 6),
                   Obx(
                     () => CustomGlassButton(
                       semanticLabel: 'sign_in_button'.tr,

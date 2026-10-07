@@ -105,20 +105,12 @@ class ApiErrorParser {
         return const NetworkException('The request was cancelled.');
       default:
         final status = error.response?.statusCode;
-        final path = error.requestOptions.uri.path;
-        final isNoteRequest =
-            path == '/api/folder' ||
-            path.startsWith('/api/folder/') ||
-            path == '/api/note' ||
-            path.startsWith('/api/note/');
         final requiresAuth =
             error.requestOptions.extra['requiresAuth'] != false;
         final fallback = switch (status) {
           400 =>
             'The server rejected the request (400). Please check your input or contact support.',
           401 when !requiresAuth => 'Invalid account or password.',
-          401 when isNoteRequest =>
-            'The notes server could not authorize this request (401).',
           401 => 'Your session has expired. Please sign in again.',
           403 => 'You do not have permission to access this item (403).',
           404 => 'The requested service could not be found (404).',
