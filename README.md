@@ -194,6 +194,12 @@ login, and queued sign-out clears any pending session writes. Login transport an
 storage regression tests are in `test/login_integration_test.dart`; a successful
 live login still requires checking with a valid test account.
 
+Sign-up shows a success screen, then Done returns to Sign In with the new
+account prefilled and an empty password field. Registration credentials are used
+only for profile setup and are never saved as an app session. Enter the password
+and tap Sign In; successful authentication saves the session and opens the app
+directly.
+
 On launch, Splash and authenticated API requests await the same secure-storage
 restore before choosing a route or attaching the bearer token. A temporary
 Keychain read failure offers Retry without erasing saved credentials. A saved

@@ -6,33 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'package:Note/core/network/access_token.dart';
-import 'package:Note/core/storage/guest_mode_service.dart';
-import 'package:Note/core/storage/session_storage.dart';
 import 'package:Note/core/utils/validators.dart';
-import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/services/registration_service.dart';
 import 'package:Note/features/auth/presentation/controllers/account_input_controller.dart';
 import 'package:Note/routes/app_pages.dart';
 
 class RegistrationController extends GetxController
     with WidgetsBindingObserver {
-  RegistrationController(
-    this._service, {
-    DateTime Function()? now,
-    SessionStorage? session,
-    GuestModeService? guestMode,
-  }) : _now = now ?? DateTime.now,
-       _session = session ?? Get.find<SessionStorage>(),
-       _guestMode =
-           guestMode ??
-           (Get.isRegistered<GuestModeService>()
-               ? Get.find<GuestModeService>()
-               : null);
+  RegistrationController(this._service, {DateTime Function()? now})
+    : _now = now ?? DateTime.now;
 
   final RegistrationService _service;
   final DateTime Function() _now;
-  final SessionStorage _session;
-  final GuestModeService? _guestMode;
   final accountController = AccountInputController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -50,7 +35,8 @@ class RegistrationController extends GetxController
   final completed = false.obs;
   String? _completedAccount;
   bool _completedEmailVerified = false;
-  bool _openingApp = false;
+  bool _openingLogin = false;
+  String? _completedCountryCode;
 
   String? get completedAccount => _completedAccount;
   bool get completedEmailVerified => _completedEmailVerified;
@@ -59,8 +45,6 @@ class RegistrationController extends GetxController
   String _registrationAccount = '';
   bool _isEmailAccount = false;
   bool _isPhoneAccount = false;
-  UserData _registeredUser = const UserData();
-  String _registeredRefreshToken = '';
 
   bool get canEditProfileAccount => true;
   bool _emailVerified = false;
@@ -138,20 +122,9 @@ class RegistrationController extends GetxController
           cancelToken: _cancelToken,
         );
         if (isClosed) return;
-        _registeredUser = response.user;
-        _registeredRefreshToken = response.refreshToken;
         if (!_isPhoneAccount) {
           // The register endpoint already created this username. Do not turn
           // a name with spaces into an invalid email or repeat profile setup.
-          _profileToken = AccessToken.normalize(response.token).value;
-          if (_profileToken.isEmpty) {
-            _profileToken = await _service.loginForProfile(
-              account: _registrationAccount,
-              password: _password,
-              cancelToken: _cancelToken,
-            );
-            if (isClosed) return;
-          }
           await _completeRegistration();
           return;
         }
@@ -186,22 +159,13 @@ class RegistrationController extends GetxController
   }
 
   Future<void> _completeRegistration() async {
-    if (_profileToken.isEmpty) {
-      throw const RegistrationException(
-        'Your account was created, but sign-in could not be completed. Please try again.',
-      );
-    }
-    await _session.saveSession(
-      _profileToken,
-      _registeredUser,
-      refreshToken: _registeredRefreshToken,
-    );
-    _guestMode?.disable();
     final account = _registrationAccount;
     final emailVerified = _isEmailAccount && _emailVerified;
+    final countryCode = _isPhoneAccount ? accountController.country.code : null;
     clearTemporaryData();
     _completedAccount = account;
     _completedEmailVerified = emailVerified;
+    _completedCountryCode = countryCode;
     completed.value = true;
   }
 
@@ -288,8 +252,6 @@ class RegistrationController extends GetxController
           cancelToken: _cancelToken,
         );
         if (isClosed) return;
-        _registeredUser = response.user;
-        _registeredRefreshToken = response.refreshToken;
         _profileToken = AccessToken.normalize(response.token).value;
         accountCreated.value = true;
         otpController.clear();
@@ -324,9 +286,17 @@ class RegistrationController extends GetxController
   }
 
   void finishRegistration() {
-    if (!completed.value || isClosed || _openingApp) return;
-    _openingApp = true;
-    unawaited(Get.offAllNamed(Routes.FOLDER));
+    if (!completed.value || isClosed || _openingLogin) return;
+    _openingLogin = true;
+    unawaited(
+      Get.offAllNamed(
+        Routes.LOGIN,
+        arguments: {
+          'account': _completedAccount,
+          'countryCode': ?_completedCountryCode,
+        },
+      ),
+    );
   }
 
   void editDetails() {
@@ -400,7 +370,8 @@ class RegistrationController extends GetxController
   void clearTemporaryData() {
     _completedAccount = null;
     _completedEmailVerified = false;
-    _openingApp = false;
+    _openingLogin = false;
+    _completedCountryCode = null;
     _timer?.cancel();
     _timer = null;
     _retryAt = null;
@@ -411,8 +382,6 @@ class RegistrationController extends GetxController
     _isEmailAccount = false;
     _isPhoneAccount = false;
     _profileToken = '';
-    _registeredUser = const UserData();
-    _registeredRefreshToken = '';
     _emailVerified = false;
     for (final field in [
       accountController,

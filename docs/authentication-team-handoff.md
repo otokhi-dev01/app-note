@@ -162,8 +162,9 @@ Integration steps:
    `AuthRemoteDataSource`, `AuthRepository`, and the auth use cases before opening
    an auth route. Follow `InitialBinding._authUseCases()` for the use-case list.
 5. Register login and forgot-password routes with `AuthBinding`, and registration
-   with `RegistrationBinding`. Keep the login controller's `Get.create` behavior
-   so replacing the signup stack does not reuse a controller that is closing.
+   with `RegistrationBinding`. Keep the login controller registered permanently
+   so replacing the signup stack does not close the new sign-in form's controller.
+   Each new sign-in screen clears its password and any prior form error.
 6. Replace Pii Note's `Routes.FOLDER` destination with your app's signed-in home.
    Handle the guest destination separately. `AuthController` invokes
    `EncryptionController.setupForCurrentUser()` after login; either provide that

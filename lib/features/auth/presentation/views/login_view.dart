@@ -36,19 +36,21 @@ class _LoginViewState extends State<LoginView> {
     super.initState();
     controller = Get.find<AuthController>();
     final account = widget.initialAccount;
-    if (account != null && account.trim().isNotEmpty) {
-      // The previous login route may still listen during the transition.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+    // The previous login route may still listen during the transition.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (account != null && account.trim().isNotEmpty) {
         controller.accountController.setAccount(
           account,
           countryCode: widget.initialCountryCode,
         );
-        controller.passwordController.clear();
-        controller.confirmPasswordController.clear();
-        controller.isPasswordVisible.value = false;
-      });
-    }
+      }
+      controller.passwordController.clear();
+      controller.confirmPasswordController.clear();
+      controller.isPasswordVisible.value = false;
+      controller.isConfirmPasswordVisible.value = false;
+      controller.errorMessage.value = '';
+    });
   }
 
   @override
@@ -57,13 +59,7 @@ class _LoginViewState extends State<LoginView> {
     final isDark = theme.brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark
-          ? SystemUiOverlayStyle.light.copyWith(
-              statusBarColor: Colors.transparent,
-            )
-          : SystemUiOverlayStyle.dark.copyWith(
-              statusBarColor: Colors.transparent,
-            ),
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         body: Stack(
@@ -109,20 +105,6 @@ class _LoginViewState extends State<LoginView> {
                                       _buildHeader(context),
                                       const SizedBox(height: 28),
                                       _buildFormCard(context),
-                                      // const SizedBox(height: 22),
-                                      // _buildGuestButton(context),
-                                      // const SizedBox(height: 10),
-                                      // Text(
-                                      //   'login_guest_description'.tr,
-                                      //   textAlign: TextAlign.center,
-                                      //   style: theme.textTheme.bodySmall
-                                      //       ?.copyWith(
-                                      //         color: theme
-                                      //             .colorScheme
-                                      //             .onSurfaceVariant,
-                                      //       ),
-                                      // ).animate().fadeIn(delay: 500.ms),
-                                      // const SizedBox(height: 22),
                                       _buildRegisterRow(context),
                                     ],
                                   ),
@@ -243,7 +225,8 @@ class _LoginViewState extends State<LoginView> {
                 children: [
                   Obx(() {
                     final session = Get.find<SessionStorage>();
-                    if (!widget.sessionRejected && !session.sessionRejected.value) {
+                    if (!widget.sessionRejected &&
+                        !session.sessionRejected.value) {
                       return const SizedBox.shrink();
                     }
                     return Column(

@@ -74,6 +74,9 @@ const Map<String, String> enUS = {
   'register_link': 'Sign up',
   'welcome_title': 'Welcome',
   'login_success_message': 'Login successful!',
+  'login_success_title': 'Login successful',
+  'login_success_description':
+      'Your account is ready. Tap Done to open the app.',
   'login_failed_title': 'Login Failed',
   'session_rejected_message':
       'Your session could not be verified. Please sign in again. If this keeps happening, contact support.',
@@ -141,13 +144,13 @@ const Map<String, String> enUS = {
   'login_link': 'Sign in',
   'success_title': 'Success',
   'register_success_message':
-      'Account created successfully! Tap Done to open the app.',
+      'Account created successfully! Sign in with your password to open the app.',
   'register_verified_title': 'Email successfully verified',
   'register_created_title': 'Account created successfully',
   'register_created_description':
-      'Your account is ready. Tap Done to start capturing your ideas.',
+      'Your account is ready. Tap Done to sign in with your password.',
   'register_verified_description':
-      'Your account is ready. Tap Done to start capturing your ideas.',
+      'Your account is ready. Tap Done to sign in with your password.',
   'register_failed_title': 'Registration Failed',
 
   // Forgot password sheet
