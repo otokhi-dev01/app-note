@@ -169,8 +169,9 @@ void main() {
       ),
       findsOneWidget,
     );
+    final account = controller.completedAccount;
     expect(find.text('App destination'), findsNothing);
-    expect(session.isLoggedIn, isTrue);
+    expect(session.isLoggedIn, isFalse);
     unawaited(tester.binding.reassembleApplication());
     await tester.pumpAndSettle();
     await tester.pump(const Duration(seconds: 5));
@@ -178,7 +179,11 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     expect(find.byType(RegistrationSuccess), findsNothing);
-    expect(find.text('App destination'), findsOneWidget);
+    expect(find.text('Login destination'), findsOneWidget);
+    expect(find.text('App destination'), findsNothing);
+    expect((Get.arguments as Map)['account'], account);
+    expect((Get.arguments as Map).containsKey('password'), isFalse);
+    expect(session.isLoggedIn, isFalse);
   }
 
   Future<void> dispose(WidgetTester tester) async {
@@ -238,20 +243,22 @@ void main() {
         }
         await continueFromSuccess(tester);
         expect(controller.passwordController.text, isEmpty);
-        expect(find.text('App destination'), findsOneWidget);
+        expect(find.text('Login destination'), findsOneWidget);
+        expect(find.text('App destination'), findsNothing);
         unawaited(tester.binding.reassembleApplication());
         await tester.pumpAndSettle();
-        expect(Get.currentRoute, Routes.FOLDER);
+        expect(Get.currentRoute, Routes.LOGIN);
         expect(find.byType(RegisterScreen), findsNothing);
         expect(Get.key.currentState!.canPop(), isFalse);
         expect(controller.isClosed, isTrue);
         expect(
-          navigation.pushed.where((route) => route == Routes.FOLDER),
+          navigation.pushed.where((route) => route == Routes.LOGIN),
           hasLength(1),
         );
-        expect(Get.arguments, isNull);
+        expect((Get.arguments as Map)['account'], isNotEmpty);
+        expect((Get.arguments as Map).containsKey('password'), isFalse);
         expect(adapter.requests, hasLength(isPhone ? 2 : 1));
-        expect(session.isLoggedIn, isTrue);
+        expect(session.isLoggedIn, isFalse);
         await dispose(tester);
       },
     );
@@ -300,7 +307,7 @@ void main() {
     await dispose(tester);
   });
 
-  testWidgets('Username without a token uses temporary login for the app', (
+  testWidgets('Username without a token completes signup without logging in', (
     tester,
   ) async {
     await mount(tester);
@@ -313,18 +320,20 @@ void main() {
             'data': {'accessToken': 'temporary-token'},
           });
     await finish(tester, controller.register());
-    expect(adapter.requests, hasLength(2));
+    expect(adapter.requests, hasLength(1));
     expect(find.byType(RegistrationSuccess), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.text('App destination'), findsOneWidget);
-    expect(Get.arguments, isNull);
-    expect(session.isLoggedIn, isTrue);
+    expect(find.text('Login destination'), findsOneWidget);
+    expect(find.text('App destination'), findsNothing);
+    expect((Get.arguments as Map)['account'], isNotEmpty);
+    expect((Get.arguments as Map).containsKey('password'), isFalse);
+    expect(session.isLoggedIn, isFalse);
     await dispose(tester);
   });
 
   testWidgets(
-    'Successful signup opens the app once despite repeated completion',
+    'Successful signup opens sign-in once despite repeated completion',
     (tester) async {
       await mount(tester);
       fill();
@@ -333,13 +342,16 @@ void main() {
       await tester.tap(find.text('Done'));
       controller.finishRegistration();
       await tester.pumpAndSettle();
-      expect(find.text('App destination'), findsOneWidget);
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsNothing);
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
-      expect(find.text('App destination'), findsOneWidget);
-      expect(Get.arguments, isNull);
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsNothing);
+      expect((Get.arguments as Map)['account'], isNotEmpty);
+      expect((Get.arguments as Map).containsKey('password'), isFalse);
       expect(
-        navigation.pushed.where((route) => route == Routes.FOLDER),
+        navigation.pushed.where((route) => route == Routes.LOGIN),
         hasLength(1),
       );
       expect(tester.takeException(), isNull);
@@ -460,13 +472,15 @@ void main() {
       ]) {
         expect(field.text, isEmpty);
       }
-      expect(session.isLoggedIn, isTrue);
+      expect(session.isLoggedIn, isFalse);
       await controller.register();
       expect(adapter.requests, hasLength(4));
       await continueFromSuccess(tester, emailVerified: true);
-      expect(find.text('App destination'), findsOneWidget);
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsNothing);
       expect(find.text('Email successfully verified'), findsNothing);
-      expect(Get.arguments, isNull);
+      expect((Get.arguments as Map)['account'], isNotEmpty);
+      expect((Get.arguments as Map).containsKey('password'), isFalse);
       expect(Get.key.currentState!.canPop(), isFalse);
       expect(tester.takeException(), isNull);
       await dispose(tester);
@@ -592,7 +606,8 @@ void main() {
         hasLength(2),
       );
       await continueFromSuccess(tester, emailVerified: true);
-      expect(find.text('App destination'), findsOneWidget);
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsNothing);
       await dispose(tester);
     },
   );
@@ -634,9 +649,10 @@ void main() {
         hasLength(1),
       );
       await continueFromSuccess(tester, emailVerified: true);
-      expect(find.text('App destination'), findsOneWidget);
+      expect(find.text('Login destination'), findsOneWidget);
+      expect(find.text('App destination'), findsNothing);
       expect(Get.key.currentState!.canPop(), isFalse);
-      expect(session.isLoggedIn, isTrue);
+      expect(session.isLoggedIn, isFalse);
       await dispose(tester);
     },
   );
@@ -666,9 +682,10 @@ void main() {
           'Bearer temporary-token',
         );
         expect(adapter.requests[3].data['account'], account);
-        expect(session.isLoggedIn, isTrue);
+        expect(session.isLoggedIn, isFalse);
         await continueFromSuccess(tester, emailVerified: true);
-        expect(find.text('App destination'), findsOneWidget);
+        expect(find.text('Login destination'), findsOneWidget);
+        expect(find.text('App destination'), findsNothing);
         await dispose(tester);
       },
     );
@@ -717,6 +734,8 @@ void main() {
             ),
             findsOneWidget,
           );
+          await tester.ensureVisible(find.text('done_action'.tr));
+          await tester.pumpAndSettle();
           await tester.tap(find.text('done_action'.tr));
           await tester.pumpAndSettle();
           expect(done, isTrue);

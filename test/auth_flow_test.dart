@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
@@ -18,6 +19,11 @@ import 'package:Note/core/localization/app_translations.dart';
 import 'package:Note/core/network/api_client.dart';
 import 'package:Note/core/storage/guest_mode_service.dart';
 import 'package:Note/core/storage/session_storage.dart';
+import 'package:Note/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:Note/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:Note/features/auth/data/services/auth_device_service.dart';
+import 'package:Note/features/auth/data/services/registration_service.dart';
+import 'package:Note/features/auth/presentation/widgets/registration_success.dart';
 import 'package:Note/features/auth/data/models/auth_model.dart';
 import 'package:Note/features/auth/data/services/google_sign_in_service.dart';
 import 'package:Note/features/auth/domain/entities/auth_session.dart';
@@ -108,6 +114,48 @@ class _RejectedSessionAdapter implements dio.HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+class _Device implements AuthDeviceService {
+  @override
+  Future<AuthDeviceInfo> read() async => const AuthDeviceInfo(
+    clientDeviceId: 'fdffb4d7-e037-489f-aa84-a0ea82c138fe',
+    appVersion: '1.0.1',
+    deviceName: 'Test device',
+    platform: 'iOS',
+    deviceModel: 'Test model',
+  );
+}
+
+class _SignupLoginAdapter implements dio.HttpClientAdapter {
+  final requests = <dio.RequestOptions>[];
+
+  @override
+  Future<dio.ResponseBody> fetch(
+    dio.RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    return dio.ResponseBody.fromString(
+      jsonEncode({
+        'success': true,
+        'data': {
+          'accessToken': options.uri.path.endsWith('/register')
+              ? 'signup-token'
+              : 'signin-token',
+          'user': {'id': 'new-user'},
+        },
+      }),
+      200,
+      headers: {
+        dio.Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -154,7 +202,8 @@ void main() {
         final signingIn = controller.loginWithGoogle();
         await tester.pumpAndSettle();
         await signingIn;
-        expect(find.text('google_sign_in_unavailable'.tr), findsOneWidget);
+        expect(controller.errorMessage.value, 'google_sign_in_unavailable'.tr);
+        expect(find.text('google_sign_in_unavailable'.tr), findsWidgets);
         expect(controller.isLoading.value, isFalse);
         expect(google.received, isEmpty);
         expect(Get.currentRoute, route);
@@ -164,6 +213,97 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'Signup requires a separate password sign-in before opening the app',
+    (tester) async {
+      await initialize();
+      final session = Get.find<SessionStorage>();
+      final api = Get.find<ApiClient>();
+      final adapter = _SignupLoginAdapter();
+      api.dio.httpClientAdapter = adapter;
+      final device = _Device();
+      Get.put(
+        AuthController(
+          login: Login(
+            AuthRepositoryImpl(
+              AuthRemoteDataSource(api: api, deviceService: device),
+              session,
+            ),
+          ),
+          register: _FakeRegister(okVoid),
+          googleLogin: GoogleLogin(_NoopRepo()),
+        ),
+        permanent: true,
+      );
+      await tester.pumpWidget(
+        GetMaterialApp(
+          scaffoldMessengerKey: AppSnackbar.messengerKey,
+          translations: AppTranslations(),
+          locale: const Locale('en', 'US'),
+          initialRoute: Routes.LOGIN,
+          getPages: [
+            AppPages.routes.firstWhere((page) => page.name == Routes.LOGIN),
+            GetPage(
+              name: Routes.REGISTER,
+              page: () => const RegisterScreen(),
+              binding: BindingsBuilder(
+                () => Get.lazyPut(
+                  () => RegistrationController(
+                    RegistrationService(api, deviceService: device),
+                  ),
+                ),
+              ),
+            ),
+            GetPage(
+              name: Routes.FOLDER,
+              page: () => const Scaffold(body: Text('App destination')),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      unawaited(Get.toNamed(Routes.REGISTER));
+      await tester.pumpAndSettle();
+      final registration = Get.find<RegistrationController>();
+      registration.accountController.text = 'newuser';
+      registration.passwordController.text = 'test-password';
+      registration.confirmPasswordController.text = 'test-password';
+      await tester.ensureVisible(find.text('Sign Up'));
+      await tester.tap(find.text('Sign Up'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RegistrationSuccess), findsOneWidget);
+      expect(session.isLoggedIn, isFalse);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      final auth = Get.find<AuthController>();
+      expect(Get.currentRoute, Routes.LOGIN);
+      expect(auth.accountController.account, 'newuser');
+      expect(auth.passwordController.text, isEmpty);
+      expect(session.isLoggedIn, isFalse);
+      expect(adapter.requests.map((request) => request.uri.path), [
+        '/api/auth/register',
+      ]);
+      await tester.pump(const Duration(seconds: 3));
+      expect(Get.currentRoute, Routes.LOGIN);
+      await tester.enterText(find.byType(EditableText).last, 'test-password');
+      await tester.pumpAndSettle();
+      expect(session.isLoggedIn, isFalse);
+      await tester.ensureVisible(find.text('Sign In'));
+      await tester.tap(find.text('Sign In'));
+      await tester.pumpAndSettle();
+      expect(Get.currentRoute, Routes.FOLDER);
+      expect(find.text('App destination'), findsOneWidget);
+      expect(session.token.value, 'signin-token');
+      final signInRequest = adapter.requests.singleWhere(
+        (request) => request.uri.path == '/api/auth/login',
+      );
+      expect(signInRequest.data['account'], 'newuser');
+      expect(signInRequest.data['password'], 'test-password');
+      expect(Get.key.currentState!.canPop(), isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Register offers email signup without Google sign-in', (
     tester,
@@ -200,6 +340,8 @@ void main() {
       ),
     );
     final first = controller.loginWithGoogle();
+    await Get.find<SessionStorage>().waitForPendingWrites();
+    await tester.pump();
     await controller.loginWithGoogle();
     expect(signIn.calls, 1);
     controller.onDelete();
@@ -256,10 +398,7 @@ void main() {
       unawaited(
         Get.offAllNamed(
           Routes.LOGIN,
-          arguments: {
-            'account': account,
-            'countryCode': ?countryCode,
-          },
+          arguments: {'account': account, 'countryCode': ?countryCode},
         ),
       );
       await tester.pumpAndSettle();
@@ -460,10 +599,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
 
       await tester.tap(find.text('sign_in_button'.tr));
-      await tester.pumpAndSettle();
-      // Let the success snackbar's auto-dismiss timer finish before the test
-      // ends, or it leaks a pending timer into the next test.
-      await tester.pump(const Duration(seconds: 4));
       await tester.pumpAndSettle();
 
       expect(guest.isGuestMode.value, isFalse);

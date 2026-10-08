@@ -88,14 +88,16 @@ class AuthController extends GetxController {
     final account = accountController.account;
 
     final session = Get.find<SessionStorage>();
-    await session.clearSession();
-    session.sessionRejected.value = false;
-
     isLoading.value = true;
     try {
+      await session.clearSession();
+      if (isClosed) return;
+      session.sessionRejected.value = false;
       final result = await _login(
         LoginParams(account: account, password: passwordController.text),
       );
+
+      if (isClosed) return;
 
       switch (result) {
         case Ok():
@@ -103,15 +105,15 @@ class AuthController extends GetxController {
           if (kDebugMode) {
             debugPrint('[AUTH] Login logic successful. Disable guest mode.');
           }
+          passwordController.clear();
+          confirmPasswordController.clear();
           _guestMode.disable();
-          AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
 
           // Setup E2EE safely without blocking navigation
           try {
             unawaited(Get.find<EncryptionController>().setupForCurrentUser());
           } catch (_) {}
 
-          if (kDebugMode) debugPrint('[AUTH] Navigating to Folder view...');
           _replaceAuthStack(Routes.FOLDER);
         case Err(:final failure):
           errorMessage.value = failure.message;
@@ -129,15 +131,17 @@ class AuthController extends GetxController {
     FocusManager.instance.primaryFocus?.unfocus();
     errorMessage.value = '';
     final session = Get.find<SessionStorage>();
-    await session.clearSession();
-    session.sessionRejected.value = false;
-
     isLoading.value = true;
     try {
+      await session.clearSession();
+      if (isClosed) return;
+      session.sessionRejected.value = false;
       final idToken = await _googleSignIn.signInIdToken();
-      if (idToken == null) return;
+      if (idToken == null || isClosed) return;
 
       final result = await _googleLogin(idToken);
+
+      if (isClosed) return;
 
       switch (result) {
         case Ok():
@@ -145,8 +149,9 @@ class AuthController extends GetxController {
           if (kDebugMode) {
             debugPrint('[AUTH] Google login successful. Setting up E2EE...');
           }
+          passwordController.clear();
+          confirmPasswordController.clear();
           _guestMode.disable();
-          AppSnackbar.success('welcome_title'.tr, 'login_success_message'.tr);
           try {
             unawaited(Get.find<EncryptionController>().setupForCurrentUser());
           } catch (_) {}
@@ -157,10 +162,11 @@ class AuthController extends GetxController {
       }
     } on PlatformException catch (e) {
       if (e.code == 'sign_in_canceled') return;
-      final msg = (e.code == 'google_not_configured'
-              ? 'google_sign_in_unavailable'
-              : 'google_sign_in_failed')
-          .tr;
+      final msg =
+          (e.code == 'google_not_configured'
+                  ? 'google_sign_in_unavailable'
+                  : 'google_sign_in_failed')
+              .tr;
       errorMessage.value = msg;
       AppSnackbar.error('login_failed_title'.tr, msg);
     } catch (_) {
@@ -190,6 +196,8 @@ class AuthController extends GetxController {
           confirmPassword: confirmPasswordController.text,
         ),
       );
+
+      if (isClosed) return;
 
       switch (result) {
         case Ok():

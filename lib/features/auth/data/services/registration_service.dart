@@ -13,9 +13,8 @@ class RegistrationException implements Exception {
   final int? retryAfter;
 }
 
-/// The documented Chat registration endpoint. Session persistence stays in the
-/// registration controller so this service remains usable in tests and other
-/// auth flows.
+/// The documented Chat registration endpoint. Signup credentials authorize
+/// profile setup only; the user signs in separately to start an app session.
 class RegistrationService {
   RegistrationService(ApiClient api, {AuthDeviceService? deviceService})
     : _dio = api.dio,
@@ -25,7 +24,7 @@ class RegistrationService {
   final AuthDeviceService _deviceService;
 
   /// Some register responses omit tokens. Authenticate to obtain a credential
-  /// that can complete profile setup or open the app after signup.
+  /// that can complete profile setup without starting an app session.
   Future<String> loginForProfile({
     required String account,
     required String password,

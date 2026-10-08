@@ -13,13 +13,16 @@ class AuthBinding extends Bindings {
       ),
       fenix: true,
     );
-    Get.lazyPut(
-      () => AuthController(
+    if (Get.isRegistered<AuthController>()) return;
+    // Keep the form controller alive while signup replaces the login stack.
+    // Otherwise GetX can close the instance held by the new login screen.
+    Get.put(
+      AuthController(
         login: Get.find<Login>(),
         register: Get.find<Register>(),
         googleLogin: Get.find<GoogleLogin>(),
       ),
-      fenix: true,
+      permanent: true,
     );
   }
 }
